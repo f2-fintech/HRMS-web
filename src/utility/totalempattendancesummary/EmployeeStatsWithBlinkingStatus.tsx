@@ -110,13 +110,13 @@ const StatusCard: React.FC<{ count: number; status: string; employees: string[];
         return { icon: <PresentIcon />, color: theme.palette.success.main, backgroundColor: theme.palette.success.light };
       case 'Absent':
         return { icon: <AbsentIcon />, color: theme.palette.error.main, backgroundColor: theme.palette.error.light };
-      case 'On Leave':
+      case 'On_Leave':
         return { icon: <LeaveIcon />, color: theme.palette.warning.main, backgroundColor: theme.palette.warning.light };
-      case 'On Half':
+      case 'On_Half':
         return { icon: <HalfDayIcon />, color: theme.palette.info.main, backgroundColor: theme.palette.info.light };
-      case 'On Field':
+      case 'On_Field':
         return { icon: <OnFieldIcon />, color: theme.palette.primary.main, backgroundColor: theme.palette.primary.light };
-      case 'On Wfh': // New status
+      case 'On_Wfh': // New status
         return { icon: <HomeIcon />, color: theme.palette.secondary.main, backgroundColor: theme.palette.secondary.light };
       default:
         return { icon: <PersonIcon />, color: theme.palette.grey[500], backgroundColor: theme.palette.grey[200] };
@@ -151,7 +151,7 @@ const StatusCard: React.FC<{ count: number; status: string; employees: string[];
         {count}
       </Typography>
       <Typography variant="body2" sx={{ color: 'white', textAlign: 'center' }}>
-        {status}
+        {status.replace('_', ' ').trim()}
       </Typography>
     </Paper>
   );
@@ -168,7 +168,6 @@ const EmployeeAttendanceStatus: React.FC = () => {
 
   const handleStatusClick = async (status: string, location: string) => {
 
-    console.log(status, location, "status>>>>");
     try {
       // Fetch attendance data based on status
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/attendenceByStatus?status=${status}&location=${location}`); // Call your backend API
@@ -285,9 +284,9 @@ const EmployeeAttendanceStatus: React.FC = () => {
                       <Grid item xs={12} sm={6} key={status}>
                         <StatusCard
                           count={count}
-                          status={status.replace(/([A-Z])/g, ' $1').trim()}
+                          status={status}
                           employees={[]}
-                          onClick={() => handleStatusClick(status, data._id)}
+                          onClick={() => handleStatusClick(status.replace('_', ' ').trim(), data._id)}
                         />
                       </Grid>
                     );

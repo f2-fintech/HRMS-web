@@ -56,246 +56,9 @@ import { AttendanceSummaryColumns } from '@/utility/attendancesummry/AttendanceS
 
 import Loader from "../components/loader/loader";
 import AddAttendanceForm from '@/components/attendance/AttendanceForm';
-
-function getRandomNumber(min: number, max: number) {
-  return Math.round(Math.random() * (max - min) + min);
-}
-
-function fakeFetch(date: Dayjs, { signal }: { signal: AbortSignal }) {
-  return new Promise<{ daysToHighlight: number[] }>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      const daysInMonth = date.daysInMonth();
-      const daysToHighlight = [1, 2, 3].map(() => getRandomNumber(1, daysInMonth));
-
-      resolve({ daysToHighlight });
-    }, 500);
-
-    signal.onabort = () => {
-      clearTimeout(timeout);
-      reject(new DOMException('aborted', 'AbortError'));
-    };
-  });
-}
-
-const initialValue = dayjs();
-
-function ServerDay(props: PickersDayProps<Dayjs> & { highlightedDays?: number[], attendanceData?: any }) {
-  const { highlightedDays = [], day, outsideCurrentMonth, attendanceData, ...other } = props;
-
-
-
-  function getLastSundayOfMonth(month: number, year: number): number {
-    const lastDayOfMonth = new Date(year, month, 0);
-    const dayOfWeek = lastDayOfMonth.getDay();
-
-
-    return lastDayOfMonth.getDate() - dayOfWeek;
-  }
-
-  const attendanceStatus = attendanceData?.[day.format('YYYY-MM-DD')] || '';
-  const isSunday = day.day() === 0;
-  const lastSunday = getLastSundayOfMonth(day.month() + 1, day.year());
-  const isLastSunday = day.date() === lastSunday && isSunday;
-
-  let backgroundColor;
-  let color;
-
-  if (attendanceStatus === 'Present') {
-    backgroundColor = 'green';
-    color = 'white';
-  } else if (attendanceStatus === 'Absent') {
-    backgroundColor = 'red';
-    color = 'white';
-  } else if (attendanceStatus === 'On Leave') {
-    backgroundColor = 'yellow';
-    color = 'black';
-  } else if (attendanceStatus === 'On Half') {
-    backgroundColor = '#b7a53a';
-    color = 'white';
-  } else if (attendanceStatus === 'On Field') {
-    backgroundColor = '#110720';
-    color = 'white';
-  } else if (attendanceStatus === 'On Wfh') {
-    backgroundColor = 'rgb(247, 51, 120)';
-    color = 'white';
-  }
-  else if (isSunday && !isLastSunday) {
-    backgroundColor = 'purple';
-    color = 'white';
-  }
-
-  return (
-    <PickersDay
-      {...other}
-      outsideCurrentMonth={outsideCurrentMonth}
-      day={day}
-      sx={{
-        backgroundColor: backgroundColor ? `${backgroundColor} !important` : 'inherit',
-        color: color ? `${color} !important` : 'inherit',
-        fontSize: '1em'
-      }}
-    />
-  );
-}
-
-function DateCalendarServerRequest({ attendanceData, selectedMonth, onMonthChange }) {
-  const requestAbortController = useRef<AbortController | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [highlightedDays, setHighlightedDays] = useState<number[]>([]);
-
-  const fetchHighlightedDays = (date: Dayjs) => {
-    const controller = new AbortController();
-
-    fakeFetch(date, {
-      signal: controller.signal,
-    })
-      .then(({ daysToHighlight }) => {
-        setHighlightedDays(daysToHighlight);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        if (error.name !== 'AbortError') {
-          throw error;
-        }
-      });
-
-    requestAbortController.current = controller;
-  };
-
-  useEffect(() => {
-    fetchHighlightedDays(initialValue);
-
-    return () => requestAbortController.current?.abort();
-  }, []);
-
-  const handleMonthChange = (date: Dayjs) => {
-    if (requestAbortController.current) {
-      requestAbortController.current.abort();
-    }
-
-    setIsLoading(true);
-    setHighlightedDays([]);
-    fetchHighlightedDays(date);
-    onMonthChange(date);
-  };
-
-  return (
-    <Box>
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <DateCalendar
-          defaultValue={initialValue}
-          loading={isLoading}
-          onMonthChange={handleMonthChange}
-          renderLoading={() => <DayCalendarSkeleton />}
-          slots={{
-            day: (props) => <ServerDay {...props} attendanceData={attendanceData} />,
-          }}
-          slotProps={{
-            day: {
-              highlightedDays,
-            } as any,
-          }}
-          sx={{
-            '.MuiPickersCalendarHeader-root': {
-              backgroundColor: '#1976d2',
-              color: 'white',
-            },
-            '.MuiPickersCalendarHeader-label': {
-              color: 'white',
-            },
-            '.MuiPickersDay-day': {
-              fontSize: '1.2em',
-            },
-            '.MuiPickersCalendarHeader-switchViewIcon': {
-              color: 'white',
-            },
-            '& .MuiDayCalendar-weekDayLabel': {
-              fontSize: '1.2em',
-              fontWeight: 'bold',
-            },
-            '.MuiPickersCalendarHeader-iconButton': {
-              color: 'white',
-            },
-          }}
-        />
-      </LocalizationProvider>
-    </Box>
-  );
-}
-
-function Legend() {
-  return (
-    <Box>
-      <Box display='flex' gap={2} mb={2}>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Box width={15} height={15} bgcolor="green" mr={1} />
-          <Typography>Present</Typography>
-        </Box>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Box width={15} height={15} bgcolor="red" mr={1} />
-          <Typography>Absent</Typography>
-        </Box>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Box width={15} height={15} bgcolor="#b7a53a" mr={1} />
-          <Typography>Half</Typography>
-        </Box>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Box width={15} height={15} bgcolor="yellow" mr={1} />
-          <Typography>Leave</Typography>
-        </Box>
-      </Box>
-      <Box display='flex' gap={2}>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Box width={15} height={15} bgcolor="#110720" mr={1} />
-          <Typography>On Field</Typography>
-        </Box>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Box width={15} height={15} bgcolor="rgb(247, 51, 120)" mr={1} />
-          <Typography>WFH</Typography>
-        </Box>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Box width={15} height={15} bgcolor="purple" mr={1} />
-          <Typography>Sunday</Typography>
-        </Box>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Box width={15} height={15} bgcolor="#8c57ff" mr={1} />
-          <Typography>Today</Typography>
-        </Box>
-      </Box>
-    </Box>
-  );
-}
-
-function AttendanceStatusList({ attendanceData, selectedMonth }) {
-  const filteredData = Object.entries(attendanceData).filter(([date]) => {
-    const month = dayjs(date).month() + 1;
-
-
-    return month === selectedMonth;
-  });
-
-  return (
-    <Box sx={{ ml: 20 }}>
-      <Typography variant="h5" gutterBottom>
-        Attendance Status
-      </Typography>
-      <Grid container spacing={2}>
-        {filteredData.length > 0 ? (
-          filteredData.map(([date, status]) => (
-            <Grid item xs={12} sm={6} key={date}>
-              <Box display="flex" justifyContent="flex-start" alignItems="center">
-                <Typography sx={{ width: '50%' }}>{date}</Typography>
-                <Typography sx={{ width: '50%' }}>{status}</Typography>
-              </Box>
-            </Grid>
-          ))
-        ) : (
-          <Typography>No attendance data for this month.</Typography>
-        )}
-      </Grid>
-    </Box>
-  );
-}
+import DateCalendarServerRequest from '@/components/attendance/DateCalendarServerRequest';
+import Legend from '@/components/attendance/Legend';
+import AttendanceStatusList from '@/components/attendance/AttendanceStatusList';
 
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch();
@@ -355,8 +118,10 @@ export default function AttendanceGrid() {
   };
 
   useEffect(() => {
-    dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: page, limit: limit, keyword: searchName, location: searchLocation }));
-  }, [dispatch, month, startDayIndex, page, limit]);
+    if (userRole === '1') {
+      dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: page, limit: limit, keyword: searchName, location: searchLocation }));
+    }
+  }, [dispatch, month, startDayIndex, page, limit, userRole]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -852,7 +617,7 @@ export default function AttendanceGrid() {
             <Box display="flex" flexDirection="column" flexShrink={0}>
               <DateCalendarServerRequest
                 attendanceData={attendanceData}
-                selectedMonth={month}
+                month={month}
                 onMonthChange={handleMonthChange}
               />
               <Legend />

@@ -76,14 +76,14 @@ export const fetchAttendances = createAsyncThunk(
 
 export const fetchEmployeeAttendances = createAsyncThunk(
   'attendances/fetchEmployeeAttendances',
-  async (employeeId: string) => {
+  async ({ employeeId, month }: { employeeId: string; month: string }) => {
     let token: string | null = null;
 
     if (typeof window !== 'undefined') {
       token = localStorage.getItem('token');
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee/${employeeId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee/${employeeId}/${month}`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -98,6 +98,7 @@ export const fetchEmployeeAttendances = createAsyncThunk(
     return (await response.json()) as Attendance[];
   }
 );
+
 
 export const attendancesSlice = createSlice({
   name: 'attendances',
@@ -156,16 +157,29 @@ export const attendancesSlice = createSlice({
 
   },
   extraReducers: (builder) => {
-    builder.addCase(fetchAttendances.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    })
+    builder
+      .addCase(fetchAttendances.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(fetchAttendances.fulfilled, (state, action) => {
         state.attendances = action.payload.attendances;
         state.count = action.payload.count;  // Set the count
         state.loading = false;
       })
       .addCase(fetchAttendances.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Something went wrong';
+      })
+      .addCase(fetchEmployeeAttendances.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchEmployeeAttendances.fulfilled, (state, action) => {
+        state.attendances = action.payload;
+        state.loading = false;
+      })
+      .addCase(fetchEmployeeAttendances.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Something went wrong';
       });
