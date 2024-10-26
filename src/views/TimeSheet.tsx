@@ -102,7 +102,7 @@ export default function TimeSheetGrid() {
 
       if (Number(userRole) >= 3) {
         if (attendances.length === 0) {
-          await dispatch(fetchEmployeeAttendances(userId))
+          await dispatch(fetchEmployeeAttendances({ employeeId: userId, month: '' }))
         }
       } else {
         if (attendances.length === 0) {
