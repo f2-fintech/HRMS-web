@@ -1,4 +1,4 @@
-import { Box } from '@mui/material';
+import { Box, Card, CardContent, CardHeader, styled } from '@mui/material';
 import { DateCalendar, PickersDayProps } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -6,12 +6,72 @@ import { DayCalendarSkeleton } from '@mui/x-date-pickers/DayCalendarSkeleton';
 import { useEffect, useRef, useState } from 'react';
 import dayjs, { Dayjs } from 'dayjs';
 import ServerDay from './ServerDay';
-
-import { useDispatch, useSelector } from 'react-redux'
-
-import type { AppDispatch, RootState } from '@/redux/store'
+import { useDispatch } from 'react-redux';
+import type { AppDispatch } from '@/redux/store';
 import { fetchEmployeeAttendances } from '@/redux/features/attendances/attendancesSlice';
-import AttendanceStatusList from './AttendanceStatusList';
+import { CalendarToday } from '@mui/icons-material';
+
+// Styled Components
+const StyledCard = styled(Card)(({ theme }) => ({
+    height: '100%',
+    '& .MuiCardHeader-root': {
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        paddingBottom: theme.spacing(2),
+    },
+    '& .MuiCardContent-root': {
+        padding: theme.spacing(2),
+        '&:last-child': {
+            paddingBottom: theme.spacing(2),
+        }
+    }
+}));
+
+const StyledCalendar = styled(DateCalendar)(({ theme }) => ({
+    width: '100%',
+    maxWidth: '360px',
+    margin: '0 auto',
+    '& .MuiPickersCalendarHeader-root': {
+        paddingLeft: theme.spacing(2),
+        paddingRight: theme.spacing(2),
+        marginTop: theme.spacing(1),
+        marginBottom: theme.spacing(2),
+        '& .MuiPickersCalendarHeader-label': {
+            fontWeight: 600,
+        },
+    },
+    '& .MuiDayCalendar-weekDayLabel': {
+        color: theme.palette.text.secondary,
+        fontWeight: 600,
+    },
+    '& .MuiPickersDay-root': {
+        width: 40,
+        height: 40,
+        fontSize: '0.875rem',
+        '&:hover': {
+            backgroundColor: theme.palette.action.hover,
+        },
+        '&.Mui-selected': {
+            backgroundColor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
+            '&:hover': {
+                backgroundColor: theme.palette.primary.dark,
+            },
+        },
+    },
+}));
+
+const LoadingContainer = styled(Box)(({ theme }) => ({
+    padding: theme.spacing(2),
+    '& .MuiDayCalendarSkeleton-root': {
+        backgroundColor: 'transparent',
+    },
+}));
+
+interface DateCalendarServerRequestProps {
+    attendanceData: any;
+    onMonthChange: (date: Dayjs) => void;
+    month: number;
+}
 
 function getRandomNumber(min: number, max: number) {
     return Math.round(Math.random() * (max - min) + min);
@@ -32,35 +92,31 @@ function fakeFetch(date: Dayjs, { signal }: { signal: AbortSignal }) {
     });
 }
 
-interface DateCalendarServerRequestProps {
-    attendanceData: any;
-    onMonthChange: (date: Dayjs) => void;
-    month: number
-}
-
-export default function DateCalendarServerRequest({ attendanceData, month, onMonthChange }: DateCalendarServerRequestProps) {
+export default function DateCalendarServerRequest({
+    attendanceData,
+    month,
+    onMonthChange
+}: DateCalendarServerRequestProps) {
     const requestAbortController = useRef<AbortController | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [highlightedDays, setHighlightedDays] = useState<number[]>([]);
-    // const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [userId, setUserId] = useState<string>('');
 
     const dispatch: AppDispatch = useDispatch();
 
-    console.log("userId", userId);
-
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}')
-
-        // setUserRole(user.role)
-        setUserId(user.id)
-    }, [userId]);
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        setUserId(user.id);
+    }, []);
 
     useEffect(() => {
         if (userId) {
-            dispatch(fetchEmployeeAttendances({ employeeId: userId, month: month.toString() }))
+            dispatch(fetchEmployeeAttendances({
+                employeeId: userId,
+                month: month.toString()
+            }));
         }
-    }, [dispatch, month, userId])
+    }, [dispatch, month, userId]);
 
     const fetchHighlightedDays = (date: Dayjs) => {
         const controller = new AbortController();
@@ -80,7 +136,6 @@ export default function DateCalendarServerRequest({ attendanceData, month, onMon
 
     useEffect(() => {
         fetchHighlightedDays(dayjs());
-
         return () => requestAbortController.current?.abort();
     }, []);
 
@@ -96,21 +151,42 @@ export default function DateCalendarServerRequest({ attendanceData, month, onMon
     };
 
     return (
-        <Box>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DateCalendar
-                    defaultValue={dayjs()}
-                    loading={isLoading}
-                    onMonthChange={handleMonthChange}
-                    renderLoading={() => <DayCalendarSkeleton />}
-                    slots={{
-                        day: (props) => <ServerDay {...props} attendanceData={attendanceData} />,
-                    }}
-                    slotProps={{
-                        day: { highlightedDays } as PickersDayProps<Dayjs>,
-                    }}
-                />
-            </LocalizationProvider>
-        </Box>
+        <StyledCard elevation={1}>
+            <CardHeader
+                title={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarToday fontSize="small" color="primary" />
+                        <Box component="span">Attendance Calendar</Box>
+                    </Box>
+                }
+            />
+            <CardContent>
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <StyledCalendar
+                        defaultValue={dayjs()}
+                        loading={isLoading}
+                        onMonthChange={handleMonthChange}
+                        renderLoading={() => (
+                            <LoadingContainer>
+                                <DayCalendarSkeleton />
+                            </LoadingContainer>
+                        )}
+                        slots={{
+                            day: (props) => (
+                                <ServerDay
+                                    {...props}
+                                    attendanceData={attendanceData}
+                                />
+                            ),
+                        }}
+                        slotProps={{
+                            day: {
+                                highlightedDays
+                            } as PickersDayProps<Dayjs>,
+                        }}
+                    />
+                </LocalizationProvider>
+            </CardContent>
+        </StyledCard>
     );
 }

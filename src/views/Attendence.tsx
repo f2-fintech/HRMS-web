@@ -613,20 +613,29 @@ export default function AttendanceGrid() {
             loading={loading}
           />
         ) : (
-          <Box display="flex">
-            <Box display="flex" flexDirection="column" flexShrink={0}>
-              <DateCalendarServerRequest
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4} lg={3}>
+              <Grid container direction="column" spacing={2}>
+                <Grid item>
+                  <DateCalendarServerRequest
+                    attendanceData={attendanceData}
+                    month={month}
+                    onMonthChange={handleMonthChange}
+                  />
+                </Grid>
+                <Grid item>
+                  <Legend />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Grid item xs={12} md={8} lg={9}>
+              <AttendanceStatusList
                 attendanceData={attendanceData}
-                month={month}
-                onMonthChange={handleMonthChange}
+                selectedMonth={month}
               />
-              <Legend />
-            </Box>
-            <AttendanceStatusList
-              attendanceData={attendanceData}
-              selectedMonth={month}
-            />
-          </Box>
+            </Grid>
+          </Grid>
         )}
       </Box>
     </Box>
