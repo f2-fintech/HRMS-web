@@ -155,57 +155,57 @@ const FineListing = () => {
   const generateColumns = () => {
     const columns = [
       ...(userRole === '1' ? [
-        {
-          field: 'employee_name',
-          headerName: 'Employee Name',
-          width: 250,
-          headerAlign: 'center',
-          headerClassName: 'super-app-theme--header',
-          align: "center",
-          renderCell: (params) => {
-            return (
-              <Box display="flex" alignItems="center" height="100%">
-                <Avatar
-                  src={params.row.employee.image}
-                  sx={{ marginLeft: 10, width: 40, height: 40 }}
-                />
-                <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
-                  {params.row.employee.first_name} {params.row.employee.last_name}
-                </Typography>
-              </Box>
-            )
-          }
-        },
-        {
-          field: 'total',
-          headerName: 'Total Fine ',
-          headerAlign: 'center',
-          flex: 1,
-          headerClassName: 'super-app-theme--header',
-          renderCell: (params) => {
+        // {
+        //   field: 'employee_name',
+        //   headerName: 'Employee Name',
+        //   width: 250,
+        //   headerAlign: 'center',
+        //   headerClassName: 'super-app-theme--header',
+        //   align: "center",
+        //   renderCell: (params) => {
+        //     return (
+        //       <Box display="flex" alignItems="center" height="100%">
+        //         <Avatar
+        //           src={params.row.employee.image}
+        //           sx={{ marginLeft: 10, width: 40, height: 40 }}
+        //         />
+        //         <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
+        //           {params.row.employee.first_name} {params.row.employee.last_name}
+        //         </Typography>
+        //       </Box>
+        //     )
+        //   }
+        // },
+        // {
+        //   field: 'total',
+        //   headerName: 'Total Fine ',
+        //   headerAlign: 'center',
+        //   flex: 1,
+        //   headerClassName: 'super-app-theme--header',
+        //   renderCell: (params) => {
 
-            const assets = Array.isArray(params.row.assets) ? params.row.assets : [];
-            const totalFineAmount = assets.reduce((total, asset) => {
-              const fineAmount = asset.fineAmount ? parseFloat(asset.fineAmount) : 0;
-              return total + fineAmount;
-            }, 0);
+        //     const assets = Array.isArray(params.row.assets) ? params.row.assets : [];
+        //     const totalFineAmount = assets.reduce((total, asset) => {
+        //       const fineAmount = asset.fineAmount ? parseFloat(asset.fineAmount) : 0;
+        //       return total + fineAmount;
+        //     }, 0);
 
-            return (
-              <Box display="flex" alignItems="center" width='100%' height="100%">
-                <Typography fontWeight={700} sx={{ marginLeft: '5vw' }}>
-                  {totalFineAmount}
-                </Typography>
-              </Box>
-            );
-          }
-        },
+        //     return (
+        //       <Box display="flex" alignItems="center" width='100%' height="100%">
+        //         <Typography fontWeight={700} sx={{ marginLeft: '5vw' }}>
+        //           {totalFineAmount}
+        //         </Typography>
+        //       </Box>
+        //     );
+        //   }
+        // },
 
 
 
         {
           field: 'fine ',
           headerName: 'Fine Details',
-          width: 600,
+          width: 1020,
           headerAlign: 'center',
           headerClassName: 'super-app-theme--header',
           renderCell: (params) => {
@@ -214,20 +214,41 @@ const FineListing = () => {
               <Box>
                 <Accordion>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography>
-                      {`View all Fines (${Array.isArray(params.row.assets) ? params.row.assets.length : 0})`}
-                    </Typography>
+                    <Box display="flex" alignItems="center" height="100%" width="100%" justifyContent="space-between">
+                      <Box display="flex" alignItems="center">
+                        <Avatar
+                          src={params.row.employee.image}
+                          sx={{ marginLeft: 10, width: 30, height: 30 }}
+                        />
+                        <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
+                          {params.row.employee.first_name} {params.row.employee.last_name}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography>
+                          Total:
+                          {Array.isArray(params.row.assets)
+                            ? params.row.assets.reduce((total, asset) => {
+                              const fineAmount = asset.fineAmount ? parseFloat(asset.fineAmount) : 0;
+                              return total + fineAmount;
+                            }, 0)
+                            : 0}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography >{`View all Fines (${Array.isArray(params.row.assets) ? params.row.assets.length : 0})`}</Typography>
+                      </Box>
+                    </Box>
                   </AccordionSummary>
-                  <AccordionDetails>
+                  <AccordionDetails sx={{ marginTop: 5 }}>
                     <Table>
                       <TableHead>
                         <TableRow>
                           <StyledTableCell>Fine Type</StyledTableCell>
                           <StyledTableCell>Fine Amount</StyledTableCell>
                           <StyledTableCell>Fine Date</StyledTableCell>
-                          {userRole === '1' ? (
-                            <StyledTableCell>Edit</StyledTableCell>
-                          ) : ''}
+                          <StyledTableCell>Edit</StyledTableCell>
+                          <StyledTableCell>Delete</StyledTableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -238,13 +259,23 @@ const FineListing = () => {
                             <TableCell>
                               {fine.fineDate ? format(new Date(fine.fineDate), 'dd-MMM-yyyy').toUpperCase() : ''}
                             </TableCell>
-                            {userRole === '1' ? (
-                              <TableCell>
-                                <Button variant="contained" style={{ backgroundColor: '#2c3ce3' }} sx={{ minWidth: '50px' }} onClick={() => handleEditFine(fine._id)}>
-                                  <DriveFileRenameOutlineOutlined />
-                                </Button>
-                              </TableCell>
-                            ) : ''}
+                            <TableCell>
+                              <Button variant="contained" style={{ backgroundColor: '#2c3ce3' }} sx={{ minWidth: '50px' }} onClick={() => handleEditFine(fine._id)}>
+                                <DriveFileRenameOutlineOutlined />
+                              </Button>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="contained"
+                                sx={{ minWidth: '50px', backgroundColor: 'red' }}
+                                onClick={() => handleDeleteFines(fine._id)}
+                              >
+                                <DeleteIcon />
+                              </Button>
+
+                            </TableCell>
+
+
                           </TableRow>
                         ))}
                       </TableBody>
@@ -317,7 +348,7 @@ const FineListing = () => {
   }, [fines])
   return (
     <Box>
-      <ToastContainer />
+      <ToastContainer position="top-center" />
       <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
         <Box>
           <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>

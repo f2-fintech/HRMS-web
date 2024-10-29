@@ -14,6 +14,7 @@ import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { format } from 'date-fns';
 import SearchIcon from '@mui/icons-material/Search';
+import DeleteIcon from '@mui/icons-material/Delete';
 import InputAdornment from '@mui/material/InputAdornment';
 import { DriveFileRenameOutlineOutlined, Padding } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
@@ -352,6 +353,33 @@ export default function AssestsGrid() {
     setShowForm(true)
   }
 
+  const handleAssetdelete = async (id) => {
+    const confirmDelete = confirm('Are you sure you want to delete');
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/assests/delete/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer',
+        },
+      });
+
+      if (response.ok) {
+        // dispatch(deleteLeaves(id));
+        debouncedFetch();
+        toast.success('assets deleted successfully.');
+      } else {
+        const errorResult = await response.json();
+        toast.error(`Failed to delete assets: ${errorResult.message}`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error deleting assets. Please try again.');
+    }
+  };
+
   const handleClose = () => {
     setShowForm(false)
   }
@@ -359,32 +387,32 @@ export default function AssestsGrid() {
   const generateColumns = () => {
     const columns = [
       ...(userRole === '1' ? [
-        {
-          field: 'employee',
-          headerName: 'Employee',
-          width: 250,
-          headerAlign: 'center',
-          headerClassName: 'super-app-theme--header',
-          align: "center",
-          sortable: true,
-          renderCell: (params) => {
-            return (
-              <Box display="flex" alignItems="center" height="100%">
-                <Avatar
-                  src={params.row.employee.image}
-                  sx={{ marginLeft: 10, width: 40, height: 40 }}
-                />
-                <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
-                  {params.row.employee.first_name} {params.row.employee.last_name}
-                </Typography>
-              </Box>
-            )
-          },
-        },
+        // {
+        //   field: 'employee',
+        //   headerName: 'Employee',
+        //   width: 250,
+        //   headerAlign: 'center',
+        //   headerClassName: 'super-app-theme--header',
+        //   align: "center",
+        //   sortable: true,
+        //   renderCell: (params) => {
+        //     return (
+        //       <Box display="flex" alignItems="center" height="100%">
+        //         <Avatar
+        //           src={params.row.employee.image}
+        //           sx={{ marginLeft: 10, width: 40, height: 40 }}
+        //         />
+        //         <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
+        //           {params.row.employee.first_name} {params.row.employee.last_name}
+        //         </Typography>
+        //       </Box>
+        //     )
+        //   },
+        // },
         {
           field: 'assets',
           headerName: 'Assets Details',
-          width: 700,
+          width: 1020,
           headerAlign: 'center',
           headerClassName: 'super-app-theme--header',
           renderCell: (params) => {
@@ -405,20 +433,30 @@ export default function AssestsGrid() {
                 {Object.keys(groupedAssets).map((groupKey, index) => (
                   <Accordion key={`accordion-${index}`} sx={{ mb: 1 }}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography>
-                        {groupKey} ({groupedAssets[groupKey].length})
-                      </Typography>
+                      <Box display="flex" alignItems="center" height="100%" width="100%" justifyContent="space-between">
+                        <Box display="flex" alignItems="center">
+                          <Avatar
+                            src={params.row.employee.image}
+                            sx={{ marginLeft: 10, width: 30, height: 30 }}
+                          />
+                          <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
+                            {params.row.employee.first_name} {params.row.employee.last_name}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography >{groupKey} ({groupedAssets[groupKey].length})</Typography>
+                        </Box>
+                      </Box>
                     </AccordionSummary>
-                    <AccordionDetails>
+                    <AccordionDetails sx={{ marginTop: 5 }}>
                       <Table>
                         <TableHead>
                           <TableRow>
                             <StyledTableCell>Asset Name - modal No - serial No</StyledTableCell>
                             <StyledTableCell>Assign Date</StyledTableCell>
                             <StyledTableCell>Return Date</StyledTableCell>
-                            {userRole === '1' ? (
-                              <StyledTableCell>Edit</StyledTableCell>
-                            ) : ''}
+                            <StyledTableCell>Edit</StyledTableCell>
+                            <StyledTableCell>Delete</StyledTableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -435,13 +473,23 @@ export default function AssestsGrid() {
                                   {asset.return_date ? format(new Date(asset.return_date), 'dd-MMM-yyyy').toUpperCase() : ''}
                                 </TableCell>
                               )}
-                              {userRole === '1' ? (
-                                <TableCell>
-                                  <Button color="info" variant="contained" sx={{ minWidth: '50px' }} onClick={() => handleEditAssetClick(asset._id)}>
-                                    <DriveFileRenameOutlineOutlined />
-                                  </Button>
-                                </TableCell>
-                              ) : ''}
+                              <TableCell>
+                                <Button color="info" variant="contained" sx={{ minWidth: '50px' }} onClick={() => handleEditAssetClick(asset._id)}>
+                                  <DriveFileRenameOutlineOutlined />
+                                </Button>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="contained"
+                                  sx={{ minWidth: '50px', backgroundColor: 'red' }}
+                                  onClick={() => handleAssetdelete(asset._id)}
+                                >
+                                  <DeleteIcon />
+                                </Button>
+
+                              </TableCell>
+
+
                             </TableRow>
                           ))}
                         </TableBody>
@@ -521,7 +569,7 @@ export default function AssestsGrid() {
 
   return (
     <>
-      <ToastContainer />
+      <ToastContainer position="top-center" />
       <Box sx={{ flexGrow: 1, padding: 2 }}>
         <Dialog open={showForm} onClose={handleClose} fullWidth maxWidth='md'>
           <DialogContent>

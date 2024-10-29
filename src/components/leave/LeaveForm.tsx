@@ -9,7 +9,7 @@ import { useDispatch } from 'react-redux';
 
 import { fetchLeaves } from '../../redux/features/leaves/leavesSlice';
 
-const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees, page, limit, selectedKeyword }) => {
+const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees, page, limit, quarter, selectedKeyword }) => {
   const [formData, setFormData] = useState({
     employee: '',
     start_date: '',
@@ -184,7 +184,7 @@ const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees
           }
 
           handleClose();
-          dispatch(fetchLeaves({ page, limit, keyword: selectedKeyword }));
+          dispatch(fetchLeaves({ page, limit, quarter, keyword: selectedKeyword }));
         })
         .catch(error => {
           console.error('Error:', error);
