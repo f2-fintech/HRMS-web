@@ -26,6 +26,7 @@ import FreeBreakfastIcon from '@mui/icons-material/FreeBreakfast'
 import ProductionQuantityLimitsIcon from '@mui/icons-material/ProductionQuantityLimits'
 import SchoolIcon from '@mui/icons-material/School'
 import GavelIcon from '@mui/icons-material/Gavel'
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
 
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
 import useVerticalNav from '@menu/hooks/useVerticalNav'
@@ -172,6 +173,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           <MenuItem href={`/fine`} icon={<GavelIcon />}>
             Fine
           </MenuItem>
+          <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
+            Query
+          </MenuItem>
 
           <MenuItem href={`/assests`} icon={<InventoryIcon />}>
             Assets
@@ -193,6 +197,8 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               Designations
             </MenuItem>
           )}
+
+
 
           {/* <MenuItem href='/account-settings' icon={<i className='ri-user-settings-line' />}>
             Account Settings
