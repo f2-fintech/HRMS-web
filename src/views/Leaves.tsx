@@ -98,11 +98,7 @@ export default function LeavesGrid() {
   const handleQuarterChange = useCallback((e) => {
     const newQuarter = e.target.value as string;
     setQuarter(newQuarter);
-    // Call debouncedFetch after state update
-    setTimeout(() => {
-      debouncedFetch();
-    }, 0);
-  }, [debouncedFetch]);
+  }, []);
 
 
   const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
