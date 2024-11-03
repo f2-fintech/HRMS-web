@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { debounce } from 'lodash'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { DataGrid, GridColDef } from '@mui/x-data-grid'
+import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid'
 import {
   Button,
   Typography,
