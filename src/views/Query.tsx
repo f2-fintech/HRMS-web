@@ -321,7 +321,7 @@ const Query = () => {
                         </Typography>
                     </Box>
                     <Box display='flex' alignItems='center' gap={2}>
-                        {Number(userRole) >= 2 && (
+                        {Number(userRole) >= 1 && (
                             <>
                                 <Button
                                     style={{ borderRadius: 8 }}
