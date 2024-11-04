@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { debounce } from 'lodash'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { DataGrid, GridColDef } from '@mui/x-data-grid'
+import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid'
 import {
   Button,
   Typography,
@@ -371,6 +371,7 @@ export default function LeavesGrid() {
             headerName: 'Day',
             flex: 0.5,
             headerAlign: 'center',
+            align: 'center',
             headerClassName: 'super-app-theme--header',
             renderCell: (params) => {
               console.log("param", params)
@@ -385,7 +386,7 @@ export default function LeavesGrid() {
                       justifyContent: 'center',
                       alignItems: 'center',
                       width: '100%',
-                      height: '100%'
+                      height: '100%',
                     }}
                   >
                     <Typography fontWeight='bold'>{dayValue}</Typography>

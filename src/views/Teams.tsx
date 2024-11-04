@@ -27,7 +27,9 @@ import {
   InputLabel,
   FormControl,
   CardHeader,
-  FormHelperText
+  FormHelperText,
+  Alert,
+  DialogActions
 } from '@mui/material'
 import type { GridColDef } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
@@ -107,6 +109,9 @@ export default function TeamGrid() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
   const [userRole, setUserRole] = useState<string>('')
+  const [openAlert, setOpenAlert] = useState(false); // Control for alert visibility
+  const [teamToDelete, setTeamToDelete] = useState<string | null>(null); // Store the team ID to be deleted
+
   const { capitalizeInput } = utility()
 
   useEffect(() => {
@@ -415,9 +420,15 @@ export default function TeamGrid() {
     setViewDetails(team)
   }
 
-  const handleDeleteTeam = id => {
-    if (window.confirm('Are you sure you want to delete this team?')) {
-      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/teams/delete/${id}`, {
+  const confirmDeleteTeam = (id: string) => {
+    setTeamToDelete(id); // Set the team ID to be deleted
+    setOpenAlert(true); // Open the alert dialog
+  };
+
+
+  const handleConfirmDelete = () => {
+    if (teamToDelete) {
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/teams/delete/${teamToDelete}`, {
         method: 'DELETE'
       })
         .then(response => response.json())
@@ -425,22 +436,27 @@ export default function TeamGrid() {
           if (data.message) {
             toast.success(data.message, {
               position: 'top-center'
-            })
-            debouncedFetch()
+            });
+            debouncedFetch();
           } else {
             toast.error('Error deleting team', {
               position: 'top-center'
-            })
+            });
           }
         })
         .catch(error => {
-          console.log('Error', error)
+          console.log('Error', error);
           toast.error('Unexpected error occurred', {
             position: 'top-center'
-          })
+          });
         })
+        .finally(() => {
+          setOpenAlert(false); // Close the alert
+          setTeamToDelete(null); // Reset the team ID
+        });
     }
-  }
+  };
+
 
   const columns: GridColDef[] = [
     {
@@ -493,10 +509,11 @@ export default function TeamGrid() {
                 color='error'
                 variant='contained'
                 sx={{ minWidth: '50px' }}
-                onClick={() => handleDeleteTeam(_id)}
+                onClick={() => confirmDeleteTeam(_id)} // Call confirmDeleteTeam here
               >
                 <DeleteIcon />
               </Button>
+
             </Box>
           )
         }
@@ -521,6 +538,22 @@ export default function TeamGrid() {
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ flexGrow: 1, padding: 2 }}>
+        <Dialog open={openAlert} onClose={() => setOpenAlert(false)}>
+          <DialogContent>
+            <Alert severity="warning">
+              Are you sure you want to delete this team? This action cannot be undone.
+            </Alert>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenAlert(false)} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmDelete} color="secondary" autoFocus>
+              Confirm
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         <ToastContainer />
         <Dialog open={showForm} onClose={handleClose} fullWidth maxWidth='md'>
           <DialogContent>

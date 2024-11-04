@@ -326,6 +326,7 @@ const BreakSheet: React.FC = () => {
                     borderRadius: 2,
                     py: 1.5,
                     boxShadow: 2,
+                    ml: '1.5rem',
                     background: theme => `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`
                 }}
             >
@@ -408,11 +409,11 @@ const BreakSheet: React.FC = () => {
                         </Grid>
                     )}
 
-                    {userDesignation !== 'Assistant Manager Hr' && <Grid item xs={12}>
+                    <Grid item xs={12}>
                         <Card variant='outlined' sx={{ borderRadius: 2, mb: 3 }}>
                             <CardContent>
                                 <Stack spacing={3}>
-                                    <Box>
+                                    {userDesignation !== 'Assistant Manager Hr' && <Box>
                                         <Stack direction='row' alignItems='center' spacing={2} mb={2}>
                                             <AccessTime color='primary' />
                                             <Typography variant='h6'>Time Summary</Typography>
@@ -472,7 +473,7 @@ const BreakSheet: React.FC = () => {
                                                 </Paper>
                                             </Grid>
                                         </Grid>
-                                    </Box>
+                                    </Box>}
 
                                     <Box>
                                         <Stack direction='row' alignItems='center' spacing={2} mb={2}>
@@ -494,7 +495,7 @@ const BreakSheet: React.FC = () => {
                                 </Stack>
                             </CardContent>
                         </Card>
-                    </Grid>}
+                    </Grid>
 
                     {isLargeScreen && userDesignation !== 'Assistant Manager Hr' && (
                         <Grid item xs={12}>

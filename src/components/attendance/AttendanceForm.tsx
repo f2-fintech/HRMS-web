@@ -1,30 +1,20 @@
-// AddAttendanceForm.tsx
-
+// AddAttendanceForm.js
 import React, { useState, useEffect } from 'react';
-
-import { useDispatch, useSelector } from 'react-redux';
-import { Box, Grid, Typography, TextField, IconButton, Button, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import { Box, Button, Grid, TextField, Typography, IconButton, FormControl, InputLabel, Select, MenuItem, Autocomplete } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { ToastContainer, toast } from 'react-toastify';
-
-import 'react-toastify/dist/ReactToastify.css';
-import { fetchAttendances, resetAttendances } from '@/redux/features/attendances/attendancesSlice';
-import type { AppDispatch, RootState } from '@/redux/store';
+import ClearIcon from '@mui/icons-material/Clear';
+import { useDispatch } from 'react-redux';
+import { toast } from 'react-toastify';
+import { addOrUpdateAttendance } from '../../redux/features/attendances/attendancesSlice'; // Adjust import as needed
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 
-interface AddAttendanceFormProps {
-  handleClose: () => void;
-  attendance: string | null;
-}
-
-export default function AddAttendanceForm({ handleClose, attendance }: AddAttendanceFormProps) {
-  const dispatch: AppDispatch = useDispatch();
-  const { attendances } = useSelector((state: RootState) => state.attendances);
-
+const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEmployeeName, prefillDate, attendances }) => {
+  const [employees, setEmployees] = useState([]);
   const [formData, setFormData] = useState({
-    employee: '',
-    date: '',
+    employee: prefillEmployee || '',
+    date: prefillDate || '',
     status: '',
+    timeComplete: '',
   });
 
   const [errors, setErrors] = useState({
@@ -33,7 +23,7 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
     status: ''
   });
 
-  const [employees, setEmployees] = useState([]);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -54,14 +44,27 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
           employee: selected.employee._id,
           date: selected.date,
           status: selected.status,
+          timeComplete: selected.timeComplete || '',
         });
       }
+    } else if (prefillEmployee && prefillDate) {
+      setFormData({
+        employee: prefillEmployee,
+        date: prefillDate,
+        status: '',
+        timeComplete: '',
+      });
     }
-  }, [attendance, attendances]);
+  }, [attendance, attendances, prefillEmployee, prefillDate]);
 
   const validateForm = () => {
     let isValid = true;
-    const newErrors = { employee: '', date: '', status: '' };
+
+    const newErrors = {
+      employee: '',
+      date: '',
+      status: ''
+    };
 
     if (!formData.employee) {
       newErrors.employee = 'Employee selection is required';
@@ -79,16 +82,14 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
     }
 
     setErrors(newErrors);
-
     return isValid;
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData(prevState => ({
       ...prevState,
-      [name as string]: value,
+      [name]: value,
     }));
   };
 
@@ -109,6 +110,7 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
         .then(data => {
           if (data.message) {
             if (data.message.includes('success')) {
+              dispatch(addOrUpdateAttendance(data));
               toast.success(data.message, { position: 'top-center' });
             } else {
               toast.error('Error: ' + data.message, { position: 'top-center' });
@@ -118,8 +120,6 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
           }
 
           handleClose();
-          dispatch(resetAttendances());
-          dispatch(fetchAttendances());
         })
         .catch(error => {
           console.log('Error', error);
@@ -129,7 +129,6 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
 
   return (
     <Box sx={{ flexGrow: 1, padding: 2 }}>
-      <ToastContainer />
       <Box display='flex' justifyContent='space-between' alignItems='center'>
         <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
           {attendance ? 'Edit Attendance' : 'Add Attendance'}
@@ -155,32 +154,38 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth required error={!!errors.employee}>
-            <InputLabel required id='demo-simple-select-label'>Employee</InputLabel>
-            <Select
-              label='Select Employee'
-              labelId='demo-simple-select-label'
-              id='demo-simple-select'
-              name="employee"
-              value={formData.employee}
-              onChange={handleChange}
-              required
-            >
-              {employees.map((employee) => (
-                <MenuItem key={employee._id} value={employee._id}>
-                  {employee.first_name} {employee.last_name}
-                </MenuItem>
-              ))}
-            </Select>
-            <Typography variant="caption" color="error">{errors.employee}</Typography>
+            <Autocomplete
+              id="employee-autocomplete"
+              options={employees}
+              getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+              value={employees.find((emp) => emp._id === formData.employee) || null}
+              onChange={(event, newValue) => {
+                handleChange({
+                  target: {
+                    name: 'employee',
+                    value: newValue ? newValue._id : '',
+                  },
+                });
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Select Employee"
+                  variant="outlined"
+                  required
+                  error={!!errors.employee}
+                  helperText={errors.employee}
+                />
+              )}
+            />
           </FormControl>
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth required error={!!errors.status}>
-            <InputLabel required id='demo-simple-select-label'>Status</InputLabel>
+            <InputLabel required id='status-label'>Status</InputLabel>
             <Select
-              label='Select Status'
-              labelId='demo-simple-select-label'
-              id='demo-simple-select'
+              labelId='status-label'
+              id='status'
               name='status'
               value={formData.status}
               onChange={handleChange}
@@ -189,12 +194,30 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
               <MenuItem value='Absent'>ABSENT</MenuItem>
               <MenuItem value='On Half'>ON_HALF</MenuItem>
               <MenuItem value='On Leave'>ON_LEAVE</MenuItem>
+              <MenuItem value='On Field'>ON_FIELD</MenuItem>
+              <MenuItem value='On Wfh'>ON_WFH</MenuItem>
             </Select>
             <Typography variant="caption" color="error">{errors.status}</Typography>
           </FormControl>
         </Grid>
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth error={!!errors.timeComplete}>
+            <InputLabel id="time-complete-label">Time Completion</InputLabel>
+            <Select
+              labelId="time-complete-label"
+              id="timeComplete"
+              name="timeComplete"
+              value={formData.timeComplete}
+              onChange={handleChange}
+            >
+              <MenuItem value="Not Completed">Not Completed</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
         <Grid item xs={12}>
           <Button
+            variant='contained'
+            fullWidth
             style={{
               fontSize: '18px',
               fontWeight: 600,
@@ -203,8 +226,6 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
               backgroundColor: '#ff902f',
               width: 250
             }}
-            variant='contained'
-            fullWidth
             onClick={handleSubmit}
           >
             {attendance ? 'UPDATE ATTENDANCE' : 'ADD ATTENDANCE'}
@@ -213,4 +234,6 @@ export default function AddAttendanceForm({ handleClose, attendance }: AddAttend
       </Grid>
     </Box>
   );
-}
+};
+
+export default AddAttendanceForm;

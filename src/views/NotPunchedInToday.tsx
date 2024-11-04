@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { fetchEmployeesNotPunchedInToday } from '@/utility/apiResponse/getEmployeesNotPunchedIn';
+import { Typography } from '@mui/material';
 
 interface Employee {
   _id: string;
   first_name: string;
   last_name: string;
   image: string;
+  location: string;
 }
 
 interface Props {
@@ -51,10 +53,12 @@ const NotPunchedInToday: React.FC<Props> = ({ selectedDate }) => {
         <div className="employee-grid">
           {employeesNotPunchedIn.map((employee) => (
             <div key={employee?._id} className="employee-card">
+
               <img src={employee.image} alt={`${employee.first_name} ${employee.last_name}`} className="employee-image" />
               <div className="employee-name">
                 {employee.first_name} {employee.last_name}
               </div>
+              <Typography style={{ color: 'blue' }}>{employee?.location.toUpperCase()}</Typography>
             </div>
           ))}
         </div>

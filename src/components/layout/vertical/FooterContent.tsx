@@ -71,7 +71,7 @@ const FooterContent = () => {
               underline="none"
             >
               <Typography variant="h6" sx={{ color: "white" }}>
-                12, Bajaj Complex, Prem Nagar Thana, Bareily - 243005
+                12, Bajaj Complex, Prem Nagar Thana, Bareilly - 243005
               </Typography>
             </Link>
           </Box>

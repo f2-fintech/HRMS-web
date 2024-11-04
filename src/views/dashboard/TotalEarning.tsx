@@ -11,62 +11,32 @@ function TradingViewWidget() {
     if (!scriptLoaded) {
       const script = document.createElement("script");
 
-      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js";
+      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js";
       script.type = "text/javascript";
       script.async = true;
-      script.innerHTML = `
-        {
-          "symbols": [
-            [
-              "Apple",
-              "AAPL|1D"
-            ],
-            [
-              "Google",
-              "GOOGL|1D"
-            ],
-            [
-              "Microsoft",
-              "MSFT|1D"
-            ],
-            [
-              "CRYPTO:BTCUSD|1D"
-            ],
-            [
-              "IG:NASDAQ.USD.100|1D"
-            ]
-          ],
-          "chartOnly": false,
-          "width": "100%",
-          "height": "100%",
-          "locale": "en",
-          "colorTheme": "light",
-          "autosize": true,
-          "showVolume": false,
-          "showMA": false,
-          "hideDateRanges": false,
-          "hideMarketStatus": false,
-          "hideSymbolLogo": false,
-          "scalePosition": "right",
-          "scaleMode": "Normal",
-          "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
-          "fontSize": "10",
-          "noTimeScale": false,
-          "valuesTracking": "1",
-          "changeMode": "price-and-percent",
-          "chartType": "area",
-          "headerFontSize": "medium",
-          "lineWidth": 2,
-          "lineType": 0,
-          "dateRanges": [
-            "1d|1",
-            "1m|30",
-            "3m|60",
-            "12m|1D",
-            "60m|1W",
-            "all|1M"
-          ]
-        }`;
+      script.innerHTML = `   
+  {
+  "colorTheme": "light",
+  "dateRange": "3M",
+  "exchange": "BSE",
+  "showChart": true,
+  "locale": "en",
+  "largeChartUrl": "",
+  "isTransparent": false,
+  "showSymbolLogo": true,
+  "showFloatingTooltip": true,
+  "width": "685",
+  "height": "500",
+  "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
+  "plotLineColorFalling": "rgba(41, 98, 255, 1)",
+  "gridLineColor": "rgba(42, 46, 57, 0)",
+  "scaleFontColor": "rgba(19, 23, 34, 1)",
+  "belowLineFillColorGrowing": "rgba(41, 98, 255, 0.12)",
+  "belowLineFillColorFalling": "rgba(41, 98, 255, 0.12)",
+  "belowLineFillColorGrowingBottom": "rgba(41, 98, 255, 0)",
+  "belowLineFillColorFallingBottom": "rgba(41, 98, 255, 0)",
+  "symbolActiveColor": "rgba(41, 98, 255, 0.12)"
+}`;
       container.current.appendChild(script);
       scriptLoaded = true;
     }
@@ -78,7 +48,7 @@ function TradingViewWidget() {
   }, []);
 
   return (
-    <Card sx={{ height: "100%" }}>
+    <Card sx={{ height: "380px", overflowY: "scroll" }}>
       <div
         className="tradingview-widget-container"
         ref={container}
