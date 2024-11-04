@@ -9,8 +9,8 @@ interface AttendanceStatusListProps {
 
 // Styled Components
 const StyledCard = styled(Card)(({ theme }) => ({
-    maxWidth: '1000px',
-    margin: '0 auto',
+    width: "100%",
+    // margin: '0 auto',
     boxShadow: theme.shadows[2]
 }));
 
