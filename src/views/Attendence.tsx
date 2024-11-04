@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
@@ -68,6 +69,7 @@ export default function AttendanceGrid() {
   const [selectedAttendance, setSelectedAttendance] = useState(null);
   const [viewAttendanceData, setViewAttendanceData] = useState(null);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
   const [daysToShow, setDaysToShow] = useState(7);
   const [startDayIndex, setStartDayIndex] = useState(0);
   const [userRole, setUserRole] = useState<string>('');
@@ -80,6 +82,8 @@ export default function AttendanceGrid() {
   const [prefillEmployee, setPrefillEmployee] = useState('');
   const [prefillEmployeeName, setPrefillEmployeeName] = useState('');
   const [prefillDate, setPrefillDate] = useState('');
+
+  const [statusCounts, setStatusCounts] = useState([]);
 
   const debouncedSearch = useCallback(
     debounce(() => {
@@ -210,6 +214,26 @@ export default function AttendanceGrid() {
     return lastSunday;
   };
 
+  // Fetch cumulative status counts based on selected month and year
+  const fetchStatusCounts = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}`);
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const data = await response.json();
+      setStatusCounts(data.statusCounts);
+    } catch (error) {
+      console.error("Error fetching status counts:", error);
+      toast.error("Failed to load attendance counts.");
+    }
+  };
+
+  useEffect(() => {
+    fetchStatusCounts();
+    dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: page, limit: limit, keyword: searchName, location: searchLocation }));
+  }, [dispatch, month, year, page, limit, searchName, searchLocation]);
+
   const generateColumns = () => {
     const today = new Date();
     const daysInMonth = getDaysInMonth(month, today.getFullYear());
@@ -326,6 +350,12 @@ export default function AttendanceGrid() {
   const transformData = () => {
     const attendanceSource = attendances;
 
+    // Convert `statusCounts` into a dictionary keyed by employee ID for easy lookup
+    const statusCountsMap = statusCounts.reduce((acc, count) => {
+      acc[count.employeeId] = count.statuses; // Assumes `statuses` is an object with status counts
+      return acc;
+    }, {});
+
     const groupedData = attendanceSource.reduce((acc, curr) => {
       const { employee, date, status, timeComplete, _id } = curr;
 
@@ -337,12 +367,11 @@ export default function AttendanceGrid() {
       const day = attendanceDate.getDate();
       const attendanceMonth = attendanceDate.getMonth() + 1;
 
-      const uniqueKey = `${employee._id}-${day}-${attendanceMonth}`;
-
       if (attendanceMonth !== month) {
         return acc;
       }
 
+      // Initialize the employee entry if it doesn't exist
       if (!acc[employee._id]) {
         acc[employee._id] = {
           employee_id: employee._id,
@@ -358,43 +387,34 @@ export default function AttendanceGrid() {
           onWfh: 0,
           _id,
         };
+
+        // Populate cumulative counts from `statusCountsMap` if available
+        const cumulativeCounts = statusCountsMap[employee._id] || {};
+        acc[employee._id].present = cumulativeCounts['Present'] || 0;
+        acc[employee._id].presentNotCompleted = cumulativeCounts['PresentNotCompleted'] || 0;
+        acc[employee._id].absent = cumulativeCounts['Absent'] || 0;
+        acc[employee._id].onHalf = cumulativeCounts['On Half'] || 0;
+        acc[employee._id].onHalfNotCompleted = cumulativeCounts['OnHalfNotCompleted'] || 0;
+        acc[employee._id].onLeave = cumulativeCounts['On Leave'] || 0;
+        acc[employee._id].onField = cumulativeCounts['On Field'] || 0;
+        acc[employee._id].onWfh = cumulativeCounts['WFH'] || 0;
       }
 
+      // Unique key to avoid double-counting daily attendance records
+      const uniqueKey = `${employee._id}-${day}-${attendanceMonth}`;
       if (!acc[employee._id][uniqueKey]) {
         acc[employee._id][uniqueKey] = true;
 
+        // Set daily status for each day of the month
         acc[employee._id][`day_${day}`] = status;
         acc[employee._id][`day_${day}_id`] = _id;
         acc[employee._id][`day_${day}_timeComplete`] = timeComplete;
-
-
-
-        if (status === 'Present') {
-          acc[employee._id].present += 1;
-
-          if (timeComplete === 'Not Completed') {
-            acc[employee._id].presentNotCompleted += 1;
-          }
-        } else if (status === 'Absent') {
-          acc[employee._id].absent += 1;
-        } else if (status === 'On Half') {
-          acc[employee._id].onHalf += 1;
-
-          if (timeComplete === 'Not Completed') {
-            acc[employee._id].onHalfNotCompleted += 1;
-          }
-        } else if (status === 'On Leave') {
-          acc[employee._id].onLeave += 1;
-        } else if (status === 'On Field') {
-          acc[employee._id].onField += 1;
-        } else if (status === 'On Wfh') {
-          acc[employee._id].onWfh += 1;
-        }
       }
 
       return acc;
     }, {});
 
+    // Convert `groupedData` to an array and sort by employee name
     const sortedData = Object.values(groupedData).sort((a, b) => a.name.localeCompare(b.name));
 
     return sortedData;
