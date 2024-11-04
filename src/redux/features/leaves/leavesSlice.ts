@@ -41,16 +41,16 @@ const initialState: leaveState = {
 export const fetchLeaves = createAsyncThunk<{
   leaves: Leave[];
   total: number;
-}, { page?: number; limit?: number; keyword?: string }, { state: RootState }>(
+}, { page?: number; limit?: number; keyword?: string; quarter?: string }, { state: RootState }>(
   'leaves/fetchLeaves',
-  async ({ page, limit, keyword }: { page: number; limit: number; keyword: string }) => {
+  async ({ page, limit, keyword, quarter }: { page: number; limit: number; keyword: string; quarter: string }) => {
     let token: string | null = null;
 
     if (typeof window !== "undefined") {
       token = localStorage?.getItem('token');
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/leaves/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/leaves/get?page=${page}&limit=${limit}&quarter=${quarter}&keyword=${encodeURIComponent(keyword)}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
