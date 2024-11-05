@@ -28,7 +28,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
 
 const StyledCalendar = styled(DateCalendar)(({ theme }) => ({
     width: '100%',
-    maxWidth: '360px',
+    // maxWidth: '360px',
     margin: '0 auto',
     '& .MuiPickersCalendarHeader-root': {
         paddingLeft: theme.spacing(2),

@@ -60,14 +60,14 @@ export const fetchAttendances = createAsyncThunk(
     const data = await response.json();
 
     // Avoid adding duplicate entries
-    const existingAttendances = state.attendances.attendances;
-    const newAttendances = data.attendances.filter((newAttendance: Attendance) =>
-      !existingAttendances.some(attendance => attendance._id === newAttendance._id)
-    );
+    // const existingAttendances = state.attendances.attendances;
+    // const newAttendances = data.attendances.filter((newAttendance: Attendance) =>
+    //   !existingAttendances.some(attendance => attendance._id === newAttendance._id)
+    // );
 
     return {
-      attendances: [...existingAttendances, ...newAttendances],
-      count: data.totalCount
+      attendances: data.attendances,
+      count: data.totalCount,
     };
   }
 );

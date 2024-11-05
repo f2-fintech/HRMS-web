@@ -4,10 +4,9 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 
 import { debounce } from 'lodash';
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { DataGrid, GridToolbar, type GridColDef } from '@mui/x-data-grid';
-import CircleIcon from '@mui/icons-material/Circle';
 
 import WeekendIcon from '@mui/icons-material/Weekend';
 import {
@@ -15,7 +14,6 @@ import {
   Typography,
   Box,
   Grid,
-  IconButton,
   TextField,
   Dialog,
   DialogContent,
@@ -24,10 +22,9 @@ import {
   MenuItem,
   Select,
   Avatar,
-  FormHelperText,
-  Autocomplete
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -40,17 +37,11 @@ import HomeIcon from '@mui/icons-material/Home';
 import ContrastIcon from '@mui/icons-material/Contrast';
 
 import { useDispatch, useSelector } from 'react-redux';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { PickersDay, type PickersDayProps } from '@mui/x-date-pickers/PickersDay';
-import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import { DayCalendarSkeleton } from '@mui/x-date-pickers/DayCalendarSkeleton';
-import ClearIcon from '@mui/icons-material/Clear';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
 import type { AppDispatch, RootState } from '@/redux/store';
-import { fetchAttendances, filterAttendance, addOrUpdateAttendance, resetAttendances } from '@/redux/features/attendances/attendancesSlice';
+import { fetchAttendances, resetAttendances } from '@/redux/features/attendances/attendancesSlice';
 import AttendanceSummary from '@/utility/attendancesummry/AttendanceSummary';
 import EmployeeStatsWithBlinkingStatus from '@/utility/totalempattendancesummary/EmployeeStatsWithBlinkingStatus';
 import { AttendanceSummaryColumns } from '@/utility/attendancesummry/AttendanceSummaryColumns';
@@ -63,7 +54,8 @@ import AttendanceStatusList from '@/components/attendance/AttendanceStatusList';
 
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch();
-  const { attendances, loading, error, filteredAttendance, count } = useSelector((state: RootState) => state.attendances);
+  const theme = useTheme();
+  const { attendances, loading, count } = useSelector((state: RootState) => state.attendances);
 
   const [showForm, setShowForm] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
@@ -84,6 +76,7 @@ export default function AttendanceGrid() {
   const [prefillDate, setPrefillDate] = useState('');
 
   const [statusCounts, setStatusCounts] = useState([]);
+  const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
   const debouncedSearch = useCallback(
     debounce(() => {
@@ -429,6 +422,8 @@ export default function AttendanceGrid() {
     setMonth(newMonth);
   };
 
+  console.log("attendence", attendances);
+
   return (
     <Box>
       <ToastContainer />
@@ -615,7 +610,7 @@ export default function AttendanceGrid() {
               toolbar: GridToolbar,
               loadingOverlay: Loader,
             }}
-            rows={searchName === '' ? rows.slice((page - 1) * limit, page * limit) : rows.slice(-count)}
+            rows={rows}
             columns={columns}
             getRowId={(row) => row._id}
             initialState={{
@@ -649,7 +644,7 @@ export default function AttendanceGrid() {
               </Grid>
             </Grid>
 
-            <Grid item xs={12} md={8} lg={9}>
+            <Grid item xs={12} md={8} lg={9} style={{ minWidth: isMediumScreen ? "100%" : "auto" }}>
               <AttendanceStatusList
                 attendanceData={attendanceData}
                 selectedMonth={month}
