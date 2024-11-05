@@ -245,6 +245,7 @@ export default function TeamGrid() {
     const handleSubmit = () => {
       if (validateForm()) {
         const method = team ? 'PUT' : 'POST'
+
         const url = team
           ? `${process.env.NEXT_PUBLIC_APP_URL}/teams/update/${team}`
           : `${process.env.NEXT_PUBLIC_APP_URL}/teams/create`
@@ -322,7 +323,7 @@ export default function TeamGrid() {
                 error={!!errors.manager_id}
               >
                 {employees
-                  .filter(employee => employee.role_priority === '2')
+                  .filter(employee => employee.role_priority === '2' || employee.designation === 'Founder & CEO' || employee.designation === 'Co-Founder & MD')
                   .map(employee => (
                     <MenuItem key={employee._id} value={employee._id}>
                       {employee.first_name} {employee.last_name}
