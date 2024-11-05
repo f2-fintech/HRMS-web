@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react'
 
 import { debounce } from 'lodash'
-import { ToastContainer } from 'react-toastify'
+import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid'
 import {
@@ -40,13 +40,13 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { DriveFileRenameOutlineOutlined } from '@mui/icons-material'
 
 import { Console } from 'console'
+
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useDispatch, useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { format } from 'date-fns';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
+
 import type { AppDispatch, RootState } from '@/redux/store';
 import { fetchLeaves } from '@/redux/features/leaves/leavesSlice';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
@@ -118,6 +118,7 @@ export default function LeavesGrid() {
     const user = JSON.parse(localStorage.getItem("user") || '{}')
     setUserRole(user.role)
     setUserId(user.id);
+
     return debouncedFetch.cancel
   }, [debouncedFetch, dispatch, leaves.length, limit, page, selectedKeyword])
   useEffect(() => {
@@ -173,13 +174,22 @@ export default function LeavesGrid() {
   }, [])
 
   const renderAccordion = params => {
-    const [open, setOpen] = useState(false);
+    // Track open state for each leave item using its ID
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [openDialogs, setOpenDialogs] = useState({});
 
-    const handleClickOpen = () => {
-      setOpen(true);
+    const handleClickOpen = (leaveId) => {
+      setOpenDialogs(prev => ({
+        ...prev,
+        [leaveId]: true
+      }));
     };
-    const handleClose = () => {
-      setOpen(false);
+
+    const handleClose = (leaveId) => {
+      setOpenDialogs(prev => ({
+        ...prev,
+        [leaveId]: false
+      }));
     };
 
     const getRowBackgroundColor = status => {
@@ -190,11 +200,13 @@ export default function LeavesGrid() {
       } else if (status === 'Pending') {
         return 'rgba(255, 193, 7, 0.2)'
       }
+
       return ''
     }
+
     return (
       <>
-        <Accordion >
+        <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Box display="flex" alignItems="center" height="100%" width="100%" justifyContent="space-between">
               <Box display="flex" alignItems="center">
@@ -207,7 +219,7 @@ export default function LeavesGrid() {
                 </Typography>
               </Box>
               <Box>
-                <Typography >{`View all Leaves (${Array.isArray(params.row.leaves) ? params.row.leaves.length : 0})`}</Typography>
+                <Typography>{`View all Leaves (${Array.isArray(params.row.leaves) ? params.row.leaves.length : 0})`}</Typography>
               </Box>
             </Box>
           </AccordionSummary>
@@ -224,7 +236,6 @@ export default function LeavesGrid() {
                   <StyledTableCell>Decision</StyledTableCell>
                   <StyledTableCell>Edit</StyledTableCell>
                   <StyledTableCell>Delete</StyledTableCell>
-
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -278,23 +289,21 @@ export default function LeavesGrid() {
                           {leave.end_date ? format(new Date(leave.end_date), 'dd-MMM-yyyy').toUpperCase() : ''}
                         </TableCell>
                         <TableCell>{leave.type}</TableCell>
-
-                        {/* Application with 'Show More' functionality */}
                         <TableCell>
-                          <Button variant="outlined" onClick={handleClickOpen}>
+                          <Button variant="outlined" onClick={() => handleClickOpen(leave._id)}>
                             View
                           </Button>
                           <BootstrapDialog
-                            onClose={handleClose}
-                            aria-labelledby="customized-dialog-title"
-                            open={open}
+                            onClose={() => handleClose(leave._id)}
+                            aria-labelledby={`customized-dialog-title-${leave._id}`}
+                            open={openDialogs[leave._id] || false}
                           >
-                            <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
+                            <DialogTitle sx={{ m: 0, p: 2 }} id={`customized-dialog-title-${leave._id}`}>
                               Application
                             </DialogTitle>
                             <IconButton
                               aria-label="close"
-                              onClick={handleClose}
+                              onClick={() => handleClose(leave._id)}
                               sx={(theme) => ({
                                 position: 'absolute',
                                 right: 8,
@@ -303,15 +312,14 @@ export default function LeavesGrid() {
                               })}
                             >
                               <CloseIcon />
-                            </IconButton><DialogContent >
+                            </IconButton>
+                            <DialogContent>
                               <Typography>
                                 {leave.application}
                               </Typography>
                             </DialogContent>
                           </BootstrapDialog>
-
                         </TableCell>
-
                         <TableCell>{leave.status}</TableCell>
                         <TableCell sx={{ minWidth: 100 }}>{leave.reason}</TableCell>
                         <TableCell>
@@ -322,7 +330,6 @@ export default function LeavesGrid() {
                           >
                             <DriveFileRenameOutlineOutlined />
                           </Button>
-
                         </TableCell>
                         <TableCell>
                           <Button
@@ -332,14 +339,13 @@ export default function LeavesGrid() {
                           >
                             <DeleteIcon />
                           </Button>
-
                         </TableCell>
                       </TableRow>
                     );
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={9} align="center">
                       No leaves available
                     </TableCell>
                   </TableRow>
@@ -403,6 +409,7 @@ export default function LeavesGrid() {
             headerClassName: 'super-app-theme--header',
             renderCell: params => {
               const date = new Date(params.value)
+
               return !isNaN(date.getTime()) ? (
                 <div
                   style={{
@@ -428,6 +435,7 @@ export default function LeavesGrid() {
             headerClassName: 'super-app-theme--header',
             renderCell: params => {
               const date = new Date(params.value)
+
               return !isNaN(date.getTime()) ? (
                 <div
                   style={{
@@ -479,6 +487,7 @@ export default function LeavesGrid() {
               const handleClose = () => {
                 setOpen(false);
               };
+
               return (
                 <>
                   <Button variant="outlined" onClick={handleClickOpen}>
@@ -727,6 +736,7 @@ export default function LeavesGrid() {
             if (params.row.status === 'Pending') {
               return 'row-pending'
             }
+
             return ''
           }}
         />
@@ -734,7 +744,5 @@ export default function LeavesGrid() {
     </Box>
   )
 }
-function useRef(arg0: boolean) {
-  throw new Error('Function not implemented.')
-}
+
 
