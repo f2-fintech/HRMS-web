@@ -92,6 +92,7 @@ const Award = () => {
 
       if (!response.ok) {
         const errorData = await response.json()
+
         throw new Error(errorData.message || 'Failed to save award')
       }
 
@@ -180,7 +181,7 @@ const Award = () => {
             <img src='/images/pages/trophy.png' alt='trophy image' height={70} className='absolute right-4 bottom-6' />
           </div>
 
-          {userDesg === 'Sr. Operation Manager' && (
+          {userDesg === 'Sr. Operation Manager' || userRole === '1' && (
             <Tooltip title='Add/Edit'>
               <IconButton onClick={handleEditClick} style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
                 <MoreVertIcon />
