@@ -19,6 +19,7 @@ import fineReducer from '@/redux/features/fines/fineSlice';
 import breakSheetsReducer from '@/redux/features/breaksheets/breaksSlice'
 import punchSheetReducer from '@/redux/features/punches/punchesSlice'
 import queryReducer from '@/redux/features/queries/queriesSlice'
+import sittingArrangmentReducer from '@/redux/features/sittingArrangment/seatingArrangementSlice'
 
 const store = configureStore({
   reducer: {
@@ -38,7 +39,8 @@ const store = configureStore({
     fines: fineReducer,
     breaks: breakSheetsReducer,
     punches: punchSheetReducer,
-    queries: queryReducer
+    queries: queryReducer,
+    sittingArrangment: sittingArrangmentReducer
   }
 })
 
