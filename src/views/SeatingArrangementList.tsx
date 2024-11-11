@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useState, useMemo } from 'react'
+import Link from 'next/link';
 import { debounce } from 'lodash'
 import { ToastContainer, toast } from 'react-toastify'
 import {
@@ -15,7 +16,8 @@ import {
     Alert,
     Snackbar,
     DialogActions,
-    Grid
+    Grid,
+    Tooltip
 } from '@mui/material'
 import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid'
 import AddIcon from '@mui/icons-material/Add'
@@ -265,6 +267,7 @@ export default function SeatingArrangementList() {
                 </Alert>
             </Snackbar>
 
+
             <Dialog open={confirmDialogOpen} onClose={handleCancelDelete}>
                 <DialogContent>
                     <Alert severity='warning'>Are you sure you want to delete this seating arrangement?</Alert>
@@ -279,28 +282,49 @@ export default function SeatingArrangementList() {
                 </DialogActions>
             </Dialog>
 
-            <Box mb={6} display='flex' justifyContent='space-between' alignItems='center'>
+            <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
                 <div>
-                    <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
+                    <Typography style={{ fontSize: '2em' }} variant="h5" gutterBottom>
                         Seat Layout
                     </Typography>
-                    <Typography style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: 2 }} variant='subtitle1' gutterBottom>
+                    <Typography style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: 2 }} variant="subtitle1" gutterBottom>
                         Dashboard / Seating
                     </Typography>
                 </div>
 
-                {userRole === '1' && (
-                    <Button
-                        style={{ borderRadius: '10rem' }}
-                        variant='contained'
-                        color='primary'
-                        startIcon={<AddIcon />}
-                        onClick={handleAddSeatingArrangement}
-                    >
-                        Add Spot
-                    </Button>
-                )}
+                <Box display="flex" flexDirection="column" alignItems="flex-end">
+                    {userRole === '1' && (
+                        <Tooltip title="Add Spot" arrow>
+                            <Button
+                                style={{ borderRadius: '10rem', marginBottom: '0.5rem' }} // Adds spacing between button and link
+                                variant="contained"
+                                color="primary"
+                                startIcon={<AddIcon />}
+                                onClick={handleAddSeatingArrangement}
+                            >
+                                Add Spot
+                            </Button>
+                        </Tooltip>
+                    )}
+
+                    <Link href="/seat-layout" passHref>
+                        <Tooltip title="View Seating Layout" arrow>
+                            <Typography
+                                color="primary"
+                                sx={{
+                                    textDecoration: 'underline',
+                                    cursor: 'pointer',
+                                    display: 'inline-block',
+                                    padding: '0.4rem 0.6rem'
+                                }}
+                            >
+                                Seating Chart
+                            </Typography>
+                        </Tooltip>
+                    </Link>
+                </Box>
             </Box>
+
 
             <Grid container spacing={6} alignItems='center' mb={2}>
                 {userRole === '1' && (
