@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
-import { Box, Button, Dialog, DialogContent, Typography, TextField, InputAdornment, Grid, Avatar, TableCell, Accordion, AccordionSummary, AccordionDetails, Table, TableHead, TableRow, TableBody, Alert, DialogActions } from '@mui/material'
+import { Box, Button, Dialog, DialogContent, Typography, TextField, InputAdornment, Grid, Avatar, TableCell, Accordion, AccordionSummary, AccordionDetails, Table, TableHead, TableRow, TableBody, Alert, DialogActions, FormControl, Select, MenuItem, InputLabel } from '@mui/material'
 import type { GridColDef } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
 import AddIcon from '@mui/icons-material/Add'
@@ -20,6 +20,7 @@ import type { RootState, AppDispatch } from '@/redux/store';
 import { fetchFines } from '@/redux/features/fines/fineSlice';
 import FineForm from '@/components/fine/FineForm';
 import { format } from 'date-fns';
+import Loader from '@/components/loader/loader'
 
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -38,10 +39,12 @@ const FineListing = () => {
 
   const [openAlert, setOpenAlert] = useState(false); // For alert visibility
   const [fineToDelete, setFineToDelete] = useState<string | null>(null); // Store fine ID to delete
-
-
   const [userRole, setUserRole] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
+  const [month, setMonth] = useState(new Date().getMonth() + 1)
+
+  console.log('fines', fines)
+
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -81,12 +84,12 @@ const FineListing = () => {
     () =>
       debounce(() => {
         if (userRole === '1') {
-          dispatch(fetchFines({ page, limit, keyword: selectedKeyword }));
+          dispatch(fetchFines({ page, month, limit, keyword: selectedKeyword }));
         } else {
           dispatch(fetchFines({ page, limit, keyword: selectedKeyword, userId }));
         }
       }, 300),
-    [dispatch, page, limit, selectedKeyword, userRole, userId]
+    [dispatch, page, limit, selectedKeyword, userRole, userId, month]
   );
 
 
@@ -106,7 +109,10 @@ const FineListing = () => {
     setPage(params.page + 1)
     setLimit(params.pageSize)
   }
-
+  const handleMothsChange = (e) => {
+    const newmonth = e.target.value;
+    setMonth(newmonth);
+  };
   const handleAddFine = () => {
     setSelectedFine(null)
     setShowForm(true)
@@ -162,55 +168,8 @@ const FineListing = () => {
   const generateColumns = () => {
     const columns = [
       ...(userRole === '1' ? [
-        // {
-        //   field: 'employee_name',
-        //   headerName: 'Employee Name',
-        //   width: 250,
-        //   headerAlign: 'center',
-        //   headerClassName: 'super-app-theme--header',
-        //   align: "center",
-        //   renderCell: (params) => {
-        //     return (
-        //       <Box display="flex" alignItems="center" height="100%">
-        //         <Avatar
-        //           src={params.row.employee.image}
-        //           sx={{ marginLeft: 10, width: 40, height: 40 }}
-        //         />
-        //         <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
-        //           {params.row.employee.first_name} {params.row.employee.last_name}
-        //         </Typography>
-        //       </Box>
-        //     )
-        //   }
-        // },
-        // {
-        //   field: 'total',
-        //   headerName: 'Total Fine ',
-        //   headerAlign: 'center',
-        //   flex: 1,
-        //   headerClassName: 'super-app-theme--header',
-        //   renderCell: (params) => {
-
-        //     const assets = Array.isArray(params.row.assets) ? params.row.assets : [];
-        //     const totalFineAmount = assets.reduce((total, asset) => {
-        //       const fineAmount = asset.fineAmount ? parseFloat(asset.fineAmount) : 0;
-        //       return total + fineAmount;
-        //     }, 0);
-
-        //     return (
-        //       <Box display="flex" alignItems="center" width='100%' height="100%">
-        //         <Typography fontWeight={700} sx={{ marginLeft: '5vw' }}>
-        //           {totalFineAmount}
-        //         </Typography>
-        //       </Box>
-        //     );
-        //   }
-        // },
-
-
-
         {
-          field: 'fine ',
+          field: 'fine',
           headerName: 'Fine Details',
           width: 1020,
           headerAlign: 'center',
@@ -221,33 +180,63 @@ const FineListing = () => {
               <Box>
                 <Accordion>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box display="flex" alignItems="center" height="100%" width="100%" justifyContent="space-between">
-                      <Box display="flex" alignItems="center">
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      height="100%"
+                      width="100%"
+                      justifyContent="space-between"
+                    >
+                      {/* Employee Info Section */}
+                      <Box display="flex" alignItems="center" width="33%">
                         <Avatar
                           src={params.row.employee.image}
-                          sx={{ marginLeft: 10, width: 30, height: 30 }}
+                          sx={{ marginLeft: 2, width: 30, height: 30 }}
                         />
-                        <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
+                        <Typography
+                          sx={{
+                            fontSize: '1em',
+                            fontWeight: 'bold',
+                            textTransform: 'capitalize',
+                            marginLeft: 2
+                          }}
+                        >
                           {params.row.employee.first_name} {params.row.employee.last_name}
                         </Typography>
                       </Box>
-                      <Box>
-                        <Typography>
-                          Total:
-                          {Array.isArray(params.row.assets)
+
+                      {/* Total Section */}
+                      <Box
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        width="33%"
+                      >
+                        <Typography sx={{ fontSize: '1em' }}>
+                          Total: ₹{Array.isArray(params.row.assets)
                             ? params.row.assets.reduce((total, asset) => {
                               const fineAmount = asset.fineAmount ? parseFloat(asset.fineAmount) : 0;
                               return total + fineAmount;
-                            }, 0)
-                            : 0}
+                            }, 0).toLocaleString()
+                            : '0'}
                         </Typography>
                       </Box>
-                      <Box>
-                        <Typography >{`View all Fines (${Array.isArray(params.row.assets) ? params.row.assets.length : 0})`}</Typography>
+
+                      {/* View All Section */}
+                      <Box
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="flex-end"
+                        width="33%"
+                      >
+                        <Typography sx={{ fontSize: '1em' }}>
+                          {`View all Fines (${Array.isArray(params.row.assets) ? params.row.assets.length : 0})`}
+                        </Typography>
                       </Box>
                     </Box>
                   </AccordionSummary>
-                  <AccordionDetails sx={{ marginTop: 5 }}>
+
+                  <AccordionDetails sx={{ marginTop: 2 }}>
                     <Table>
                       <TableHead>
                         <TableRow>
@@ -262,26 +251,33 @@ const FineListing = () => {
                         {Array.isArray(params.row.assets) && params.row.assets.map((fine, idx) => (
                           <TableRow key={`fine-${idx}`}>
                             <TableCell>{fine.fineType}</TableCell>
-                            <TableCell>{fine.fineAmount} </TableCell>
+                            <TableCell>₹{fine.fineAmount?.toLocaleString()}</TableCell>
                             <TableCell>
                               {fine.fineDate ? format(new Date(fine.fineDate), 'dd-MMM-yyyy').toUpperCase() : ''}
                             </TableCell>
-                            {userRole === '1' ? (
-                              <TableCell>
-                                <Button variant="contained" style={{ backgroundColor: '#2c3ce3' }} sx={{ minWidth: '50px' }} onClick={() => handleEditFine(fine._id)}>
-                                  <DriveFileRenameOutlineOutlined />
-                                </Button>
-                                <Button
-                                  color='error'
-                                  variant='contained'
-                                  sx={{ minWidth: '50px', ml: '0.5rem' }}
-                                  onClick={() => confirmDeleteFine(fine._id)}
-                                >
-                                  <DeleteIcon />
-                                </Button>
-
-                              </TableCell>
-                            ) : ''}
+                            <TableCell>
+                              <Button
+                                variant="contained"
+                                sx={{
+                                  minWidth: '50px',
+                                  backgroundColor: '#2c3ce3',
+                                  '&:hover': { backgroundColor: '#1a237e' }
+                                }}
+                                onClick={() => handleEditFine(fine._id)}
+                              >
+                                <DriveFileRenameOutlineOutlined />
+                              </Button>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                color='error'
+                                variant='contained'
+                                sx={{ minWidth: '50px' }}
+                                onClick={() => confirmDeleteFine(fine._id)}
+                              >
+                                <DeleteIcon />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -372,7 +368,7 @@ const FineListing = () => {
 
       <Box>
 
-        <ToastContainer />
+        <ToastContainer position="top-center" />
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
           <Box>
             <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
@@ -417,9 +413,35 @@ const FineListing = () => {
             />
           </Grid>
         </Grid>
+        <FormControl fullWidth variant="outlined" margin="normal">
+          <InputLabel id="select-month-label">Select Month</InputLabel>
+          <Select
+            labelId="select-month-label"
+            value={month}
+            onChange={handleMothsChange}
+            label="Select Month"
+            disabled={loading}
+          >
+            <MenuItem value="0">All</MenuItem>
+            <MenuItem value="1">January</MenuItem>
+            <MenuItem value="2">February</MenuItem>
+            <MenuItem value="3">March</MenuItem>
+            <MenuItem value="4">April</MenuItem>
+            <MenuItem value="5">May</MenuItem>
+            <MenuItem value="6">June</MenuItem>
+            <MenuItem value="7">july</MenuItem>
+            <MenuItem value="8">August</MenuItem>
+            <MenuItem value="9">September</MenuItem>
+            <MenuItem value="10">October</MenuItem>
+            <MenuItem value="11">November</MenuItem>
+            <MenuItem value="12">December</MenuItem>
+          </Select>
+        </FormControl>
 
         <Box sx={{ height: 500, width: '100%' }}>
           <DataGrid
+            loading={loading}
+
             getRowHeight={() => 'auto'}
             sx={{
               '& .super-app-theme--header': {
@@ -450,12 +472,14 @@ const FineListing = () => {
                 boxSizing: 'border-box'
               },
             }}
+            slots={{
+              loadingOverlay: Loader
+            }}
             rows={userRole == '1' ? (fines) : (userFines)}
             columns={columns}
             pageSizeOptions={[10, 20, 30]}
             paginationMode='server'
             rowCount={total}
-            loading={loading}
             getRowId={(row) => {
               if (userRole === "1") {
                 return row._id && row._id._id ? row._id._id : row._id;
@@ -469,7 +493,11 @@ const FineListing = () => {
 
         <Dialog open={showForm} onClose={handleCloseForm} fullWidth maxWidth='md'>
           <DialogContent>
-            <FineForm fine={selectedFine} onClose={handleCloseForm} setToast={setToast} />
+            <FineForm
+              fine={selectedFine}
+              onClose={handleCloseForm}
+              setToast={setToast}
+              month={month} />
           </DialogContent>
         </Dialog>
       </Box>

@@ -27,13 +27,13 @@ interface FineFormProps {
 
 }
 
-export default function FineForm({ fine, onClose, setToast }: FineFormProps) {
+export default function FineForm({ fine, onClose, setToast, month }: FineFormProps) {
   const dispatch = useDispatch<AppDispatch>();
 
   const [form, setForm] = useState({
     fineType: fine?.fineType || '',
     fineAmount: fine?.fineAmount || '',
-    fineDate: fine?.fineDate || '',
+    fineDate: fine?.fineDate || new Date().toISOString().split('T')[0], // Set default to current date
     employeeId: fine?.employee?._id || '',
   });
 
@@ -92,41 +92,41 @@ export default function FineForm({ fine, onClose, setToast }: FineFormProps) {
         ? `${process.env.NEXT_PUBLIC_APP_URL}/fines/update/${fine._id}`
         : `${process.env.NEXT_PUBLIC_APP_URL}/fines/create`;
 
-      const response = await fetch(url, {
+
+
+      fetch(url, {
         method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fineData),
-      });
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.message) {
+            toast[data.message.includes('success') ? 'success' : 'error'](data.message, {
+              position: 'top-center',
+            });
+          } else {
+            toast.error('Unexpected error occurred', {
+              position: 'top-center',
+            });
+          }
 
-      console.log('response is', response);
-
-      if (response.ok) {
-
-        setToast(fine ? 'Fine updated successfully' : 'Fine added successfully');
-        dispatch(fetchFines({ page: 1, limit: 10, keyword: '' }));
-        onClose();
-      } else {
-        const errorData = await response.json();
-
-        console.error(`Failed to save fine: ${errorData.message}`);
-
-        setToast('Something went wrong')
-      }
+          dispatch(fetchFines({ page: 1, month, limit: 10, keyword: '' }));
+          onClose();
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+        });
     } catch (error) {
-      console.error('Failed to save fine')
+      console.error('Error:', error);
     }
+
   };
 
 
   return (
     <>
-
       <Box component="form" onSubmit={handleSubmit}>
-
-
         <Autocomplete
           options={employees}
           getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
