@@ -62,7 +62,7 @@ export default function AddSeatingArrangementForm({
                 .then(data => {
                     setFormData({
                         seatNo: data.seatNo,
-                        employee: data.employee._id
+                        employee: data.employee?._id
                     })
                 })
         }
@@ -111,16 +111,25 @@ export default function AddSeatingArrangementForm({
         })
             .then(async response => {
                 const data = await response.json()
-                if (response.ok) {
+
+                // Explicitly check for a 409 Conflict status
+                if (response.status === 409) {
+                    // Handle 409 Conflict specifically
+                    onFormSubmitError(data.message || 'This seat number is already allocated in the specified location.')
+                } else if (response.ok) {
+                    // Success case
                     const successMessage = seatingArrangementId ? 'Seat updated successfully!' : 'Seat created successfully!'
+                    setErrors({ seatNo: '', employee: '' });
                     dispatch(fetchSeatingArrangements({ page: 1, limit: 10 }))
                     handleClose()
                     onFormSubmitSuccess(successMessage)
                 } else {
+                    // Handle other errors
                     onFormSubmitError(data.message || 'Error saving seating arrangement')
                 }
             })
             .catch(() => {
+                // Network or other unexpected errors
                 onFormSubmitError('Error saving seating arrangement')
             })
     }
