@@ -334,11 +334,9 @@ export default function PolicyGrid() {
       headerClassName: 'super-app-theme--header',
       flex: 2.5,
       headerAlign: 'center',
-      align: 'center',
+      // align: 'center',
       renderCell: (params) => {
-        const description = params.row?.description || 'No description available'; // Fallback
-
-        console.log('des', description);
+        const description = params.row?.description || 'No description available';
 
         return (
           <Box>
