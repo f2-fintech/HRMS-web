@@ -55,7 +55,8 @@ import AttendanceStatusList from '@/components/attendance/AttendanceStatusList';
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch();
   const theme = useTheme();
-  const { attendances, loading, count } = useSelector((state: RootState) => state.attendances);
+  const { attendances, loading, count, filteredAttendance } = useSelector((state: RootState) => state.attendances);
+
 
   const [showForm, setShowForm] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
@@ -187,13 +188,10 @@ export default function AttendanceGrid() {
     setStartDayIndex((prev) => Math.max(prev - daysToShow, 0));
   };
 
-  const attendanceData = attendances
-    .filter(att => att.employee?._id === userId)
-    .reduce((acc, { date, status }) => {
-      acc[date] = status;
-
-      return acc;
-    }, {});
+  const attendanceData = filteredAttendance.reduce((acc, { date, status }) => {
+    acc[date] = status;
+    return acc;
+  }, {} as Record<string, string>);
 
   const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month, 0).getDate();

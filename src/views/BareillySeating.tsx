@@ -12,8 +12,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import OfficeSeating from './OfficeSeating'; // Import Noida seating layout
 import PatelNagarSeating from './PatelNagarSeating';
 
-const BareillySeating = () => {
-    const [location, setLocation] = useState("bareilly");
+const BareillySeating = ({ location, setLocation }) => {
     const [seats, setSeats] = useState({
         leftVertical: Array.from({ length: 9 }, (_, i) => ({ id: i + 1, status: 'available' })),
         leftHorizontal1: [{ id: 10, status: 'available' }, { id: 11, status: 'available' }, { id: 12, status: 'available' }],
@@ -143,49 +142,6 @@ const BareillySeating = () => {
 
     return (
         <Box p={3}>
-
-            <Box display="flex" alignItems="center" mb={2}>
-                {/* Seat Availability Legend */}
-                <Box display="flex" alignItems="center">
-                    <WeekendIcon sx={{ color: '#4CAF50 ', mr: 1 }} />
-                    <Typography>Available</Typography>
-                    <WeekendIcon sx={{ color: '#2196F3 ', ml: 2, mr: 1 }} />
-                    <Typography>Booked</Typography>
-                </Box>
-
-                {/* Location Dropdown */}
-
-
-                {/* View Seating List Button with Icon */}
-                <Box ml={2}>
-                    <Tooltip title="View Seating List" arrow>
-                        <Link href="/seating" passHref>
-                            <Button
-                                color="primary"
-                                startIcon={<ListAltIcon sx={{ fontSize: 26 }} />}
-                                sx={{
-                                    textTransform: 'none',
-                                    minWidth: 'auto',
-                                    padding: '0.4rem 0.6rem',
-                                }}
-                            />
-                        </Link>
-                    </Tooltip>
-                </Box>
-                <FormControl sx={{ minWidth: 150, ml: 2 }}>
-                    <InputLabel>Location</InputLabel>
-                    <Select
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        label="Location"
-                    >
-                        <MenuItem value="bareilly">Bareilly</MenuItem>
-                        <MenuItem value="noida">Noida</MenuItem>
-                        <MenuItem value="patel nagar">Patel Nagar</MenuItem>
-                    </Select>
-                </FormControl>
-            </Box>
-
             <Box display="flex" justifyContent="space-between">
                 {/* Left Section */}
                 <Paper elevation={3} sx={{ p: 2, width: '30%' }}>
