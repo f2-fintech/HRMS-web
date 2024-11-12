@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Box, Typography, IconButton, Grid, Dialog, DialogContent, Tooltip, Avatar, Button, MenuItem, Select, FormControl, InputLabel, Paper } from '@mui/material';
-
 import WeekendIcon from '@mui/icons-material/Weekend';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import AddSeatingArrangementForm from '../components/sitting-arrangment/AddSeatingArrangementForm';
@@ -23,7 +22,8 @@ const OfficeSeating = () => {
         })),
         outSeating: [{ id: 78, status: 'available' }, { id: 79, status: 'available' }],
         ceoSeats: [{ id: 80, status: 'available' }, { id: 81, status: 'available' }],
-        hrSeats: [{ id: 82, status: 'available' }]
+        hrSeats: [{ id: 90, status: 'available' }],
+        conferenceSeats: Array.from({ length: 8 }, (_, i) => ({ id: 82 + i, status: 'available' }))
     });
 
     const [selectedSeat, setSelectedSeat] = useState(null);
@@ -32,7 +32,6 @@ const OfficeSeating = () => {
 
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userRole = user.role;
-
 
     useEffect(() => {
         const fetchSeatingData = async () => {
@@ -59,6 +58,7 @@ const OfficeSeating = () => {
                             outSeating: updateSeatStatus(prevSeats.outSeating),
                             ceoSeats: updateSeatStatus(prevSeats.ceoSeats),
                             hrSeats: updateSeatStatus(prevSeats.hrSeats),
+                            conferenceSeats: updateSeatStatus(prevSeats.conferenceSeats)
                         };
                     });
                 } else {
@@ -145,6 +145,8 @@ const OfficeSeating = () => {
                     sx={{
                         color: getSeatColor(seat.status),
                         fontSize: 40,
+                        mt: -3,
+
                         '& .MuiSvgIcon-root': {
                             fontSize: 40,
                         },
@@ -176,62 +178,55 @@ const OfficeSeating = () => {
                 Workspace Layout ({location.toLocaleUpperCase()})
             </Typography>
 
+            <Box display="flex" alignItems="center" mb={2}>
+                <Box display="flex" alignItems="center" ml={4}>
+                    <Box display="flex" alignItems="center" mr={2}>
+                        <WeekendIcon sx={{ color: '#4CAF50' }} />
+                        <Typography ml={0.5}>Available</Typography>
+                    </Box>
+                    <Box display="flex" alignItems="center" mr={2}>
+                        <WeekendIcon sx={{ color: '#2196F3' }} />
+                        <Typography ml={0.5}>Booked</Typography>
+                    </Box>
+                </Box>
+                <Tooltip title="View Seating List" arrow>
+                    <Link href="/seating" passHref>
+                        <Button
+                            color="primary"
+                            startIcon={<ListAltIcon sx={{ fontSize: 26 }} />}
+                            sx={{
+                                textTransform: 'none',
+                                minWidth: 'auto',
+                                padding: '0.4rem 0.6rem',
+                                ml: 2
+                            }}
+                        />
+                    </Link>
+                </Tooltip>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <InputLabel>Location</InputLabel>
+                    <Select
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        label="Location"
+                    >
+                        {['noida', 'patel nagar', 'bareilly'].map(loc => (
+                            <MenuItem key={loc} value={loc}>
+                                {loc.toUpperCase()}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+
+            </Box>
+
             {location === "noida" ? (
                 <Box display="flex">
                     <Box flex="3" mr={4}>
-                        <Box display="flex" mb={2} alignItems="center">
-                            <Box display="flex" alignItems="center" mr={1}>
-                                <WeekendIcon sx={{ color: '#4CAF50' }} />
-                                <Typography ml={0.5}>Available</Typography>
-                            </Box>
-                            <Box display="flex" alignItems="center" mr={1}>
-                                <WeekendIcon sx={{ color: '#2196F3' }} />
-                                <Typography ml={0.5}>Booked</Typography>
-                            </Box>
-                            <Box ml={1}>
-                                <Tooltip title="View Seating List" arrow>
-                                    <Link href="/seating" passHref>
-                                        <Button
-                                            color="primary"
-                                            startIcon={<ListAltIcon sx={{ fontSize: 26 }} />}
-                                            sx={{
-                                                textTransform: 'none',
-                                                minWidth: 'auto',
-                                                padding: '0.4rem 0.6rem',
-                                            }}
-                                        />
-                                    </Link>
-                                </Tooltip>
-                            </Box>
-                            <FormControl size="small" sx={{ minWidth: 120 }}>
-                                <InputLabel>Location</InputLabel>
-                                <Select
-                                    value={location}
-                                    onChange={(e) => setLocation(e.target.value)}
-                                    label="Location"
-                                >
-                                    {['noida', 'patel nagar', 'bareilly'].map(loc => (
-                                        <MenuItem key={loc} value={loc}>
-                                            {loc.toUpperCase()}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Box>
-
-                        <Typography style={{ color: 'blue' }} variant="h6">ITWorkSpaces</Typography>
-                        <Paper variant="outlined" sx={{ width: 'fit-content', p: 3, borderRadius: 2, mb: 2 }}> {/* Adds bottom margin */}
-                            <Grid
-                                container
-                                spacing={2}
-                                direction="row-reverse"
-                                justifyContent="space-between" // Distributes seats across the full width
-                                alignItems="center"
-                                wrap="nowrap"
-                                sx={{
-                                    width: '100%', // Ensures Grid takes the full width of the Paper
-                                }}
-                            >
+                        {/* IT Workspaces */}
+                        <Typography style={{ color: 'magenta' }} variant="h6">IT Workspaces</Typography>
+                        <Paper variant="outlined" sx={{ width: 'fit-content', p: 3, borderRadius: 2, mb: 2 }}>
+                            <Grid container spacing={2} direction="row-reverse" justifyContent="space-between" alignItems="center" wrap="nowrap">
                                 {seats.itSeats.map(seat => (
                                     <Grid item key={seat.id}>
                                         {renderSeat(seat)}
@@ -240,12 +235,11 @@ const OfficeSeating = () => {
                             </Grid>
                         </Paper>
 
-
+                        {/* Desk Rows */}
                         {seats.employeeRows.map((row, rowIndex) => (
                             <Box key={row.id} mb={2} sx={{ width: '38rem', p: 2, border: '1px solid lightgray', borderRadius: '8px' }}>
-                                <Typography style={{ color: 'blue' }} variant="h6">{`Desk Row ${rowIndex + 1}`}</Typography>
+                                <Typography style={{ color: 'magenta' }} variant="h6">{`Desk Row ${rowIndex + 1}`}</Typography>
 
-                                {/* First Row of 9 Seats, Right to Left */}
                                 <Grid container spacing={1} justifyContent="center" wrap="nowrap" direction="row-reverse">
                                     {row.seats.slice(0, 9).map(seat => (
                                         <Grid item key={seat.id}>
@@ -253,8 +247,6 @@ const OfficeSeating = () => {
                                         </Grid>
                                     ))}
                                 </Grid>
-
-                                {/* Second Row of 9 Seats, Right to Left */}
                                 <Grid container spacing={1} justifyContent="center" wrap="nowrap" direction="row-reverse">
                                     {row.seats.slice(9).map(seat => (
                                         <Grid item key={seat.id}>
@@ -264,9 +256,9 @@ const OfficeSeating = () => {
                                 </Grid>
                             </Box>
                         ))}
-
                     </Box>
 
+                    {/* Reserved Seats Section */}
                     <Paper
                         variant="outlined"
                         sx={{
@@ -275,14 +267,16 @@ const OfficeSeating = () => {
                             borderRadius: 2,
                             display: 'flex',
                             flexDirection: 'column',
-                            marginTop: '6rem',
+                            // marginTop: '1rem',
                             justifyContent: 'space-between',
                         }}
                     >
                         <Typography variant="h6" align="center" gutterBottom>Reserved Seats</Typography>
+
+                        {/* Reception */}
                         <Box>
-                            <Typography variant="h6" align="center">Reception</Typography>
-                            <Grid container spacing={2} direction="column" alignItems="center">
+                            <Typography variant="h6" align="center" style={{ color: 'magenta' }} >Reception</Typography>
+                            <Grid container spacing={0.2} direction="column" alignItems="center">
                                 {seats.outSeating.map(seat => (
                                     <Grid item key={seat.id}>
                                         {renderSeat(seat)}
@@ -291,8 +285,9 @@ const OfficeSeating = () => {
                             </Grid>
                         </Box>
 
+                        {/* Directors */}
                         <Box>
-                            <Typography variant="h6" align="center">CEO</Typography>
+                            <Typography variant="h6" align="center" sx={{ marginTop: '2rem', color: 'magenta' }}>Directors</Typography>
                             <Grid container spacing={2} direction="column" alignItems="center">
                                 {seats.ceoSeats.map(seat => (
                                     <Grid item key={seat.id}>
@@ -302,8 +297,51 @@ const OfficeSeating = () => {
                             </Grid>
                         </Box>
 
+                        {/* Conference Layout */}
                         <Box>
-                            <Typography variant="h6" align="center">HR</Typography>
+                            <Typography variant="h6" align="center" sx={{ marginTop: '2rem', color: 'magenta' }}>Conference</Typography>
+                            <Grid container spacing={2} direction="column" alignItems="center">
+
+                                {/* Top Middle Seat */}
+                                <Grid item>
+                                    {renderSeat(seats.conferenceSeats[0])}
+                                </Grid>
+
+                                {/* Conference Layout with Left and Right Columns */}
+                                <Grid item>
+                                    <Box display="flex" justifyContent="space-between" width="100%" sx={{ gap: 8 }}>
+
+                                        {/* Left Column */}
+                                        <Box display="flex" flexDirection="column" alignItems="center">
+                                            {seats.conferenceSeats.slice(1, 4).map(seat => (
+                                                <Grid item key={seat.id}>
+                                                    {renderSeat(seat)}
+                                                </Grid>
+                                            ))}
+                                        </Box>
+
+                                        {/* Right Column */}
+                                        <Box display="flex" flexDirection="column" alignItems="center">
+                                            {seats.conferenceSeats.slice(4, 7).map(seat => (
+                                                <Grid item key={seat.id}>
+                                                    {renderSeat(seat)}
+                                                </Grid>
+                                            ))}
+                                        </Box>
+                                    </Box>
+                                </Grid>
+
+                                {/* Bottom Middle Seat */}
+                                <Grid item>
+                                    {renderSeat(seats.conferenceSeats[7])}
+                                </Grid>
+                            </Grid>
+                        </Box>
+
+
+                        {/* HR */}
+                        <Box>
+                            <Typography variant="h6" align="center" sx={{ marginTop: '2rem', color: 'magenta' }}>HR</Typography>
                             <Grid container spacing={2} direction="column" alignItems="center">
                                 {seats.hrSeats.map(seat => (
                                     <Grid item key={seat.id}>
@@ -315,9 +353,10 @@ const OfficeSeating = () => {
                     </Paper>
                 </Box>
             ) : location === "patel nagar" ? (
-                <PatelNagarSeating />
+                <PatelNagarSeating location={location} setLocation={setLocation} />
             ) : (
-                <BareillySeating />
+                <BareillySeating location={location} setLocation={setLocation} />
+
             )}
 
             <Dialog open={openForm} onClose={handleFormClose} fullWidth maxWidth="sm">

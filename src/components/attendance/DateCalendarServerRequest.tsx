@@ -3,11 +3,11 @@ import { DateCalendar, PickersDayProps } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DayCalendarSkeleton } from '@mui/x-date-pickers/DayCalendarSkeleton';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import dayjs, { Dayjs } from 'dayjs';
 import ServerDay from './ServerDay';
-import { useDispatch } from 'react-redux';
-import type { AppDispatch } from '@/redux/store';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/redux/store';
 import { fetchEmployeeAttendances } from '@/redux/features/attendances/attendancesSlice';
 import { CalendarToday } from '@mui/icons-material';
 
@@ -93,7 +93,6 @@ function fakeFetch(date: Dayjs, { signal }: { signal: AbortSignal }) {
 }
 
 export default function DateCalendarServerRequest({
-    attendanceData,
     month,
     onMonthChange
 }: DateCalendarServerRequestProps) {
@@ -103,6 +102,8 @@ export default function DateCalendarServerRequest({
     const [userId, setUserId] = useState<string>('');
 
     const dispatch: AppDispatch = useDispatch();
+
+    const { filteredAttendance, loading } = useSelector((state: RootState) => state.attendances);
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -117,6 +118,13 @@ export default function DateCalendarServerRequest({
             }));
         }
     }, [dispatch, month, userId]);
+
+    const attendanceData = useMemo(() => {
+        return filteredAttendance.reduce((acc, { date, status }) => {
+            acc[date] = status;
+            return acc;
+        }, {} as Record<string, string>);
+    }, [filteredAttendance]);
 
     const fetchHighlightedDays = (date: Dayjs) => {
         const controller = new AbortController();
