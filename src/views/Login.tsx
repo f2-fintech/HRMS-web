@@ -68,7 +68,7 @@ const Login = ({ mode }: { mode: Mode }) => {
       localStorage.setItem('user', JSON.stringify({
         id: data.payload.id,
         role: data.payload.role,
-        desg: data.payload.designation,
+        designation: data.payload.designation,
       }));
 
       toast.success('Login successful!', {
