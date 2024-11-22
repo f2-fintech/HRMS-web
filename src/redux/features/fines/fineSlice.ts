@@ -36,16 +36,16 @@ const initialState: FineState = {
 export const fetchFines = createAsyncThunk<{
   fines: Fine[];
   total: number;
-}, { page?: number; limit?: number; keyword?: string }, { state: RootState }>(
+}, { page?: number; limit?: number; keyword?: string; month?: number; }, { state: RootState }>(
   'fines/fetchFines',
-  async ({ page, limit, keyword }: { page: number; limit: number; keyword: string }) => {
+  async ({ page, limit, keyword, month }: { page: number; limit: number; keyword: string; month: number }) => {
     let token: string | null = null;
 
     if (typeof window !== "undefined") {
       token = localStorage?.getItem('token');
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/fines/getAll?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/fines/getAll?page=${page}&limit=${limit}&month=${month}&keyword=${encodeURIComponent(keyword)}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

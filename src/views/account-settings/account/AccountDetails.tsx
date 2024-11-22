@@ -1,209 +1,139 @@
-'use client'
+'use client';
 
-// React Imports
-import { useState, useEffect } from 'react'
-import type { ChangeEvent } from 'react'
-
-// MUI Imports
-import Grid from '@mui/material/Grid'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
-import FormControl from '@mui/material/FormControl'
-import InputLabel from '@mui/material/InputLabel'
-import Select from '@mui/material/Select'
-import MenuItem from '@mui/material/MenuItem'
-import Chip from '@mui/material/Chip'
-import type { SelectChangeEvent } from '@mui/material/Select'
-
+import { useState } from 'react';
+import Cropper from 'react-easy-crop';
+import { getCroppedImg } from '../../../utils/cropUtils';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import axios from 'axios'; // Axios for HTTP requests
 
 const AccountDetails = () => {
+  const [logo, setLogo] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [rotation, setRotation] = useState(0);
+  const [cropMode, setCropMode] = useState(false);
 
-  const [fileInput, setFileInput] = useState<string>('')
-  const [userData, setUserData] = useState<any>(null);
+  const [companyName, setCompanyName] = useState('');
+  const [aboutUs, setAboutUs] = useState('');
 
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setLogo(reader.result as string);
+        setCropMode(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || '{}')
+  const handleCropComplete = async () => {
+    if (logo && croppedAreaPixels) {
+      const croppedImage = await getCroppedImg(logo, croppedAreaPixels, rotation);
+      setLogo(croppedImage);
+      setCropMode(false);
+    }
+  };
 
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/get/${user.id}`)
-        const data = await response.json()
-
-        setUserData(data)
-
-      } catch (error) {
-        console.error("Error fetching user data:", error)
-      }
+  const handleSubmit = async () => {
+    if (!companyName || !aboutUs || !logo) {
+      alert('Please fill out all fields and upload a logo!');
+      return;
     }
 
-    if (user.id) {
-      fetchUserData()
+    const formData = new FormData();
+    formData.append('companyName', companyName);
+    formData.append('aboutUs', aboutUs);
+
+    // Convert the logo Base64 to a Blob
+    const response = await fetch(logo);
+    const blob = await response.blob();
+    formData.append('image', blob, 'logo.png');
+
+    try {
+      await axios.post('/api/company', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      alert('Data successfully submitted!');
+    } catch (error) {
+      console.error('Error submitting data:', error);
+      alert('Failed to submit data!');
     }
-  }, [])
-
-  if (!userData) return null
-  console.log('account dada', userData)
-
-  const handleFormChange = (field: keyof Data, value: Data[keyof Data]) => {
-    setUserData({ ...userData, [field]: value })
-  }
-
-  const handleFileInputChange = (file: ChangeEvent) => {
-    const reader = new FileReader()
-    const { files } = file.target as HTMLInputElement
-
-    if (files && files.length !== 0) {
-      reader.onload = () => setImgSrc(reader.result as string)
-      reader.readAsDataURL(files[0])
-
-      if (reader.result !== null) {
-        setFileInput(reader.result as string)
-      }
-    }
-  }
-
-  const handleFileInputReset = () => {
-    setFileInput('')
-    setImgSrc('/images/avatars/1.png')
-  }
+  };
 
   return (
-    <Card>
-      <CardContent className='mbe-5'>
-        <div className='flex max-sm:flex-col items-center gap-6'>
-          <img height={100} width={100} className='rounded' src={userData.image} alt='Profile' />
-          <div className='flex flex-grow flex-col gap-4'>
-            <div className='flex flex-col sm:flex-row gap-4'>
-              <Button component='label' size='small' variant='contained' htmlFor='account-settings-upload-image'>
-                Upload New Photo
-                <input
-                  hidden
-                  type='file'
-                  value={fileInput}
-                  accept='image/png, image/jpeg'
-                  onChange={handleFileInputChange}
-                  id='account-settings-upload-image'
-                />
-              </Button>
-              <Button size='small' variant='outlined' color='error' onClick={handleFileInputReset}>
-                Reset
-              </Button>
-            </div>
-            <Typography>Allowed JPG, GIF or PNG. Max size of 800K</Typography>
-          </div>
-        </div>
-      </CardContent>
-      <CardContent>
-        <form onSubmit={e => e.preventDefault()}>
-          <Grid container spacing={5}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='First Name'
-                value={userData.first_name}
-                onChange={e => handleFormChange('firstName', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Last Name'
-                value={userData.last_name}
-                onChange={e => handleFormChange('lastName', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Email'
-                value={userData.email}
-                placeholder='john.doe@gmail.com'
-                onChange={e => handleFormChange('email', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Designation'
-                value={userData.designation}
-                onChange={e => handleFormChange('designation', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Phone Number'
-                value={userData.contact}
-                placeholder='+1 (234) 567-8901'
-                onChange={e => handleFormChange('phoneNumber', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='DOB'
-                value={userData.dob}
-                onChange={e => handleFormChange('dob', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Gender'
-                value={userData.gender}
-                onChange={e => handleFormChange('gender', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Role-priority'
-                value={userData.role_priority}
-                onChange={e => handleFormChange('role_priority', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Status'
-                value={userData.status}
-                onChange={e => handleFormChange('status', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Joining_date'
-                value={userData.joining_date}
-                onChange={e => handleFormChange('joining_date', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Leaving_date'
-                value={userData.leaving_date}
-                onChange={e => handleFormChange('leaving_date', e.target.value)}
-              />
-            </Grid>
+    <div>
+      <Typography variant="h6">Upload and Crop Logo</Typography>
+      <div style={{ position: 'relative', height: 400, width: 400 }}>
+        {cropMode && logo ? (
+          <Cropper
+            image={logo}
+            crop={crop}
+            zoom={zoom}
+            rotation={rotation}
+            aspect={1}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onRotationChange={setRotation}
+            onCropComplete={(_, croppedAreaPixels) => setCroppedAreaPixels(croppedAreaPixels)}
+          />
+        ) : (
+          <img
+            src={logo || '/images/default-logo.png'}
+            alt="Logo"
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        )}
+      </div>
+      <div className="flex gap-4 mt-4">
+        {cropMode ? (
+          <>
+            <Button variant="contained" onClick={handleCropComplete}>
+              Save Crop
+            </Button>
+            <Button variant="outlined" onClick={() => setCropMode(false)}>
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <Button component="label" variant="contained">
+            Upload Logo
+            <input hidden type="file" accept="image/*" onChange={handleFileInputChange} />
+          </Button>
+        )}
+      </div>
 
-            <Grid item xs={12} className='flex gap-4 flex-wrap'>
-              <Button variant='contained' type='submit'>
-                Save Changes
-              </Button>
-              <Button variant='outlined' type='reset' color='secondary' onClick={() => setFormData(initialData)}>
-                Reset
-              </Button>
-            </Grid>
-          </Grid>
-        </form>
-      </CardContent>
-    </Card>
-  )
-}
+      {/* Form Fields */}
+      <div className="mt-4">
+        <TextField
+          fullWidth
+          label="Company Name"
+          value={companyName}
+          onChange={(e) => setCompanyName(e.target.value)}
+          margin="normal"
+        />
+        <TextField
+          fullWidth
+          label="About Us"
+          value={aboutUs}
+          onChange={(e) => setAboutUs(e.target.value)}
+          margin="normal"
+          multiline
+          rows={4}
+        />
+      </div>
 
-export default AccountDetails
+      <div className="mt-4">
+        <Button variant="contained" onClick={handleSubmit}>
+          Submit
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default AccountDetails;

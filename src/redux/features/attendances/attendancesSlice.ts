@@ -176,7 +176,7 @@ export const attendancesSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchEmployeeAttendances.fulfilled, (state, action) => {
-        state.attendances = action.payload;
+        state.filteredAttendance = action.payload;
         state.loading = false;
       })
       .addCase(fetchEmployeeAttendances.rejected, (state, action) => {
