@@ -1,65 +1,175 @@
-'use client'
+'use client';
 
-// Next Imports
-import Link from 'next/link'
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-// MUI Imports
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
-import Button from '@mui/material/Button'
-
-// Type Imports
 import type { Mode } from '@core/types'
 
-// Component Imports
-import Form from '@components/Form'
-import DirectionalIcon from '@components/DirectionalIcon'
-import Illustrations from '@components/Illustrations'
-import Logo from '@components/layout/shared/Logo'
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
+import InputAdornment from '@mui/material/InputAdornment';
+import EmailIcon from '@mui/icons-material/Email';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { useImageVariant } from '@/@core/hooks/useImageVariant';
+import Illustrations from '@/components/Illustrations';
 
-// Hook Imports
-import { useImageVariant } from '@core/hooks/useImageVariant'
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#d32f2f', // Match the button's red color in the design
+    },
+  },
+});
 
 const ForgotPassword = ({ mode }: { mode: Mode }) => {
-  // Vars
-  const darkImg = '/images/pages/auth-v1-mask-dark.png'
-  const lightImg = '/images/pages/auth-v1-mask-light.png'
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [alert, setAlert] = useState({ type: '', message: '' });
+  const router = useRouter();
+  const darkImg = '/images/pages/auth-v1-mask-dark.png';
+  const lightImg = '/images/pages/auth-v1-mask-light.png';
+  const authBackground = useImageVariant(mode, lightImg, darkImg);
 
-  // Hooks
-  const authBackground = useImageVariant(mode, lightImg, darkImg)
+  const handleForgotPassword = async () => {
+    setIsLoading(true);
+    setAlert({ type: '', message: '' });
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send reset email');
+      }
+
+      setAlert({
+        type: 'success',
+        message: 'Reset link sent to your email. Please check your inbox.',
+      });
+    } catch (error: any) {
+      setAlert({
+        type: 'error',
+        message: error.message || 'Failed to send reset email. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className='flex flex-col justify-center items-center min-bs-[100dvh] relative p-6'>
-      <Card className='flex flex-col sm:is-[450px]'>
-        <CardContent className='p-6 sm:!p-12'>
-          <Link href='/' className='flex justify-center items-center mbe-6'>
-            <Logo />
-          </Link>
-          <Typography variant='h4'>Forgot Password 🔒</Typography>
-          <div className='flex flex-col gap-5'>
-            <Typography className='mbs-1'>
-              Enter your email and we&#39;ll send you instructions to reset your password
-            </Typography>
-            <Form noValidate autoComplete='off' className='flex flex-col gap-5'>
-              <TextField autoFocus fullWidth label='Email' />
-              <Button fullWidth variant='contained' type='submit'>
-                Send reset link
-              </Button>
-              <Typography className='flex justify-center items-center' color='primary'>
-                <Link href='/login' className='flex items-center'>
-                  <DirectionalIcon ltrIconClass='ri-arrow-left-s-line' rtlIconClass='ri-arrow-right-s-line' />
-                  <span>Back to Login</span>
-                </Link>
-              </Typography>
-            </Form>
-          </div>
-        </CardContent>
-      </Card>
-      <Illustrations maskImg={{ src: authBackground }} />
-    </div>
-  )
-}
+    <ThemeProvider theme={theme}>
+      <Container component="main" maxWidth="sm">
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            bgcolor: '#f7f7f7',
+          }}
+        >
+          {/* Logo Section */}
+          <Box
+            component="img"
+            src="/images/logos/fintech.png" // Replace with the correct path to your logo
+            alt="Logo"
+            sx={{
+              width: '10vw', // Adjust the width
+              height: 'auto', // Maintain aspect ratio
 
-export default ForgotPassword
+            }}
+          />
+
+          {/* Form Section */}
+          <Paper
+            elevation={3}
+            sx={{
+              p: 4,
+              width: '100%',
+              maxWidth: 400,
+              textAlign: 'center',
+              border: '1px solid #e0e0e0',
+            }}
+          >
+            <img
+              src="https://thumbs.dreamstime.com/b/forgot-password-vector-icon-white-background-277222632.jpg"
+              alt="Forgot Password Logo"
+              style={{ marginBottom: '16px', maxWidth: '100px', height: 'auto' }}
+            />
+
+            <Typography component="h1" variant="h5" gutterBottom>
+              Forgot your password?
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              You will receive a link to reset it
+            </Typography>
+
+            {alert.message && (
+              <Alert
+                severity={alert.type as 'error' | 'success'}
+                sx={{ width: '100%', mb: 2 }}
+              >
+                {alert.message}
+              </Alert>
+            )}
+
+            <TextField
+              fullWidth
+              placeholder="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              margin="normal"
+              variant="outlined"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleForgotPassword}
+              disabled={isLoading}
+              sx={{
+                mt: 2,
+                height: 48,
+                backgroundColor: '#d32f2f',
+                '&:hover': {
+                  backgroundColor: '#b71c1c',
+                },
+              }}
+            >
+              {isLoading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'RESET MY PASSWORD'
+              )}
+            </Button>
+          </Paper>
+        </Box>
+      </Container>
+      <Illustrations maskImg={{ src: authBackground }} />
+    </ThemeProvider>
+  );
+};
+
+export default ForgotPassword;
