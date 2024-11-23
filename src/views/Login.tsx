@@ -68,7 +68,7 @@ const Login = ({ mode }: { mode: Mode }) => {
       localStorage.setItem('user', JSON.stringify({
         id: data.payload.id,
         role: data.payload.role,
-        desg: data.payload.designation,
+        designation: data.payload.designation,
       }));
 
       toast.success('Login successful!', {
@@ -142,11 +142,13 @@ const Login = ({ mode }: { mode: Mode }) => {
                 }}
                 disabled={isLoading}
               />
-              <div className='flex justify-between items-center gap-x-3 gap-y-1 flex-wrap'>
-                <FormControlLabel control={<Checkbox disabled={isLoading} />} label='Remember me' />
-                <Typography className='text-end' color='primary' component={Link} href='/forgot-password'>
-                  Forgot password?
-                </Typography>
+              <div className="flex justify-between items-center gap-x-3 gap-y-1 flex-wrap">
+                <FormControlLabel control={<Checkbox disabled={isLoading} />} label="Remember me" />
+                <Link href="/forgot-pass">
+                  <Typography className="text-end" color="primary" component="span">
+                    Forgot password?
+                  </Typography>
+                </Link>
               </div>
               <Button
                 fullWidth
@@ -163,27 +165,6 @@ const Login = ({ mode }: { mode: Mode }) => {
                 {isLoading ? <Loader /> : 'Log In'}
               </Button>
 
-              <div className='flex justify-center items-center flex-wrap gap-2'>
-                <Typography>New on our platform?</Typography>
-                <Typography component={Link} href='/register' color='primary'>
-                  Create an account
-                </Typography>
-              </div>
-              <Divider className='gap-3'>or</Divider>
-              <div className='flex justify-center items-center gap-2'>
-                <IconButton size='small' className='text-facebook'>
-                  <i className='ri-facebook-fill' />
-                </IconButton>
-                <IconButton size='small' className='text-twitter'>
-                  <i className='ri-twitter-fill' />
-                </IconButton>
-                <IconButton size='small' className='text-github'>
-                  <i className='ri-github-fill' />
-                </IconButton>
-                <IconButton size='small' className='text-googlePlus' disabled={isLoading}>
-                  <i className='ri-google-fill' />
-                </IconButton>
-              </div>
             </form>
           </div>
         </CardContent>

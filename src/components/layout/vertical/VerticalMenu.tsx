@@ -183,10 +183,10 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
             Seating Plan
           </MenuItem>
-
+          {/* 
           <MenuItem href={`/timesheets`} icon={<AccessTimeFilledIcon />}>
             Time Sheet
-          </MenuItem>
+          </MenuItem> */}
           <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
             Policy
           </MenuItem>
