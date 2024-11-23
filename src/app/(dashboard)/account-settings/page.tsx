@@ -14,8 +14,8 @@ const ConnectionsTab = dynamic(() => import('@views/account-settings/connections
 // Vars
 const tabContentList = (): { [key: string]: ReactElement } => ({
   account: <AccountTab />,
-  notifications: <NotificationsTab />,
-  connections: <ConnectionsTab />
+  // notifications: <NotificationsTab />,
+  // connections: <ConnectionsTab />
 })
 
 const AccountSettingsPage = () => {
