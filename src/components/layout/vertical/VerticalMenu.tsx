@@ -220,11 +220,11 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             Cards
           </MenuItem> */}
         </MenuSection>
-        <MenuSection label='Forms & Tables'>
+        {/* <MenuSection label='Forms & Tables'>
           <MenuItem href='/form-layouts' icon={<i className='ri-layout-4-line' />}>
             Form Layouts
           </MenuItem>
-        </MenuSection>
+        </MenuSection> */}
       </Menu>
     </ScrollWrapper>
   )

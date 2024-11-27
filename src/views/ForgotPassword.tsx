@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import type { Mode } from '@core/types'
@@ -18,6 +18,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { useImageVariant } from '@/@core/hooks/useImageVariant';
 import Illustrations from '@/components/Illustrations';
+import Logo from '@/@core/svg/Logo';
 
 
 const theme = createTheme({
@@ -36,6 +37,7 @@ const ForgotPassword = ({ mode }: { mode: Mode }) => {
   const darkImg = '/images/pages/auth-v1-mask-dark.png';
   const lightImg = '/images/pages/auth-v1-mask-light.png';
   const authBackground = useImageVariant(mode, lightImg, darkImg);
+
 
   const handleForgotPassword = async () => {
     setIsLoading(true);
@@ -81,17 +83,8 @@ const ForgotPassword = ({ mode }: { mode: Mode }) => {
             bgcolor: '#f7f7f7',
           }}
         >
-          {/* Logo Section */}
-          <Box
-            component="img"
-            src="/images/logos/fintech.png" // Replace with the correct path to your logo
-            alt="Logo"
-            sx={{
-              width: '10vw', // Adjust the width
-              height: 'auto', // Maintain aspect ratio
 
-            }}
-          />
+          <Logo />
 
           {/* Form Section */}
           <Paper

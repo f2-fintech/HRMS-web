@@ -29,9 +29,9 @@ const NavbarContent = () => {
       </div>
       <div className='flex items-center'>
         <Link href={`${process.env.NEXT_PUBLIC_PAYROLL_URL}?token=${token}`} target='_blank'>
-          <Button>
+          {/* <Button>
             PayRoll <i className="ri-arrow-right-circle-fill"></i>
-          </Button>
+          </Button> */}
         </Link>
         <ModeDropdown />
 

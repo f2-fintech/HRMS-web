@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import Link from 'next/link';
@@ -25,6 +25,7 @@ import Logo from '@components/layout/shared/Logo';
 import Illustrations from '@components/Illustrations';
 import themeConfig from '@configs/themeConfig';
 import Loader from '../components/loader/loader'
+import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
 
 const Login = ({ mode }: { mode: Mode }) => {
   const [isPasswordShown, setIsPasswordShown] = useState(false);
@@ -101,13 +102,14 @@ const Login = ({ mode }: { mode: Mode }) => {
       <ToastContainer />
       <Card className='flex flex-col sm:is-[450px]'>
         <CardContent className='p-6 sm:!p-12'>
-          <Link href='/' className='flex justify-center items-center mbe-6'>
+          <Link href="/" className="flex justify-center items-center mbe-6">
             <Logo />
           </Link>
+
           <div className='flex flex-col gap-5'>
             <div>
-              <Typography variant='h4'>{`Welcome to ${themeConfig.templateName}!👋🏻`}</Typography>
-              <Typography className='mbs-1'>Please sign-in to your account and start the adventure</Typography>
+              <Typography style={{ textAlign: 'center', fontWeight: 'bold', marginTop: '-3rem' }} variant='h5'>{`Welcome to Login Page ${themeConfig.templateName}`}</Typography>
+              {/* <Typography className='mbs-1'>Please sign-in to your account and start the adventure</Typography> */}
             </div>
             <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
               <TextField
