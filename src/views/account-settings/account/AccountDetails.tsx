@@ -1,209 +1,295 @@
-'use client'
+'use client';
 
-// React Imports
-import { useState, useEffect } from 'react'
-import type { ChangeEvent } from 'react'
+import { useState, useEffect } from 'react';
+import Cropper from 'react-easy-crop';
+import { getCroppedImg } from '../../../utils/cropUtils';
+import {
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Alert,
+  Snackbar,
+  Container,
+  Grid,
+  CircularProgress,
+  Divider,
+  IconButton
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+import PhotoCamera from '@mui/icons-material/PhotoCamera';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
+import EditIcon from '@mui/icons-material/Edit';
 
-// MUI Imports
-import Grid from '@mui/material/Grid'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
-import FormControl from '@mui/material/FormControl'
-import InputLabel from '@mui/material/InputLabel'
-import Select from '@mui/material/Select'
-import MenuItem from '@mui/material/MenuItem'
-import Chip from '@mui/material/Chip'
-import type { SelectChangeEvent } from '@mui/material/Select'
+// Styled components
+const ImageContainer = styled(Box)(({ theme }) => ({
+  position: 'relative',
+  width: 300,
+  height: 300,
+  margin: '0 auto',
+  border: `2px dashed ${theme.palette.grey[300]}`,
+  borderRadius: theme.shape.borderRadius,
+  overflow: 'hidden',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: theme.palette.grey[50]
+}));
 
+const StyledImage = styled('img')({
+  width: '100%',
+  height: '100%',
+  objectFit: 'contain'
+});
+
+const CropContainer = styled(Box)({
+  position: 'relative',
+  width: '100%',
+  height: '100%'
+});
 
 const AccountDetails = () => {
+  const [logo, setLogo] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [rotation, setRotation] = useState(0);
+  const [cropMode, setCropMode] = useState(false);
 
-  const [fileInput, setFileInput] = useState<string>('')
-  const [userData, setUserData] = useState<any>(null);
+  const [companyName, setCompanyName] = useState('');
+  const [aboutUs, setAboutUs] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [configId, setConfigId] = useState<string | null>(null);
 
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
+  const [openAlert, setOpenAlert] = useState(false);
+
+  const API_URL = process.env.NEXT_PUBLIC_APP_URL;
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || '{}')
-
-    const fetchUserData = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/get/${user.id}`)
-        const data = await response.json()
+        const response = await fetch(`${API_URL}/configuration`);
+        if (!response.ok) throw new Error('Failed to fetch configuration');
+        const data = await response.json();
 
-        setUserData(data)
-
+        if (data && data.length > 0) {
+          const config = data[0];
+          setCompanyName(config.name);
+          setAboutUs(config.description);
+          setLogo(config.image);
+          setConfigId(config._id);
+          setIsEditing(true);
+        }
       } catch (error) {
-        console.error("Error fetching user data:", error)
+        console.error('Error fetching configuration:', error);
+        showAlert('Failed to load configuration.', 'error');
+      } finally {
+        setDataLoaded(true);
       }
+    };
+
+    fetchData();
+  }, [API_URL]);
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setLogo(reader.result as string);
+        setCropMode(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = async () => {
+    if (logo && croppedAreaPixels) {
+      const croppedImage = await getCroppedImg(logo, croppedAreaPixels, rotation);
+      setLogo(croppedImage);
+      setCropMode(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!companyName || !aboutUs) {
+      showAlert('Please fill out all fields!', 'error');
+      return;
     }
 
-    if (user.id) {
-      fetchUserData()
+    const formData = new FormData();
+    formData.append('name', companyName);
+    formData.append('description', aboutUs);
+
+    if (logo && !logo.startsWith('http')) {
+      const response = await fetch(logo);
+      const blob = await response.blob();
+      formData.append('image', blob, 'logo.png');
     }
-  }, [])
 
-  if (!userData) return null
-  console.log('account dada', userData)
+    try {
+      if (isEditing && configId) {
+        const configResponse = await fetch(`${API_URL}/configuration/update/${configId}`, {
+          method: 'PUT',
+          body: formData,
+        });
 
-  const handleFormChange = (field: keyof Data, value: Data[keyof Data]) => {
-    setUserData({ ...userData, [field]: value })
-  }
+        if (!configResponse.ok) throw new Error('Failed to update configuration');
+        showAlert('Configuration updated successfully!', 'success');
+      } else {
+        const configResponse = await fetch(`${API_URL}/configuration/create`, {
+          method: 'POST',
+          body: formData,
+        });
 
-  const handleFileInputChange = (file: ChangeEvent) => {
-    const reader = new FileReader()
-    const { files } = file.target as HTMLInputElement
-
-    if (files && files.length !== 0) {
-      reader.onload = () => setImgSrc(reader.result as string)
-      reader.readAsDataURL(files[0])
-
-      if (reader.result !== null) {
-        setFileInput(reader.result as string)
+        if (!configResponse.ok) throw new Error('Failed to create configuration');
+        const createdConfig = await configResponse.json();
+        showAlert('Configuration created successfully!', 'success');
+        setConfigId(createdConfig._id);
+        setIsEditing(true);
       }
+    } catch (error) {
+      console.error('Error submitting configuration:', error);
+      showAlert('Failed to submit configuration!', 'error');
     }
-  }
+  };
 
-  const handleFileInputReset = () => {
-    setFileInput('')
-    setImgSrc('/images/avatars/1.png')
+  const showAlert = (message: string, severity: 'success' | 'error') => {
+    setAlertMessage(message);
+    setAlertSeverity(severity);
+    setOpenAlert(true);
+  };
+
+  if (!dataLoaded) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
-    <Card>
-      <CardContent className='mbe-5'>
-        <div className='flex max-sm:flex-col items-center gap-6'>
-          <img height={100} width={100} className='rounded' src={userData.image} alt='Profile' />
-          <div className='flex flex-grow flex-col gap-4'>
-            <div className='flex flex-col sm:flex-row gap-4'>
-              <Button component='label' size='small' variant='contained' htmlFor='account-settings-upload-image'>
-                Upload New Photo
-                <input
-                  hidden
-                  type='file'
-                  value={fileInput}
-                  accept='image/png, image/jpeg'
-                  onChange={handleFileInputChange}
-                  id='account-settings-upload-image'
-                />
-              </Button>
-              <Button size='small' variant='outlined' color='error' onClick={handleFileInputReset}>
-                Reset
-              </Button>
-            </div>
-            <Typography>Allowed JPG, GIF or PNG. Max size of 800K</Typography>
-          </div>
-        </div>
-      </CardContent>
-      <CardContent>
-        <form onSubmit={e => e.preventDefault()}>
-          <Grid container spacing={5}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='First Name'
-                value={userData.first_name}
-                onChange={e => handleFormChange('firstName', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Last Name'
-                value={userData.last_name}
-                onChange={e => handleFormChange('lastName', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Email'
-                value={userData.email}
-                placeholder='john.doe@gmail.com'
-                onChange={e => handleFormChange('email', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Designation'
-                value={userData.designation}
-                onChange={e => handleFormChange('designation', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Phone Number'
-                value={userData.contact}
-                placeholder='+1 (234) 567-8901'
-                onChange={e => handleFormChange('phoneNumber', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='DOB'
-                value={userData.dob}
-                onChange={e => handleFormChange('dob', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Gender'
-                value={userData.gender}
-                onChange={e => handleFormChange('gender', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Role-priority'
-                value={userData.role_priority}
-                onChange={e => handleFormChange('role_priority', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Status'
-                value={userData.status}
-                onChange={e => handleFormChange('status', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Joining_date'
-                value={userData.joining_date}
-                onChange={e => handleFormChange('joining_date', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Leaving_date'
-                value={userData.leaving_date}
-                onChange={e => handleFormChange('leaving_date', e.target.value)}
-              />
-            </Grid>
+    <Container maxWidth="md">
+      <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
+        <Typography variant="h4" gutterBottom color="primary">
+          {isEditing ? 'Update Configuration' : 'Create Configuration'}
+        </Typography>
+        <Divider sx={{ mb: 4 }} />
 
-            <Grid item xs={12} className='flex gap-4 flex-wrap'>
-              <Button variant='contained' type='submit'>
-                Save Changes
-              </Button>
-              <Button variant='outlined' type='reset' color='secondary' onClick={() => setFormData(initialData)}>
-                Reset
-              </Button>
-            </Grid>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={6}>
+            <ImageContainer>
+              {cropMode && logo ? (
+                <CropContainer>
+                  <Cropper
+                    image={logo}
+                    crop={crop}
+                    zoom={zoom}
+                    rotation={rotation}
+                    aspect={1}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onRotationChange={setRotation}
+                    onCropComplete={(_, croppedAreaPixels) => setCroppedAreaPixels(croppedAreaPixels)}
+                  />
+                </CropContainer>
+              ) : (
+                <StyledImage src={logo || '/images/default-logo.png'} alt="Logo" />
+              )}
+            </ImageContainer>
+
+            <Box display="flex" justifyContent="center" gap={2} mt={2}>
+              {cropMode ? (
+                <>
+                  <Button
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={handleCropComplete}
+                    color="primary"
+                  >
+                    Save Crop
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<CancelIcon />}
+                    onClick={() => setCropMode(false)}
+                    color="error"
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  component="label"
+                  variant="contained"
+                  startIcon={<PhotoCamera />}
+                  sx={{ mt: 2 }}
+                >
+                  Upload Logo
+                  <input hidden type="file" accept="image/*" onChange={handleFileInputChange} />
+                </Button>
+              )}
+            </Box>
           </Grid>
-        </form>
-      </CardContent>
-    </Card>
-  )
-}
 
-export default AccountDetails
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Company Name"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              margin="normal"
+              variant="outlined"
+              required
+            />
+            <TextField
+              fullWidth
+              label="About Us"
+              value={aboutUs}
+              onChange={(e) => setAboutUs(e.target.value)}
+              margin="normal"
+              multiline
+              rows={4}
+              variant="outlined"
+              required
+            />
+
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleSubmit}
+              startIcon={<SaveIcon />}
+              sx={{ mt: 4 }}
+              size="large"
+            >
+              {isEditing ? 'Update Configuration' : 'Create Configuration'}
+            </Button>
+          </Grid>
+        </Grid>
+
+        <Snackbar
+          open={openAlert}
+          autoHideDuration={6000}
+          onClose={() => setOpenAlert(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert
+            onClose={() => setOpenAlert(false)}
+            severity={alertSeverity}
+            variant="filled"
+            sx={{ width: '100%' }}
+          >
+            {alertMessage}
+          </Alert>
+        </Snackbar>
+      </Paper>
+    </Container>
+  );
+};
+
+export default AccountDetails;

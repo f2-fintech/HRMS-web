@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
     Container,
@@ -12,7 +12,6 @@ import {
     Alert,
     CircularProgress
 } from '@mui/material';
-import LockResetIcon from '@mui/icons-material/LockReset';
 
 import Logo from '@components/layout/shared/Logo';
 import { useImageVariant } from '@/@core/hooks/useImageVariant';
@@ -31,6 +30,8 @@ const ResetPassword = ({ mode }: { mode: Mode }) => {
     const darkImg = '/images/pages/auth-v1-mask-dark.png';
     const lightImg = '/images/pages/auth-v1-mask-light.png';
     const authBackground = useImageVariant(mode, lightImg, darkImg);
+
+
 
 
     const handleResetPassword = async () => {
@@ -98,108 +99,99 @@ const ResetPassword = ({ mode }: { mode: Mode }) => {
 
                     }}
                 >
-                    <Box
-                        component="img"
-                        src="/images/logos/fintech.png" // Replace with the correct path to your logo
-                        alt="Logo"
+                    <Logo />
+
+                    <Paper
+                        elevation={3}
                         sx={{
-                            width: '10vw', // Adjust the width
-                            height: 'auto', // Maintain aspect ratio
-                        }}
-                    />
-                </Box>
-
-                <Paper
-                    elevation={3}
-                    sx={{
-                        p: 4,
-                        pt: 6, // Add padding to prevent overlap with the logo
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        width: '100%',
-                        textAlign: 'center',
-                        position: 'relative',
-                    }}
-                >
-                    <img
-                        src="https://static.vecteezy.com/system/resources/thumbnails/007/536/069/small_2x/password-reset-icon-for-apps-vector.jpg"
-                        alt="Reset Password Icon"
-                        style={{
-                            marginBottom: '9px',
-                            maxWidth: '100px',
-                            height: 'auto',
-                        }}
-                    />
-
-                    <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-                        Reset Password
-                    </Typography>
-
-                    {alert.message && (
-                        <Alert
-                            severity={alert.type as 'error' | 'success'}
-                            sx={{ width: '100%', mb: 2 }}
-                        >
-                            {alert.message}
-                        </Alert>
-                    )}
-
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="password"
-                        label="New Password"
-                        type="password"
-                        autoComplete="new-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={isLoading}
-                    />
-
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="confirmPassword"
-                        label="Confirm Password"
-                        type="password"
-                        autoComplete="new-password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={isLoading}
-                        sx={{ mb: 3 }}
-                    />
-
-                    <Button
-                        fullWidth
-                        variant="contained"
-                        onClick={handleResetPassword}
-                        disabled={isLoading}
-                        sx={{
-                            py: 1.5,
+                            p: 4,
+                            pt: 6, // Add padding to prevent overlap with the logo
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            width: '100%',
+                            textAlign: 'center',
                             position: 'relative',
                         }}
                     >
-                        {isLoading ? (
-                            <CircularProgress
-                                size={24}
-                                sx={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    marginTop: '-12px',
-                                    marginLeft: '-12px',
-                                }}
-                            />
-                        ) : (
-                            'Reset Password'
+                        <img
+                            src="https://static.vecteezy.com/system/resources/thumbnails/007/536/069/small_2x/password-reset-icon-for-apps-vector.jpg"
+                            alt="Reset Password Icon"
+                            style={{
+                                marginBottom: '9px',
+                                maxWidth: '100px',
+                                height: 'auto',
+                            }}
+                        />
+
+                        <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+                            Reset Password
+                        </Typography>
+
+                        {alert.message && (
+                            <Alert
+                                severity={alert.type as 'error' | 'success'}
+                                sx={{ width: '100%', mb: 2 }}
+                            >
+                                {alert.message}
+                            </Alert>
                         )}
-                    </Button>
-                </Paper>
-            </Box>
-            <Illustrations maskImg={{ src: authBackground }} />
+
+                        <TextField
+                            margin="normal"
+                            required
+                            fullWidth
+                            name="password"
+                            label="New Password"
+                            type="password"
+                            autoComplete="new-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={isLoading}
+                        />
+
+                        <TextField
+                            margin="normal"
+                            required
+                            fullWidth
+                            name="confirmPassword"
+                            label="Confirm Password"
+                            type="password"
+                            autoComplete="new-password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            disabled={isLoading}
+                            sx={{ mb: 3 }}
+                        />
+
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            onClick={handleResetPassword}
+                            disabled={isLoading}
+                            sx={{
+                                py: 1.5,
+                                position: 'relative',
+                            }}
+                        >
+                            {isLoading ? (
+                                <CircularProgress
+                                    size={24}
+                                    sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        marginTop: '-12px',
+                                        marginLeft: '-12px',
+                                    }}
+                                />
+                            ) : (
+                                'Reset Password'
+                            )}
+                        </Button>
+                    </Paper>
+                </Box>
+                <Illustrations maskImg={{ src: authBackground }} />
         </Container>
     );
 };
