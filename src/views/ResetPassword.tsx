@@ -191,7 +191,8 @@ const ResetPassword = ({ mode }: { mode: Mode }) => {
                         </Button>
                     </Paper>
                 </Box>
-                <Illustrations maskImg={{ src: authBackground }} />
+            </Box>
+            <Illustrations maskImg={{ src: authBackground }} />
         </Container>
     );
 };
