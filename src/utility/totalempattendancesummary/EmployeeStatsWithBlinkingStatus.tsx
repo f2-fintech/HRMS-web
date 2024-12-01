@@ -222,7 +222,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
       };
       fetchAttendanceCounts();
     }
-  }, [attendanceCountsByLocation]);
+  }, []);
 
 
   return (
