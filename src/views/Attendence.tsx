@@ -572,9 +572,9 @@ export default function AttendanceGrid() {
                 onChange={handleLocationInputChange}
               >
                 <MenuItem value="">All</MenuItem>
-                <MenuItem value="noida">Noida</MenuItem>
-                <MenuItem value="bareilly">Bareilly</MenuItem>
-                <MenuItem value="patel Nagar">Patel Nagar</MenuItem>
+                <MenuItem value="south extension 1">South Extension 1</MenuItem>
+                <MenuItem value="vaishali ghaziabad">Vaishali Ghaziabad</MenuItem>
+                <MenuItem value="meerut">Meerut</MenuItem>
               </Select>
             </FormControl>
           </Grid>
