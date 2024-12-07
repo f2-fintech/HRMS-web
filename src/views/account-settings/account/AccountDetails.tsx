@@ -21,7 +21,9 @@ import { styled } from '@mui/material/styles';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
-import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
 
 // Styled components
 const ImageContainer = styled(Box)(({ theme }) => ({
@@ -60,6 +62,11 @@ const AccountDetails = () => {
 
   const [companyName, setCompanyName] = useState('');
   const [aboutUs, setAboutUs] = useState('');
+  const [email, setEmail] = useState('');
+  const [contactNo, setContactNo] = useState('');
+  const [locations, setLocations] = useState<string[]>(['']); // Array for addresses
+  const [branches, setBranches] = useState<string[]>(['']); // Array for branches
+
   const [isEditing, setIsEditing] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [configId, setConfigId] = useState<string | null>(null);
@@ -73,18 +80,16 @@ const AccountDetails = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`${API_URL}/configuration`);
-        if (!response.ok) throw new Error('Failed to fetch configuration');
-        const data = await response.json();
-
-        if (data && data.length > 0) {
-          const config = data[0];
-          setCompanyName(config.name);
-          setAboutUs(config.description);
-          setLogo(config.image);
-          setConfigId(config._id);
-          setIsEditing(true);
-        }
+        const config = await fetchConfiguration();
+        setCompanyName(config.name);
+        setAboutUs(config.description);
+        setEmail(config.email || '');
+        setContactNo(config.contactNo || '');
+        setLocations(config.address || ['']);
+        setBranches(config.branch || ['']);
+        setLogo(config.image);
+        setConfigId(config._id);
+        setIsEditing(true);
       } catch (error) {
         console.error('Error fetching configuration:', error);
         showAlert('Failed to load configuration.', 'error');
@@ -94,8 +99,7 @@ const AccountDetails = () => {
     };
 
     fetchData();
-  }, [API_URL]);
-
+  }, []);
   const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -116,15 +120,49 @@ const AccountDetails = () => {
     }
   };
 
+  const handleAddLocation = () => {
+    setLocations([...locations, '']);
+  };
+
+  const handleRemoveLocation = (index: number) => {
+    setLocations(locations.filter((_, i) => i !== index));
+  };
+
+  const handleLocationChange = (index: number, value: string) => {
+    const updatedLocations = [...locations];
+    updatedLocations[index] = value;
+    setLocations(updatedLocations);
+  };
+
+  const handleAddBranch = () => {
+    setBranches([...branches, '']);
+  };
+
+  const handleRemoveBranch = (index: number) => {
+    setBranches(branches.filter((_, i) => i !== index));
+  };
+
+  const handleBranchChange = (index: number, value: string) => {
+    const updatedBranches = [...branches];
+    updatedBranches[index] = value;
+    setBranches(updatedBranches);
+  };
+
+
   const handleSubmit = async () => {
-    if (!companyName || !aboutUs) {
-      showAlert('Please fill out all fields!', 'error');
+    if (!companyName || !aboutUs || !email || !contactNo) {
+      showAlert('Please fill out all required fields!', 'error');
       return;
     }
 
     const formData = new FormData();
     formData.append('name', companyName);
     formData.append('description', aboutUs);
+    formData.append('email', email);
+    formData.append('contactNo', contactNo);
+    formData.append('address', JSON.stringify(locations)); // Send locations as JSON
+    const lowercaseBranches = branches.map(branch => branch.toLowerCase());
+    formData.append('branch', JSON.stringify(lowercaseBranches));
 
     if (logo && !logo.startsWith('http')) {
       const response = await fetch(logo);
@@ -133,26 +171,18 @@ const AccountDetails = () => {
     }
 
     try {
-      if (isEditing && configId) {
-        const configResponse = await fetch(`${API_URL}/configuration/update/${configId}`, {
-          method: 'PUT',
-          body: formData,
-        });
+      const method = isEditing && configId ? 'PUT' : 'POST';
+      const url = isEditing
+        ? `${API_URL}/configuration/update/${configId}`
+        : `${API_URL}/configuration/create`;
 
-        if (!configResponse.ok) throw new Error('Failed to update configuration');
-        showAlert('Configuration updated successfully!', 'success');
-      } else {
-        const configResponse = await fetch(`${API_URL}/configuration/create`, {
-          method: 'POST',
-          body: formData,
-        });
+      const configResponse = await fetch(url, {
+        method,
+        body: formData
+      });
 
-        if (!configResponse.ok) throw new Error('Failed to create configuration');
-        const createdConfig = await configResponse.json();
-        showAlert('Configuration created successfully!', 'success');
-        setConfigId(createdConfig._id);
-        setIsEditing(true);
-      }
+      if (!configResponse.ok) throw new Error('Failed to save configuration');
+      showAlert(isEditing ? 'Configuration updated successfully!' : 'Configuration created successfully!', 'success');
     } catch (error) {
       console.error('Error submitting configuration:', error);
       showAlert('Failed to submit configuration!', 'error');
@@ -247,6 +277,89 @@ const AccountDetails = () => {
               variant="outlined"
               required
             />
+
+            <TextField
+              fullWidth
+              label="Company Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              margin="normal"
+              variant="outlined"
+              required
+            />
+            <TextField
+              fullWidth
+              label="Company Contact No."
+              value={contactNo}
+              onChange={(e) => setContactNo(e.target.value)}
+              margin="normal"
+              variant="outlined"
+              required
+            />
+
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              Branches
+            </Typography>
+            {branches.map((branch, index) => (
+              <Box key={index} display="flex" alignItems="center" gap={2} sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  label={`Branch ${index + 1}`}
+                  value={branch}
+                  onChange={(e) => handleBranchChange(index, e.target.value)}
+                  variant="outlined"
+                />
+                {branches.length > 1 && (
+                  <IconButton
+                    color="error"
+                    onClick={() => handleRemoveBranch(index)}
+                    sx={{ p: 1 }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                )}
+              </Box>
+            ))}
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={handleAddBranch}
+            >
+              Add Branch
+            </Button>
+
+
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              Locations (Addresses)
+            </Typography>
+            {locations.map((location, index) => (
+              <Box key={index} display="flex" alignItems="center" gap={2} sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  label={`Location ${index + 1}`}
+                  value={location}
+                  onChange={(e) => handleLocationChange(index, e.target.value)}
+                  variant="outlined"
+                />
+                {locations.length > 1 && (
+                  <IconButton
+                    color="error"
+                    onClick={() => handleRemoveLocation(index)}
+                    sx={{ p: 1 }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                )}
+              </Box>
+            ))}
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={handleAddLocation}
+            >
+              Add Location
+            </Button>
+
             <TextField
               fullWidth
               label="About Us"
@@ -259,35 +372,38 @@ const AccountDetails = () => {
               required
             />
 
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={handleSubmit}
-              startIcon={<SaveIcon />}
-              sx={{ mt: 4 }}
-              size="large"
-            >
-              {isEditing ? 'Update Configuration' : 'Create Configuration'}
-            </Button>
+            <Box sx={{ mt: 4 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+                startIcon={<SaveIcon />}
+                sx={{ mr: 2 }}
+              >
+                {isEditing ? 'Update' : 'Create'} Configuration
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => setIsEditing(false)}
+                startIcon={<CancelIcon />}
+              >
+                Cancel
+              </Button>
+            </Box>
           </Grid>
         </Grid>
-
-        <Snackbar
-          open={openAlert}
-          autoHideDuration={6000}
-          onClose={() => setOpenAlert(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-          <Alert
-            onClose={() => setOpenAlert(false)}
-            severity={alertSeverity}
-            variant="filled"
-            sx={{ width: '100%' }}
-          >
-            {alertMessage}
-          </Alert>
-        </Snackbar>
       </Paper>
+
+      <Snackbar
+        open={openAlert}
+        autoHideDuration={6000}
+        onClose={() => setOpenAlert(false)}
+      >
+        <Alert onClose={() => setOpenAlert(false)} severity={alertSeverity}>
+          {alertMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

@@ -35,12 +35,13 @@ const Logo = () => {
 
   return (
     <img
-      src={logoUrl || '/images/logos/placeholder-logo.png'} // Fallback to placeholder
+      src={logoUrl || '/images/logos/placeholder-logo.png'}
       alt="Logo"
       width="150px"
       height="150px"
-
+      style={{ objectFit: 'cover' }} // Maintain aspect ratio, but crop if needed
     />
+
   );
 };
 

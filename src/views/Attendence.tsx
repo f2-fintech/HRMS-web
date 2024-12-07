@@ -51,6 +51,7 @@ import AddAttendanceForm from '@/components/attendance/AttendanceForm';
 import DateCalendarServerRequest from '@/components/attendance/DateCalendarServerRequest';
 import Legend from '@/components/attendance/Legend';
 import AttendanceStatusList from '@/components/attendance/AttendanceStatusList';
+import LocationDropdown from '@/utility/locationdropdown/LocationDropdown';
 
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch();
@@ -561,23 +562,14 @@ export default function AttendanceGrid() {
           </Grid>
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
-              <InputLabel required id='demo-simple-select-label'>
-                Search Location
-              </InputLabel>
-              <Select
-                label='Select Location'
-                labelId='demo-simple-select-label'
-                id='demo-simple-select'
-                value={searchLocation}
-                onChange={handleLocationInputChange}
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="noida">Noida</MenuItem>
-                <MenuItem value="bareilly">Bareilly</MenuItem>
-                <MenuItem value="patel Nagar">Patel Nagar</MenuItem>
-              </Select>
+              <InputLabel id="location-select-label">By Branches</InputLabel>
+              <LocationDropdown
+                selectedLocation={searchLocation}
+                setSelectedLocation={setSearchLocation}
+              />
             </FormControl>
           </Grid>
+
         </Grid>}
       </Box>
       <Box sx={{ display: 'flex' }}>
