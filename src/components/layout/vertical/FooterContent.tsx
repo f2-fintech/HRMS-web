@@ -1,199 +1,260 @@
 'use client'
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Next Imports
 
 // Third-party Imports
+import {
+  Container,
+  Box,
+  Typography,
+  Link,
+  Divider,
+  Grid,
+  Paper,
+  IconButton,
+  Collapse
+} from "@mui/material";
+import {
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  LocationOn as LocationOnIcon,
+  ExpandMore as ExpandMoreIcon
+} from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
 
-// Hook Imports
-import { Container, Box, Typography, Link, Stack, Divider } from "@mui/material";
-import PhoneIcon from '@mui/icons-material/Phone';
-import EmailIcon from '@mui/icons-material/Email';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
+import { fetchConfiguration } from "@/utility/setting-configuration/settingConfig";
 
-import useVerticalNav from '@menu/hooks/useVerticalNav';
+// Styled components for enhanced design
+const FooterContainer = styled(Container)(({ theme }) => ({
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.common.white,
+  padding: theme.spacing(4, 2),
+}));
 
+const FooterSection = styled(Box)(({ theme }) => ({
+  [theme.breakpoints.up('md')]: {
+    textAlign: 'left',
+  },
+  [theme.breakpoints.down('md')]: {
+    textAlign: 'center',
+  },
+}));
 
+const FooterLink = styled(Link)(({ theme }) => ({
+  color: theme.palette.common.white,
+  textDecoration: 'none',
+  transition: 'color 0.3s ease',
+  '&:hover': {
+    color: theme.palette.grey[300],
+    textDecoration: 'underline',
+  },
+  marginBottom: theme.spacing(1),
+  display: 'block',
+}));
+
+const ContactPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  backgroundColor: theme.palette.common.white,
+  color: theme.palette.text.primary,
+  borderRadius: theme.spacing(2),
+  boxShadow: theme.shadows[4],
+  maxWidth: 500,
+  margin: '0 auto',
+}));
 
 const FooterContent = () => {
   const [showContactDetails, setShowContactDetails] = useState(false);
+  const [footerData, setFooterData] = useState(null);
 
   const handleContactClick = () => {
-    setShowContactDetails(!showContactDetails); // Toggle contact details visibility
+    setShowContactDetails(!showContactDetails);
   };
 
+  // Fetch footer data from the database
+  useEffect(() => {
+    const fetchFooterData = async () => {
+      try {
+        const data = await fetchConfiguration();
+        setFooterData(data);
+      } catch (error) {
+        console.error("Error fetching footer data:", error);
+      }
+    };
+
+    fetchFooterData();
+  }, []);
+
+  if (!footerData) {
+    return <Typography>Loading...</Typography>;
+  }
+
   return (
-    <Container
-
-      maxWidth={false}
-      sx={{
-        background: "#2c3ce3",
-
-        // padding: '2rem 1rem', // Adjust padding for responsiveness
-        // margin: "0px"
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" }, // Stack vertically on small screens
-          justifyContent: "space-between",
-          alignItems: { xs: "center", md: "flex-start" }, // Center items on small screens
-          padding: '2rem 1rem'
-        }}
-      >
-        <Box width={{ xs: "100%", md: 350 }} textAlign={{ xs: "center", md: "left" }} mb={{ xs: 4, md: 0 }}>
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: "600", color: "white", marginBottom: "1rem" }}
-          >
-            F2-FINTECH
-          </Typography>
-          <Box display="flex" justifyContent={{ xs: "center", md: "flex-start" }} alignItems="center" sx={{ color: "white", lineHeight: "2rem" }}>
-            <LocationOnIcon sx={{ marginRight: "0.5rem" }} />
-            <Link
-              href="https://www.google.com/maps/place/F2+Fintech/@28.6298965,77.3786547,17z/data=!3m1!5s0x390ceff85302d5d3:0x2c0770794e1ff53f!4m6!3m5!1s0x390ceff7c76d1b4f:0x13317a05dd04cb37!8m2!3d28.6298918!4d77.3812296!16s%2Fg%2F11tdl471bb?entry=ttu"
-              target="_blank"
-              sx={{ color: "white" }}
-              underline="none"
-            >
-              <Typography variant="h6" sx={{ color: "white" }}>
-                A-25, M-1 Arv Park, A-Block, Sector-63, Noida Uttar Pradesh - 201301
-              </Typography>
-            </Link>
-          </Box>
-          <Box display="flex" justifyContent={{ xs: "center", md: "flex-start" }} alignItems="center" sx={{ color: "white", lineHeight: "2rem", mt: '1.5rem' }}>
-            <LocationOnIcon sx={{ marginRight: "0.5rem" }} />
-            <Link
-              href="https://www.google.com/maps/place/28%C2%B022'20.4%22N+79%C2%B025'25.9%22E/@28.3723431,79.4212761,17z/data=!3m1!4b1!4m4!3m3!8m2!3d28.3723431!4d79.423851?entry=ttu"
-              target="_blank"
-              sx={{ color: "white" }}
-              underline="none"
-            >
-              <Typography variant="h6" sx={{ color: "white" }}>
-                12, Bajaj Complex, Prem Nagar Thana, Bareilly - 243005
-              </Typography>
-            </Link>
-          </Box>
-          <Box display="flex" justifyContent={{ xs: "center", md: "flex-start" }} alignItems="center" sx={{ color: "white", lineHeight: "2rem", mt: '1.5rem' }}>
-            <LocationOnIcon sx={{ marginRight: "0.5rem" }} />
-            <Link
-              href="https://www.google.com/maps/place/28%C2%B038'43.7%22N+77%C2%B010'04.5%22E/@28.6454722,77.1679167,17z/data=!3m1!4b1!4m4!3m3!8m2!3d28.6454722!4d77.1679167?hl=en&entry=ttu"
-              target="_blank"
-              sx={{ color: "white" }}
-              underline="none"
-            >
-              <Typography variant="h6" sx={{ color: "white" }}>
-                Office No 59, South Patel Nagar, New Delhi - 110008
-              </Typography>
-            </Link>
-          </Box>
-
-        </Box>
-        <Box
-          sx={{ display: "flex", flexDirection: "column", textAlign: { xs: "center", md: "left" }, mb: { xs: 4, md: 0 } }}
-        >
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: "600", color: "white", marginBottom: "1rem" }}
-          >
-            Company
-          </Typography>
-          <Link
-            underline="none"
-            variant="h6"
-            sx={{ color: "white", marginBottom: "1rem" }}
-          >
-            About us
-          </Link>
-          <Link
-            underline="none"
-            variant="h6"
-            sx={{ color: "white", marginBottom: "1rem" }}
-          >
-            Blogs
-          </Link>
-          <Link
-            underline="none"
-            variant="h6"
-            sx={{ color: "white", marginBottom: "1rem" }}
-          >
-            Privacy Policy
-          </Link>
-          <Link
-            underline="none"
-            variant="h6"
-            sx={{ color: "white", marginBottom: "1rem" }}
-          >
-            Term & Condition
-          </Link>
-        </Box>
-        <Box
-          sx={{ display: "flex", flexDirection: "column", textAlign: { xs: "center", md: "left" } }}
-        >
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: "600", color: "white", marginBottom: "1rem" }}
-          >
-            Let's Talk
-          </Typography>
-          <Link
-            underline="none"
-            variant="h6"
-            sx={{ color: "white", marginBottom: "1rem" }}
-          >
-            Have any doubts?
-          </Link>
-          <Link
-            underline="none"
-            variant="h6"
-            sx={{ color: "white", marginBottom: "1rem", cursor: "pointer" }} // Add cursor pointer
-            onClick={handleContactClick} // Handle the click event
-          >
-            Contact Us
-          </Link>
-          {showContactDetails && (
-            <Box
+    <FooterContainer maxWidth={false}>
+      <Grid container spacing={4} justifyContent="space-between">
+        {/* Company Information */}
+        <Grid item xs={12} md={4}>
+          <FooterSection>
+            <Typography
+              variant="h4"
               sx={{
-                mt: 2,
-                p: 3,
-                borderRadius: "8px", // Rounded corners
-                backgroundColor: "white", // Solid white box background
-                boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Soft shadow for depth
-                color: "black", // Set text color to black for readability on white background
-                maxWidth: "500px", // Set max-width for better responsiveness
-                textAlign: "center",
-                mx: "auto", // Center horizontally
+                fontWeight: 600,
+                marginBottom: 2,
+                textAlign: { xs: 'center', md: 'left' }
               }}
             >
-              <Box display="flex" alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
-                <PhoneIcon sx={{ marginRight: "0.5rem", color: "black" }} />
-                <Typography variant="h6" sx={{ fontWeight: "bold" }}>+91 8810600135</Typography>
-              </Box>
-              <Box display="flex" alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
-                <EmailIcon sx={{ marginRight: "0.5rem", color: "black" }} />
-                <Typography variant="h6" sx={{ fontWeight: "bold" }}>wecare@f2fintech.com</Typography>
-              </Box>
-              <Typography variant="h6" sx={{ marginTop: "2rem" }}> {/* Add margin-top for spacing */}
-                We are a Global Electronic Marketplace for Buying & Selling Loans.
-                Delegate your financial worries to us and focus on growing your core profession.
-              </Typography>
-            </Box>
-          )}
+              {footerData?.name || 'Loading...'}
+            </Typography>
 
-          <Stack direction="row" spacing={3}>
-          </Stack>
-        </Box>
-      </Box>
-      <Typography sx={{ color: 'white', fontSize: '15px', mt: 4, textAlign: 'center' }}>
-        © 2024 All Rights Reserved by F2 Fintech
+            {footerData?.address && footerData.address.map((loc, index) => (
+              <Box
+                key={index}
+                display="flex"
+                justifyContent={{ xs: "center", md: "flex-start" }}
+                alignItems="center"
+                sx={{
+                  color: "white",
+                  marginBottom: 1.5,
+                  gap: 1
+                }}
+              >
+                <LocationOnIcon />
+                <Link
+                  href={`https://www.google.com/maps?q=${loc}`}
+                  target="_blank"
+                  sx={{
+                    color: "white",
+                    '&:hover': { textDecoration: 'underline' }
+                  }}
+                >
+                  {loc}
+                </Link>
+              </Box>
+            ))}
+          </FooterSection>
+        </Grid>
+
+        {/* Company Links */}
+        <Grid item xs={12} md={3}>
+          <FooterSection>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                marginBottom: 2,
+                textAlign: { xs: 'center', md: 'left' }
+              }}
+            >
+              Company
+            </Typography>
+            <FooterLink href="#" variant="body1">About us</FooterLink>
+            <FooterLink href="#" variant="body1">Blogs</FooterLink>
+            <FooterLink href="#" variant="body1">Privacy Policy</FooterLink>
+            <FooterLink href="#" variant="body1">Term & Condition</FooterLink>
+          </FooterSection>
+        </Grid>
+
+        {/* Contact Section */}
+        <Grid item xs={12} md={3}>
+          <FooterSection>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                marginBottom: 2,
+                textAlign: { xs: 'center', md: 'left' }
+              }}
+            >
+              Let's Talk
+            </Typography>
+            <FooterLink href="#" variant="body1">Have any doubts?</FooterLink>
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems={{ xs: 'center', md: 'flex-start' }}
+            >
+              <FooterLink
+                component="button"
+                onClick={handleContactClick}
+                variant="body1"
+                sx={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  '&:hover': {
+                    textDecoration: 'underline'
+                  }
+                }}
+              >
+                Contact Us
+                <IconButton
+                  size="small"
+                  sx={{
+                    color: 'white',
+                    transform: showContactDetails ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s ease'
+                  }}
+                >
+                  <ExpandMoreIcon />
+                </IconButton>
+              </FooterLink>
+
+              <Collapse in={showContactDetails} timeout="auto" unmountOnExit>
+                <ContactPaper elevation={4}>
+                  <Box display="flex" alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
+                    <PhoneIcon sx={{ marginRight: "0.5rem", color: "primary.main" }} />
+                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                      {footerData?.contactNo || 'No contact info'}
+                    </Typography>
+                  </Box>
+                  <Box display="flex" alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
+                    <EmailIcon sx={{ marginRight: "0.5rem", color: "primary.main" }} />
+                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                      {footerData?.email || 'No email info'}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" sx={{ marginTop: "2rem", textAlign: 'center' }}>
+                    {footerData?.description || 'No description available'}
+                  </Typography>
+                </ContactPaper>
+              </Collapse>
+            </Box>
+          </FooterSection>
+        </Grid>
+      </Grid>
+
+      {/* Copyright */}
+      <Divider
+        sx={{
+          backgroundColor: 'white',
+          opacity: 0.3,
+          marginTop: 4,
+          marginBottom: 2
+        }}
+      />
+      <Typography
+        sx={{
+          color: 'white',
+          fontSize: '15px',
+          textAlign: 'center'
+        }}
+      >
+        © {new Date().getFullYear()} All Rights Reserved by {footerData?.name || 'Your Company'}
       </Typography>
-      <Divider color="white" sx={{ height: "1px", mt: 4 }} />
-      <Typography sx={{ color: 'white', fontSize: '15px', mt: 2, textAlign: 'center' }}>
-        True wealth is not measured by the size of your bank account, but by the freedom to live life on your own terms.
+      <Typography
+        sx={{
+          color: 'white',
+          fontSize: '13px',
+          textAlign: 'center',
+          opacity: 0.7,
+          marginTop: 1
+        }}
+      >
+        {footerData.description}
       </Typography>
-    </Container>
-  )
-}
+    </FooterContainer>
+  );
+};
 
 export default FooterContent;

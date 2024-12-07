@@ -237,7 +237,7 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                         }}
                                     />
                                 )}
-                                disabled={isEditMode || isAgainstQuery} // Disable if editing an "against" query
+                                disabled={isEditMode} // Disable if editing an "against" query
                             />
                         </Grid>
 

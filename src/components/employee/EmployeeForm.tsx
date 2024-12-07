@@ -13,6 +13,7 @@ import { fetchDesignations } from '@/redux/features/designation/designationSlice
 import { utility } from '@/utility';
 
 import 'react-toastify/dist/ReactToastify.css';
+import LocationDropdown from '@/utility/locationdropdown/LocationDropdown';
 
 const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }) => {
   const { designations } = useSelector((state: RootState) => state.designations);
@@ -470,23 +471,20 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth error={!!errors.location}>
-            <InputLabel id='demo-simple-select-label'>Select Location</InputLabel>
-            <Select
-              label='Select Location'
-              labelId='demo-simple-select-label'
-              id='demo-simple-select'
-              name='location'
-              value={formData.location}
-              onChange={handleChange}
-              fullWidth
-            >
-              <MenuItem value='noida'>Noida</MenuItem>
-              <MenuItem value='bareilly'>Bareilly</MenuItem>
-              <MenuItem value='patel nagar'>Patel Nagar</MenuItem>
-            </Select>
-            {errors.location && <Typography color='error'>{errors.location}</Typography>}
+            <InputLabel id="demo-simple-select-label">Select Location</InputLabel>
+            <LocationDropdown
+              selectedLocation={formData.location}
+              setSelectedLocation={(location) =>
+                setFormData((prevData) => ({
+                  ...prevData,
+                  location, // Update the location in formData state
+                }))
+              }
+            />
+            {errors.location && <Typography color="error">{errors.location}</Typography>}
           </FormControl>
         </Grid>
+
         <Grid item xs={12} md={6}>
           <Box display="flex" flexDirection="column">
             <Button variant='contained' component='label'>
