@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { debounce } from 'lodash';
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
 import {
   Button,
   Typography,
@@ -14,6 +14,8 @@ import {
   Dialog,
   DialogContent,
   MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
@@ -24,6 +26,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import type { AppDispatch, RootState } from '@/redux/store';
 import { fetchAddAssets } from '@/redux/features/addAssets/addAssetsSlice';
 import 'react-toastify/dist/ReactToastify.css';
+import LocationDropdown from '@/utility/locationdropdown/LocationDropdown';
 
 export default function AddAssets() {
   const dispatch: AppDispatch = useDispatch();
@@ -400,25 +403,21 @@ export default function AddAssets() {
             </TextField>
           </Grid>
           <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              select
-              label='Location'
-              name='location'
-              value={formData.location}
-              onChange={handleChange}
-              required
-              error={!!errors.location}
-              helperText={errors.location}
-              FormHelperTextProps={{
-                style: { color: 'red' }
-              }}
-            >
-              <MenuItem value="Bareilly">Bareilly</MenuItem>
-              <MenuItem value="Noida">Noida</MenuItem>
-              <MenuItem value="Patel Nager">Patel Nager</MenuItem>
-            </TextField>
+            <FormControl fullWidth error={!!errors.location}>
+              <InputLabel id="demo-simple-select-label">Select Location</InputLabel>
+              <LocationDropdown
+                selectedLocation={formData.location}
+                setSelectedLocation={(location) =>
+                  setFormData((prevData) => ({
+                    ...prevData,
+                    location, // Update the location in formData state
+                  }))
+                }
+              />
+              {errors.location && <Typography color="error">{errors.location}</Typography>}
+            </FormControl>
           </Grid>
+
           <Grid item xs={12} md={6}>
             <Box display="flex" flexDirection="column">
               <Button

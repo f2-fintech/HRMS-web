@@ -1,6 +1,6 @@
 export const fetchConfiguration = async () => {
     try {
-        const response = await fetch('http://localhost:5500/configuration');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/configuration`);
         if (!response.ok) {
             throw new Error('Failed to fetch configuration');
         }

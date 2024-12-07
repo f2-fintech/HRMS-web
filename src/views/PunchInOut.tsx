@@ -1,7 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Button, Typography, Box, Grid, Card, Tooltip } from '@mui/material'
+import { Button, Typography, Box, Grid, Card, Tooltip, Container, Paper, Stack, Divider } from '@mui/material'
+import {
+    AccessTime as AccessTimeIcon,
+    Timer as TimerIcon,
+    PlayArrow as PlayArrowIcon,
+    Stop as StopIcon
+} from '@mui/icons-material'
 import { useDispatch, useSelector } from 'react-redux'
 import {
     addPunch,
@@ -35,6 +41,7 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
     const [currentDateTime, setCurrentDateTime] = useState(new Date())
     const [isLargeScreen, setIsLargeScreen] = useState(false)
     const [startTimestamp, setStartTimestamp] = useState<number | null>(null)
+    const [currentTime, setCurrentTime] = useState(new Date())
 
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id
@@ -194,16 +201,6 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
     }
 
     useEffect(() => {
-        // const savedPunchState = localStorage.getItem('punchState')
-        // if (savedPunchState) {
-        //     const restoredPunchState = JSON.parse(savedPunchState)
-
-        //     if (restoredPunchState.isPunchIn) {
-        //         setPunchState(restoredPunchState)
-        //         startPunchInTimer(restoredPunchState.timestamp)
-        //     }
-        // }
-
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current)
@@ -234,201 +231,274 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
     const currentPunch = punch.length > 0 ? punch[currentPunchIndex] : null
 
     return (
-        <Box sx={{ p: [2, 4], maxWidth: '100%' }}>
+        <Container maxWidth='lg' sx={{ py: 4 }}>
             <Card
+                elevation={4}
                 sx={{
-                    display: 'flex',
-                    flexDirection: ['column', 'row'],
-                    justifyContent: 'space-between',
-                    p: [2, 3],
-                    mb: 4,
-                    backgroundColor: '',
-                    color: 'white',
                     borderRadius: 3,
-                    alignItems: 'center',
-                    minHeight: ['auto', '150px']
+                    overflow: 'hidden',
+                    backgroundColor: '#f4f6f7'
                 }}
             >
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        width: ['100%', '45%'],
-                        backgroundColor: '#2c3ce3',
-                        padding: 2,
-                        borderRadius: 3,
-                        marginBottom: [2, 0],
-                        marginRight: [0, '1rem'],
-                        height: ['auto', '150px'],
-                        minHeight: '150px'
-                    }}
-                >
-                    <Typography variant='h4' sx={{ fontSize: ['1.5rem', '2rem'], color: '#fff' }}>
-                        {currentDateTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
-                    </Typography>
-                    <Typography sx={{ fontSize: ['0.875rem', '1rem'], color: '#fff' }}>
-                        {currentDateTime.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </Typography>
-
-                    {isLargeScreen && userDesg !== 'Assistant Manager Hr' && (
-                        <Tooltip
-                            title={
-                                disablePunch
-                                    ? `Managers can't punch in for team members.`
-                                    : !isCurrentDate
-                                        ? 'Punch-In available for today only.'
-                                        : ''
-                            }
+                <Grid container>
+                    {/* Time and Current Date Section */}
+                    <Grid
+                        item
+                        xs={12}
+                        md={6}
+                        sx={{
+                            backgroundColor: '#dfe6e9',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: 3
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                position: 'relative',
+                                width: 120,
+                                height: 120,
+                                borderRadius: '50%',
+                                border: '1px solid #66785F',
+                                backgroundColor: '#fff'
+                            }}
                         >
-                            <span style={{ width: '100%', textAlign: 'center' }}>
+                            {/* Hour Hand */}
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    width: '4px',
+                                    height: '25px', // Adjusted height to fit inside the clock box
+                                    backgroundColor: 'black',
+                                    top: '50%',
+                                    left: '50%',
+                                    transformOrigin: 'bottom',
+                                    transform: `rotate(${(currentDateTime.getHours() % 12) * 30 + currentDateTime.getMinutes() / 2}deg)`,
+                                    transition: 'transform 0.1s ease-in-out',
+                                    marginLeft: '-2px', // Centering the hand properly
+                                    marginTop: '-25px' // Adjusted to keep the hand inside the clock face
+                                }}
+                            />
+                            {/* Minute Hand */}
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    width: '2px',
+                                    height: '40px', // Adjusted height to fit inside the clock box
+                                    backgroundColor: 'black',
+                                    top: '50%',
+                                    left: '50%',
+                                    transformOrigin: 'bottom',
+                                    transform: `rotate(${currentDateTime.getMinutes() * 6}deg)`,
+                                    transition: 'transform 0.1s ease-in-out',
+                                    marginLeft: '-1px', // Centering the hand properly
+                                    marginTop: '-40px' // Adjusted to keep the hand inside the clock face
+                                }}
+                            />
+                            {/* Second Hand */}
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    width: '1px',
+                                    height: '50px', // Adjusted height to fit inside the clock box
+                                    backgroundColor: 'red',
+                                    top: '50%',
+                                    left: '50%',
+                                    transformOrigin: 'bottom',
+                                    transform: `rotate(${currentDateTime.getSeconds() * 6}deg)`,
+                                    transition: 'transform 0.1s ease-in-out',
+                                    marginLeft: '-0.5px', // Centering the hand properly
+                                    marginTop: '-50px' // Adjusted to keep the hand inside the clock face
+                                }}
+                            />
+
+                            {/* F2 Text in the center */}
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: '35%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '80px', // Adjust width and height as needed
+                                    height: '100px',
+                                    overflow: 'hidden',
+                                    opacity: '0.6'
+                                }}
+                            >
+                                <img
+                                    src='/images/logos/fintech.png' // Path to your logo image
+                                    alt='F2 Fintech'
+                                    style={{
+                                        width: '100%',
+                                        height: '120%',
+                                        objectFit: 'contain' // Adjust to maintain aspect ratio
+                                    }}
+                                />
+                            </Box>
+
+                            {/* Clock Numbers (1 to 12) */}
+                            {Array.from({ length: 12 }).map((_, index) => {
+                                const angle = (index + 1) * 30 // Each number is 30 degrees apart
+                                const x = 50 + 35 * Math.cos((angle - 90) * (Math.PI / 180)) // X coordinate
+                                const y = 50 + 35 * Math.sin((angle - 90) * (Math.PI / 180)) // Y coordinate
+
+                                return (
+                                    <Typography
+                                        key={index}
+                                        variant='body1'
+                                        sx={{
+                                            position: 'absolute',
+                                            top: `${y}%`,
+                                            left: `${x}%`,
+                                            transform: 'translate(-50%, -50%)',
+                                            fontSize: 14,
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        {index + 1}
+                                    </Typography>
+                                )
+                            })}
+                        </Box>
+
+                        <Typography variant='h6' sx={{ mt: 2 }}>
+                            {currentDateTime.toLocaleDateString('en-US', { weekday: 'long' })}
+                        </Typography>
+                        <Typography variant='h6' sx={{ mt: 1 }}>
+                            {currentDateTime.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </Typography>
+                    </Grid>
+
+                    {/* <Divider orientation="vertical" flexItem /> */}
+
+                    {/* Punch In/Out and Timer Section */}
+                    <Grid
+                        item
+                        xs={12}
+                        md={6}
+                        sx={{
+                            backgroundColor: '#e8f4f8',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: 3
+                        }}
+                    >
+                        <TimerIcon sx={{ fontSize: 48, mb: 2, color: 'black' }} />
+                        <Typography variant='h5' sx={{ mb: 2, color: 'gray' }}>
+                            Daily Check In/Out
+                        </Typography>
+
+                        {punchState.isPunchIn && (
+                            <Typography variant='h4' sx={{ color: 'primary.main', mb: 2 }}>
+                                {timer}
+                            </Typography>
+                        )}
+
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <Tooltip
+                                title={
+                                    disablePunch
+                                        ? `Managers can't punch in for team members.`
+                                        : !isCurrentDate
+                                            ? 'Punch-In available for today only.'
+                                            : ''
+                                }
+                            >
                                 <Button
                                     variant='contained'
-                                    color='primary'
-                                    sx={{ width: '40%', backgroundColor: '#1e40af', mt: 2, fontSize: '0.875rem' }}
+                                    color='success'
+                                    startIcon={<PlayArrowIcon />}
                                     onClick={handlePunchIn}
-                                    disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate}
+                                    disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || !isLargeScreen}
                                 >
                                     Punch In
                                 </Button>
-                            </span>
-                        </Tooltip>
-                    )}
-                </Box>
+                            </Tooltip>
 
-                <Box
-                    sx={{
-                        width: ['100%', '45%'],
-                        backgroundColor: '#f0f8ff',
-                        color: '#000',
-                        borderRadius: 3,
-                        textAlign: 'center',
-                        padding: 2,
-                        marginTop: [2, 0],
-                        height: ['auto', '150px'],
-                        minHeight: '150px'
-                    }}
-                >
-                    <Typography variant='h6'>Daily Check</Typography>
-                    {punchState.isPunchIn && (
-                        <Typography variant='h4' sx={{ color: 'blue', mt: 2 }}>
-                            {timer}
-                        </Typography>
-                    )}
-                    {isLargeScreen && userDesg !== 'Assistant Manager Hr' && (
-                        <Tooltip
-                            title={
-                                disablePunch
-                                    ? `Managers can't punch out for team members.`
-                                    : ''
-                            }
-                        >
-                            <div style={{ width: '100%', textAlign: 'center' }}>
+                            <Tooltip title={disablePunch ? `Managers can't punch out for team members.` : ''}>
                                 <Button
                                     variant='contained'
-                                    color='primary'
-                                    sx={{ backgroundColor: '#007bff', width: '40%', mt: 8, fontSize: '0.875rem' }}
+                                    color='error'
+                                    startIcon={<StopIcon />}
                                     onClick={handlePunchOut}
-                                    disabled={punchState.isPunchOutDisabled || disablePunch}
+                                    disabled={punchState.isPunchOutDisabled || disablePunch || !isLargeScreen}
                                 >
                                     Punch Out
                                 </Button>
-                            </div>
-                        </Tooltip>
-                    )}
-                </Box>
-            </Card>
-
-            <Box sx={{ display: 'flex', flexDirection: ['column', 'row'], gap: 4 }}>
-                <Card
-                    sx={{
-                        width: '100%',
-                        maxWidth: [300, 500],
-                        p: [2, 3],
-                        backgroundColor: '#2c3ce3',
-                        color: 'white',
-                        mx: 'auto',
-                        borderRadius: 3,
-                        marginBottom: [2, 0]
-                    }}
-                >
-                    <Typography variant='h6' textAlign='center' sx={{ mb: 3, color: 'white' }}>
-                        Punch Records
-                    </Typography>
-
-                    <Grid container justifyContent='center'>
-                        <Grid item xs={4}>
-                            <Typography variant='h6' textAlign='center' sx={{ color: 'white' }}>
-                                Punch In
-                            </Typography>
-                            <Typography textAlign='center' sx={{ color: 'white' }}>
-                                {currentPunch?.punchIn || '-'}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={4}>
-                            <Typography variant='h6' textAlign='center' sx={{ color: 'white' }}>
-                                Punch Out
-                            </Typography>
-                            <Typography textAlign='center' sx={{ color: 'white' }}>
-                                {currentPunch?.punchOut || '-'}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={4}>
-                            <Typography variant='h6' textAlign='center' sx={{ color: 'white' }}>
-                                Total Time
-                            </Typography>
-                            <Typography textAlign='center' sx={{ color: 'white' }}>
-                                {currentPunch?.totalTime || '-'}
-                            </Typography>
-                        </Grid>
+                            </Tooltip>
+                        </Box>
                     </Grid>
 
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-                        <Button
-                            variant='contained'
-                            color='primary'
-                            disabled={currentPunchIndex === 0}
-                            onClick={handlePreviousPunch}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant='contained'
-                            color='primary'
-                            disabled={currentPunchIndex === punch.length - 1}
-                            onClick={handleNextPunch}
-                        >
-                            Next
-                        </Button>
-                    </Box>
-                </Card>
+                    {/* <Divider orientation="vertical" flexItem /> */}
 
-                <Card
+                    {/* Punch Records and Total Working Hours Section */}
+                    <Grid
+                        item
+                        xs={12}
+                        md={12}
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: 3
+                        }}
+                    >
+                        <Typography variant='h5' sx={{ mb: 3 }}>
+                            Attendance Logs
+                        </Typography>
+
+                        <Grid container spacing={2} sx={{ textAlign: 'center', mb: 2 }}>
+                            <Grid item xs={4}>
+                                <Typography variant='subtitle1' fontWeight='bold'>
+                                    Punch In
+                                </Typography>
+                                <Typography color='text.secondary'>{currentPunch?.punchIn || '-'}</Typography>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <Typography variant='subtitle1' fontWeight='bold'>
+                                    Punch Out
+                                </Typography>
+                                <Typography color='text.secondary'>{currentPunch?.punchOut || '-'}</Typography>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <Typography variant='subtitle1' fontWeight='bold'>
+                                    Total Time
+                                </Typography>
+                                <Typography color='text.secondary'>{currentPunch?.totalTime || '-'}</Typography>
+                            </Grid>
+                        </Grid>
+
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <Button variant='outlined' disabled={currentPunchIndex === 0} onClick={handlePreviousPunch}>
+                                Previous
+                            </Button>
+                            <Button variant='outlined' disabled={currentPunchIndex === punch.length - 1} onClick={handleNextPunch}>
+                                Next
+                            </Button>
+                        </Box>
+                    </Grid>
+                </Grid>
+
+                {/* Total Working Hours Footer */}
+                <Box
                     sx={{
-                        width: '100%',
-                        maxWidth: [300, 500],
-                        p: [2, 3],
-                        backgroundColor: '#2c3ce3',
-                        color: 'white',
-                        mx: 'auto',
-                        borderRadius: 3,
-                        marginTop: [2, 0]
+                        backgroundColor: '#D4BEE4',
+                        p: 2,
+                        textAlign: 'center'
                     }}
                 >
-                    <Typography variant='h5' textAlign='center' sx={{ color: 'white' }}>
-                        Total Working Hours of {selectedDate}
+                    <Typography variant='h6'>Total Working Hours of {selectedDate}</Typography>
+                    <Typography variant='h4' color='primary'>
+                        {`${totalWorkingHours?.hours || 0}h ${totalWorkingHours?.minutes || 0}m ${totalWorkingHours?.seconds || 0}s`}
                     </Typography>
-                    <Typography variant='h2' textAlign='center' sx={{ color: 'white' }}>
-                        <span>
-                            {' '}
-                            {`${totalWorkingHours?.hours || 0}h ${totalWorkingHours?.minutes || 0}m ${totalWorkingHours?.seconds || 0}s`}
-                        </span>
-                    </Typography>
-                </Card>
-            </Box>
-        </Box>
+                </Box>
+            </Card>
+        </Container>
     )
 }
-
 export default PunchInOut

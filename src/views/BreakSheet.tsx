@@ -55,8 +55,7 @@ const BreakSheet: React.FC = () => {
     const [openEditForm, setOpenEditForm] = useState(false)
     const [currentBreak, setCurrentBreak] = useState(null)
     const [specifyError, setSpecifyError] = useState<string>('')
-    const [showNotPunchedIn, setShowNotPunchedIn] = useState(false);
-
+    const [showNotPunchedIn, setShowNotPunchedIn] = useState(false)
 
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -68,7 +67,7 @@ const BreakSheet: React.FC = () => {
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = employee?.id
     const userRole = employee?.role
-    const userDesignation = employee?.desg;
+    const userDesignation = employee?.desg
     console.log('jdkjak', userDesignation)
 
     const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
@@ -102,17 +101,6 @@ const BreakSheet: React.FC = () => {
 
             fetchEmployees()
         }
-
-        // const savedBreakData = localStorage.getItem('runningBreak')
-        // if (savedBreakData) {
-        //     const { breakType, startTimestamp, otherBreakType } = JSON.parse(savedBreakData)
-        //     setBreakType(breakType)
-        //     setStartTimestamp(startTimestamp)
-        //     setStartTime(new Date(startTimestamp).toLocaleTimeString())
-        //     setTimerRunning(true)
-        //     startBreakTimer(startTimestamp)
-        //     if (breakType === 'Other') setOtherBreakType(otherBreakType)
-        // }
     }, [userRole])
 
     useEffect(() => {
@@ -270,11 +258,14 @@ const BreakSheet: React.FC = () => {
         const onField = filtered.filter(b => b.type === 'On Field')
         const nonOnFieldBreaks = filtered.filter(b => b.type !== 'On Field')
 
-        setFilteredBreaks(nonOnFieldBreaks)
+        setFilteredBreaks(filtered)
         setOnFieldBreaks(onField)
     }, [selectedDate, breaks])
 
-    const totalDurationForDate = filteredBreaks.reduce((acc, b) => acc + convertToMilliseconds(b.duration), 0)
+    const totalDurationForDate = filteredBreaks
+        .filter(b => b.type !== 'On Field') // Exclude 'On Field' type
+        .reduce((acc, b) => acc + convertToMilliseconds(b.duration), 0)
+
     const totalOnFieldDuration = onFieldBreaks.reduce((acc, b) => acc + convertToMilliseconds(b.duration), 0)
 
     const handleEditClick = breakToEdit => {
@@ -314,20 +305,21 @@ const BreakSheet: React.FC = () => {
     const breakProgress = (totalDurationForDate / maxAllowedBreakTime) * 100
 
     const toggleNotPunchedInToday = () => {
-        setShowNotPunchedIn((prev) => !prev);
-    };
+        setShowNotPunchedIn(prev => !prev)
+    }
 
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: 'background.default' }}>
             <Button
-                variant="contained"
+                variant='contained'
                 onClick={toggleNotPunchedInToday}
                 sx={{
                     borderRadius: 2,
                     py: 1.5,
                     boxShadow: 2,
                     ml: '1.5rem',
-                    background: theme => `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`
+                    background: theme =>
+                        `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`
                 }}
             >
                 {showNotPunchedIn ? 'Hide Missing Punches' : 'Show Missing Punches'}
@@ -413,67 +405,69 @@ const BreakSheet: React.FC = () => {
                         <Card variant='outlined' sx={{ borderRadius: 2, mb: 3 }}>
                             <CardContent>
                                 <Stack spacing={3}>
-                                    {userDesignation !== 'Assistant Manager Hr' && <Box>
-                                        <Stack direction='row' alignItems='center' spacing={2} mb={2}>
-                                            <AccessTime color='primary' />
-                                            <Typography variant='h6'>Time Summary</Typography>
-                                        </Stack>
+                                    {userDesignation !== 'Assistant Manager Hr' && (
+                                        <Box>
+                                            <Stack direction='row' alignItems='center' spacing={2} mb={2}>
+                                                <AccessTime color='primary' />
+                                                <Typography variant='h6'>Time Summary</Typography>
+                                            </Stack>
 
-                                        <Grid container spacing={3}>
-                                            <Grid item xs={12} md={6}>
-                                                <Paper
-                                                    elevation={1}
-                                                    sx={{
-                                                        p: 2,
-                                                        borderRadius: 2,
-                                                        background: theme =>
-                                                            `linear-gradient(45deg, ${theme.palette.primary.light} 30%, ${theme.palette.primary.main} 90%)`
-                                                    }}
-                                                >
-                                                    <Typography variant='subtitle2' color='white' gutterBottom>
-                                                        On-Site Duration
-                                                    </Typography>
-                                                    <Typography variant='h5' color='white' fontWeight='bold'>
-                                                        {formatTime(totalOnFieldDuration)}
-                                                    </Typography>
-                                                </Paper>
-                                            </Grid>
-
-                                            <Grid item xs={12} md={6}>
-                                                <Paper
-                                                    elevation={1}
-                                                    sx={{
-                                                        p: 2,
-                                                        borderRadius: 2,
-                                                        background: theme =>
-                                                            breakProgress > 100
-                                                                ? `linear-gradient(45deg, ${theme.palette.error.light} 30%, ${theme.palette.error.main} 90%)`
-                                                                : `linear-gradient(45deg, ${theme.palette.success.light} 30%, ${theme.palette.success.main} 90%)`
-                                                    }}
-                                                >
-                                                    <Typography variant='subtitle2' color='white' gutterBottom>
-                                                        Total Break Duration
-                                                    </Typography>
-                                                    <Typography variant='h5' color='white' fontWeight='bold'>
-                                                        {formatTime(totalDurationForDate)}
-                                                    </Typography>
-                                                    <LinearProgress
-                                                        variant='determinate'
-                                                        value={Math.min(breakProgress, 100)}
+                                            <Grid container spacing={3}>
+                                                <Grid item xs={12} md={6}>
+                                                    <Paper
+                                                        elevation={1}
                                                         sx={{
-                                                            mt: 1,
-                                                            height: 8,
-                                                            borderRadius: 4,
-                                                            backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                                                            '& .MuiLinearProgress-bar': {
-                                                                backgroundColor: 'white'
-                                                            }
+                                                            p: 2,
+                                                            borderRadius: 2,
+                                                            background: theme =>
+                                                                `linear-gradient(45deg, ${theme.palette.primary.light} 30%, ${theme.palette.primary.main} 90%)`
                                                         }}
-                                                    />
-                                                </Paper>
+                                                    >
+                                                        <Typography variant='subtitle2' color='white' gutterBottom>
+                                                            On-Site Duration
+                                                        </Typography>
+                                                        <Typography variant='h5' color='white' fontWeight='bold'>
+                                                            {formatTime(totalOnFieldDuration)}
+                                                        </Typography>
+                                                    </Paper>
+                                                </Grid>
+
+                                                <Grid item xs={12} md={6}>
+                                                    <Paper
+                                                        elevation={1}
+                                                        sx={{
+                                                            p: 2,
+                                                            borderRadius: 2,
+                                                            background: theme =>
+                                                                breakProgress > 100
+                                                                    ? `linear-gradient(45deg, ${theme.palette.error.light} 30%, ${theme.palette.error.main} 90%)`
+                                                                    : `linear-gradient(45deg, ${theme.palette.success.light} 30%, ${theme.palette.success.main} 90%)`
+                                                        }}
+                                                    >
+                                                        <Typography variant='subtitle2' color='white' gutterBottom>
+                                                            Total Break Duration
+                                                        </Typography>
+                                                        <Typography variant='h5' color='white' fontWeight='bold'>
+                                                            {formatTime(totalDurationForDate)}
+                                                        </Typography>
+                                                        <LinearProgress
+                                                            variant='determinate'
+                                                            value={Math.min(breakProgress, 100)}
+                                                            sx={{
+                                                                mt: 1,
+                                                                height: 8,
+                                                                borderRadius: 4,
+                                                                backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                                                                '& .MuiLinearProgress-bar': {
+                                                                    backgroundColor: 'white'
+                                                                }
+                                                            }}
+                                                        />
+                                                    </Paper>
+                                                </Grid>
                                             </Grid>
-                                        </Grid>
-                                    </Box>}
+                                        </Box>
+                                    )}
 
                                     <Box>
                                         <Stack direction='row' alignItems='center' spacing={2} mb={2}>

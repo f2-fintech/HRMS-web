@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Typography from '@mui/material/Typography'
-import IconButton from '@mui/material/IconButton'
-import Tooltip from '@mui/material/Tooltip'
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  IconButton,
+  Tooltip
+} from '@mui/material'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 
 import AwardForm from '../../components/performer/AwardForm'
@@ -19,25 +23,22 @@ const Award = () => {
   const [awardTitle, setAwardTitle] = useState('')
   const [isEditMode, setIsEditMode] = useState(false)
   const [awardData, setAwardData] = useState(null)
-  const [userRole, setUserRole] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("")
   const [userId, setUserId] = useState(null)
   const [userDesg, setUserDesg] = useState(null)
-  const { capitalizeFirstLetter } = utility();
 
-
-  console.log('userDesg', userDesg)
+  const { capitalizeFirstLetter } = utility()
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
 
     setUserId(user.id)
     setUserDesg(user.designation)
-    setUserRole(user.role);
+    setUserRole(user.role)
 
     const fetchEmployeesAndAwards = async () => {
       try {
         const employeesData = await apiResponse()
-
         setEmployees(employeesData)
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards/get`)
@@ -50,7 +51,6 @@ const Award = () => {
 
         if (Array.isArray(awardData) && awardData.length > 0) {
           const award = awardData[0]
-
           award.employee = employeesData.find(emp => emp._id === award.employee._id) || award.employee
           setAwardData(award)
           setAwardTitle(award.awardTitle || 'Best seller of the month')
@@ -67,7 +67,7 @@ const Award = () => {
     fetchEmployeesAndAwards()
   }, [])
 
-  const handleFormSubmit = async event => {
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     try {
@@ -92,7 +92,6 @@ const Award = () => {
 
       if (!response.ok) {
         const errorData = await response.json()
-
         throw new Error(errorData.message || 'Failed to save award')
       }
 
@@ -126,87 +125,166 @@ const Award = () => {
 
   const handleCloseForm = () => {
     setIsFormOpen(false)
+    setIsEditMode(false)
   }
 
   return (
-    <>
-      <Card
-        key={awardData ? awardData._id : 'no-award'}
-        sx={{ minHeight: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+    <Box
+      sx={{
+        minHeight: '40vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        backgroundColor: '#f4f6f9'
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
       >
-        <CardContent className='flex-grow relative flex flex-col gap-2 items-start' sx={{ height: '40vh' }}>
-          <div>
-            <Typography variant='h5'>
-              {awardData && awardData.employee ? (
-                <Typography variant='h4'>
-                  {userId === awardData.employee._id ? 'Congratulations' : 'Congratulate'}{' '}
-                  <span style={{ fontWeight: 'bold', color: '#1efd44' }}>
-                    {capitalizeFirstLetter(awardData.employee.first_name)} {capitalizeFirstLetter(awardData.employee.last_name)} 🎉
-                  </span>
-                </Typography>
-              ) : (
-                'No Award Data'
-              )}
-
+        <Card
+          key={awardData ? awardData._id : 'no-award'}
+          sx={{
+            minHeight: '200px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            borderRadius: '16px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+            background: 'rgba(255,255,255,0.9)',
+            transition: 'transform 0.3s ease',
+            '&:hover': {
+              transform: 'translateY(-5px)'
+            }
+          }}
+        >
+          <CardContent
+            sx={{
+              height: '40vh',
+              background: 'linear-gradient(145deg, #f4f6f9 0%, #e9edf3 100%)',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}
+          >
+            <Box>
+              <Typography variant='h4' color='primary'>
+                {awardData && awardData.employee ? (
+                  <>
+                    {userId === awardData.employee._id ? 'Congratulations' : 'Congratulate'}{' '}
+                    <span style={{
+                      fontWeight: 'bold',
+                      color: '#1976d2',
+                      textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+                    }}>
+                      {capitalizeFirstLetter(awardData.employee.first_name)} {capitalizeFirstLetter(awardData.employee.last_name)} 🎉
+                    </span>
+                  </>
+                ) : (
+                  'No Award Data'
+                )}
+              </Typography>
 
               {awardData && awardData.employee && (
-                <Typography style={{ fontWeight: 'normal', color: '#bb89d8', fontStyle: 'italic', marginTop: '4px' }}>
+                <Typography
+                  variant='subtitle1'
+                  sx={{
+                    color: '#7e57c2',
+                    fontStyle: 'italic',
+                    marginTop: '8px'
+                  }}
+                >
                   {awardData.employee.designation}
                 </Typography>
               )}
-            </Typography>
-            <div style={{ paddingRight: '80px', wordWrap: 'break-word', wordBreak: 'break-all' }}>
+
               <Typography
                 variant='h6'
-                style={{
-                  fontSize: '1rem',
-                  marginTop: '8px',
-                  wordWrap: 'break-word', // Ensure word wrapping
-                  wordBreak: 'break-all',  // Break words that are too long
+                sx={{
+                  marginTop: '16px',
+                  color: '#555',
+                  fontWeight: 'medium'
                 }}
               >
                 {awardData?.awardTitle || 'Best seller of the month'}
               </Typography>
-            </div>
 
-          </div>
+              <Typography
+                variant='h5'
+                color='primary'
+                sx={{
+                  marginTop: '8px',
+                  fontWeight: 'bold',
+                  color: '#1976d2'
+                }}
+              >
+                {awardData?.amount ? awardData.amount : 'N/A'}
+              </Typography>
+            </Box>
 
-          <div style={{ paddingRight: '80px', wordWrap: 'break-word', wordBreak: 'break-all' }}>
-            <Typography variant='h5' color='primary' style={{ wordWrap: 'break-word', wordBreak: 'break-all' }}>
-              {awardData?.amount ? awardData.amount : 'N/A'}
-            </Typography>
-          </div>
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 16,
+                right: 16
+              }}
+            >
+              <motion.img
+                src='/images/pages/trophy.png'
+                alt='trophy image'
+                height={70}
+                initial={{ rotate: -10 }}
+                animate={{
+                  rotate: [0, -5, 0, 5, 0],
+                  transition: {
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }
+                }}
+              />
+            </Box>
 
-          <div className='relative w-full'>
-            <img src='/images/pages/trophy.png' alt='trophy image' height={70} className='absolute right-4 bottom-6' />
-          </div>
+            {(userDesg === 'Sr. Operation Manager' || userRole === '1') && (
+              <Tooltip title='Add/Edit Award'>
+                <IconButton
+                  onClick={handleEditClick}
+                  sx={{
+                    position: 'absolute',
+                    top: 1,
+                    right: 5,
 
-          {(userDesg === 'Sr. Operation Manager' || userRole === '1') && (
-            <Tooltip title='Add/Edit'>
-              <IconButton onClick={handleEditClick} style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
-                <MoreVertIcon />
-              </IconButton>
-            </Tooltip>
-          )}
+                    '&:hover': {
+                      background: 'rgba(25,118,210,0.2)'
+                    }
+                  }}
+                >
+                  <MoreVertIcon color="primary" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
-        </CardContent>
-
-        {isFormOpen && (
-          <AwardForm
-            employees={employees}
-            selectedEmployee={employeeName}
-            setSelectedEmployee={setEmployeeName}
-            amount={amount}
-            setAmount={setAmount}
-            awardTitle={awardTitle}
-            setAwardTitle={setAwardTitle}
-            isEditMode={isEditMode}
-            onSubmit={handleFormSubmit}
-            onClose={handleCloseForm}
-          />
-        )}
-      </Card>
-    </>
+      {isFormOpen && (
+        <AwardForm
+          employees={employees}
+          selectedEmployee={employeeName}
+          setSelectedEmployee={setEmployeeName}
+          amount={amount}
+          setAmount={setAmount}
+          awardTitle={awardTitle}
+          setAwardTitle={setAwardTitle}
+          isEditMode={isEditMode}
+          onSubmit={handleFormSubmit}
+          onClose={handleCloseForm}
+        />
+      )}
+    </Box>
   )
 }
 
