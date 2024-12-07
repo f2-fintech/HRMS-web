@@ -79,20 +79,20 @@ export default function AttendanceGrid() {
   const [statusCounts, setStatusCounts] = useState([]);
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
-  // const debouncedSearch = useCallback(
-  //   debounce(() => {
-  //     dispatch(resetAttendances());
-  //     dispatch(fetchAttendances({
-  //       month,
-  //       weekIndex: startDayIndex,
-  //       page,
-  //       limit,
-  //       keyword: searchName,
-  //       location: searchLocation
-  //     }));
-  //   }, 1000),
-  //   [month, startDayIndex, page, limit, searchName, searchLocation]  // Comprehensive dependencies
-  // );
+  // Fetch cumulative status counts based on selected month and year
+  const fetchStatusCounts = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}&location=${searchLocation}`);
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const data = await response.json();
+      setStatusCounts(data.statusCounts);
+    } catch (error) {
+      console.error("Error fetching status counts:", error);
+      // toast.error("Failed to load attendance counts.");
+    }
+  };
 
   function useDebounce(value, delay) {
     const [debouncedValue, setDebouncedValue] = useState(value);
@@ -135,23 +135,24 @@ export default function AttendanceGrid() {
         keyword: debouncedSearchName.trim(),
         location: debouncedSearchLocation.trim()
       }));
+      fetchStatusCounts();
     }
   }, [debouncedSearchName, debouncedSearchLocation]);
 
   // Fetch cumulative status counts based on selected month and year
-  const fetchStatusCounts = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}`);
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      const data = await response.json();
-      setStatusCounts(data.statusCounts);
-    } catch (error) {
-      console.error("Error fetching status counts:", error);
-      // toast.error("Failed to load attendance counts.");
-    }
-  };
+  // const fetchStatusCounts = async () => {
+  //   try {
+  //     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}`);
+  //     if (!response.ok) {
+  //       throw new Error("Network response was not ok");
+  //     }
+  //     const data = await response.json();
+  //     setStatusCounts(data.statusCounts);
+  //   } catch (error) {
+  //     console.error("Error fetching status counts:", error);
+  //     // toast.error("Failed to load attendance counts.");
+  //   }
+  // };
 
   // useEffect(() => {
   //   return () => debouncedSearch.cancel();  // Cleanup on unmount
