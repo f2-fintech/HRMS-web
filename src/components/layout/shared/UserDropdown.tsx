@@ -145,14 +145,14 @@ const UserDropdown = () => {
                       <Typography color='text.primary'>My Profile</Typography>
                     </MenuItem>
                   </Link>
-                  {/* {userData.role_priority === '1' && (
+                  {userData.role_priority === '1' && (
                     <Link href={'/account-settings'}>
                       <MenuItem className="gap-3">
                         <i className="ri-settings-4-line" />
                         <Typography color="text.primary">Setting</Typography>
                       </MenuItem>
                     </Link>
-                  )} */}
+                  )}
 
                   <div className='flex items-center plb-2 pli-4'>
                     <Button
