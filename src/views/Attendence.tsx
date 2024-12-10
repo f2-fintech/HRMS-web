@@ -22,6 +22,7 @@ import {
   Avatar,
   useTheme,
   useMediaQuery,
+  Backdrop,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -540,6 +541,22 @@ export default function AttendanceGrid() {
         </Grid>}
       </Box>
       <Box sx={{ display: 'flex' }}>
+        {loading && (
+          <Backdrop
+            sx={{
+              color: '#fff',
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%'
+            }}
+            open={loading}
+          >
+            <Loader />
+          </Backdrop>
+        )}
         {userRole === '1' ? (
           <DataGrid
             autoHeight
@@ -565,7 +582,7 @@ export default function AttendanceGrid() {
             }}
             slots={{
               toolbar: GridToolbar,
-              loadingOverlay: Loader,
+              // loadingOverlay: Loader,
             }}
             rows={rows}
             columns={columns}
@@ -582,7 +599,7 @@ export default function AttendanceGrid() {
             checkboxSelection
             rowCount={count}
             disableRowSelectionOnClick
-            loading={loading}
+          // loading={loading}
           />
         ) : (
           <Grid container spacing={2}>
