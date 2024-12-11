@@ -28,7 +28,7 @@ const NavbarContent = () => {
         <NavSearch />
       </div>
       <div className='flex items-center'>
-        <Link href={`${process.env.NEXT_PUBLIC_PAYROLL_URL}?token=${token}`} target='_blank'>
+        <Link href={`${process.env.NEXT_PUBLIC_APP_PAROLL}?token=${token}`} target='_blank'>
           <Button>
             PayRoll <i className="ri-arrow-right-circle-fill"></i>
           </Button>
