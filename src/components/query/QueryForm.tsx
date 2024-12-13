@@ -10,10 +10,16 @@ import {
     Paper,
     Divider,
     Container,
-    useTheme
+    useTheme,
+    InputAdornment
 } from '@mui/material';
 import { IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import PersonIcon from '@mui/icons-material/Person';
+import WorkIcon from '@mui/icons-material/Work';
+import DescriptionIcon from '@mui/icons-material/Description';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 import { apiResponse } from '../../utility/apiResponse/employeesResponse';
 
@@ -61,7 +67,7 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [submitting, setSubmitting] = useState<boolean>(false);
 
-    const isEditMode = !!query; // Check if we are editing an existing query
+    const isEditMode = !!query;
     const isAgainstQuery = queryType === 'against';
 
     useEffect(() => {
@@ -142,33 +148,41 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
     return (
         <Container maxWidth="md">
             <Paper
-                elevation={3}
+                elevation={6}
                 sx={{
                     mt: 4,
                     mb: 4,
-                    borderRadius: 2,
-                    overflow: 'hidden'
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    boxShadow: theme.shadows[4]
                 }}
             >
-
                 <Box
                     sx={{
-                        bgcolor: 'blue',
+                        background: 'linear-gradient(135deg, #1976d2 0%, #4791db 100%)',
                         color: 'white',
                         p: 3,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
+                        justifyContent: 'space-between',
                         position: 'relative'
                     }}
                 >
-                    <Typography variant="h5" component="h1" fontWeight="bold" sx={{ color: 'white' }}>
-                        {query ? 'Edit Query' : 'Create a New Query'}
-                    </Typography>
+                    <Box display="flex" alignItems="center">
+                        <AssignmentIcon sx={{ mr: 2, fontSize: 32 }} />
+                        <Typography variant="h5" component="h1" fontWeight="bold" sx={{ color: 'white' }}>
+                            {query ? 'Edit Query' : 'Create a New Query'}
+                        </Typography>
+                    </Box>
                     <IconButton
                         onClick={onClose}
                         aria-label="close"
-                        sx={{ color: 'white', position: 'absolute', right: 16 }}
+                        sx={{
+                            color: 'white',
+                            '&:hover': {
+                                backgroundColor: 'rgba(255,255,255,0.2)'
+                            }
+                        }}
                     >
                         <CloseIcon />
                     </IconButton>
@@ -198,6 +212,11 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                             placeholder="Employee"
                                             InputProps={{
                                                 ...params.InputProps,
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <PersonIcon color="action" />
+                                                    </InputAdornment>
+                                                ),
                                                 endAdornment: (
                                                     <>
                                                         {loading ? <CircularProgress color="inherit" size={20} /> : null}
@@ -228,6 +247,11 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                         helperText={errors.toQuery}
                                         InputProps={{
                                             ...params.InputProps,
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <PersonIcon color="action" />
+                                                </InputAdornment>
+                                            ),
                                             endAdornment: (
                                                 <>
                                                     {loading ? <CircularProgress color="inherit" size={20} /> : null}
@@ -235,9 +259,9 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                                 </>
                                             ),
                                         }}
+                                        disabled={isEditMode}
                                     />
                                 )}
-                                disabled={isEditMode} // Disable if editing an "against" query
                             />
                         </Grid>
 
@@ -253,9 +277,17 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                         placeholder="Select Department"
                                         error={Boolean(errors.department)}
                                         helperText={errors.department}
+                                        InputProps={{
+                                            ...params.InputProps,
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <WorkIcon color="action" />
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                        disabled={isEditMode && isAgainstQuery}
                                     />
                                 )}
-                                disabled={isEditMode && isAgainstQuery} // Disable if editing an "against" query
                             />
                         </Grid>
 
@@ -269,7 +301,14 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                 required
                                 error={Boolean(errors.queryType)}
                                 helperText={errors.queryType}
-                                disabled={isEditMode && isAgainstQuery} // Disable if editing an "against" query
+                                disabled={isEditMode && isAgainstQuery}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <DescriptionIcon color="action" />
+                                        </InputAdornment>
+                                    )
+                                }}
                             />
                         </Grid>
 
@@ -283,9 +322,17 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                         {...params}
                                         label="Status"
                                         placeholder="Select Status"
+                                        InputProps={{
+                                            ...params.InputProps,
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <CheckCircleIcon color="action" />
+                                                </InputAdornment>
+                                            )
+                                        }}
                                     />
                                 )}
-                                disabled={!query || !(userRole === '1' || isAgainstQuery)} // Enable if "against" query or role "1"
+                                disabled={!query || !(userRole === '1' || isAgainstQuery)}
                             />
                         </Grid>
 
@@ -298,11 +345,19 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                 onChange={handleChange}
                                 multiline
                                 rows={4}
-                                disabled={isEditMode && isAgainstQuery} // Disable if editing an "against" query
+                                disabled={isEditMode && isAgainstQuery}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <DescriptionIcon color="action" />
+                                        </InputAdornment>
+                                    )
+                                }}
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
-                                        '&.Mui-focused': {
-                                            boxShadow: `0 0 0 2px ${theme.palette.primary.light}`
+                                        '&.Mui-focused fieldset': {
+                                            borderColor: theme.palette.primary.main,
+                                            borderWidth: 2
                                         }
                                     }
                                 }}
@@ -316,15 +371,18 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                 variant="contained"
                                 color="primary"
                                 fullWidth
+                                startIcon={<AssignmentIcon />}
                                 sx={{
                                     py: 1.5,
                                     fontSize: '1rem',
                                     fontWeight: 'bold',
                                     borderRadius: 2,
                                     textTransform: 'none',
+                                    background: 'linear-gradient(135deg, #1976d2 0%, #4791db 100%)',
                                     boxShadow: theme.shadows[3],
                                     '&:hover': {
-                                        boxShadow: theme.shadows[5]
+                                        boxShadow: theme.shadows[5],
+                                        background: 'linear-gradient(135deg, #1565c0 0%, #2196f3 100%)'
                                     }
                                 }}
                                 disabled={submitting}
@@ -344,4 +402,3 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
 };
 
 export default QueryForm;
-
