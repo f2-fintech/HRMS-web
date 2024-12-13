@@ -67,7 +67,7 @@ const BreakSheet: React.FC = () => {
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = employee?.id
     const userRole = employee?.role
-    const userDesignation = employee?.desg
+    const userDesignation = employee?.designation
     console.log('jdkjak', userDesignation)
 
     const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
@@ -213,7 +213,7 @@ const BreakSheet: React.FC = () => {
         }
 
         dispatch(addBreak(breakData)).then(() => {
-            setBreakType('')
+            // setBreakType('')
             setOtherBreakType('')
         })
 
@@ -236,6 +236,7 @@ const BreakSheet: React.FC = () => {
                     stopBreakTimer()
                     setStartTime('')
                     setEndTime('')
+                    setBreakType('')
 
                     return dispatch(fetchBreaksById(employeeId))
                 })
@@ -491,7 +492,7 @@ const BreakSheet: React.FC = () => {
                         </Card>
                     </Grid>
 
-                    {isLargeScreen && userDesignation !== 'Assistant Manager Hr' && (
+                    {userDesignation !== 'Assistant Manager Hr' && (
                         <Grid item xs={12}>
                             <Card variant='outlined' sx={{ borderRadius: 2, mb: 3 }}>
                                 <CardContent>
@@ -509,8 +510,9 @@ const BreakSheet: React.FC = () => {
                                                 onChange={e => setBreakType(e.target.value)}
                                                 fullWidth
                                                 variant='outlined'
-                                                disabled={
+                                                disabled={ // Disable if break is running or conditions are met
                                                     !isCurrentDate ||
+                                                    timerRunning ||
                                                     (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2')
                                                 }
                                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -549,7 +551,8 @@ const BreakSheet: React.FC = () => {
                                                 disabled={
                                                     !isCurrentDate ||
                                                     timerRunning ||
-                                                    (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2')
+                                                    (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2') ||
+                                                    (breakType !== 'On Field' && isLargeScreen === false)
                                                 }
                                                 fullWidth
                                                 sx={{
@@ -584,8 +587,8 @@ const BreakSheet: React.FC = () => {
                                                 fullWidth
                                                 variant='outlined'
                                                 sx={{
-                                                    display: { xs: 'none', sm: 'block' },
-                                                    '& .MuiOutlinedInput-root': { borderRadius: 2 }
+                                                    '& .MuiOutlinedInput-root': { borderRadius: 2 },
+                                                    display: 'block' // Make it visible on all screen sizes
                                                 }}
                                             />
                                         </Grid>
@@ -596,10 +599,14 @@ const BreakSheet: React.FC = () => {
                                                 color='secondary'
                                                 startIcon={<Timer />}
                                                 onClick={handleEndTime}
-                                                disabled={!isCurrentDate || !timerRunning}
+                                                disabled={
+                                                    !isCurrentDate ||
+                                                    !timerRunning ||
+                                                    (breakType !== 'On Field' && isLargeScreen === false)
+                                                }
                                                 fullWidth
                                                 sx={{
-                                                    display: { xs: 'none', sm: 'block' },
+                                                    display: 'block',
                                                     py: 1.5,
                                                     borderRadius: 2,
                                                     boxShadow: 2,

@@ -46,7 +46,7 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id
     const userRole = employee?.role
-    const userDesg = employee?.desg
+    const userDesg = employee?.designation
     const totalWorkingHours = useSelector((state: RootState) => state.punches.totalWorkingHours)
     const punch = useSelector((state: RootState) => state.punches.punches)
     const loading = useSelector((state: RootState) => state.punches.loading)
@@ -413,7 +413,9 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                                     color='success'
                                     startIcon={<PlayArrowIcon />}
                                     onClick={handlePunchIn}
-                                    disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || !isLargeScreen}
+                                    disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate ||
+                                        (isLargeScreen === false && !(userDesg === 'Purchase Manager' || userDesg === 'Field Executive'))
+                                    }
                                 >
                                     Punch In
                                 </Button>
@@ -425,7 +427,9 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                                     color='error'
                                     startIcon={<StopIcon />}
                                     onClick={handlePunchOut}
-                                    disabled={punchState.isPunchOutDisabled || disablePunch || !isLargeScreen}
+                                    disabled={punchState.isPunchOutDisabled || disablePunch ||
+                                        (isLargeScreen === false && !(userDesg === 'Purchase Manager' || userDesg === 'Field Executive'))
+                                    }
                                 >
                                     Punch Out
                                 </Button>
