@@ -1,9 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-
-import { debounce } from 'lodash';
+import React, { useEffect, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { DataGrid, GridToolbar, type GridColDef } from '@mui/x-data-grid';
@@ -24,6 +22,7 @@ import {
   Avatar,
   useTheme,
   useMediaQuery,
+  Backdrop,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -41,7 +40,7 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
 import type { AppDispatch, RootState } from '@/redux/store';
-import { fetchAttendances, resetAttendances } from '@/redux/features/attendances/attendancesSlice';
+import { fetchAttendances } from '@/redux/features/attendances/attendancesSlice';
 import AttendanceSummary from '@/utility/attendancesummry/AttendanceSummary';
 import EmployeeStatsWithBlinkingStatus from '@/utility/totalempattendancesummary/EmployeeStatsWithBlinkingStatus';
 import { AttendanceSummaryColumns } from '@/utility/attendancesummry/AttendanceSummaryColumns';
@@ -51,6 +50,7 @@ import AddAttendanceForm from '@/components/attendance/AttendanceForm';
 import DateCalendarServerRequest from '@/components/attendance/DateCalendarServerRequest';
 import Legend from '@/components/attendance/Legend';
 import AttendanceStatusList from '@/components/attendance/AttendanceStatusList';
+import LocationDropdown from '@/utility/locationdropdown/LocationDropdown';
 
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch();
@@ -79,44 +79,73 @@ export default function AttendanceGrid() {
   const [statusCounts, setStatusCounts] = useState([]);
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
-  const debouncedSearch = useCallback(
-    debounce(() => {
-      dispatch(resetAttendances());
-      dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: page, limit: limit, keyword: searchName, location: searchLocation }));
-    }, 500),
-    [dispatch, searchName, searchLocation]
-  );
+  const fetchStatusCounts = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}&location=${searchLocation}`);
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const data = await response.json();
+      setStatusCounts(data.statusCounts);
+    } catch (error) {
+      console.error("Error fetching status counts:", error);
+      // toast.error("Failed to load attendance counts.");
+    }
+  };
+
+  function useDebounce(value, delay) {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+
+      return () => {
+        clearTimeout(handler);
+      };
+    }, [value, delay]);
+
+    return debouncedValue;
+  }
+
+  const debouncedSearchName = useDebounce(searchName, 500);
+  const debouncedSearchLocation = useDebounce(searchLocation, 500);
 
   useEffect(() => {
-    if (searchName !== '' || searchLocation !== '') {
-      debouncedSearch();
+    // Check if both search fields are empty
+    if (debouncedSearchName.trim() === '' && debouncedSearchLocation.trim() === '') {
+      // Fetch all data
+      dispatch(fetchAttendances({
+        month,
+        weekIndex: startDayIndex,
+        page: 1,  // Reset to first page
+        limit,
+        keyword: '',
+        location: ''
+      }));
+    } else {
+      // Existing search logic
+      dispatch(fetchAttendances({
+        month,
+        weekIndex: startDayIndex,
+        page,  // Reset to first page when searching
+        limit,
+        keyword: debouncedSearchName.trim(),
+        location: debouncedSearchLocation.trim()
+      }));
+      fetchStatusCounts();
     }
-
-    return debouncedSearch.cancel;
-  }, [searchName, searchLocation, debouncedSearch]);
+  }, [page, limit, debouncedSearchName, debouncedSearchLocation]);
 
   const handleInputChange = (e) => {
     const newName = e.target.value
     setSearchName(newName);
-    setSearchLocation('')
-    if (newName === '') {
-      dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: 1, limit: limit, keyword: newName, location: searchLocation }));
-      dispatch(resetAttendances());
-    }
-  };
-
-  const handleLocationInputChange = (e) => {
-    const newLocation = e.target.value;
-    setSearchLocation(newLocation);
-    setSearchName('');
-    if (newLocation === '') {
-      dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: 1, limit: limit, keyword: searchName, location: newLocation }));
-      dispatch(resetAttendances());
-    }
   };
 
   useEffect(() => {
-    if (userRole === '1') {
+    if (userRole === '1' && searchName === '' && searchLocation === '') {
+      fetchStatusCounts();
       dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: page, limit: limit, keyword: searchName, location: searchLocation }));
     }
   }, [dispatch, month, startDayIndex, page, limit, userRole]);
@@ -147,7 +176,6 @@ export default function AttendanceGrid() {
     setPrefillDate(date);
   };
 
-
   const handleAttendanceEditClick = (id: React.SetStateAction<null>) => {
     setSelectedAttendance(id);
     setShowForm(true);
@@ -156,28 +184,6 @@ export default function AttendanceGrid() {
   const handleClose = () => {
     setShowForm(false);
     setViewAttendanceData(null);
-  };
-
-  const handleViewClick = (id: string) => {
-
-    const employeeAttendances = attendances
-      .filter(att => {
-        return att.employee._id === id;
-      })
-
-      .reduce((acc, { date, status }) => {
-        acc[date] = status;
-
-        return acc;
-      }, {} as Record<string, string>);
-
-
-
-    if (Object.keys(employeeAttendances).length > 0) {
-      setViewAttendanceData(employeeAttendances);
-    } else {
-      console.log('No attendance found for Employee ID:', id);
-    }
   };
 
   const handleNextDaysClick = () => {
@@ -205,26 +211,6 @@ export default function AttendanceGrid() {
     return lastSunday;
   };
 
-  // Fetch cumulative status counts based on selected month and year
-  const fetchStatusCounts = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}`);
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      const data = await response.json();
-      setStatusCounts(data.statusCounts);
-    } catch (error) {
-      console.error("Error fetching status counts:", error);
-      toast.error("Failed to load attendance counts.");
-    }
-  };
-
-  useEffect(() => {
-    fetchStatusCounts();
-    dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: page, limit: limit, keyword: searchName, location: searchLocation }));
-  }, [dispatch, month, year, page, limit, searchName, searchLocation]);
-
   const generateColumns = () => {
     const today = new Date();
     const daysInMonth = getDaysInMonth(month, today.getFullYear());
@@ -245,6 +231,7 @@ export default function AttendanceGrid() {
           </Box>
         ),
       },
+      // Dynamically generate columns for each day of the month
       ...visibleDays.map(day => {
         const cellDate = new Date(today.getFullYear(), month - 1, day);
         const isFutureDate = cellDate > today;
@@ -256,13 +243,13 @@ export default function AttendanceGrid() {
           align: 'center',
           headerClassName: 'super-app-theme--header',
           renderCell: (params) => {
-            const status = params.row[`day_${day}`];
-            const attendanceId = params.row[`day_${day}_id`];
+            const status = params.row.days ? params.row.days[`day_${day}`]?.status : null;
+            const attendanceId = params.row.days ? params.row.days[`day_${day}`]?._id : null;
             const employeeId = params.row.employee_id;
             const employeeName = params.row.name;
-            const isSunday = cellDate.getDay() === 0;
+            const isSunday = cellDate.getDay() === 0; // Check if the day is Sunday
 
-
+            // Render 'Mark' button for empty cells (except Sundays and future dates)
             if (!status && !isSunday && !isFutureDate) {
               return (
                 <Button
@@ -274,16 +261,18 @@ export default function AttendanceGrid() {
               );
             }
 
+            // If it's a Sunday and the status is missing, show the Weekend icon
             if (isSunday && !status) {
-
               return (
                 <WeekendIcon
                   style={{ color: 'blue', marginTop: '35%', cursor: 'pointer' }}
                   onClick={() => handleAttendanceAddClick(employeeId, employeeName, day)}
                 />
               );
-            } else if (day === lastSunday) {
+            }
 
+            // Render different icons based on the status
+            if (day === lastSunday) {
               if (status === 'Present') {
                 return <CheckCircleIcon style={{ color: 'green', marginTop: '30%' }} onClick={() => handleAttendanceEditClick(attendanceId)} />;
               } else if (status === 'Absent') {
@@ -297,6 +286,7 @@ export default function AttendanceGrid() {
               } else if (status === 'On Wfh') {
                 return <HomeIcon style={{ color: 'rgb(247, 51, 120)', marginTop: '30%' }} onClick={() => handleAttendanceEditClick(attendanceId)} />;
               }
+              // If no status and not a future date, show the 'Mark' button
               else if (!status && !isFutureDate) {
                 return (
                   <Button
@@ -308,7 +298,7 @@ export default function AttendanceGrid() {
                 );
               }
             } else {
-
+              // Similar render logic for other days in the month
               if (status === 'Present') {
                 return <CheckCircleIcon style={{ color: 'green', marginTop: '35%' }} onClick={() => handleAttendanceEditClick(attendanceId)} />;
               } else if (status === 'Absent') {
@@ -320,6 +310,7 @@ export default function AttendanceGrid() {
               } else if (status === 'On Wfh') {
                 return <HomeIcon style={{ color: 'rgb(247, 51, 120)', marginTop: '30%' }} onClick={() => handleAttendanceEditClick(attendanceId)} />;
               }
+              // Render 'On Half' status if applicable
               else if (status === 'On Half') {
                 return <ContrastIcon style={{ color: 'green', fontSize: '1.5em', marginTop: '35%' }} onClick={() => handleAttendanceEditClick(attendanceId)} />;
               } else {
@@ -330,8 +321,7 @@ export default function AttendanceGrid() {
         };
       }),
 
-
-      ...AttendanceSummaryColumns,
+      ...AttendanceSummaryColumns, // Assuming you have additional columns for summary
     ];
 
     return columns;
@@ -339,88 +329,67 @@ export default function AttendanceGrid() {
 
 
   const transformData = () => {
-    const attendanceSource = attendances;
-
-    // Convert `statusCounts` into a dictionary keyed by employee ID for easy lookup
     const statusCountsMap = statusCounts.reduce((acc, count) => {
-      acc[count.employeeId] = count.statuses; // Assumes `statuses` is an object with status counts
+      acc[count.employeeId] = count.statuses || {};
       return acc;
     }, {});
 
-    const groupedData = attendanceSource.reduce((acc, curr) => {
+    const groupedData = attendances.reduce((acc, curr) => {
       const { employee, date, status, timeComplete, _id } = curr;
 
-      if (!employee) {
-        return acc;
-      }
+      // Handle edge case where employee data might be missing
+      if (!employee || !employee._id) return acc;
 
       const attendanceDate = new Date(date);
       const day = attendanceDate.getDate();
       const attendanceMonth = attendanceDate.getMonth() + 1;
 
-      if (attendanceMonth !== month) {
-        return acc;
-      }
+      // Skip if the data doesn't match the selected month
+      if (attendanceMonth !== month) return acc;
 
       // Initialize the employee entry if it doesn't exist
       if (!acc[employee._id]) {
         acc[employee._id] = {
+          _id: employee._id,  // Add unique id for each employee (use employee_id here)
           employee_id: employee._id,
           name: `${employee.first_name} ${employee.last_name}`,
-          image: employee.image,
-          present: 0,
-          presentNotCompleted: 0,
-          absent: 0,
-          onHalf: 0,
-          onHalfNotCompleted: 0,
-          onLeave: 0,
-          onField: 0,
-          onWfh: 0,
-          _id,
+          image: employee.image || '',
+          statusCount: {
+            Present: 0,
+            Absent: 0,
+            [`On Leave`]: 0,
+            [`On Field`]: 0,
+            [`On Wfh`]: 0,
+            [`On Half`]: 0,
+          },
+          days: {},
         };
 
-        // Populate cumulative counts from `statusCountsMap` if available
+        // Populate cumulative counts from `statusCountsMap`
         const cumulativeCounts = statusCountsMap[employee._id] || {};
-        acc[employee._id].present = cumulativeCounts['Present'] || 0;
-        acc[employee._id].presentNotCompleted = cumulativeCounts['PresentNotCompleted'] || 0;
-        acc[employee._id].absent = cumulativeCounts['Absent'] || 0;
-        acc[employee._id].onHalf = cumulativeCounts['On Half'] || 0;
-        acc[employee._id].onHalfNotCompleted = cumulativeCounts['OnHalfNotCompleted'] || 0;
-        acc[employee._id].onLeave = cumulativeCounts['On Leave'] || 0;
-        acc[employee._id].onField = cumulativeCounts['On Field'] || 0;
-        acc[employee._id].onWfh = cumulativeCounts['WFH'] || 0;
+        acc[employee._id].statusCount = { ...acc[employee._id].statusCount, ...cumulativeCounts };
       }
 
-      // Unique key to avoid double-counting daily attendance records
-      const uniqueKey = `${employee._id}-${day}-${attendanceMonth}`;
-      if (!acc[employee._id][uniqueKey]) {
-        acc[employee._id][uniqueKey] = true;
-
-        // Set daily status for each day of the month
-        acc[employee._id][`day_${day}`] = status;
-        acc[employee._id][`day_${day}_id`] = _id;
-        acc[employee._id][`day_${day}_timeComplete`] = timeComplete;
-      }
+      // For each attendance entry, set the status for the corresponding day
+      acc[employee._id].days[`day_${day}`] = { status, _id, timeComplete };
 
       return acc;
     }, {});
 
-    // Convert `groupedData` to an array and sort by employee name
+    // Convert the grouped data to an array and ensure it includes the unique id for each row
     const sortedData = Object.values(groupedData).sort((a, b) => a.name.localeCompare(b.name));
 
     return sortedData;
   };
 
-  const columns = generateColumns();
-  const rows = transformData();
+  const columns = React.useMemo(() => generateColumns(), [month, startDayIndex, daysToShow]);
+  const rows = React.useMemo(() => transformData(), [attendances, statusCounts, month]);
 
   const handleMonthChange = (date: Dayjs) => {
     const newMonth = date.month() + 1;
 
     setMonth(newMonth);
   };
-
-  console.log("attendence", attendances);
 
   return (
     <Box>
@@ -561,26 +530,33 @@ export default function AttendanceGrid() {
           </Grid>
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
-              <InputLabel required id='demo-simple-select-label'>
-                Search Location
-              </InputLabel>
-              <Select
-                label='Select Location'
-                labelId='demo-simple-select-label'
-                id='demo-simple-select'
-                value={searchLocation}
-                onChange={handleLocationInputChange}
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="noida">Noida</MenuItem>
-                <MenuItem value="bareilly">Bareilly</MenuItem>
-                <MenuItem value="patel Nagar">Patel Nagar</MenuItem>
-              </Select>
+              {/* <InputLabel id="location-select-label">By Branches</InputLabel> */}
+              <LocationDropdown
+                selectedLocation={searchLocation}
+                setSelectedLocation={setSearchLocation}
+              />
             </FormControl>
           </Grid>
+
         </Grid>}
       </Box>
       <Box sx={{ display: 'flex' }}>
+        {loading && (
+          <Backdrop
+            sx={{
+              color: '#fff',
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%'
+            }}
+            open={loading}
+          >
+            <Loader />
+          </Backdrop>
+        )}
         {userRole === '1' ? (
           <DataGrid
             autoHeight
@@ -606,7 +582,7 @@ export default function AttendanceGrid() {
             }}
             slots={{
               toolbar: GridToolbar,
-              loadingOverlay: Loader,
+              // loadingOverlay: Loader,
             }}
             rows={rows}
             columns={columns}
@@ -623,7 +599,7 @@ export default function AttendanceGrid() {
             checkboxSelection
             rowCount={count}
             disableRowSelectionOnClick
-            loading={loading}
+          // loading={loading}
           />
         ) : (
           <Grid container spacing={2}>

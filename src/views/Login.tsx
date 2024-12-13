@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import Link from 'next/link';
@@ -25,6 +25,7 @@ import Logo from '@components/layout/shared/Logo';
 import Illustrations from '@components/Illustrations';
 import themeConfig from '@configs/themeConfig';
 import Loader from '../components/loader/loader'
+import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
 
 const Login = ({ mode }: { mode: Mode }) => {
   const [isPasswordShown, setIsPasswordShown] = useState(false);
@@ -101,13 +102,14 @@ const Login = ({ mode }: { mode: Mode }) => {
       <ToastContainer />
       <Card className='flex flex-col sm:is-[450px]'>
         <CardContent className='p-6 sm:!p-12'>
-          <Link href='/' className='flex justify-center items-center mbe-6'>
+          <Link href="/" className="flex justify-center items-center mbe-6">
             <Logo />
           </Link>
+
           <div className='flex flex-col gap-5'>
             <div>
-              <Typography variant='h4'>{`Welcome to ${themeConfig.templateName}!👋🏻`}</Typography>
-              <Typography className='mbs-1'>Please sign-in to your account and start the adventure</Typography>
+              <Typography style={{ textAlign: 'center', fontWeight: 'bold', marginTop: '-3rem' }} variant='h5'>{`Welcome to Login Page ${themeConfig.templateName}`}</Typography>
+              {/* <Typography className='mbs-1'>Please sign-in to your account and start the adventure</Typography> */}
             </div>
             <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
               <TextField
@@ -142,11 +144,13 @@ const Login = ({ mode }: { mode: Mode }) => {
                 }}
                 disabled={isLoading}
               />
-              <div className='flex justify-between items-center gap-x-3 gap-y-1 flex-wrap'>
-                <FormControlLabel control={<Checkbox disabled={isLoading} />} label='Remember me' />
-                <Typography className='text-end' color='primary' component={Link} href='/forgot-password'>
-                  Forgot password?
-                </Typography>
+              <div className="flex justify-between items-center gap-x-3 gap-y-1 flex-wrap">
+                <FormControlLabel control={<Checkbox disabled={isLoading} />} label="Remember me" />
+                <Link href="/forgot-pass">
+                  <Typography className="text-end" color="primary" component="span">
+                    Forgot password?
+                  </Typography>
+                </Link>
               </div>
               <Button
                 fullWidth
@@ -163,27 +167,6 @@ const Login = ({ mode }: { mode: Mode }) => {
                 {isLoading ? <Loader /> : 'Log In'}
               </Button>
 
-              <div className='flex justify-center items-center flex-wrap gap-2'>
-                <Typography>New on our platform?</Typography>
-                <Typography component={Link} href='/register' color='primary'>
-                  Create an account
-                </Typography>
-              </div>
-              <Divider className='gap-3'>or</Divider>
-              <div className='flex justify-center items-center gap-2'>
-                <IconButton size='small' className='text-facebook'>
-                  <i className='ri-facebook-fill' />
-                </IconButton>
-                <IconButton size='small' className='text-twitter'>
-                  <i className='ri-twitter-fill' />
-                </IconButton>
-                <IconButton size='small' className='text-github'>
-                  <i className='ri-github-fill' />
-                </IconButton>
-                <IconButton size='small' className='text-googlePlus' disabled={isLoading}>
-                  <i className='ri-google-fill' />
-                </IconButton>
-              </div>
             </form>
           </div>
         </CardContent>

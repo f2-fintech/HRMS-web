@@ -1,6 +1,6 @@
 // AddAttendanceForm.js
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Grid, TextField, Typography, IconButton, FormControl, InputLabel, Select, MenuItem, Autocomplete } from '@mui/material';
+import { Box, Button, Grid, TextField, Typography, IconButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useDispatch } from 'react-redux';
@@ -10,6 +10,7 @@ import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 
 const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEmployeeName, prefillDate, attendances }) => {
   const [employees, setEmployees] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     employee: prefillEmployee || '',
     date: prefillDate || '',
@@ -95,6 +96,7 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
 
   const handleSubmit = () => {
     if (validateForm()) {
+      setIsLoading(true);
       const method = attendance ? 'PUT' : 'POST';
 
       const url = attendance
@@ -123,6 +125,9 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
         })
         .catch(error => {
           console.log('Error', error);
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
     }
   };
@@ -227,8 +232,13 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
               width: 250
             }}
             onClick={handleSubmit}
+            disabled={isLoading}
           >
-            {attendance ? 'UPDATE ATTENDANCE' : 'ADD ATTENDANCE'}
+            {isLoading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              attendance ? 'UPDATE ATTENDANCE' : 'ADD ATTENDANCE'
+            )}
           </Button>
         </Grid>
       </Grid>

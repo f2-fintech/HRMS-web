@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-
 import {
   Card,
   CardContent,
@@ -17,22 +16,39 @@ import {
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CloseIcon from '@mui/icons-material/Close';
-import EditIcon from '@mui/icons-material/Edit';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import { styled } from '@mui/material/styles';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { utility } from '@/utility'
 
-
-
 const StyledCard = styled(Card)(({ theme }) => ({
-  boxShadow: theme.shadows[3],
-  borderRadius: theme.shape.borderRadius,
-  padding: theme.spacing(3),
-  transition: 'transform 0.2s ease-in-out',
+  background: 'linear-gradient(135deg, #f6f8f9 0%, #e5ebee 100%)',
+  borderRadius: theme.spacing(2),
+  boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
+  transition: 'all 0.3s ease',
   '&:hover': {
-    transform: 'scale(1.02)',
-    boxShadow: theme.shadows[6],
+    transform: 'translateY(-5px)',
+    boxShadow: '0 15px 25px rgba(0,0,0,0.15)',
+  },
+}));
+
+const QuoteCard = styled(Box)(({ theme }) => ({
+  backgroundColor: 'rgba(255,255,255,0.8)',
+  borderRadius: theme.spacing(2),
+  padding: theme.spacing(3),
+  position: 'relative',
+  backdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255,255,255,0.2)',
+}));
+
+const GradientButton = styled(Button)(({ theme }) => ({
+  background: 'linear-gradient(45deg, #2c3ce3 30%, #1a237e 90%)',
+  borderRadius: theme.spacing(2),
+  color: 'white',
+  textTransform: 'none',
+  '&:hover': {
+    background: 'linear-gradient(45deg, #1a237e 30%, #2c3ce3 90%)',
   },
 }));
 
@@ -46,8 +62,6 @@ const Welcome = () => {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>("");
   const { capitalizeFirstLetter } = utility();
-
-
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -70,12 +84,9 @@ const Welcome = () => {
         const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/quotes`);
         const result = await response.json();
 
-
         console.log('API response for quotes:', result);
 
-
         const { data } = result;
-
 
         if (Array.isArray(data) && data.length > 0) {
           const latest = data[0];
@@ -99,7 +110,6 @@ const Welcome = () => {
       }
     };
 
-
     if (user.id) {
       fetchUserData();
       fetchLatestQuote();
@@ -109,7 +119,6 @@ const Welcome = () => {
   useEffect(() => {
     console.log('latestQuote state updated:', latestQuote);
   }, [latestQuote]);
-
 
   const handleSubmit = async () => {
     try {
@@ -137,7 +146,6 @@ const Welcome = () => {
       toast.error('An unexpected error occurred');
     }
   };
-
 
   const handleEdit = async () => {
     try {
@@ -181,53 +189,89 @@ const Welcome = () => {
   return (
     <>
       <ToastContainer />
-      <StyledCard sx={{ height: '40vh' }}>
+      <StyledCard sx={{ height: '43vh', overflow: 'hidden' }}>
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-            <Typography variant="h4" fontWeight="bold" color="#2c3ce3">
-              {userData ? `Welcome Back, ${capitalizeFirstLetter(userData.first_name)}! 👋` : 'Welcome! 👋'}
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              sx={{
+                background: 'linear-gradient(45deg, #2c3ce3 30%, #1a237e 90%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}
+            >
+              {userData ? `Welcome Back, ${capitalizeFirstLetter(userData.first_name)}!` : 'Welcome!'}
             </Typography>
-            {userRole === '1' && <Tooltip title="Add daily quotes">
-              <IconButton onClick={handleOpen}>
-                <MoreVertIcon />
-              </IconButton>
-            </Tooltip>
-            }
-          </Box>
-          <Divider sx={{ mb: 3 }} />
-          <Grid container spacing={4}>
-            <Grid item xs={12} sm={10}>
-              <Typography variant="body1" gutterBottom>
-                {latestQuote ? latestQuote.quote : 'No quote available'}
-              </Typography>
-
-              <Box sx={{ position: 'relative', minHeight: '50px' }}>
-                <Typography
-                  variant="body2"
+            {userRole === '1' && (
+              <Tooltip title="Add daily quotes">
+                <IconButton
+                  onClick={handleOpen}
                   sx={{
-
-                    position: 'absolute',
-                    bottom: 0,
-                    right: 0,
-                    fontWeight: 'bold',
-                    fontSize: '1.3em',
-
-
+                    background: 'rgba(44, 60, 227, 0.1)',
+                    '&:hover': {
+                      background: 'rgba(44, 60, 227, 0.2)'
+                    }
                   }}
                 >
-                  {latestQuote ? latestQuote.author : 'No author'}
-                </Typography>
-              </Box>
-            </Grid>
-
-          </Grid>
+                  <MoreVertIcon color="primary" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+          <Divider sx={{ mb: 3, borderColor: 'rgba(0,0,0,0.1)' }} />
+          <QuoteCard>
+            <Box display="flex" alignItems="start" mb={2}>
+              <FormatQuoteIcon
+                sx={{
+                  fontSize: 40,
+                  color: 'rgba(44, 60, 227, 0.5)',
+                  mr: 2
+                }}
+              />
+              <Typography variant="body1" sx={{ fontStyle: 'italic', color: 'rgba(0,0,0,0.7)' }}>
+                {latestQuote ? latestQuote.quote : 'No quote available'}
+              </Typography>
+            </Box>
+            <Typography
+              variant="body2"
+              sx={{
+                textAlign: 'right',
+                fontWeight: 'bold',
+                color: 'rgba(0,0,0,0.6)',
+                fontStyle: 'italic',
+              }}
+            >
+              {latestQuote ? `- ${latestQuote.author}` : 'No author'}
+            </Typography>
+          </QuoteCard>
         </CardContent>
       </StyledCard>
 
       <Modal open={open} onClose={handleClose}>
-        <Box sx={{ width: 400, margin: 'auto', mt: '15%', padding: 4, bgcolor: 'background.paper', borderRadius: 2 }}>
-          <Box display="flex" justifyContent="space-between">
-            <Typography variant="h6">{isEditMode ? 'Edit Quote' : 'Submit a Quote'}</Typography>
+        <Box
+          sx={{
+            width: 400,
+            margin: 'auto',
+            mt: '15%',
+            padding: 4,
+            bgcolor: 'white',
+            borderRadius: 2,
+            boxShadow: 24,
+            background: 'linear-gradient(135deg, #f6f8f9 0%, #e5ebee 100%)'
+          }}
+        >
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography
+              variant="h6"
+              sx={{
+                background: 'linear-gradient(45deg, #2c3ce3 30%, #1a237e 90%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}
+            >
+              {isEditMode ? 'Edit Quote' : 'Submit a Quote'}
+            </Typography>
             <IconButton onClick={handleClose}>
               <CloseIcon />
             </IconButton>
@@ -239,11 +283,15 @@ const Welcome = () => {
             onChange={(e) => setQuote(e.target.value)}
             style={{
               width: '100%',
-              padding: '10px',
-              borderColor: '#ccc',
-              borderRadius: '4px',
+              padding: '15px',
+              borderColor: 'rgba(44, 60, 227, 0.2)',
+              borderRadius: '10px',
               marginTop: '16px',
               marginBottom: '16px',
+              backgroundColor: 'rgba(255,255,255,0.8)',
+              resize: 'vertical',
+              outline: 'none',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
             }}
           />
           <TextField
@@ -252,10 +300,21 @@ const Welcome = () => {
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
             margin="normal"
+            variant="outlined"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '10px',
+              }
+            }}
           />
-          <Button variant="contained" color="primary" onClick={isEditMode ? handleEdit : handleSubmit} fullWidth>
+          <GradientButton
+            variant="contained"
+            onClick={isEditMode ? handleEdit : handleSubmit}
+            fullWidth
+            sx={{ mt: 2 }}
+          >
             {isEditMode ? 'Edit Quote' : 'Submit'}
-          </Button>
+          </GradientButton>
         </Box>
       </Modal>
     </>

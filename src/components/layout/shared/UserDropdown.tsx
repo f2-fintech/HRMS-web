@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 
-import Link from 'next/link';
+import Link from 'next/link'
 
 // Next Imports
 import { useRouter } from 'next/navigation'
@@ -38,15 +38,15 @@ const BadgeContentSpan = styled('span')({
 
 const UserDropdown = () => {
   // States
-  const [open, setOpen] = useState(false);
-  const [userData, setUserData] = useState<any>(null);
+  const [open, setOpen] = useState(false)
+  const [userData, setUserData] = useState<any>(null)
 
   // Refs
-  const anchorRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null)
 
   // Hooks
-  const router = useRouter();
-  const { getRole } = utility();
+  const router = useRouter()
+  const { getRole } = utility()
 
   const handleDropdownOpen = () => {
     setOpen(prevOpen => !prevOpen)
@@ -74,9 +74,8 @@ const UserDropdown = () => {
   }
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || '{}')
-    console.log("User", user.role);
-
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    console.log('User', user.role)
 
     const fetchUserData = async () => {
       try {
@@ -84,9 +83,8 @@ const UserDropdown = () => {
         const data = await response.json()
 
         setUserData(data)
-
       } catch (error) {
-        console.error("Error fetching user data:", error)
+        console.error('Error fetching user data:', error)
       }
     }
 
@@ -137,9 +135,7 @@ const UserDropdown = () => {
                       <Typography className='font-medium' color='text.primary'>
                         {userData.first_name} {userData.last_name}
                       </Typography>
-                      <Typography variant='caption'>
-                        {getRole(userData.role_priority)}
-                      </Typography>
+                      <Typography variant='caption'>{getRole(userData.role_priority)}</Typography>
                     </div>
                   </div>
                   <Divider className='mlb-1' />
@@ -149,22 +145,15 @@ const UserDropdown = () => {
                       <Typography color='text.primary'>My Profile</Typography>
                     </MenuItem>
                   </Link>
-                  <Link href={'/account-settings'}>
-                    <MenuItem className='gap-3'>
-                      <i className='ri-settings-4-line' />
-                      <Typography color='text.primary'>Setting</Typography>
-                    </MenuItem>
-                  </Link>
-                  <MenuItem className='gap-3'>
-                    <i className='ri-money-dollar-circle-line' />
-                    <Typography color='text.primary'>Pricing</Typography>
-                  </MenuItem>
-                  <Link href={'/faq'}>
-                    <MenuItem className='gap-3'>
-                      <i className='ri-question-line' />
-                      <Typography color='text.primary'>FAQ</Typography>
-                    </MenuItem>
-                  </Link>
+                  {userData.role_priority === '1' && (
+                    <Link href={'/account-settings'}>
+                      <MenuItem className="gap-3">
+                        <i className="ri-settings-4-line" />
+                        <Typography color="text.primary">Setting</Typography>
+                      </MenuItem>
+                    </Link>
+                  )}
+
                   <div className='flex items-center plb-2 pli-4'>
                     <Button
                       fullWidth

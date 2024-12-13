@@ -17,6 +17,8 @@ import {
   Dialog,
   List,
   DialogTitle,
+  IconButton,
+  Collapse,
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -26,6 +28,7 @@ import {
   AccessTime as HalfDayIcon,
   LocationOn as LocationIcon,
   DirectionsRun as OnFieldIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 
 import HomeIcon from '@mui/icons-material/Home';
@@ -166,6 +169,15 @@ const EmployeeAttendanceStatus: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [dialogTitle, setDialogTitle] = useState<string>('');
 
+  const [expandedLocations, setExpandedLocations] = useState<{ [key: string]: boolean }>({});
+
+  const handleLocationExpand = (location: string) => {
+    setExpandedLocations(prev => ({
+      ...prev,
+      [location]: !prev[location]
+    }));
+  };
+
   const handleStatusClick = async (status: string, location: string) => {
 
     try {
@@ -222,12 +234,12 @@ const EmployeeAttendanceStatus: React.FC = () => {
       };
       fetchAttendanceCounts();
     }
-  }, [attendanceCountsByLocation]);
+  }, []);
 
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ p: 3, bgcolor: 'background.default', minHeight: '100vh' }}>
+      <Box sx={{ bgcolor: 'background.default' }}>
         <Paper elevation={3} sx={{ p: 3, mb: 1 }}>
           <Grid container spacing={2} alignItems="center" justifyContent="space-between">
             <Grid item>
@@ -238,64 +250,78 @@ const EmployeeAttendanceStatus: React.FC = () => {
                 Date: {dayjs().format('MMMM D, YYYY')}
               </Typography>
             </Grid>
-            <Grid item>
-              <Tooltip title="Total Employees" placement="left">
-                <Paper elevation={2} sx={{ p: 2, display: 'flex', alignItems: 'center', bgcolor: theme.palette.primary.light }}>
-                  <PersonIcon sx={{ fontSize: 40, color: 'white', mr: 2 }} />
-                  <Typography variant="h5" color="white">
-                    {totalEmployees}
-                  </Typography>
-                </Paper>
-              </Tooltip>
-            </Grid>
+            <Box display="flex">
+              <Grid item>
+                <Tooltip title="Total Employees" placement="left">
+                  <Paper elevation={2} sx={{ p: 2, display: 'flex', alignItems: 'center', bgcolor: theme.palette.primary.light }}>
+                    <PersonIcon sx={{ fontSize: 40, color: 'white', mr: 2 }} />
+                    <Typography variant="h5" color="white">
+                      {totalEmployees}
+                    </Typography>
+                  </Paper>
+                </Tooltip>
+              </Grid>
+              <IconButton onClick={() => handleLocationExpand(location)}>
+                <ExpandMoreIcon
+                  sx={{
+                    transform: expandedLocations[location] ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s ease'
+                  }}
+                />
+              </IconButton>
+            </Box>
           </Grid>
         </Paper>
-        {loading ? <Loader /> : <Grid container spacing={1}>
-          {Object.entries(attendanceCountsByLocation).map(([location, data]) => (
-            <Grid item xs={12} md={6} lg={4} key={location}>
-              <Paper elevation={3} sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                  <Box display="flex" alignItems="center">
-                    <LocationIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />
-                    <Typography
-                      variant="h6"
-                      color="primary"
-                      sx={{
-                        textTransform: 'uppercase',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        width: '150px',
-                      }}
-                    >
-                      {data._id}
+
+        <Collapse in={expandedLocations[location]}>
+          {loading ? <Loader /> : <Grid container spacing={1}>
+            {Object.entries(attendanceCountsByLocation).map(([location, data]) => (
+              <Grid item xs={12} md={6} lg={4} key={location}>
+                <Paper elevation={3} sx={{ p: 3 }}>
+                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                    <Box display="flex" alignItems="center">
+                      <LocationIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />
+                      <Typography
+                        variant="h6"
+                        color="primary"
+                        sx={{
+                          textTransform: 'uppercase',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          width: '150px',
+                        }}
+                      >
+                        {data._id}
+                      </Typography>
+                    </Box>
+                    {/* Display Today's Total Employees Count */}
+                    <Typography variant="subtitle1" color="text.secondary">
+                      Today's Count: {data.totalEmployeesToday}
                     </Typography>
                   </Box>
-                  {/* Display Today's Total Employees Count */}
-                  <Typography variant="subtitle1" color="text.secondary">
-                    Today's Count: {data.totalEmployeesToday}
-                  </Typography>
-                </Box>
-                <Divider sx={{ mb: 2 }} />
-                <Grid container spacing={2}>
-                  {/* Iterate over each status */}
-                  {Object.entries(data).map(([status, count]) => {
-                    if (status === 'totalEmployeesToday' || status === '_id') return null;
-                    return (
-                      <Grid item xs={12} sm={6} key={status}>
-                        <StatusCard
-                          count={count}
-                          status={status}
-                          employees={[]}
-                          onClick={() => handleStatusClick(status.replace('_', ' ').trim(), data._id)}
-                        />
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>}
+                  <Divider sx={{ mb: 2 }} />
+                  <Grid container spacing={2}>
+                    {/* Iterate over each status */}
+                    {Object.entries(data).map(([status, count]) => {
+                      if (status === 'totalEmployeesToday' || status === '_id') return null;
+                      return (
+                        <Grid item xs={12} sm={6} key={status}>
+                          <StatusCard
+                            count={count}
+                            status={status}
+                            employees={[]}
+                            onClick={() => handleStatusClick(status.replace('_', ' ').trim(), data._id)}
+                          />
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>}
+        </Collapse>
+
         <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
           <DialogTitle>{dialogTitle} Employees</DialogTitle>
           <DialogContent>

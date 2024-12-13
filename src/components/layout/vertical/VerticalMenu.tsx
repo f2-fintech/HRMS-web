@@ -183,10 +183,10 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
             Seating Plan
           </MenuItem>
-
+          {/* 
           <MenuItem href={`/timesheets`} icon={<AccessTimeFilledIcon />}>
             Time Sheet
-          </MenuItem>
+          </MenuItem> */}
           <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
             Policy
           </MenuItem>
@@ -220,11 +220,11 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             Cards
           </MenuItem> */}
         </MenuSection>
-        <MenuSection label='Forms & Tables'>
+        {/* <MenuSection label='Forms & Tables'>
           <MenuItem href='/form-layouts' icon={<i className='ri-layout-4-line' />}>
             Form Layouts
           </MenuItem>
-        </MenuSection>
+        </MenuSection> */}
       </Menu>
     </ScrollWrapper>
   )
