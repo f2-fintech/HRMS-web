@@ -122,7 +122,7 @@ const LocationWisePerformer = () => {
       sx={{
         background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
         minHeight: '100vh',
-        padding: '20px'
+        // padding: '20px'
       }}
     >
       <motion.div

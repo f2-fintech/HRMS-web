@@ -135,8 +135,9 @@ const Award = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px',
-        backgroundColor: '#f4f6f9'
+        // padding: '20px',
+        backgroundColor: '#f4f6f9',
+        mr: '4rem'
       }}
     >
       <motion.div
