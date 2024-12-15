@@ -21,6 +21,9 @@ import { fetchFines } from '@/redux/features/fines/fineSlice';
 import FineForm from '@/components/fine/FineForm';
 import { format } from 'date-fns';
 import Loader from '@/components/loader/loader'
+import dayjs, { Dayjs } from 'dayjs';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -41,9 +44,19 @@ const FineListing = () => {
   const [fineToDelete, setFineToDelete] = useState<string | null>(null); // Store fine ID to delete
   const [userRole, setUserRole] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
-  const [month, setMonth] = useState(new Date().getMonth() + 1)
+  const [selectedDate, setSelectedDate] = React.useState(dayjs());
 
-  console.log('fines', fines)
+  const month = selectedDate.format('MM');
+  const year = selectedDate.format('YYYY');
+
+  const handleDateChange = (newValue: Dayjs | null) => {
+
+    if (newValue) {
+      setSelectedDate(newValue);
+    }
+  };
+
+  console.log('fines', selectedDate,);
 
 
   useEffect(() => {
@@ -84,12 +97,12 @@ const FineListing = () => {
     () =>
       debounce(() => {
         if (userRole === '1') {
-          dispatch(fetchFines({ page, month, limit, keyword: selectedKeyword }));
+          dispatch(fetchFines({ page, limit, month: month, year: year, keyword: selectedKeyword, }));
         } else {
-          dispatch(fetchFines({ page, limit, keyword: selectedKeyword, userId }));
+          dispatch(fetchFines({ page, limit, month: '0', year: year, keyword: selectedKeyword, userId }));
         }
       }, 300),
-    [dispatch, page, limit, selectedKeyword, userRole, userId, month]
+    [dispatch, page, limit, selectedKeyword, userRole, userId, month, year]
   );
 
 
@@ -109,10 +122,7 @@ const FineListing = () => {
     setPage(params.page + 1)
     setLimit(params.pageSize)
   }
-  const handleMothsChange = (e) => {
-    const newmonth = e.target.value;
-    setMonth(newmonth);
-  };
+
   const handleAddFine = () => {
     setSelectedFine(null)
     setShowForm(true)
@@ -348,6 +358,7 @@ const FineListing = () => {
       fineDate: fine.fineDate
     }));
   }, [fines])
+
   return (
     <>
       <Dialog open={openAlert} onClose={() => setOpenAlert(false)}>
@@ -391,52 +402,44 @@ const FineListing = () => {
           )}
         </Box>
 
-        <Grid container>
-          <Grid item xs={12} md={6} lg={4}>
-            <TextField
-              sx={{ mb: '1em' }}
-              fullWidth
-              label='search'
-              variant='outlined'
-              value={selectedKeyword}
-              onChange={handleInputChange}
-              InputProps={{
-                sx: {
-                  borderRadius: '50px'
-                },
-                endAdornment: (
-                  <InputAdornment position='end'>
-                    <SearchIcon />
-                  </InputAdornment>
-                )
-              }}
-            />
+        <Grid container spacing={3} alignItems="center" justifyContent="space-between" mb={2}>
+          {userRole === '1' && (
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Search"
+                variant="outlined"
+                value={selectedKeyword}
+                onChange={handleInputChange}
+                InputProps={{
+                  sx: {
+                    borderRadius: '50px',
+                  },
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+          )}
+          <Grid item xs={12} md={4}>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                views={userRole === '1' ? ['month', 'year'] : ['year']}
+                label={userRole === '1' ? 'Select Month and Year' : 'Select Year'}
+                value={dayjs(selectedDate)}
+                onChange={handleDateChange}
+                sx={{
+                  width: '100%',
+                }}
+              />
+            </LocalizationProvider>
           </Grid>
         </Grid>
-        <FormControl fullWidth variant="outlined" margin="normal">
-          <InputLabel id="select-month-label">Select Month</InputLabel>
-          <Select
-            labelId="select-month-label"
-            value={month}
-            onChange={handleMothsChange}
-            label="Select Month"
-            disabled={loading}
-          >
-            <MenuItem value="0">All</MenuItem>
-            <MenuItem value="1">January</MenuItem>
-            <MenuItem value="2">February</MenuItem>
-            <MenuItem value="3">March</MenuItem>
-            <MenuItem value="4">April</MenuItem>
-            <MenuItem value="5">May</MenuItem>
-            <MenuItem value="6">June</MenuItem>
-            <MenuItem value="7">july</MenuItem>
-            <MenuItem value="8">August</MenuItem>
-            <MenuItem value="9">September</MenuItem>
-            <MenuItem value="10">October</MenuItem>
-            <MenuItem value="11">November</MenuItem>
-            <MenuItem value="12">December</MenuItem>
-          </Select>
-        </FormControl>
+
+
 
         <Box sx={{ height: 500, width: '100%' }}>
           <DataGrid
@@ -497,7 +500,9 @@ const FineListing = () => {
               fine={selectedFine}
               onClose={handleCloseForm}
               setToast={setToast}
-              month={month} />
+              month={month}
+              year={year}
+            />
           </DialogContent>
         </Dialog>
       </Box>

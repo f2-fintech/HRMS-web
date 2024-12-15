@@ -24,6 +24,10 @@ import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import SearchIcon from '@mui/icons-material/Search'
 import { useDispatch, useSelector } from 'react-redux'
+import dayjs, { Dayjs } from 'dayjs';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+
 
 import type { AppDispatch, RootState } from '@/redux/store'
 import {
@@ -53,18 +57,31 @@ const Query = () => {
     const [snackbarMessage, setSnackbarMessage] = useState('')
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success')
 
+    const [selectedDate, setSelectedDate] = React.useState(dayjs());
+
+    const month = selectedDate.format('MM');
+    const year = selectedDate.format('YYYY');
+
+
+    const handleDateChange = (newValue: Dayjs | null) => {
+
+        if (newValue) {
+            setSelectedDate(newValue);
+        }
+    };
+
     const debouncedFetch = useMemo(
         () =>
             debounce(() => {
                 if (userRole === '1') {
-                    dispatch(fetchAllQueries({ page, limit, keyword: selectedKeyword }))
+                    dispatch(fetchAllQueries({ page, limit, keyword: selectedKeyword, month: month, year: year }))
                 } else if (queryType === 'own') {
-                    dispatch(fetchUserQueries({ page, limit, keyword: selectedKeyword }))
+                    dispatch(fetchUserQueries({ page, limit, keyword: selectedKeyword, month: 0, year: year }))
                 } else {
-                    dispatch(fetchQueriesByToQueryId({ toQueryId: userId, page, limit, keyword: selectedKeyword }))
+                    dispatch(fetchQueriesByToQueryId({ toQueryId: userId, page, limit, keyword: selectedKeyword, month: 0, year: year }))
                 }
             }, 300),
-        [dispatch, page, limit, selectedKeyword, queryType, userId, userRole]
+        [dispatch, page, limit, selectedKeyword, queryType, userId, userRole, month, year]
     )
 
     const fetchAutocompleteOptions = useCallback(
@@ -90,9 +107,12 @@ const Query = () => {
         []
     )
 
-    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedKeyword(e.target.value)
-    }, [])
+    const handleInputChange = useCallback(
+        debounce((event: React.ChangeEvent<HTMLInputElement>) => {
+            setSelectedKeyword(event.target.value);
+        }, 3000), // 3 seconds debounce
+        []
+    );
 
     const handlePaginationModelChange = useCallback((params: { page: number; pageSize: number }) => {
         setPage(params.page + 1)
@@ -152,9 +172,16 @@ const Query = () => {
         setShowForm(true)
     }
 
+    useEffect(() => {
+        return () => {
+            handleInputChange.cancel(); // Cleanup debounced function
+        };
+    }, []);
+
     const generateColumns = useMemo(() => {
         const columns: GridColDef[] = [
-            ...(userRole === '1'
+
+            ...(queryType !== 'own'
                 ? [
                     {
                         field: 'employeeName',
@@ -169,26 +196,29 @@ const Query = () => {
                                     {params.row.employee.first_name} {params.row.employee.last_name}
                                 </Typography>
                             </Box>
-                        )
-                    }
+                        ),
+                    },
                 ]
                 : []),
-            {
-                field: 'toQueryName',
-                headerName: 'Directed To',
-                minWidth: 200,
-                headerAlign: 'center',
-                align: 'center',
-                renderCell: params => (
-                    <Box display='flex' alignItems='center'>
-                        <Avatar src={params.row.toQuery.image} sx={{ mr: 1, width: 32, height: 32 }} />
-                        <Typography variant='body2' noWrap>
-                            {params.row.toQuery.first_name} {params.row.toQuery.last_name}
-                        </Typography>
-                    </Box>
-                )
-            },
-
+            ...(userRole === '1' || queryType !== 'against' && userRole
+                ? [
+                    {
+                        field: 'toQueryName',
+                        headerName: 'Directed To',
+                        minWidth: 200,
+                        headerAlign: 'center',
+                        align: 'center',
+                        renderCell: params => (
+                            <Box display="flex" alignItems="center">
+                                <Avatar src={params.row.toQuery.image} sx={{ mr: 1, width: 32, height: 32 }} />
+                                <Typography variant="body2" noWrap>
+                                    {params.row.toQuery.first_name} {params.row.toQuery.last_name}
+                                </Typography>
+                            </Box>
+                        ),
+                    },
+                ]
+                : []),
             {
                 field: 'assignedDate',
                 headerName: 'Date Assigned',
@@ -286,7 +316,7 @@ const Query = () => {
         ]
 
         return columns
-    }, [userRole])
+    }, [queryType, userRole])
 
     const rows = useMemo(() => {
         return queries.map(query => ({
@@ -333,55 +363,78 @@ const Query = () => {
                                 >
                                     New Query
                                 </Button>
-                                <Tooltip
-                                    title={
-                                        queryType === 'against' ? 'Click to view your own queries' : 'Click to view queries assigned to you'
-                                    }
-                                >
-                                    <Button
-                                        style={{ borderRadius: 8 }}
-                                        variant='contained'
-                                        color={queryType === 'against' ? 'secondary' : 'info'}
-                                        onClick={toggleQueryView}
-                                        sx={{ textTransform: 'none', px: 3, py: 1 }}
+                                {userRole !== '1' && (
+                                    <Tooltip
+                                        title={
+                                            queryType === 'against'
+                                                ? 'Click to view your own queries'
+                                                : 'Click to view queries assigned to you'
+                                        }
                                     >
-                                        {queryType === 'against' ? 'Your Queries' : 'Against You'}
-                                    </Button>
-                                </Tooltip>
+                                        <Button
+                                            style={{ borderRadius: 8 }}
+                                            variant="contained"
+                                            color={queryType === 'against' ? 'secondary' : 'info'}
+                                            onClick={toggleQueryView}
+                                            sx={{ textTransform: 'none', px: 3, py: 1 }}
+                                        >
+                                            {queryType === 'against' ? 'Your Queries' : 'Against You'}
+                                        </Button>
+                                    </Tooltip>
+                                )}
+
                             </>
                         )}
                     </Box>
                 </Box>
-                <Grid container spacing={3} mb={2}>
-                    <Grid item xs={12} md={6}>
+                <Grid container spacing={3} mb={2} alignItems="center">
+                    {/* Search Input */}
+                    <Grid item xs={12} md={8}>
                         <Autocomplete
                             freeSolo
                             options={autocompleteOptions}
                             inputValue={selectedKeyword}
                             onInputChange={(event, newInputValue) => {
-                                setSelectedKeyword(newInputValue)
-                                fetchAutocompleteOptions(newInputValue)
+                                setSelectedKeyword(newInputValue);
+                                fetchAutocompleteOptions(newInputValue);
                             }}
-                            renderInput={params => (
+                            renderInput={(params) => (
                                 <TextField
                                     {...params}
                                     fullWidth
-                                    label='Search'
-                                    variant='outlined'
+                                    label="Search"
+                                    variant="outlined"
+                                    onChange={handleInputChange}
                                     InputProps={{
                                         ...params.InputProps,
                                         sx: { borderRadius: '3rem' },
                                         endAdornment: (
-                                            <InputAdornment position='end'>
+                                            <InputAdornment position="end">
                                                 <SearchIcon />
                                             </InputAdornment>
-                                        )
+                                        ),
                                     }}
                                 />
                             )}
                         />
                     </Grid>
+
+                    {/* Date Picker */}
+                    <Grid item xs={12} md={4} display="flex" justifyContent="flex-end">
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <DatePicker
+                                views={userRole === '1' ? ['month', 'year'] : ['year']}
+                                label={userRole === '1' ? 'Select Month and Year' : 'Select Year'}
+                                value={dayjs(selectedDate)}
+                                onChange={handleDateChange}
+                                sx={{
+                                    width: '80%',
+                                }}
+                            />
+                        </LocalizationProvider>
+                    </Grid>
                 </Grid>
+
             </Box>
             <Box sx={{ width: '100%', height: 600 }}>
                 <DataGrid
@@ -430,6 +483,7 @@ const Query = () => {
                     slots={{
                         toolbar: GridToolbar
                     }}
+
                 />
 
             </Box>

@@ -24,6 +24,8 @@ interface QueryState {
     createError: string | null;
     page: number;
     total: number;
+    month?: number;
+    year?: number;
 }
 
 const initialState: QueryState = {
@@ -35,16 +37,25 @@ const initialState: QueryState = {
     createError: null,
     page: 1,
     total: 0,
+
 };
 
 // Thunk to fetch all queries (Admin)
 export const fetchAllQueries = createAsyncThunk(
     'queries/fetchAllQueries',
-    async ({ page = 1, limit = 10, keyword = '' }: { page?: number; limit?: number; keyword?: string }) => {
+    async ({ page = 1, limit = 10, keyword = '', month, year }: { page?: number; limit?: number; keyword?: string; month?: number; year?: number }) => {
         const token = localStorage.getItem('token') || '';
 
+        const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            keyword,
+            ...(month !== undefined ? { month: month.toString() } : {}),
+            ...(year !== undefined ? { year: year.toString() } : {}),
+        });
+
         const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/queries/get-all?page=${page}&limit=${limit}&keyword=${keyword}`,
+            `${process.env.NEXT_PUBLIC_APP_URL}/queries/get-all?${queryParams}`,
             {
                 method: 'GET',
                 headers: {
@@ -60,22 +71,30 @@ export const fetchAllQueries = createAsyncThunk(
 
         const result = await response.json();
         return { queries: result.data, total: result.total };
-
     }
 );
+
 
 // Thunk to fetch queries based on the logged-in user's role
 export const fetchUserQueries = createAsyncThunk(
     'queries/fetchUserQueries',
     async (
-        { page = 1, limit = 10, keyword = '' }: { page?: number; limit?: number; keyword?: string },
+        { page = 1, limit = 10, keyword = '', year }: { page?: number; limit?: number; keyword?: string; year?: number },
         { getState }
     ) => {
         const state = getState() as RootState;
         const token = localStorage.getItem('token') || '';
 
+        // Construct query parameters dynamically
+        const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            keyword,
+            ...(year ? { year: year.toString() } : {}),
+        });
+
         const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/queries/user-queries?page=${page}&limit=${limit}&keyword=${keyword}`,
+            `${process.env.NEXT_PUBLIC_APP_URL}/queries/user-queries?${queryParams}`,
             {
                 method: 'GET',
                 headers: {
@@ -93,17 +112,26 @@ export const fetchUserQueries = createAsyncThunk(
         return { queries: result.data, total: result.total };
     }
 );
+
 
 // Fetch queries by toQueryId
 export const fetchQueriesByToQueryId = createAsyncThunk(
     'queries/fetchQueriesByToQueryId',
     async (
-        { toQueryId, page = 1, limit = 10, keyword = '' }: { toQueryId: string; page?: number; limit?: number; keyword?: string }
+        { toQueryId, page = 1, limit = 10, keyword = '', year }: { toQueryId: string; page?: number; limit?: number; keyword?: string; year?: number }
     ) => {
         const token = localStorage.getItem('token') || '';
 
+        // Construct query parameters dynamically
+        const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            keyword,
+            ...(year ? { year: year.toString() } : {}),
+        });
+
         const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/queries/to-query/${toQueryId}?page=${page}&limit=${limit}&keyword=${keyword}`,
+            `${process.env.NEXT_PUBLIC_APP_URL}/queries/to-query/${toQueryId}?${queryParams}`,
             {
                 method: 'GET',
                 headers: {
@@ -121,6 +149,7 @@ export const fetchQueriesByToQueryId = createAsyncThunk(
         return { queries: result.data, total: result.total };
     }
 );
+
 
 export const createQuery = createAsyncThunk(
     'queries/createQuery',
@@ -178,6 +207,8 @@ const querySlice = createSlice({
             state.error = null;
             state.createError = null;
             state.page = 1;
+            state.month = undefined;
+            state.year = undefined;
         },
         updateQuery(state, action: PayloadAction<Query>) {
             const updatedQuery = action.payload;

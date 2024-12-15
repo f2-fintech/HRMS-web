@@ -27,7 +27,7 @@ interface FineFormProps {
 
 }
 
-export default function FineForm({ fine, onClose, setToast, month }: FineFormProps) {
+export default function FineForm({ fine, onClose, setToast, month, year }: FineFormProps) {
   const dispatch = useDispatch<AppDispatch>();
 
   const [form, setForm] = useState({
@@ -111,7 +111,7 @@ export default function FineForm({ fine, onClose, setToast, month }: FineFormPro
             });
           }
 
-          dispatch(fetchFines({ page: 1, month, limit: 10, keyword: '' }));
+          dispatch(fetchFines({ page: 1, month, year, limit: 10, keyword: '' }));
           onClose();
         })
         .catch((error) => {

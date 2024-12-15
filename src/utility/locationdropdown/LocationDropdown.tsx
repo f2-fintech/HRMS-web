@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { fetchConfiguration } from '../setting-configuration/settingConfig';
-import { Select, MenuItem, Typography } from '@mui/material';
+import { TextField, MenuItem, InputAdornment, IconButton } from '@mui/material';
+import ClearIcon from '@mui/icons-material/Clear';
 
 const LocationDropdown = ({ selectedLocation, setSelectedLocation }) => {
     const [branches, setBranches] = useState([]);  // State to store fetched branches
     const [loading, setLoading] = useState(true);     // State to handle loading state
-    const [error, setError] = useState(null);         // State to handle any errors
+    const [error, setError] = useState('');         // State to handle any errors
 
     // Fetch branches when the component mounts
     useEffect(() => {
         const getBranches = async () => {
             setLoading(true);  // Set loading state to true when fetching
-            setError(null);    // Reset any previous error
+            setError('');    // Reset any previous error
 
             try {
                 const configData = await fetchConfiguration(); // Fetch config data
@@ -35,27 +36,53 @@ const LocationDropdown = ({ selectedLocation, setSelectedLocation }) => {
     // Show loading or error states
     if (loading) {
         return (
-            <Select value="" disabled>
+            <TextField
+                select
+                label="By Branch"
+                value=""
+                fullWidth
+                disabled
+            >
                 <MenuItem>Loading...</MenuItem>
-            </Select>
+            </TextField>
         );
     }
 
     if (error) {
         return (
-            <Select value="" disabled>
+            <TextField
+                select
+                label="By Branch"
+                value=""
+                fullWidth
+                disabled
+            >
                 <MenuItem>{error}</MenuItem>
-            </Select>
+            </TextField>
         );
     }
 
-    // Render the dropdown with branches
+    // Render the dropdown with branches and clear button
     return (
-        <Select
-            label="Select Branch"
+        <TextField
+            select
+            label="Choose Branch"
             value={selectedLocation}
             onChange={(e) => setSelectedLocation(e.target.value)}  // Update selected branch when changed
             fullWidth
+            InputProps={{
+                endAdornment: selectedLocation && (
+                    <InputAdornment position="end" sx={{ marginRight: "10%" }}>
+                        <IconButton
+                            onClick={() => setSelectedLocation('')}
+                            aria-label="clear selection"
+                            edge="end"
+                        >
+                            <ClearIcon />
+                        </IconButton>
+                    </InputAdornment>
+                ),
+            }}
         >
             {branches.length > 0 ? (
                 branches.map((branch, index) => (
@@ -66,7 +93,7 @@ const LocationDropdown = ({ selectedLocation, setSelectedLocation }) => {
             ) : (
                 <MenuItem disabled>No branches available</MenuItem>
             )}
-        </Select>
+        </TextField>
     );
 };
 

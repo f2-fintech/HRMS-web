@@ -1,9 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-
-// import { debounce } from 'lodash';
+import React, { useEffect, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { DataGrid, GridToolbar, type GridColDef } from '@mui/x-data-grid';
@@ -24,6 +22,7 @@ import {
   Avatar,
   useTheme,
   useMediaQuery,
+  Backdrop,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -41,7 +40,7 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
 import type { AppDispatch, RootState } from '@/redux/store';
-import { fetchAttendances, resetAttendances } from '@/redux/features/attendances/attendancesSlice';
+import { fetchAttendances } from '@/redux/features/attendances/attendancesSlice';
 import AttendanceSummary from '@/utility/attendancesummry/AttendanceSummary';
 import EmployeeStatsWithBlinkingStatus from '@/utility/totalempattendancesummary/EmployeeStatsWithBlinkingStatus';
 import { AttendanceSummaryColumns } from '@/utility/attendancesummry/AttendanceSummaryColumns';
@@ -80,7 +79,6 @@ export default function AttendanceGrid() {
   const [statusCounts, setStatusCounts] = useState([]);
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
-  // Fetch cumulative status counts based on selected month and year
   const fetchStatusCounts = async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}&location=${searchLocation}`);
@@ -131,54 +129,18 @@ export default function AttendanceGrid() {
       dispatch(fetchAttendances({
         month,
         weekIndex: startDayIndex,
-        page: 1,  // Reset to first page when searching
+        page,  // Reset to first page when searching
         limit,
         keyword: debouncedSearchName.trim(),
         location: debouncedSearchLocation.trim()
       }));
       fetchStatusCounts();
     }
-  }, [debouncedSearchName, debouncedSearchLocation]);
-
-  // Fetch cumulative status counts based on selected month and year
-  // const fetchStatusCounts = async () => {
-  //   try {
-  //     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}`);
-  //     if (!response.ok) {
-  //       throw new Error("Network response was not ok");
-  //     }
-  //     const data = await response.json();
-  //     setStatusCounts(data.statusCounts);
-  //   } catch (error) {
-  //     console.error("Error fetching status counts:", error);
-  //     // toast.error("Failed to load attendance counts.");
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   return () => debouncedSearch.cancel();  // Cleanup on unmount
-  // }, [debouncedSearch]);
+  }, [page, limit, debouncedSearchName, debouncedSearchLocation]);
 
   const handleInputChange = (e) => {
     const newName = e.target.value
     setSearchName(newName);
-    // debouncedSearch();
-    // setSearchLocation('')
-    // if (newName === '') {
-    //   dispatch(resetAttendances());
-    //   dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: 1, limit: limit, keyword: newName, location: searchLocation }));
-    // }
-  };
-
-  const handleLocationInputChange = (e) => {
-    const newLocation = e.target.value;
-    setSearchLocation(newLocation);
-    // debouncedSearch();
-    // setSearchName('');
-    // if (newLocation === '') {
-    //   dispatch(resetAttendances());
-    //   dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: 1, limit: limit, keyword: searchName, location: newLocation }));
-    // }
   };
 
   useEffect(() => {
@@ -248,10 +210,6 @@ export default function AttendanceGrid() {
 
     return lastSunday;
   };
-
-  // useEffect(() => {
-  //   dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: page, limit: limit, keyword: searchName, location: searchLocation }));
-  // }, [dispatch, month, year, page, limit, searchName, searchLocation]);
 
   const generateColumns = () => {
     const today = new Date();
@@ -424,7 +382,6 @@ export default function AttendanceGrid() {
     return sortedData;
   };
 
-
   const columns = React.useMemo(() => generateColumns(), [month, startDayIndex, daysToShow]);
   const rows = React.useMemo(() => transformData(), [attendances, statusCounts, month]);
 
@@ -573,7 +530,7 @@ export default function AttendanceGrid() {
           </Grid>
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
-              <InputLabel id="location-select-label">By Branches</InputLabel>
+              {/* <InputLabel id="location-select-label">By Branches</InputLabel> */}
               <LocationDropdown
                 selectedLocation={searchLocation}
                 setSelectedLocation={setSearchLocation}
@@ -584,6 +541,22 @@ export default function AttendanceGrid() {
         </Grid>}
       </Box>
       <Box sx={{ display: 'flex' }}>
+        {loading && (
+          <Backdrop
+            sx={{
+              color: '#fff',
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%'
+            }}
+            open={loading}
+          >
+            <Loader />
+          </Backdrop>
+        )}
         {userRole === '1' ? (
           <DataGrid
             autoHeight
@@ -609,7 +582,7 @@ export default function AttendanceGrid() {
             }}
             slots={{
               toolbar: GridToolbar,
-              loadingOverlay: Loader,
+              // loadingOverlay: Loader,
             }}
             rows={rows}
             columns={columns}
@@ -626,7 +599,7 @@ export default function AttendanceGrid() {
             checkboxSelection
             rowCount={count}
             disableRowSelectionOnClick
-            loading={loading}
+          // loading={loading}
           />
         ) : (
           <Grid container spacing={2}>

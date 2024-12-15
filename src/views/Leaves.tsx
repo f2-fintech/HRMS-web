@@ -38,9 +38,6 @@ import ContrastIcon from '@mui/icons-material/Contrast';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InputAdornment from '@mui/material/InputAdornment';
 import { DriveFileRenameOutlineOutlined } from '@mui/icons-material'
-
-import { Console } from 'console'
-
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useDispatch, useSelector } from 'react-redux';
 import { format } from 'date-fns';
@@ -52,6 +49,9 @@ import { fetchLeaves } from '@/redux/features/leaves/leavesSlice';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 import AddLeavesForm from '@/components/leave/LeaveForm';
 import Loader from '@/components/loader/loader'
+import dayjs, { Dayjs } from 'dayjs';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -79,27 +79,38 @@ export default function LeavesGrid() {
   const [selectedKeyword, setSelectedKeyword] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [quarter, setQuarter] = useState('Q');
+  const [selectedDate, setSelectedDate] = React.useState(dayjs());
 
+
+  const month = selectedDate.format('MM');
+  const year = selectedDate.format('YYYY');
+
+
+  const handleDateChange = (newValue: Dayjs | null) => {
+
+    if (newValue) {
+      setSelectedDate(newValue);
+    }
+
+
+  }
 
   console.log('leaves', leaves)
 
   const debouncedFetch = useMemo(
     () =>
       debounce(() => {
-        dispatch(fetchLeaves({ page, limit, quarter, keyword: selectedKeyword }))
+        if (userRole === '1') {
+          dispatch(fetchLeaves({ page, limit, month: month, year: year, keyword: selectedKeyword }))
+        } else {
+          dispatch(fetchLeaves({ page, limit, month: '0', year: year, keyword: selectedKeyword, userId }))
+        }
       }, 300),
-    [dispatch, page, limit, quarter, selectedKeyword]
+    [dispatch, page, limit, selectedKeyword, userId, month, year]
   )
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedKeyword(e.target.value)
   }, [])
-
-  const handleQuarterChange = useCallback((e) => {
-    const newQuarter = e.target.value as string;
-    setQuarter(newQuarter);
-  }, []);
-
 
   const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
     setPage(newPage + 1)
@@ -110,6 +121,7 @@ export default function LeavesGrid() {
     setPage(params.page + 1) // Add +1 because MUI starts page index at 0
     setLimit(params.pageSize)
   }, [])
+
   useEffect(() => {
     debouncedFetch()
     if (leaves.length === 0) {
@@ -121,6 +133,7 @@ export default function LeavesGrid() {
 
     return debouncedFetch.cancel
   }, [debouncedFetch, dispatch, leaves.length, limit, page, selectedKeyword])
+
   useEffect(() => {
     if (Number(userRole) < 3 && employees.length === 0) {
       const fetchEmployees = async () => {
@@ -514,7 +527,7 @@ export default function LeavesGrid() {
                       <CloseIcon />
                     </IconButton><DialogContent >
                       <Typography>
-                        {params.application}
+                        {params.row.application}
                       </Typography>
                     </DialogContent>
                   </BootstrapDialog>
@@ -585,7 +598,7 @@ export default function LeavesGrid() {
       }))
   }, [leaves])
 
-  console.log('leaves', leaves)
+  console.log('seleeddate>>>', selectedDate)
 
   return (
     <Box>
@@ -603,7 +616,8 @@ export default function LeavesGrid() {
               employees={employees}
               page={page}
               limit={limit}
-              quarter={quarter}
+              month={month}
+              year={year}
               selectedKeyword={selectedKeyword}
             />
           </DialogContent>
@@ -631,49 +645,45 @@ export default function LeavesGrid() {
             )}
           </Box>
         </Box>
-        <Grid container spacing={6} alignItems='center' mb={2}>
+        <Grid container spacing={3} alignItems="center" justifyContent="space-between" mb={2}>
           {userRole === '1' && (
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label='search'
-                variant='outlined'
+                label="Search"
+                variant="outlined"
                 value={selectedKeyword}
                 onChange={handleInputChange}
                 InputProps={{
                   sx: {
-                    borderRadius: '50px'
+                    borderRadius: '50px',
                   },
                   endAdornment: (
-                    <InputAdornment position='end'>
+                    <InputAdornment position="end">
                       <SearchIcon />
                     </InputAdornment>
-                  )
+                  ),
                 }}
               />
             </Grid>
           )}
+          <Grid item xs={12} md={4}>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                views={userRole === '1' ? ['month', 'year'] : ['year']}
+                label={userRole === '1' ? 'Select Month and Year' : 'Select Year'}
+                value={dayjs(selectedDate)}
+                onChange={handleDateChange}
+                sx={{
+                  width: '100%',
+                }}
+              />
+            </LocalizationProvider>
+          </Grid>
         </Grid>
-      </Box>
-      {userRole === '1' && (
-        <FormControl fullWidth variant="outlined" margin="normal">
-          <InputLabel id="select-quarter-label">Select Quarter</InputLabel>
-          <Select
-            labelId="select-quarter-label"
-            value={quarter}
-            onChange={handleQuarterChange}
-            label="Select Quarter"
-            disabled={loading}
 
-          >
-            <MenuItem value="Q">All</MenuItem>
-            <MenuItem value="Q1">Q1 (Jan - Mar)</MenuItem>
-            <MenuItem value="Q2">Q2 (Apr - Jun)</MenuItem>
-            <MenuItem value="Q3">Q3 (Jul - Sep)</MenuItem>
-            <MenuItem value="Q4">Q4 (Oct - Dec)</MenuItem>
-          </Select>
-        </FormControl>
-      )}
+      </Box>
+
       <Box sx={{ width: '100%', position: 'relative' }}>
 
         <DataGrid
