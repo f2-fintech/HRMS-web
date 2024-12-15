@@ -321,7 +321,7 @@ const LocationWisePerformer = () => {
                           marginTop: 'auto'
                         }}
                       >
-                        {award?.amount ? formatAmount(award.amount) : 'N/A'}
+                        {award?.amount ? award.amount : 'N/A'}
                       </Typography>
 
                       <motion.img

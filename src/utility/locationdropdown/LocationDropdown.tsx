@@ -66,7 +66,7 @@ const LocationDropdown = ({ selectedLocation, setSelectedLocation }) => {
     return (
         <TextField
             select
-            label="By Branch"
+            label="Choose Branch"
             value={selectedLocation}
             onChange={(e) => setSelectedLocation(e.target.value)}  // Update selected branch when changed
             fullWidth
