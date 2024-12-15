@@ -402,39 +402,43 @@ const FineListing = () => {
           )}
         </Box>
 
-        <Grid container spacing={6} alignItems='center' mb={2}>
+        <Grid container spacing={3} alignItems="center" justifyContent="space-between" mb={2}>
           {userRole === '1' && (
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label='search'
-                variant='outlined'
+                label="Search"
+                variant="outlined"
                 value={selectedKeyword}
                 onChange={handleInputChange}
                 InputProps={{
                   sx: {
-                    borderRadius: '50px'
+                    borderRadius: '50px',
                   },
                   endAdornment: (
-                    <InputAdornment position='end'>
+                    <InputAdornment position="end">
                       <SearchIcon />
                     </InputAdornment>
-                  )
+                  ),
                 }}
               />
             </Grid>
           )}
-          <Grid paddingLeft={userRole === '1' ? '19vw' : '2vw'} marginTop={userRole === '1' ? '4vh' : '2vw'}>
+          <Grid item xs={12} md={4}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
                 views={userRole === '1' ? ['month', 'year'] : ['year']}
                 label={userRole === '1' ? 'Select Month and Year' : 'Select Year'}
                 value={dayjs(selectedDate)}
                 onChange={handleDateChange}
+                sx={{
+                  width: '100%',
+                }}
               />
             </LocalizationProvider>
           </Grid>
         </Grid>
+
 
 
         <Box sx={{ height: 500, width: '100%' }}>

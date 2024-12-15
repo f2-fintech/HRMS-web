@@ -404,7 +404,6 @@ export default function AddAssets() {
           </Grid>
           <Grid item xs={12} md={6}>
             <FormControl fullWidth error={!!errors.location}>
-              <InputLabel id="demo-simple-select-label">Select Location</InputLabel>
               <LocationDropdown
                 selectedLocation={formData.location}
                 setSelectedLocation={(location) =>
@@ -589,8 +588,8 @@ export default function AddAssets() {
               boxSizing: 'border-box',
             },
           }}
-          components={{
-            Toolbar: GridToolbar,
+          slots={{
+            toolbar: GridToolbar
           }}
           rows={filteredaddassets.length > 0 ? filteredaddassets : addassets}
           columns={columns}
