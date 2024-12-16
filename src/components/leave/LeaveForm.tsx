@@ -1,15 +1,52 @@
 import React, { useEffect, useState } from 'react';
-
 import {
-  Box, Button, Checkbox, CircularProgress, FormControl, FormControlLabel, FormHelperText, Grid, IconButton, InputLabel, MenuItem, Select, TextField, Typography
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+  Paper,
+  Container,
+  Tooltip
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import {
+  Close as CloseIcon,
+  EventNote as CalendarIcon,
+  Person as EmployeeIcon,
+  AssignmentTurnedIn as LeaveTypeIcon,
+  Description as ApplicationIcon,
+
+  CheckCircle as SubmitIcon,
+  EmojiObjects as ReasonIcon
+} from '@mui/icons-material';
+import { AccessTime as HalfDayIcon, AccessTime } from '@mui/icons-material';
+
 import { toast } from 'react-toastify';
 import { useDispatch } from 'react-redux';
-
 import { fetchLeaves } from '../../redux/features/leaves/leavesSlice';
 
-const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees, page, limit, month, year, selectedKeyword }) => {
+const AddLeavesForm = ({
+  handleClose,
+  leave,
+  leaves,
+  userRole,
+  userId,
+  employees,
+  page,
+  limit,
+  month,
+  year,
+  selectedKeyword
+}) => {
   const [formData, setFormData] = useState({
     employee: '',
     start_date: '',
@@ -19,7 +56,7 @@ const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees
     reason: '',
     type: '',
     day: '',
-    half_day_period: null // Set half_day_period to null initially
+    half_day_period: null
   });
 
   const [errors, setErrors] = useState({
@@ -55,7 +92,7 @@ const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees
           reason: selected.reason || '',
           type: selected.type,
           day: selected.day ? selected.day : calculateDaysDifference(selected.start_date, selected.end_date),
-          half_day_period: selected.day === "0.5" ? selected.half_day_period : null // Set half_day_period only if half-day
+          half_day_period: selected.day === "0.5" ? selected.half_day_period : null
         });
 
         if (selected.day === "0.5") {
@@ -74,7 +111,6 @@ const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees
     let isValid = true;
     const newErrors = {};
 
-    // Always required fields, excluding half_day_period
     const requiredFields = ['employee', 'start_date', 'status', 'application', 'type', 'day'];
 
     requiredFields.forEach(field => {
@@ -117,7 +153,6 @@ const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees
       const differenceInTime = endDate.getTime() - startDate.getTime();
       const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24)) + 1;
 
-      // Return 1 if start and end dates are the same
       return differenceInDays === 0 ? 1 : differenceInDays;
     }
 
@@ -132,18 +167,17 @@ const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees
     if (checked) {
       setFormData(prevState => ({
         ...prevState,
-        day: '0.5', // Automatically set day to 0.5 for half-day leave
-        half_day_period: '' // Reset half_day_period
+        day: '0.5',
+        half_day_period: ''
       }));
     } else {
-      // Recalculate the number of full days if unchecking
       setFormData(prevState => {
         const days = calculateDaysDifference(prevState.start_date, prevState.end_date);
 
         return {
           ...prevState,
-          day: days.toString(), // Reset to full days
-          half_day_period: null // Set half_day_period to null when not half-day leave
+          day: days.toString(),
+          half_day_period: null
         };
       });
     }
@@ -153,7 +187,6 @@ const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees
     if (validateForm()) {
       setLoading(true);
 
-      // Prepare the formData, exclude half_day_period if not a half-day leave
       const leaveData = { ...formData };
 
       if (!isHalfDay) {
@@ -190,7 +223,7 @@ const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees
           console.error('Error:', error);
         })
         .finally(() => {
-          setLoading(false); // Stop loading spinner after API call
+          setLoading(false);
         });
     }
   };
@@ -198,207 +231,262 @@ const AddLeavesForm = ({ handleClose, leave, leaves, userRole, userId, employees
   const filteredEmployees = userRole !== '1' ? employees.filter(emp => emp._id === userId) : employees;
 
   return (
-    <Box sx={{ flexGrow: 1, padding: 2 }}>
-      <Box display='flex' justifyContent='space-between' alignItems='center'>
-        <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
-          {leave ? 'Edit Leave' : 'Add Leave'}
-        </Typography>
-        <Box>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={isHalfDay}
-                onChange={handleHalfDayChange}
-                name="halfDay"
-                color="primary"
+    <Container maxWidth="md">
+      <Paper
+        elevation={3}
+        sx={{
+          padding: 3,
+          borderRadius: 2,
+          backgroundColor: '#f5f5f5'
+        }}
+      >
+        <Box display='flex' justifyContent='space-between' alignItems='center' mb={3}>
+          <Typography
+            variant='h4'
+            color="primary"
+            sx={{
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <LeaveTypeIcon />
+            {leave ? 'Edit Leave' : 'Add Leave'}
+          </Typography>
+          <Box display="flex" alignItems="center">
+            <Tooltip title="Click here to apply for half-day leave" arrow>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={isHalfDay}
+                    onChange={handleHalfDayChange}
+                    name="halfDay"
+                    color="primary"
+                    icon={<HalfDayIcon />}
+                    checkedIcon={<HalfDayIcon color="primary" />}
+                  />
+                }
+                label="Half-day Leave"
               />
-            }
-            label="Half-day Leave"
-          />
-          <IconButton onClick={handleClose}>
-            <CloseIcon />
-          </IconButton>
+            </Tooltip>
+            <IconButton onClick={handleClose} color="error">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
         </Box>
-      </Box>
-      <Grid container spacing={2}>
-        {Number(userRole) < 3 && (
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth required>
-              <InputLabel required id='demo-simple-select-label'>Employee</InputLabel>
-              <Select
-                label='Select Employee'
-                labelId='demo-simple-select-label'
-                id='demo-simple-select'
-                name="employee"
-                value={formData.employee}
-                onChange={handleChange}
-                required
-                error={!!errors.employee}
-                disabled={userRole !== '1'}
-              >
-                {filteredEmployees.map((employee) => (
-                  <MenuItem key={employee._id} value={employee._id}>
-                    {employee.first_name} {employee.last_name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.employee && <FormHelperText error>{errors.employee}</FormHelperText>}
-            </FormControl>
-          </Grid>
-        )}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label='Start Date'
-            name='start_date'
-            value={formData.start_date}
-            type='date'
-            onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
-            required
-            error={!!errors.start_date}
-            helperText={errors.start_date}
-          />
-        </Grid>
-        {!isHalfDay && (
+
+        <Grid container spacing={3}>
+          {Number(userRole) < 3 && (
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required variant="outlined">
+                <InputLabel required>Employee</InputLabel>
+                <Select
+                  label='Select Employee'
+                  name="employee"
+                  value={formData.employee}
+                  onChange={handleChange}
+                  required
+                  error={!!errors.employee}
+                  disabled={userRole !== '1'}
+                  startAdornment={<EmployeeIcon color="action" />}
+                >
+                  {filteredEmployees.map((employee) => (
+                    <MenuItem key={employee._id} value={employee._id}>
+                      {employee.first_name} {employee.last_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.employee && <FormHelperText error>{errors.employee}</FormHelperText>}
+              </FormControl>
+            </Grid>
+          )}
+
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label='End Date'
-              name='end_date'
+              label='Start Date'
+              name='start_date'
+              value={formData.start_date}
               type='date'
-              value={formData.end_date}
               onChange={handleChange}
               InputLabelProps={{ shrink: true }}
+              required
+              error={!!errors.start_date}
+              helperText={errors.start_date}
+              variant="outlined"
+              InputProps={{
+                startAdornment: <CalendarIcon color="action" />
+              }}
             />
           </Grid>
-        )}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label='Day'
-            name='day'
-            value={formData.day}
-            type='text'
-            InputProps={{ readOnly: true }}
-            InputLabelProps={{ shrink: true }}
-            required
-            error={!!errors.day}
-            helperText={errors.day}
-          />
-        </Grid>
 
-        {/* Conditionally Render "First Half" or "Second Half" dropdown if isHalfDay is true */}
-        {isHalfDay && (
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth required error={!!errors.half_day_period}>
-              <InputLabel required id="half-day-select-label">Half-day Period</InputLabel>
-              <Select
-                label="Select Half-day Period"
-                labelId="half-day-select-label"
-                id="half-day-select"
-                name="half_day_period"
-                value={formData.half_day_period}
+          {!isHalfDay && (
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label='End Date'
+                name='end_date'
+                type='date'
+                value={formData.end_date}
                 onChange={handleChange}
-              >
-                <MenuItem value="First Half">First Half</MenuItem>
-                <MenuItem value="Second Half">Second Half</MenuItem>
-              </Select>
-              {errors.half_day_period && <Typography color="error">{errors.half_day_period}</Typography>}
-            </FormControl>
-          </Grid>
-        )}
+                InputLabelProps={{ shrink: true }}
+                variant="outlined"
+                InputProps={{
+                  startAdornment: <CalendarIcon color="action" />
+                }}
+              />
+            </Grid>
+          )}
 
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth required error={!!errors.type}>
-            <InputLabel required id='demo-simple-select-label'>Type</InputLabel>
-            <Select
-              label='Select Type'
-              labelId='demo-simple-select-label'
-              id='demo-simple-select'
-              name='type'
-              value={formData.type}
-              onChange={handleChange}
-            >
-              <MenuItem value='Annual'>ANNUAL</MenuItem>
-              <MenuItem value='Sick'>SICK</MenuItem>
-              <MenuItem value='Unpaid'>UNPAID</MenuItem>
-              <MenuItem value='Casual'>CASUAL</MenuItem>
-              <MenuItem value='Complimentary'>COMPLIMENTARY</MenuItem>
-              <MenuItem value='Maternity'>MATERNITY</MenuItem>
-              <MenuItem value='Others'>OTHERS</MenuItem>
-            </Select>
-            {errors.type && <Typography color="error">{errors.type}</Typography>}
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label='Application'
-            name='application'
-            value={formData.application}
-            onChange={handleChange}
-            required
-            error={!!errors.application}
-            helperText={errors.application}
-          />
-        </Grid>
-
-        {userRole === '1' && (
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label='Reason for Approval/Rejection'
-              name='reason'
-              value={formData.reason}
-              onChange={handleChange}
+              label='Day'
+              name='day'
+              value={formData.day}
+              type='text'
+              InputProps={{
+                readOnly: true,
+                startAdornment: <AccessTime color="action" />
+              }}
+              InputLabelProps={{ shrink: true }}
               required
-              error={!!errors.reason}
-              helperText={errors.reason}
+              error={!!errors.day}
+              helperText={errors.day}
+              variant="outlined"
             />
           </Grid>
-        )}
-        {Number(userRole) < 3 && (
+
+          {isHalfDay && (
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required error={!!errors.half_day_period} variant="outlined">
+                <InputLabel required>Half-day Period</InputLabel>
+                <Select
+                  label="Select Half-day Period"
+                  name="half_day_period"
+                  value={formData.half_day_period}
+                  onChange={handleChange}
+                  startAdornment={<HalfDayIcon color="action" />}
+                >
+                  <MenuItem value="First Half">First Half</MenuItem>
+                  <MenuItem value="Second Half">Second Half</MenuItem>
+                </Select>
+                {errors.half_day_period && <Typography color="error">{errors.half_day_period}</Typography>}
+              </FormControl>
+            </Grid>
+          )}
+
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth required error={!!errors.status}>
-              <InputLabel required id='demo-simple-select-label'>Status</InputLabel>
+            <FormControl fullWidth required error={!!errors.type} variant="outlined">
+              <InputLabel required>Type</InputLabel>
               <Select
-                label='Select Status'
-                labelId='demo-simple-select-label'
-                id='demo-simple-select'
-                name='status'
-                value={formData.status}
+                label='Select Type'
+                name='type'
+                value={formData.type}
                 onChange={handleChange}
-                disabled={userRole !== '1'}
+                startAdornment={<LeaveTypeIcon color="action" />}
               >
-                <MenuItem value='Pending'>Pending</MenuItem>
-                <MenuItem value='Approved'>Approved</MenuItem>
-                <MenuItem value='Rejected'>Rejected</MenuItem>
+                <MenuItem value='Annual'>ANNUAL</MenuItem>
+                <MenuItem value='Sick'>SICK</MenuItem>
+                <MenuItem value='Unpaid'>UNPAID</MenuItem>
+                <MenuItem value='Casual'>CASUAL</MenuItem>
+                <MenuItem value='Complimentary'>COMPLIMENTARY</MenuItem>
+                <MenuItem value='Maternity'>MATERNITY</MenuItem>
+                <MenuItem value='Others'>OTHERS</MenuItem>
               </Select>
-              {errors.status && <Typography color="error">{errors.status}</Typography>}
+              {errors.type && <Typography color="error">{errors.type}</Typography>}
             </FormControl>
           </Grid>
-        )}
-        <Grid item xs={12}>
-          <Button
-            style={{
-              fontSize: '18px',
-              fontWeight: 600,
-              color: 'white',
-              padding: 15,
-              backgroundColor: '#ff902f',
-              width: 200
-            }}
-            variant='contained'
-            fullWidth
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} color="inherit" /> : (leave ? 'UPDATE LEAVE' : 'ADD LEAVE')}
-          </Button>
+
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth error={!!errors.application}>
+              <InputLabel shrink>Application</InputLabel>
+              <Box
+                component="textarea"
+                name="application"
+                value={formData.application}
+                onChange={handleChange}
+                rows={4} // Adjust rows for height
+                placeholder="Enter your application here"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  resize: 'vertical', // Allow vertical resizing
+                }}
+              />
+              {errors.application && (
+                <FormHelperText>{errors.application}</FormHelperText>
+              )}
+            </FormControl>
+
+          </Grid>
+
+          {userRole === '1' && (
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label='Reason for Approval/Rejection'
+                name='reason'
+                value={formData.reason}
+                onChange={handleChange}
+                required
+                error={!!errors.reason}
+                helperText={errors.reason}
+                variant="outlined"
+                InputProps={{
+                  startAdornment: <ReasonIcon color="action" />
+                }}
+              />
+            </Grid>
+          )}
+
+          {Number(userRole) < 3 && (
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required error={!!errors.status} variant="outlined">
+                <InputLabel required>Status</InputLabel>
+                <Select
+                  label='Select Status'
+                  name='status'
+                  value={formData.status}
+                  onChange={handleChange}
+                  disabled={userRole !== '1'}
+                >
+                  <MenuItem value='Pending'>Pending</MenuItem>
+                  <MenuItem value='Approved'>Approved</MenuItem>
+                  <MenuItem value='Rejected'>Rejected</MenuItem>
+                </Select>
+                {errors.status && <Typography color="error">{errors.status}</Typography>}
+              </FormControl>
+            </Grid>
+          )}
+
+          <Grid item xs={12} display="flex" justifyContent="center">
+            <Button
+              variant='contained'
+              color="primary"
+              onClick={handleSubmit}
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={24} color="inherit" /> : <SubmitIcon />}
+              sx={{
+                fontSize: '16px',
+                fontWeight: 600,
+                padding: '12px 24px',
+                borderRadius: 2
+              }}
+            >
+              {loading ? 'Processing...' : (leave ? 'UPDATE LEAVE' : 'ADD LEAVE')}
+            </Button>
+          </Grid>
         </Grid>
-      </Grid>
-    </Box>
+      </Paper>
+    </Container>
   );
 };
 
