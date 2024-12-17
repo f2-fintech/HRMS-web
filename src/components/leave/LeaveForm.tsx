@@ -428,7 +428,7 @@ const AddLeavesForm = ({
 
           </Grid>
 
-          {userRole === '1' && (
+          {leave && (
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -447,7 +447,7 @@ const AddLeavesForm = ({
             </Grid>
           )}
 
-          {Number(userRole) < 3 && (
+          {leave && (
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required error={!!errors.status} variant="outlined">
                 <InputLabel required>Status</InputLabel>
@@ -466,6 +466,7 @@ const AddLeavesForm = ({
               </FormControl>
             </Grid>
           )}
+
 
           <Grid item xs={12} display="flex" justifyContent="center">
             <Button
