@@ -625,17 +625,17 @@ export default function LeavesGrid() {
             </Typography>
           </Box>
           <Box display='flex' alignItems='center'>
-            {Number(userRole) >= 2 && (
-              <Button
-                style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
-                variant='contained'
-                color='warning'
-                startIcon={<AddIcon />}
-                onClick={handleLeaveAddClick}
-              >
-                Apply Leave
-              </Button>
-            )}
+
+            <Button
+              style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
+              variant='contained'
+              color='warning'
+              startIcon={<AddIcon />}
+              onClick={handleLeaveAddClick}
+            >
+              Apply Leave
+            </Button>
+
           </Box>
         </Box>
         <Grid container spacing={3} alignItems="center" justifyContent="space-between" mb={2}>
