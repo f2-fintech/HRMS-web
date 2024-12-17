@@ -37,7 +37,7 @@ const initialState: attendancesState = {
 
 export const fetchAttendances = createAsyncThunk(
   'attendances/fetchAttendances',
-  async ({ month, weekIndex, page, limit, keyword, location }: { month: number, weekIndex: number, page: number, limit: number, keyword: string, location: string }, { getState }) => {
+  async ({ month, year, weekIndex, page, limit, keyword, location }: { month: number, year: number, weekIndex: number, page: number, limit: number, keyword: string, location: string }, { getState }) => {
     const state = getState() as RootState;
     let token: string | null = null;
 
@@ -45,7 +45,7 @@ export const fetchAttendances = createAsyncThunk(
       token = localStorage.getItem('token');
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/get?month=${month}&weekIndex=${weekIndex}&page=${page}&limit=${limit}&keyword=${keyword}&location=${location}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/get?month=${month}&year=${year}&weekIndex=${weekIndex}&page=${page}&limit=${limit}&keyword=${keyword}&location=${location}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
