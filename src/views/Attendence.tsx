@@ -81,7 +81,7 @@ export default function AttendanceGrid() {
 
   const fetchStatusCounts = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}&location=${searchLocation}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}&location=${searchLocation}`); // Added year
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -113,11 +113,10 @@ export default function AttendanceGrid() {
   const debouncedSearchLocation = useDebounce(searchLocation, 500);
 
   useEffect(() => {
-    // Check if both search fields are empty
     if (debouncedSearchName.trim() === '' && debouncedSearchLocation.trim() === '') {
-      // Fetch all data
       dispatch(fetchAttendances({
         month,
+        year, // Added year
         weekIndex: startDayIndex,
         page: 1,  // Reset to first page
         limit,
@@ -125,9 +124,9 @@ export default function AttendanceGrid() {
         location: ''
       }));
     } else {
-      // Existing search logic
       dispatch(fetchAttendances({
         month,
+        year, // Added year
         weekIndex: startDayIndex,
         page,  // Reset to first page when searching
         limit,
@@ -136,7 +135,7 @@ export default function AttendanceGrid() {
       }));
       fetchStatusCounts();
     }
-  }, [page, limit, debouncedSearchName, debouncedSearchLocation]);
+  }, [page, limit, month, year, startDayIndex, debouncedSearchName, debouncedSearchLocation]);
 
   const handleInputChange = (e) => {
     const newName = e.target.value
@@ -146,9 +145,17 @@ export default function AttendanceGrid() {
   useEffect(() => {
     if (userRole === '1' && searchName === '' && searchLocation === '') {
       fetchStatusCounts();
-      dispatch(fetchAttendances({ month: month, weekIndex: startDayIndex, page: page, limit: limit, keyword: searchName, location: searchLocation }));
+      dispatch(fetchAttendances({
+        month: month,
+        year, // Added year
+        weekIndex: startDayIndex,
+        page: page,
+        limit: limit,
+        keyword: searchName,
+        location: searchLocation
+      }));
     }
-  }, [dispatch, month, startDayIndex, page, limit, userRole]);
+  }, [dispatch, month, year, startDayIndex, page, limit, userRole]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -337,20 +344,18 @@ export default function AttendanceGrid() {
     const groupedData = attendances.reduce((acc, curr) => {
       const { employee, date, status, timeComplete, _id } = curr;
 
-      // Handle edge case where employee data might be missing
       if (!employee || !employee._id) return acc;
 
       const attendanceDate = new Date(date);
       const day = attendanceDate.getDate();
       const attendanceMonth = attendanceDate.getMonth() + 1;
+      const attendanceYear = attendanceDate.getFullYear(); // Added year
 
-      // Skip if the data doesn't match the selected month
-      if (attendanceMonth !== month) return acc;
+      if (attendanceMonth !== month || attendanceYear !== year) return acc; // Consider year
 
-      // Initialize the employee entry if it doesn't exist
       if (!acc[employee._id]) {
         acc[employee._id] = {
-          _id: employee._id,  // Add unique id for each employee (use employee_id here)
+          _id: employee._id,
           employee_id: employee._id,
           name: `${employee.first_name} ${employee.last_name}`,
           image: employee.image || '',
@@ -365,22 +370,20 @@ export default function AttendanceGrid() {
           days: {},
         };
 
-        // Populate cumulative counts from `statusCountsMap`
         const cumulativeCounts = statusCountsMap[employee._id] || {};
         acc[employee._id].statusCount = { ...acc[employee._id].statusCount, ...cumulativeCounts };
       }
 
-      // For each attendance entry, set the status for the corresponding day
       acc[employee._id].days[`day_${day}`] = { status, _id, timeComplete };
 
       return acc;
     }, {});
 
-    // Convert the grouped data to an array and ensure it includes the unique id for each row
     const sortedData = Object.values(groupedData).sort((a, b) => a.name.localeCompare(b.name));
 
     return sortedData;
   };
+
 
   const columns = React.useMemo(() => generateColumns(), [month, startDayIndex, daysToShow]);
   const rows = React.useMemo(() => transformData(), [attendances, statusCounts, month]);
@@ -426,7 +429,7 @@ export default function AttendanceGrid() {
 
         <Box mb={2}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={6}>
+            <Grid item xs={12} sm={6} md={4}>
               <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
                 Attendance
               </Typography>
@@ -440,8 +443,8 @@ export default function AttendanceGrid() {
             </Grid>
 
             {userRole === "1" && (
-              <Grid spacing={3} item xs={12} sm={6} md={6} container justifyContent="flex-end" alignItems="center">
-                <Grid item xs={12} sm={6} md={4}>
+              <>
+                <Grid item xs={12} sm={6} md={2}>
                   <FormControl fullWidth>
                     <InputLabel required id='demo-simple-select-label'>
                       Month
@@ -468,8 +471,27 @@ export default function AttendanceGrid() {
                     </Select>
                   </FormControl>
                 </Grid>
+                <Grid item xs={12} sm={6} md={2}>
+                  <FormControl fullWidth>
+                    <InputLabel required id='year-select-label'>
+                      Year
+                    </InputLabel>
+                    <Select
+                      label='Select Year'
+                      labelId='year-select-label'
+                      id='year-select'
+                      value={year}
+                      onChange={(e) => setYear(e.target.value)}
+                    >
+                      {/* Generate a range of years, e.g., current year ±5 */}
+                      {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i).map((yr) => (
+                        <MenuItem key={yr} value={yr}>{yr}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
 
-                <Grid item xs={12} sm={6} md={4} container spacing={1} justifyContent="flex-end">
+                <Grid item xs={12} sm={6} md={2}>
                   <Button
                     fullWidth
                     style={{ borderRadius: 50, backgroundColor: '#ff902f', padding: '15px' }}
@@ -482,7 +504,7 @@ export default function AttendanceGrid() {
                   </Button>
                 </Grid>
 
-                <Grid item xs={6} sm={3} md={2}>
+                <Grid item xs={6} sm={3} md={1}>
                   <Button
                     fullWidth
                     style={{ borderRadius: 50, backgroundColor: '#ff902f', padding: '15px' }}
@@ -495,7 +517,7 @@ export default function AttendanceGrid() {
                   </Button>
                 </Grid>
 
-                <Grid item xs={6} sm={3} md={2}>
+                <Grid item xs={6} sm={3} md={1}>
                   <Button
                     fullWidth
                     style={{ borderRadius: 50, backgroundColor: '#ff902f', padding: '15px' }}
@@ -507,7 +529,7 @@ export default function AttendanceGrid() {
                     {'>'}
                   </Button>
                 </Grid>
-              </Grid>
+              </>
             )}
           </Grid>
         </Box>
