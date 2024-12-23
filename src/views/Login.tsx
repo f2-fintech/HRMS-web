@@ -78,24 +78,16 @@ const Login = ({ mode }: { mode: Mode }) => {
 
       router.push('/');
     } catch (error: any) {
-      if (error.message === 'Invalid email or password') {
-        toast.error('Invalid email or password', {
-          position: 'top-center',
-        });
-      } else {
-        toast.error('Unexpected error occurred', {
-          position: 'top-center',
-        });
-      }
+      // Display backend error message in toast
+      toast.error(error.message, {
+        position: 'top-center',
+      });
 
       console.error('There was a problem with the fetch operation:', error);
     } finally {
       setIsLoading(false);
     }
   };
-
-
-
 
   return (
     <div className='flex flex-col justify-center items-center min-bs-[100dvh] relative p-6'>

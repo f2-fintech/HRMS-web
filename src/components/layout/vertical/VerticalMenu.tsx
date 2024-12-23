@@ -16,6 +16,7 @@ import HolidayVillageIcon from '@mui/icons-material/HolidayVillage'
 
 // Styled Component Imports
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import GroupIcon from '@mui/icons-material/Group'
 import InventoryIcon from '@mui/icons-material/Inventory'
 import EventIcon from '@mui/icons-material/Event'
@@ -170,6 +171,11 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
             Break Sheet
           </MenuItem>
+
+          <MenuItem href={`/roombook`} icon={<MeetingRoomIcon />}>
+            Room Booking
+          </MenuItem>
+
           <MenuItem href={`/fine`} icon={<GavelIcon />}>
             Fine
           </MenuItem>
