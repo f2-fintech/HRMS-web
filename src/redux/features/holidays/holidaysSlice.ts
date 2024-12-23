@@ -33,8 +33,23 @@ export const fetchHolidays = createAsyncThunk<{
 }, { page?: number; limit?: number; keyword?: string }>(
   'holidays/fetchHolidays',
   async ({ page, limit, keyword }: { page: number; limit: number; keyword: string }) => {
+
+    let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+    if (typeof window !== "undefined") {
+      token = localStorage?.getItem("token");
+    }
+
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/holidays/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/holidays/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      }
     );
 
     if (!response.ok) {

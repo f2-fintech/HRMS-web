@@ -26,6 +26,7 @@ import Illustrations from '@components/Illustrations';
 import themeConfig from '@configs/themeConfig';
 import Loader from '../components/loader/loader'
 import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
+import Company from '@/app/(dashboard)/company/page';
 
 const Login = ({ mode }: { mode: Mode }) => {
   const [isPasswordShown, setIsPasswordShown] = useState(false);
@@ -64,12 +65,14 @@ const Login = ({ mode }: { mode: Mode }) => {
       }
 
       const data = await response.json();
+      console.log("data", data);
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify({
         id: data.payload.id,
         role: data.payload.role,
         designation: data.payload.designation,
+        company_id: data.payload.company_id
       }));
 
       toast.success('Login successful!', {

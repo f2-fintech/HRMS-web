@@ -35,6 +35,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import Loader from '@/components/loader/loader';
 
 import { employeesCountResponse } from '@/utility/apiResponse/employeesResponse';
+import LocationCard from './LocationCard';
 
 interface AttendanceCounts {
   Present: number;
@@ -168,21 +169,37 @@ const EmployeeAttendanceStatus: React.FC = () => {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [dialogTitle, setDialogTitle] = useState<string>('');
+  const [accClicked, setAccClicked] = useState<boolean>(false);
 
   const [expandedLocations, setExpandedLocations] = useState<{ [key: string]: boolean }>({});
+
+  let token: string | null = null;
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+  if (typeof window !== 'undefined') {
+    token = localStorage.getItem('token');
+  }
 
   const handleLocationExpand = (location: string) => {
     setExpandedLocations(prev => ({
       ...prev,
       [location]: !prev[location]
     }));
+    setAccClicked(true)
   };
 
   const handleStatusClick = async (status: string, location: string) => {
 
     try {
       // Fetch attendance data based on status
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/attendenceByStatus?status=${status}&location=${location}`); // Call your backend API
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/attendenceByStatus?status=${status}&location=${location}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token} ${company_id}`,
+            'Content-Type': 'application/json',
+          },
+        }); // Call your backend API
       const employeesData = await response.json(); // Get the employee data
       console.log("employeesData", employeesData);
 
@@ -214,15 +231,18 @@ const EmployeeAttendanceStatus: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!attendanceCountsByLocation.length) {
+    if (!attendanceCountsByLocation.length && accClicked) {
       const fetchAttendanceCounts = async () => {
         try {
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_APP_URL}/attendence/location-counts`,
             {
               method: 'GET',
-            }
-          );
+              headers: {
+                'Authorization': `Bearer ${token} ${company_id}`,
+                'Content-Type': 'application/json',
+              },
+            });
           if (!response.ok) {
             throw new Error('Network response was not ok');
           }
@@ -234,8 +254,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
       };
       fetchAttendanceCounts();
     }
-  }, []);
-
+  }, [accClicked]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -276,48 +295,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
         <Collapse in={expandedLocations[location]}>
           {loading ? <Loader /> : <Grid container spacing={1}>
             {Object.entries(attendanceCountsByLocation).map(([location, data]) => (
-              <Grid item xs={12} md={6} lg={4} key={location}>
-                <Paper elevation={3} sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                    <Box display="flex" alignItems="center">
-                      <LocationIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />
-                      <Typography
-                        variant="h6"
-                        color="primary"
-                        sx={{
-                          textTransform: 'uppercase',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          width: '150px',
-                        }}
-                      >
-                        {data._id}
-                      </Typography>
-                    </Box>
-                    {/* Display Today's Total Employees Count */}
-                    <Typography variant="subtitle1" color="text.secondary">
-                      Today's Count: {data.totalEmployeesToday}
-                    </Typography>
-                  </Box>
-                  <Divider sx={{ mb: 2 }} />
-                  <Grid container spacing={2}>
-                    {/* Iterate over each status */}
-                    {Object.entries(data).map(([status, count]) => {
-                      if (status === 'totalEmployeesToday' || status === '_id') return null;
-                      return (
-                        <Grid item xs={12} sm={6} key={status}>
-                          <StatusCard
-                            count={count}
-                            status={status}
-                            employees={[]}
-                            onClick={() => handleStatusClick(status.replace('_', ' ').trim(), data._id)}
-                          />
-                        </Grid>
-                      );
-                    })}
-                  </Grid>
-                </Paper>
-              </Grid>
+              <LocationCard location={location} data={data} handleStatusClick={handleStatusClick} />
             ))}
           </Grid>}
         </Collapse>

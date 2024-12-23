@@ -9,12 +9,16 @@ import { utility } from '@/utility';
 const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFetch }) => {
   const { capitalizeInput } = utility();
 
+  const { role, company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+  console.log(" role, company_id", role, company_id);
+
   const [formData, setFormData] = useState({
     title: '',
     note: '',
     start_date: '',
     end_date: '',
     day: '',
+    company_id: company_id
   });
 
   const [errors, setErrors] = useState({
@@ -36,6 +40,7 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
           start_date: selected.start_date,
           end_date: selected.end_date,
           day: selected ? selected.day : calculateDaysDifference(selected.start_date, selected.end_date),
+          company_id: selected.company_id
         });
       }
     }

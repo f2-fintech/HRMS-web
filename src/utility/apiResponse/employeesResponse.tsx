@@ -7,6 +7,7 @@ export const apiResponse = async (): Promise<any> => {
   const keyword = '';
 
   const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
 
   try {
     const response = await fetch(
@@ -14,7 +15,7 @@ export const apiResponse = async (): Promise<any> => {
       {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token} ${company_id}`,
           'Content-Type': 'application/json'
         },
       }
@@ -37,6 +38,7 @@ export const apiResponse = async (): Promise<any> => {
 export const employeesCountResponse = async (): Promise<any> => {
 
   const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
 
   try {
     const response = await fetch(
@@ -44,7 +46,7 @@ export const employeesCountResponse = async (): Promise<any> => {
       {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token} ${company_id}`,
           'Content-Type': 'application/json'
         },
       }

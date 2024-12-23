@@ -17,6 +17,7 @@ interface Employee {
   joining_date: string;
   leaving_date: string;
   status: string;
+  company_id: string
 }
 
 interface EmployeesState {
@@ -69,17 +70,19 @@ export const fetchEmployees = createAsyncThunk(
     const isSearch = search.trim().length > 0;
 
     let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
 
     if (typeof window !== "undefined") {
       token = localStorage?.getItem("token");
     }
+    console.log("companyId", company_id);
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL}/employees/get?page=${page}&limit=${limit}&search=${search}&designation=${designation}`,
       {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token} ${company_id}`,
           'Content-Type': 'application/json',
         },
       }

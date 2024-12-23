@@ -1,6 +1,21 @@
 export const fetchConfiguration = async () => {
+    let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+    if (typeof window !== "undefined") {
+        token = localStorage?.getItem("token");
+    }
+
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/configuration`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/configuration`,
+            {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token} ${company_id}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
         if (!response.ok) {
             throw new Error('Failed to fetch configuration');
         }

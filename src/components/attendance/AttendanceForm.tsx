@@ -9,6 +9,8 @@ import { addOrUpdateAttendance } from '../../redux/features/attendances/attendan
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 
 const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEmployeeName, prefillDate, attendances }) => {
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -16,6 +18,7 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
     date: prefillDate || '',
     status: '',
     timeComplete: '',
+    company_id: company_id
   });
 
   const [errors, setErrors] = useState({
@@ -46,6 +49,7 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
           date: selected.date,
           status: selected.status,
           timeComplete: selected.timeComplete || '',
+          company_id: selected.company_id
         });
       }
     } else if (prefillEmployee && prefillDate) {
@@ -54,6 +58,7 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
         date: prefillDate,
         status: '',
         timeComplete: '',
+        company_id: company_id
       });
     }
   }, [attendance, attendances, prefillEmployee, prefillDate]);

@@ -1,6 +1,6 @@
 // store.ts (for TypeScript)
 
-import { configureStore } from '@reduxjs/toolkit';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
 
 import teamsReducer from './features/teams/teamsSlice';
 import holidaysReducer from './features/holidays/holidaysSlice';
@@ -20,29 +20,64 @@ import breakSheetsReducer from '@/redux/features/breaksheets/breaksSlice'
 import punchSheetReducer from '@/redux/features/punches/punchesSlice'
 import queryReducer from '@/redux/features/queries/queriesSlice'
 import sittingArrangmentReducer from '@/redux/features/sittingArrangment/seatingArrangementSlice'
+import companiesReducer from '@/redux/features/company/companyslice'
 
-const store = configureStore({
-  reducer: {
-    // Add your reducers here
-    teams: teamsReducer,
-    holidays: holidaysReducer,
-    assests: assestsReducer,
-    leaves: leavesReducer,
-    attendances: attendancesReducer,
-    policies: policiesReducer,
-    addAssets: addAssetsReducer,
-    employees: employeesReducer,
-    timesheets: timesheetsReducer,
-    designations: designationReducer,
-    upcomingBirthdays: UpcomingBirthdaysReducer,
-    awards: AwardSlice,
-    fines: fineReducer,
-    breaks: breakSheetsReducer,
-    punches: punchSheetReducer,
-    queries: queryReducer,
-    sittingArrangment: sittingArrangmentReducer
+// const store = configureStore({
+//   reducer: {
+//     // Add your reducers here
+//     teams: teamsReducer,
+//     holidays: holidaysReducer,
+//     assests: assestsReducer,
+//     leaves: leavesReducer,
+//     attendances: attendancesReducer,
+//     policies: policiesReducer,
+//     addAssets: addAssetsReducer,
+//     employees: employeesReducer,
+//     timesheets: timesheetsReducer,
+//     designations: designationReducer,
+//     upcomingBirthdays: UpcomingBirthdaysReducer,
+//     awards: AwardSlice,
+//     fines: fineReducer,
+//     breaks: breakSheetsReducer,
+//     punches: punchSheetReducer,
+//     queries: queryReducer,
+//     sittingArrangment: sittingArrangmentReducer,
+//     companies: companiesReducer
+//   }
+// })
+
+const appReducer = combineReducers({
+  teams: teamsReducer,
+  holidays: holidaysReducer,
+  assests: assestsReducer,
+  leaves: leavesReducer,
+  attendances: attendancesReducer,
+  policies: policiesReducer,
+  addAssets: addAssetsReducer,
+  employees: employeesReducer,
+  timesheets: timesheetsReducer,
+  designations: designationReducer,
+  upcomingBirthdays: UpcomingBirthdaysReducer,
+  awards: AwardSlice,
+  fines: fineReducer,
+  breaks: breakSheetsReducer,
+  punches: punchSheetReducer,
+  queries: queryReducer,
+  sittingArrangment: sittingArrangmentReducer,
+  companies: companiesReducer,
+});
+
+// Root reducer with RESET functionality
+const rootReducer = (state: any, action: any) => {
+  if (action.type === 'RESET') {
+    state = undefined; // Reset the entire state
   }
-})
+  return appReducer(state, action);
+};
+
+export const store = configureStore({
+  reducer: rootReducer,
+});
 
 
 export default store;

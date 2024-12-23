@@ -5,6 +5,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 
+import { useDispatch } from 'react-redux';
+
 import Link from 'next/link'
 
 // Next Imports
@@ -40,6 +42,7 @@ const UserDropdown = () => {
   // States
   const [open, setOpen] = useState(false)
   const [userData, setUserData] = useState<any>(null)
+  const dispatch = useDispatch();
 
   // Refs
   const anchorRef = useRef<HTMLDivElement>(null)
@@ -53,6 +56,7 @@ const UserDropdown = () => {
   }
 
   const handleDropdownClose = (event?: MouseEvent<HTMLLIElement> | (MouseEvent | TouchEvent), url?: string) => {
+
     if (url) {
       router.push(url)
     }
@@ -60,6 +64,8 @@ const UserDropdown = () => {
     if (anchorRef.current && anchorRef.current.contains(event?.target as HTMLElement)) {
       return
     }
+
+    dispatch({ type: 'RESET' });
 
     localStorage.clear()
     setOpen(false)
@@ -80,7 +86,7 @@ const UserDropdown = () => {
     const fetchUserData = async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/get/${user.id}`)
-        const data = await response.json()
+        const data = await response.json();
 
         setUserData(data)
       } catch (error) {

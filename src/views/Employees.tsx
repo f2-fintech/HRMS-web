@@ -191,7 +191,7 @@ export default function EmployeeGrid() {
             </Typography>
           </Box>
           <Box display='flex' alignItems='center'>
-            {userRole === '1' && <Button
+            {Number(userRole) <= 1 && <Button
               style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
               variant='contained'
               color='warning'

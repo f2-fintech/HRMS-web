@@ -66,6 +66,7 @@ const AccountDetails = () => {
   const [contactNo, setContactNo] = useState('');
   const [locations, setLocations] = useState<string[]>(['']); // Array for addresses
   const [branches, setBranches] = useState<string[]>(['']); // Array for branches
+  const [companyId, setCompanyId] = useState('');
 
   const [isEditing, setIsEditing] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -74,6 +75,8 @@ const AccountDetails = () => {
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
   const [openAlert, setOpenAlert] = useState(false);
+
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
 
   const API_URL = process.env.NEXT_PUBLIC_APP_URL;
 
@@ -90,9 +93,10 @@ const AccountDetails = () => {
         setLogo(config.image);
         setConfigId(config._id);
         setIsEditing(true);
+        setCompanyId(config.company_id);
       } catch (error) {
         console.error('Error fetching configuration:', error);
-        showAlert('Failed to load configuration.', 'error');
+        showAlert('No Record of Configuration.', 'error');
       } finally {
         setDataLoaded(true);
       }
@@ -163,6 +167,7 @@ const AccountDetails = () => {
     formData.append('address', JSON.stringify(locations)); // Send locations as JSON
     const lowercaseBranches = branches.map(branch => branch.toLowerCase());
     formData.append('branch', JSON.stringify(lowercaseBranches));
+    formData.append('company_id', company_id);
 
     if (logo && !logo.startsWith('http')) {
       const response = await fetch(logo);

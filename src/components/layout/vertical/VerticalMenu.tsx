@@ -152,44 +152,50 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           Dashboard
         </MenuItem>
         <MenuSection label='Apps & Pages'>
+          {userRole === "0" &&
+            <MenuItem href={`/company`} icon={<i className='ri-user-3-line' />}>
+              company
+            </MenuItem>
+          }
           <MenuItem href={`/employees`} icon={<i className='ri-user-3-line' />}>
             Employees
           </MenuItem>
-          <MenuItem href={`/holidays`} icon={<EventIcon />}>
-            Holiday
-          </MenuItem>
-          <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
-            Attendance
-          </MenuItem>
-          <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
-            Leaves
-          </MenuItem>
-          <MenuItem href={`/teams`} icon={<GroupIcon />}>
-            Teams
-          </MenuItem>
-          <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
-            Break Sheet
-          </MenuItem>
-          <MenuItem href={`/fine`} icon={<GavelIcon />}>
-            Fine
-          </MenuItem>
-          <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
-            Query
-          </MenuItem>
+          {userRole !== "0" &&
+            <>
+              <MenuItem href={`/holidays`} icon={<EventIcon />}>
+                Holiday
+              </MenuItem>
+              <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
+                Attendance
+              </MenuItem>
+              <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
+                Leaves
+              </MenuItem>
+              <MenuItem href={`/teams`} icon={<GroupIcon />}>
+                Teams
+              </MenuItem>
+              <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
+                Break Sheet
+              </MenuItem>
+              <MenuItem href={`/fine`} icon={<GavelIcon />}>
+                Fine
+              </MenuItem>
+              <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
+                Query
+              </MenuItem>
 
-          <MenuItem href={`/assests`} icon={<InventoryIcon />}>
-            Assets
-          </MenuItem>
-          <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
-            Seating Plan
-          </MenuItem>
-          {/* 
-          <MenuItem href={`/timesheets`} icon={<AccessTimeFilledIcon />}>
-            Time Sheet
-          </MenuItem> */}
-          <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
-            Policy
-          </MenuItem>
+              <MenuItem href={`/assests`} icon={<InventoryIcon />}>
+                Assets
+              </MenuItem>
+              <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
+                Seating Plan
+              </MenuItem>
+              <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
+                Policy
+              </MenuItem>
+            </>
+          }
+
           {userRole === '1' && (
             <MenuItem href={`/inventory`} icon={<ProductionQuantityLimitsIcon />}>
               Inventory
@@ -202,29 +208,12 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             </MenuItem>
           )}
 
-
-
-          {/* <MenuItem href='/account-settings' icon={<i className='ri-user-settings-line' />}>
-            Account Settings
+          {/* 
+          <MenuItem href={`/timesheets`} icon={<AccessTimeFilledIcon />}>
+            Time Sheet
           </MenuItem> */}
-          {/* <SubMenu label='Auth Pages' icon={<i className='ri-shield-keyhole-line' />}>
-            <MenuItem href='/login'>Login</MenuItem>
-            <MenuItem href='/register'>Register</MenuItem>
-            <MenuItem href='/forgot-password'>Forgot Password</MenuItem>
-          </SubMenu> */}
-          {/* <SubMenu label='Miscellaneous' icon={<i className='ri-question-line' />}>
-            <MenuItem href='/error'>Error</MenuItem>
-            <MenuItem href='/under-maintenance'>Under Maintenance</MenuItem>
-          </SubMenu> */}
-          {/* <MenuItem href='/card-basic' icon={<i className='ri-bar-chart-box-line' />}>
-            Cards
-          </MenuItem> */}
+
         </MenuSection>
-        {/* <MenuSection label='Forms & Tables'>
-          <MenuItem href='/form-layouts' icon={<i className='ri-layout-4-line' />}>
-            Form Layouts
-          </MenuItem>
-        </MenuSection> */}
       </Menu>
     </ScrollWrapper>
   )

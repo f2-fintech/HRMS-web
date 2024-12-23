@@ -40,18 +40,20 @@ export const fetchAttendances = createAsyncThunk(
   async ({ month, year, weekIndex, page, limit, keyword, location }: { month: number, year: number, weekIndex: number, page: number, limit: number, keyword: string, location: string }, { getState }) => {
     const state = getState() as RootState;
     let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
 
     if (typeof window !== 'undefined') {
       token = localStorage.getItem('token');
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/get?month=${month}&year=${year}&weekIndex=${weekIndex}&page=${page}&limit=${limit}&keyword=${keyword}&location=${location}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/get?month=${month}&year=${year}&weekIndex=${weekIndex}&page=${page}&limit=${limit}&keyword=${keyword}&location=${location}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
     if (!response.ok) {
       throw new Error('Failed to fetch attendances');
@@ -78,18 +80,20 @@ export const fetchEmployeeAttendances = createAsyncThunk(
   'attendances/fetchEmployeeAttendances',
   async ({ employeeId, month }: { employeeId: string; month: string }) => {
     let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
 
     if (typeof window !== 'undefined') {
       token = localStorage.getItem('token');
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee/${employeeId}/${month}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee/${employeeId}/${month}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
     if (!response.ok) {
       throw new Error('Failed to fetch employee attendances');

@@ -57,7 +57,6 @@ export default function AttendanceGrid() {
   const theme = useTheme();
   const { attendances, loading, count, filteredAttendance } = useSelector((state: RootState) => state.attendances);
 
-
   const [showForm, setShowForm] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
   const [viewAttendanceData, setViewAttendanceData] = useState(null);
@@ -80,8 +79,21 @@ export default function AttendanceGrid() {
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
   const fetchStatusCounts = async () => {
+    let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+    if (typeof window !== 'undefined') {
+      token = localStorage.getItem('token');
+    }
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}&location=${searchLocation}`); // Added year
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}&location=${searchLocation}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token} ${company_id}`,
+            'Content-Type': 'application/json',
+          },
+        });
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }

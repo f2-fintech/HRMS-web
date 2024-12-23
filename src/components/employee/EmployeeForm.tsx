@@ -9,6 +9,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import type { AppDispatch, RootState } from '../../redux/store';
 import { addOrUpdateEmployee } from '@/redux/features/employees/employeesSlice';
 import { fetchDesignations } from '@/redux/features/designation/designationSlice';
+import { fetchCompanies } from '@/redux/features/company/companyslice';
+
 
 import { utility } from '@/utility';
 
@@ -17,6 +19,7 @@ import LocationDropdown from '@/utility/locationdropdown/LocationDropdown';
 
 const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }) => {
   const { designations } = useSelector((state: RootState) => state.designations);
+  const { companies } = useSelector((state: RootState) => state.companies);
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -36,6 +39,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     image: "",
     code: "",
     location: "",
+    company_id: ""
   });
 
   const [selectedImage, setSelectedImage] = useState(null);
@@ -45,6 +49,8 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
   const [errors, setErrors] = useState({});
   const dispatch: AppDispatch = useDispatch();
   const { capitalizeInput } = utility();
+
+  const { role, company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
 
   useEffect(() => {
     if (employee) {
@@ -68,10 +74,17 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
           status: selected.status,
           image: selected.image,
           code: selected.code,
-          location: selected.location
+          location: selected.location,
+          company_id: selected.company_id
         });
         setImagePreviewUrl(selected.image);
       }
+    }
+    if (role !== "0" && company_id) {
+      setFormData(prev => ({
+        ...prev,
+        company_id: company_id
+      }));
     }
 
     if (!employee) {
@@ -81,7 +94,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
 
   useEffect(() => {
     dispatch(fetchDesignations({ page: 1, limit: 0, keyword: "" }));
-
+    dispatch(fetchCompanies({ page: 1, limit: 0, keyword: "" }));
   }, [])
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show);
@@ -121,7 +134,8 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
 
   const validate = () => {
     const newErrors = {};
-    const requiredFields = ['first_name', 'last_name', 'email', 'work_email', 'contact', 'role_priority', 'dob', 'gender', 'designation', 'joining_date', 'password', 'code', 'location'];
+    const requiredFields = role !== "0" ? ['first_name', 'last_name', 'email', 'work_email', 'contact', 'role_priority', 'dob', 'gender', 'designation', 'joining_date', 'password', 'code', 'location']
+      : ['first_name', 'last_name', 'email', 'password', 'role_priority', 'company_id', 'gender'];
 
     requiredFields.forEach(field => {
       if (!formData[field]) {
@@ -187,8 +201,6 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
       });
   };
 
-
-
   const handlePasswordFieldVisibility = () => {
     setIsPasswordFieldVisible(true);
     setFormData(prevState => ({
@@ -197,6 +209,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     }));
   };
 
+  console.log("formDAta>>", formData);
   return (
     <Box sx={{ flexGrow: 1, padding: 2 }}>
       <ToastContainer position="top-center" autoClose={3000} hideProgressBar={false} />
@@ -427,10 +440,11 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               onChange={handleChange}
               fullWidth
             >
+              {role === "0" && <MenuItem value='0'>Super User</MenuItem>}
               <MenuItem value='1'>Admin</MenuItem>
-              <MenuItem value='2'>Manager</MenuItem>
-              <MenuItem value='3'>Employee</MenuItem>
-              <MenuItem value='4'>Channel Partner</MenuItem>
+              <MenuItem value='2' disabled={role === "0"}>Manager</MenuItem>
+              <MenuItem value='3' disabled={role === "0"}>Employee</MenuItem>
+              <MenuItem value='4' disabled={role === "0"}>Channel Partner</MenuItem>
             </Select>
             {errors.role_priority && <Typography color='error'>{errors.role_priority}</Typography>}
           </FormControl>
@@ -456,7 +470,27 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             )}
           </FormControl>
         </Grid>
-
+        {role === "0" ?
+          (<Grid item xs={12} md={6}>
+            <FormControl fullWidth error={!!errors.company_id}>
+              <Autocomplete
+                id="company-select"
+                options={companies}
+                getOptionLabel={(option) => option.name}
+                renderInput={(params) => (
+                  <TextField {...params} label="Select Company" variant="outlined" />
+                )}
+                value={companies.find(company => company._id === formData.company_id) || null}
+                onChange={(event, newValue) => {
+                  handleChange({ target: { name: "company_id", value: newValue?._id || null } });
+                }}
+              />
+              {errors.company_id && (
+                <Typography color="error">{errors.company_id}</Typography>
+              )}
+            </FormControl>
+          </Grid>) : null
+        }
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth

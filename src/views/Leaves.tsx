@@ -1,12 +1,11 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable padding-line-between-statements */
-'use client'
-import React, { useCallback, useEffect, useState, useMemo } from 'react'
-
+"use client"
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { debounce } from 'lodash'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid'
+import { DataGrid, GridOverlay } from '@mui/x-data-grid'
 import {
   Button,
   Typography,
@@ -15,27 +14,15 @@ import {
   TextField,
   Dialog,
   DialogContent,
-  Avatar,
-  Table,
-  TableBody,
-  TableHead,
-  TableRow,
   TableCell,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  FormControl,
-  MenuItem,
-  InputLabel,
-  Select,
-  CircularProgress
+  styled,
+  Paper,
+  useTheme,
+  alpha
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
 import DialogTitle from '@mui/material/DialogTitle';
-import { styled } from '@mui/material/styles';
-import ContrastIcon from '@mui/icons-material/Contrast';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InputAdornment from '@mui/material/InputAdornment';
 import { DriveFileRenameOutlineOutlined } from '@mui/icons-material'
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -52,10 +39,13 @@ import Loader from '@/components/loader/loader'
 import dayjs, { Dayjs } from 'dayjs';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-
+import AccordionLeaves from '@/components/leave/AccordionLeaves'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
-  fontWeight: 'bold'
+  fontWeight: 'bold',
+  padding: theme.spacing(2),
+  borderBottom: `2px solid ${theme.palette.divider}`,
+  color: theme.palette.primary.main
 }))
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
@@ -66,13 +56,63 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     padding: theme.spacing(1),
   },
 }));
+
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    borderRadius: 16,
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
+  },
+  '& .MuiDialogContent-root': {
+    padding: theme.spacing(3)
+  }
+}))
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  borderRadius: 50,
+  padding: '8px 24px',
+  textTransform: 'none',
+  fontWeight: 600,
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  transition: 'transform 0.2s',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)'
+  }
+}))
+
+const CustomNoRowsOverlay = () => {
+  const theme = useTheme()
+  return (
+    <GridOverlay
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        '& .ant-empty-img-1': {
+          fill: theme.palette.mode === 'light' ? '#aeb8c2' : '#262626'
+        }
+      }}
+    >
+      <Box sx={{ mt: 1 }}>
+        <Typography variant="h6" color="text.secondary">
+          No data available
+        </Typography>
+      </Box>
+    </GridOverlay>
+  )
+}
+
 export default function LeavesGrid() {
+  const theme = useTheme()
+  const gridRef = useRef(null)
+
   const dispatch = useDispatch<AppDispatch>()
   const { leaves, total, loading } = useSelector((state: RootState) => state.leaves)
 
-
   const [showForm, setShowForm] = useState(false)
-  const [selectedLeaves, setSelectedLeaves] = useState(null)
+  const [selectedLeaves, setSelectedLeaves] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
   const [employees, setEmployees] = useState([])
@@ -81,76 +121,62 @@ export default function LeavesGrid() {
   const [limit, setLimit] = useState(10);
   const [selectedDate, setSelectedDate] = React.useState(dayjs());
 
-
   const month = selectedDate.format('MM');
   const year = selectedDate.format('YYYY');
 
-
   const handleDateChange = (newValue: Dayjs | null) => {
-
     if (newValue) {
       setSelectedDate(newValue);
     }
-
-
   }
-
-  console.log('leaves', leaves)
 
   const debouncedFetch = useMemo(
     () =>
       debounce(() => {
         if (userRole === '1') {
-          dispatch(fetchLeaves({ page, limit, month: month, year: year, keyword: selectedKeyword }))
+          dispatch(fetchLeaves({ page, limit, month, year, keyword: selectedKeyword }))
         } else {
-          dispatch(fetchLeaves({ page, limit, month: '0', year: year, keyword: selectedKeyword, userId }))
+          dispatch(fetchLeaves({ page, limit, month: '0', year, keyword: selectedKeyword }))
         }
       }, 300),
-    [dispatch, page, limit, selectedKeyword, userId, month, year]
+    [dispatch, page, limit, selectedKeyword, userId, month, year, userRole]
   )
+
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedKeyword(e.target.value)
   }, [])
 
-  const handlePaginationModelChange = useCallback((params: { page: number; pageSize: number }) => {
-    setPage(params.page + 1) // Add +1 because MUI starts page index at 0
-    setLimit(params.pageSize)
-  }, [])
-
+  // Fetch leaves whenever dependencies change
   useEffect(() => {
     debouncedFetch()
-    if (leaves.length === 0) {
-      dispatch(fetchLeaves({ page, limit, keyword: selectedKeyword }))
-    }
+  }, [page, limit, month, year, selectedKeyword, userRole])
+
+  useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || '{}')
     setUserRole(user.role)
     setUserId(user.id);
 
-    return debouncedFetch.cancel
-  }, [debouncedFetch, dispatch, leaves.length, limit, page, selectedKeyword])
-
-  useEffect(() => {
-    if (Number(userRole) < 3 && employees.length === 0) {
-      const fetchEmployees = async () => {
+    // For admins (role < 3), fetch employees if not already fetched
+    if (Number(user.role) < 3 && employees.length === 0) {
+      const fetchEmployeesData = async () => {
         const employeeData = await apiResponse()
         setEmployees(employeeData)
       }
-      fetchEmployees()
+      fetchEmployeesData()
     }
-  }, [userRole, employees.length])
+  }, [employees.length])
 
   const handleLeaveAddClick = useCallback(() => {
     setSelectedLeaves(null)
     setShowForm(true)
   }, [])
 
-  const handleLeaveEditClick = useCallback(id => {
+  const handleLeaveEditClick = useCallback((id: string) => {
     setSelectedLeaves(id)
     setShowForm(true)
   }, [])
 
-
-  const handleLeavedelete = async (id) => {
+  const handleLeavedelete = async (id: string) => {
     const confirmDelete = confirm('Are you sure you want to delete');
     if (!confirmDelete) return;
 
@@ -164,9 +190,8 @@ export default function LeavesGrid() {
       });
 
       if (response.ok) {
-        // dispatch(deleteLeaves(id));
+        toast.success('Leave deleted successfully.');
         debouncedFetch()
-        toast.success('leave deleted successfully.');
       } else {
         const errorResult = await response.json();
         toast.error(`Failed to delete leave: ${errorResult.message}`);
@@ -181,192 +206,51 @@ export default function LeavesGrid() {
     setShowForm(false)
   }, [])
 
-  const renderAccordion = params => {
-    // Track open state for each leave item using its ID
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [openDialogs, setOpenDialogs] = useState({});
-
-    const handleClickOpen = (leaveId) => {
-      setOpenDialogs(prev => ({
-        ...prev,
-        [leaveId]: true
-      }));
-    };
-
-    const handleClose = (leaveId) => {
-      setOpenDialogs(prev => ({
-        ...prev,
-        [leaveId]: false
-      }));
-    };
-
-    const getRowBackgroundColor = status => {
-      if (status === 'Approved') {
-        return 'rgba(76, 175, 80, 0.2)'
-      } else if (status === 'Rejected') {
-        return 'rgba(244, 67, 54, 0.2)'
-      } else if (status === 'Pending') {
-        return 'rgba(255, 193, 7, 0.2)'
+  // Performance optimization for accordion
+  const handleScroll = useCallback(() => {
+    if (gridRef.current) {
+      const scrollEl = gridRef.current.querySelector('.MuiDataGrid-virtualScroller')
+      if (scrollEl) {
+        scrollEl.style.willChange = 'transform'
+        scrollEl.style.transform = 'translateZ(0)'
       }
+    }
+  }, [])
 
-      return ''
+  useEffect(() => {
+    const gridElement = gridRef.current
+    if (gridElement) {
+      const scrollEl = gridElement.querySelector('.MuiDataGrid-virtualScroller')
+      if (scrollEl) {
+        scrollEl.addEventListener('scroll', handleScroll, { passive: true })
+        return () => scrollEl.removeEventListener('scroll', handleScroll)
+      }
+    }
+  }, [handleScroll])
+
+  // Enhanced column definitions
+  const generateColumns = useMemo(() => {
+    const baseColumnStyles = {
+      headerAlign: 'center',
+      headerClassName: 'super-app-theme--header',
+      sortable: false,
+      flex: 1,
+      renderCell: (params) => (
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 1
+          }}
+        >
+          {params.value}
+        </Box>
+      )
     }
 
-    return (
-      <>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Box display="flex" alignItems="center" height="100%" width="100%" justifyContent="space-between">
-              <Box display="flex" alignItems="center">
-                <Avatar
-                  src={params.row.employee.image}
-                  sx={{ marginLeft: 10, width: 30, height: 30 }}
-                />
-                <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
-                  {params.row.employee.first_name} {params.row.employee.last_name}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography>{`View all Leaves (${Array.isArray(params.row.leaves) ? params.row.leaves.length : 0})`}</Typography>
-              </Box>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails sx={{ marginTop: 5 }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <StyledTableCell>Days</StyledTableCell>
-                  <StyledTableCell>Start Date</StyledTableCell>
-                  <StyledTableCell>End Date</StyledTableCell>
-                  <StyledTableCell>Type</StyledTableCell>
-                  <StyledTableCell>Application</StyledTableCell>
-                  <StyledTableCell>Status</StyledTableCell>
-                  <StyledTableCell>Decision</StyledTableCell>
-                  <StyledTableCell>Edit</StyledTableCell>
-                  <StyledTableCell>Delete</StyledTableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Array.isArray(params.row.leaves) && params.row.leaves.length > 0 ? (
-                  params.row.leaves.map((leave) => {
-                    const dayValue = parseFloat(leave.day);
-                    const halfPeriod = leave.half_day_period;
-
-                    return (
-                      <TableRow key={leave._id} style={{ backgroundColor: getRowBackgroundColor(leave.status) }}>
-                        {dayValue === 0.5 && halfPeriod ? (
-                          <TableCell>
-                            <Box
-                              sx={{
-                                position: 'relative',
-                                width: '100%',
-                                height: '100%',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                              }}
-                            >
-                              <ContrastIcon
-                                sx={{
-                                  color: '#989c9a',
-                                  fontSize: 40,
-                                }}
-                              />
-                              <Typography
-                                fontWeight="bold"
-                                fontSize="0.9em"
-                                color="black"
-                                sx={{
-                                  position: 'absolute',
-                                  top: '50%',
-                                  left: '50%',
-                                  transform: 'translate(-50%, -50%)',
-                                }}
-                              >
-                                {halfPeriod === 'First Half' ? 'FH' : 'SH'}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                        ) : (
-                          <TableCell sx={{ paddingLeft: '25px' }}>{leave.day}</TableCell>
-                        )}
-                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                          {leave.start_date ? format(new Date(leave.start_date), 'dd-MMM-yyyy').toUpperCase() : ''}
-                        </TableCell>
-                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                          {leave.end_date ? format(new Date(leave.end_date), 'dd-MMM-yyyy').toUpperCase() : ''}
-                        </TableCell>
-                        <TableCell>{leave.type}</TableCell>
-                        <TableCell>
-                          <Button variant="outlined" onClick={() => handleClickOpen(leave._id)}>
-                            View
-                          </Button>
-                          <BootstrapDialog
-                            onClose={() => handleClose(leave._id)}
-                            aria-labelledby={`customized-dialog-title-${leave._id}`}
-                            open={openDialogs[leave._id] || false}
-                          >
-                            <DialogTitle sx={{ m: 0, p: 2 }} id={`customized-dialog-title-${leave._id}`}>
-                              Application
-                            </DialogTitle>
-                            <IconButton
-                              aria-label="close"
-                              onClick={() => handleClose(leave._id)}
-                              sx={(theme) => ({
-                                position: 'absolute',
-                                right: 8,
-                                top: 8,
-                                color: theme.palette.grey[500],
-                              })}
-                            >
-                              <CloseIcon />
-                            </IconButton>
-                            <DialogContent>
-                              <Typography>
-                                {leave.application}
-                              </Typography>
-                            </DialogContent>
-                          </BootstrapDialog>
-                        </TableCell>
-                        <TableCell>{leave.status}</TableCell>
-                        <TableCell sx={{ minWidth: 100 }}>{leave.reason}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="contained"
-                            sx={{ minWidth: '50px', backgroundColor: '#2c3ce3' }}
-                            onClick={() => handleLeaveEditClick(leave._id)}
-                          >
-                            <DriveFileRenameOutlineOutlined />
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="contained"
-                            sx={{ minWidth: '50px', backgroundColor: 'red' }}
-                            onClick={() => handleLeavedelete(leave._id)}
-                          >
-                            <DeleteIcon />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={9} align="center">
-                      No leaves available
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </AccordionDetails>
-        </Accordion>
-      </>
-    );
-  };
-
-  const generateColumns = useMemo(() => {
     return [
       ...(userRole === '1'
         ? [
@@ -374,10 +258,17 @@ export default function LeavesGrid() {
             field: 'leave',
             headerName: 'Leave Details',
             width: 1024,
-            headerAlign: 'center',
-            headerClassName: 'super-app-theme--header',
-            renderCell: renderAccordion
-          },
+            ...baseColumnStyles,
+            renderCell: (params) => (
+              <AccordionLeaves
+                params={params}
+                handleLeaveEditClick={handleLeaveEditClick}
+                handleLeavedelete={handleLeavedelete}
+                StyledTableCell={StyledTableCell}
+                BootstrapDialog={StyledDialog}
+              />
+            )
+          }
         ]
         : [
           {
@@ -387,8 +278,8 @@ export default function LeavesGrid() {
             headerAlign: 'center',
             align: 'center',
             headerClassName: 'super-app-theme--header',
+            sortable: false,
             renderCell: (params) => {
-              console.log("param", params)
               const dayValue = parseFloat(params.value);
               const halfDayPeriod = params.row.half_day_period;
 
@@ -407,6 +298,7 @@ export default function LeavesGrid() {
                   </Box>
                 )
               }
+              return <Typography fontWeight='bold'>{dayValue}</Typography>;
             },
           },
           {
@@ -415,9 +307,9 @@ export default function LeavesGrid() {
             flex: 1,
             headerAlign: 'center',
             headerClassName: 'super-app-theme--header',
+            sortable: false,
             renderCell: params => {
               const date = new Date(params.value)
-
               return !isNaN(date.getTime()) ? (
                 <div
                   style={{
@@ -441,9 +333,9 @@ export default function LeavesGrid() {
             flex: 1,
             headerAlign: 'center',
             headerClassName: 'super-app-theme--header',
+            sortable: false,
             renderCell: params => {
               const date = new Date(params.value)
-
               return !isNaN(date.getTime()) ? (
                 <div
                   style={{
@@ -465,6 +357,7 @@ export default function LeavesGrid() {
             flex: 1,
             headerAlign: 'center',
             headerClassName: 'super-app-theme--header',
+            sortable: false,
             renderCell: params => (
               <div
                 style={{
@@ -486,13 +379,14 @@ export default function LeavesGrid() {
             headerAlign: 'center',
             align: 'center',
             headerClassName: 'super-app-theme--header',
+            sortable: false,
             renderCell: (params) => {
               const [open, setOpen] = useState(false);
 
               const handleClickOpen = () => {
                 setOpen(true);
               };
-              const handleClose = () => {
+              const handleDialogClose = () => {
                 setOpen(false);
               };
 
@@ -502,7 +396,7 @@ export default function LeavesGrid() {
                     View
                   </Button>
                   <BootstrapDialog
-                    onClose={handleClose}
+                    onClose={handleDialogClose}
                     aria-labelledby="customized-dialog-title"
                     open={open}
                   >
@@ -511,7 +405,7 @@ export default function LeavesGrid() {
                     </DialogTitle>
                     <IconButton
                       aria-label="close"
-                      onClick={handleClose}
+                      onClick={handleDialogClose}
                       sx={(theme) => ({
                         position: 'absolute',
                         right: 8,
@@ -520,25 +414,24 @@ export default function LeavesGrid() {
                       })}
                     >
                       <CloseIcon />
-                    </IconButton><DialogContent >
+                    </IconButton>
+                    <DialogContent >
                       <Typography>
                         {params.row.application}
                       </Typography>
                     </DialogContent>
                   </BootstrapDialog>
-
                 </>
-
               )
             }
           },
-
           {
             field: 'status',
             headerName: 'Status',
             flex: 1,
             headerAlign: 'center',
             headerClassName: 'super-app-theme--header',
+            sortable: false,
             renderCell: params => (
               <div
                 style={{
@@ -559,6 +452,7 @@ export default function LeavesGrid() {
             flex: 1,
             headerAlign: 'center',
             headerClassName: 'super-app-theme--header',
+            sortable: false,
             renderCell: params => (
               <div
                 style={{
@@ -575,7 +469,7 @@ export default function LeavesGrid() {
           }
         ])
     ]
-  }, [userRole])
+  }, [userRole, handleLeaveEditClick, handleLeavedelete])
 
   const rows = useMemo(() => {
     return leaves
@@ -594,12 +488,12 @@ export default function LeavesGrid() {
   }, [leaves])
 
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
       <ToastContainer position="top-center" />
-      <Box sx={{ flexGrow: 1, padding: 2 }}>
-        <Dialog open={showForm} onClose={handleClose} fullWidth maxWidth='md'>
+
+      <Box sx={{ flexGrow: 1, padding: 3 }}>
+        <StyledDialog open={showForm} onClose={handleClose} fullWidth maxWidth="md">
           <DialogContent>
-            {/* <AddLeavesForm leave={selectedLeaves} handleClose={handleClose} /> */}
             <AddLeavesForm
               handleClose={handleClose}
               leave={selectedLeaves}
@@ -614,107 +508,99 @@ export default function LeavesGrid() {
               selectedKeyword={selectedKeyword}
             />
           </DialogContent>
-        </Dialog>
-        <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
-          <Box>
-            <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
-              Leave
-            </Typography>
-            <Typography style={{ fontSize: '1em', fontWeight: 'bold' }} variant='subtitle1' gutterBottom>
-              Dashboard / Leave
-            </Typography>
-          </Box>
-          <Box display='flex' alignItems='center'>
+        </StyledDialog>
+
+        {/* Enhanced header section */}
+        <Box
+          sx={{
+            mb: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2
+          }}
+        >
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  color: 'transparent'
+                }}
+              >
+                Leave Management
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 500
+                }}
+              >
+                Dashboard / Leave
+              </Typography>
+            </Box>
+
             {Number(userRole) >= 2 && (
-              <Button
-                style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
-                variant='contained'
-                color='warning'
+              <StyledButton
+                variant="contained"
+                color="primary"
                 startIcon={<AddIcon />}
                 onClick={handleLeaveAddClick}
               >
                 Apply Leave
-              </Button>
+              </StyledButton>
             )}
           </Box>
-        </Box>
-        <Grid container spacing={3} alignItems="center" justifyContent="space-between" mb={2}>
-          {userRole === '1' && (
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Search"
-                variant="outlined"
-                value={selectedKeyword}
-                onChange={handleInputChange}
-                InputProps={{
-                  sx: {
-                    borderRadius: '50px',
-                  },
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
+
+          {/* Enhanced search and date picker section */}
+          <Grid container spacing={3} alignItems="center">
+            {userRole === '1' && (
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  placeholder="Search employees..."
+                  variant="outlined"
+                  value={selectedKeyword}
+                  onChange={handleInputChange}
+                  InputProps={{
+                    startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
+                    sx: {
+                      borderRadius: '12px',
+                      backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                      '&:hover': {
+                        backgroundColor: theme.palette.background.paper
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+            )}
+            <Grid item xs={12} md={4}>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  views={userRole === '1' ? ['month', 'year'] : ['year']}
+                  label={userRole === '1' ? 'Select Month and Year' : 'Select Year'}
+                  value={dayjs(selectedDate)}
+                  onChange={handleDateChange}
+                  sx={{
+                    width: '100%',
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '12px'
+                    }
+                  }}
+                />
+              </LocalizationProvider>
             </Grid>
-          )}
-          <Grid item xs={12} md={4}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                views={userRole === '1' ? ['month', 'year'] : ['year']}
-                label={userRole === '1' ? 'Select Month and Year' : 'Select Year'}
-                value={dayjs(selectedDate)}
-                onChange={handleDateChange}
-                sx={{
-                  width: '100%',
-                }}
-              />
-            </LocalizationProvider>
           </Grid>
-        </Grid>
-
-      </Box>
-
-      <Box sx={{ width: '100%', position: 'relative' }}>
-
+        </Box>
         <DataGrid
+          autoHeight
           loading={loading}
           getRowHeight={() => 'auto'}
-          sx={{
-            height: 650,
-            '& .super-app-theme--header': {
-              fontSize: 17,
-              fontWeight: 600,
-              alignItems: 'center'
-            },
-            '& .mui-yrdy0g-MuiDataGrid-columnHeaderRow ': {
-              background: '#2c3ce3 !important',
-              color: 'white'
-            },
-            '& .MuiDataGrid-cell': {
-              fontSize: '10',
-              align: 'center'
-            },
-            '& .MuiDataGrid-row': {
-              fontWeight: '600',
-              fontSize: '14px',
-              boxSizing: 'border-box',
-            },
-            '& .row-approved': {
-              backgroundColor: 'rgba(76, 175, 80, 0.2)'
-            },
-            '& .row-rejected': {
-              backgroundColor: 'rgba(244, 67, 54, 0.2)'
-            },
-            '& .row-pending': {
-              backgroundColor: 'rgba(255, 193, 7, 0.2)'
-            }
-          }}
-          slots={{
-            loadingOverlay: Loader
-          }}
           rows={userRole === '1' ? leaves : rows}
           columns={generateColumns}
           getRowId={row => {
@@ -726,26 +612,44 @@ export default function LeavesGrid() {
           }}
           paginationMode='server'
           rowCount={total}
-          onPaginationModelChange={handlePaginationModelChange}
           pageSizeOptions={[10, 20, 30]}
           paginationModel={{ page: page - 1, pageSize: limit }}
-          getRowClassName={params => {
-            if (params.row.status === 'Approved') {
-              return 'row-approved'
+          onPaginationModelChange={(params) => {
+            setPage(params.page + 1);
+            setLimit(params.pageSize);
+          }}
+          slots={{
+            loadingOverlay: Loader,
+            noRowsOverlay: CustomNoRowsOverlay,
+            noResultsOverlay: CustomNoRowsOverlay
+          }}
+          sx={{
+            border: 'none',
+            '& .super-app-theme--header': {
+              backgroundColor: theme.palette.primary.main,
+              color: theme.palette.primary.contrastText,
+              fontSize: '1rem',
+              fontWeight: 600
+            },
+            '& .MuiDataGrid-row': {
+              cursor: 'pointer',
+              transition: 'background-color 0.2s',
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.primary.main, 0.04)
+              }
+            },
+            '& .row-approved': {
+              backgroundColor: alpha(theme.palette.success.main, 0.12)
+            },
+            '& .row-rejected': {
+              backgroundColor: alpha(theme.palette.error.main, 0.12)
+            },
+            '& .row-pending': {
+              backgroundColor: alpha(theme.palette.warning.main, 0.12)
             }
-            if (params.row.status === 'Rejected') {
-              return 'row-rejected'
-            }
-            if (params.row.status === 'Pending') {
-              return 'row-pending'
-            }
-
-            return ''
           }}
         />
       </Box>
     </Box>
   )
 }
-
-
