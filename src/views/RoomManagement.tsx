@@ -119,6 +119,7 @@ const RoomManagement = () => {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
     const [selectedStartTime, setSelectedStartTime] = useState(null)
     const [selectedEndTime, setSelectedEndTime] = useState(null)
+    const [reason, setReason] = useState('');
     const [userId, setUserId] = useState(null)
     const [userRole, setUserRole] = useState(null)
     const [snackbarOpen, setSnackbarOpen] = useState(false)
@@ -196,6 +197,7 @@ const RoomManagement = () => {
     const handleEditSlot = slot => {
         setSelectedRoom(slot.room)
         setEditingSlot(slot)
+        setReason(slot.reason || '');
         setIsUpdating(true)
         setIsBookingOpen(true)
 
@@ -318,57 +320,66 @@ const RoomManagement = () => {
     }
 
     const handleBookTimeSlot = async e => {
-        e.preventDefault()
+        e.preventDefault();
 
         if (!selectedStartTime || !selectedEndTime) {
-            setSnackbarMessage('Please select both start and end times.')
-            setSnackbarSeverity('error')
-            setSnackbarOpen(true)
-            return
+            setSnackbarMessage('Please select both start and end times.');
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
+            return;
         }
 
-        const formattedTimeSlot = `${selectedStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} - ${selectedEndTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`
+        const formattedTimeSlot = `${selectedStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} - ${selectedEndTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`;
 
         try {
-            const requestMethod = editingSlot ? 'PUT' : 'POST'
+            const requestMethod = editingSlot ? 'PUT' : 'POST';
             const endpoint = editingSlot
                 ? `${process.env.NEXT_PUBLIC_APP_URL}/room/update/time-slots/${editingSlot._id}`
-                : `${process.env.NEXT_PUBLIC_APP_URL}/room/time-slots`
+                : `${process.env.NEXT_PUBLIC_APP_URL}/room/time-slots`;
+
+            // Prepare the payload
+            const payload = {
+                room: selectedRoom.id,
+                date: selectedDate,
+                timeSlots: formattedTimeSlot,
+                reason: reason,
+            };
+
+            // Only include employee if creating a new time slot
+            if (!isUpdating) {
+                payload.employee = userId;
+            }
 
             const response = await fetch(endpoint, {
                 method: requestMethod,
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    room: selectedRoom.id,
-                    date: selectedDate,
-                    timeSlots: formattedTimeSlot,
-                    employee: userId
-                })
-            })
+                body: JSON.stringify(payload),
+            });
 
-            const result = await response.json()
+            const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.message || 'Failed to save time slot.')
+                throw new Error(result.message || 'Failed to save time slot.');
             }
 
-            await fetchTimeSlots()
-            setIsBookingOpen(false)
-            setEditingSlot(null)
-            setSelectedStartTime(null)
-            setSelectedEndTime(null)
-            setSnackbarMessage(result.message)
-            setSnackbarSeverity('success')
-            setSnackbarOpen(true)
+            await fetchTimeSlots();
+            setIsBookingOpen(false);
+            setEditingSlot(null);
+            setSelectedStartTime(null);
+            setSelectedEndTime(null);
+            setSnackbarMessage(result.message);
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
         } catch (error) {
-            console.error('Error saving time slot:', error)
-            setSnackbarMessage(error.message)
-            setSnackbarSeverity('error')
-            setSnackbarOpen(true)
+            console.error('Error saving time slot:', error);
+            setSnackbarMessage(error.message);
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
         }
-    }
+    };
+
 
     useEffect(() => {
         const now = new Date()
@@ -384,7 +395,7 @@ const RoomManagement = () => {
         const renderForRoom = roomId => {
             const slots = timeSlots[roomId] || []
             return slots.map(slot => (
-                <Grid item xs={12} sm={6} md={4} lg={6} key={slot._id || slot.timeSlots} sx={{ position: 'relative' }}>
+                <Grid item xs={12} sm={6} md={4} lg={12} key={slot._id || slot.timeSlots} sx={{ position: 'relative' }}>
                     <TimeSlotBox
                         booked
                         sx={{
@@ -394,7 +405,8 @@ const RoomManagement = () => {
                             }
                         }}
                     >
-                        {slot.timeSlots}
+                        <h3>{slot.timeSlots}</h3>
+                        <h4>{slot.reason}</h4>
                         <Tooltip
                             className='tooltip'
                             sx={{
@@ -450,7 +462,7 @@ const RoomManagement = () => {
                                 </Box>
                             </Box>
                         </Tooltip>
-                        {userRole === '1' && (
+                        {(userRole === '1' || slot.employee?._id === userId) && (
                             <Button
                                 sx={{
                                     position: 'absolute',
@@ -470,7 +482,7 @@ const RoomManagement = () => {
             ))
         }
         return renderForRoom
-    }, [timeSlots])
+    }, [timeSlots, userRole, userId])
 
     return (
         <>
@@ -781,6 +793,17 @@ const RoomManagement = () => {
                                     </Box>
                                 </LocalizationProvider>
                             </FormControl>
+                            <TextField
+                                label='Reason'
+                                placeholder='Please mention in short way'
+                                multiline
+                                rows={3}
+                                fullWidth
+                                required
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                value={reason}
+                                onChange={e => setReason(e.target.value)}
+                            />
                         </Box>
                     </DialogContent>
                     <DialogActions sx={{ p: 3 }}>

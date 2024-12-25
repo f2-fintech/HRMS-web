@@ -1,27 +1,31 @@
-'use client';
+'use client'
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-
-import { Box, Typography, Grid, Tooltip, Avatar, IconButton, FormControl, InputLabel, Select, MenuItem, Paper, Button } from '@mui/material';
-
+import { Box, Typography, Grid, Tooltip, Avatar, IconButton } from '@mui/material';
 import WeekendIcon from '@mui/icons-material/Weekend';
-
-import ListAltIcon from '@mui/icons-material/ListAlt';
-
-import OfficeSeating from './OfficeSeating'; // Import Noida seating layout
-import PatelNagarSeating from './PatelNagarSeating';
 
 const BareillySeating = ({ location, setLocation }) => {
     const [seats, setSeats] = useState({
+        bottomLeft: Array.from({ length: 4 }, (_, i) => ({ id: i + 10, status: 'available' })),
         leftVertical: Array.from({ length: 9 }, (_, i) => ({ id: i + 1, status: 'available' })),
-        leftHorizontal1: [{ id: 10, status: 'available' }, { id: 11, status: 'available' }, { id: 12, status: 'available' }],
-        leftHorizontal2: [{ id: 13, status: 'available' }, { id: 14, status: 'available' }, { id: 15, status: 'available' }],
-        rightVertical: Array.from({ length: 11 }, (_, i) => ({ id: 16 + i, status: 'available' })),
-        rightHorizontal1: [{ id: 27, status: 'available' }, { id: 28, status: 'available' }, { id: 29, status: 'available' }],
-        rightHorizontal2: [{ id: 30, status: 'available' }, { id: 31, status: 'available' }, { id: 32, status: 'available' }],
-        middleColumn1: Array.from({ length: 5 }, (_, i) => ({ id: 34 + i, status: 'available' })),
-        middleColumn2: Array.from({ length: 5 }, (_, i) => ({ id: 39 + i, status: 'available' })),
+        middleVerticalTowers: [
+            { id: 14, status: 'available' },
+            { id: 15, status: 'available' },
+            { id: 16, status: 'available' },
+            { id: 17, status: 'available' },
+            { id: 18, status: 'available' },
+        ],
+        middleVerticalOpposite: [
+            { id: 19, status: 'available' },
+            { id: 20, status: 'available' },
+            { id: 21, status: 'available' },
+            { id: 22, status: 'available' },
+            { id: 23, status: 'available' },
+        ],
+        middleHorizontalRows: Array.from({ length: 9 }, (_, i) => ({ id: 24 + i, status: 'available' })),
+        rightCorner: Array.from({ length: 3 }, (_, i) => ({ id: 33 + i, status: 'available' })),
+        rightVertical: Array.from({ length: 8 }, (_, i) => ({ id: 36 + i, status: 'available' })),
+        bottomMiddle: [{ id: 44, status: 'available' }],
     });
     const [hoveredSeat, setHoveredSeat] = useState(null);
 
@@ -38,14 +42,14 @@ const BareillySeating = ({ location, setLocation }) => {
                         });
 
                     setSeats({
+                        bottomLeft: updateSeatStatus(seats.bottomLeft),
                         leftVertical: updateSeatStatus(seats.leftVertical),
-                        leftHorizontal1: updateSeatStatus(seats.leftHorizontal1),
-                        leftHorizontal2: updateSeatStatus(seats.leftHorizontal2),
+                        middleVerticalTowers: updateSeatStatus(seats.middleVerticalTowers),
+                        middleVerticalOpposite: updateSeatStatus(seats.middleVerticalOpposite),
+                        middleHorizontalRows: updateSeatStatus(seats.middleHorizontalRows),
+                        rightCorner: updateSeatStatus(seats.rightCorner),
                         rightVertical: updateSeatStatus(seats.rightVertical),
-                        rightHorizontal1: updateSeatStatus(seats.rightHorizontal1),
-                        rightHorizontal2: updateSeatStatus(seats.rightHorizontal2),
-                        middleColumn1: updateSeatStatus(seats.middleColumn1),
-                        middleColumn2: updateSeatStatus(seats.middleColumn2),
+                        bottomMiddle: updateSeatStatus(seats.bottomMiddle),
                     });
                 }
             } catch (error) {
@@ -77,7 +81,7 @@ const BareillySeating = ({ location, setLocation }) => {
 
     const handleSeatHoverEnd = () => setHoveredSeat(null);
 
-    const renderSeat = (seat) => (
+    const renderSeat = (seat, hideNumberBelow = false) => (
         <Tooltip
             key={seat.id}
             title={
@@ -96,7 +100,6 @@ const BareillySeating = ({ location, setLocation }) => {
             arrow
         >
             <Box
-                key={seat.id}
                 position="relative"
                 display="inline-block"
                 m={1}
@@ -105,7 +108,7 @@ const BareillySeating = ({ location, setLocation }) => {
             >
                 <IconButton
                     sx={{
-                        color: seat.status === 'available' ? '#4CAF50 ' : '#2196F3 ',
+                        color: seat.status === 'available' ? '#4CAF50' : '#2196F3',
                         fontSize: 40,
                         '& .MuiSvgIcon-root': {
                             fontSize: 40,
@@ -117,10 +120,10 @@ const BareillySeating = ({ location, setLocation }) => {
                 <Typography
                     variant="caption"
                     sx={{
-                        position: 'absolute',
-                        top: '90%',
+                        position: 'absolute', // Keeps the number relative to the icon
+                        top: 'calc(100% + 4px)', // Ensures the number appears below the chair icon
                         left: '50%',
-                        transform: 'translate(-50%, -10%)',
+                        transform: 'translate(-50%, 0)',
                         fontSize: '0.8rem',
                         fontWeight: 'bold',
                         color: 'gray',
@@ -132,62 +135,79 @@ const BareillySeating = ({ location, setLocation }) => {
         </Tooltip>
     );
 
-    // Render alternative components based on location
-    if (location === "noida") {
-        return <OfficeSeating />;
-    }
-    if (location === "patel nagar") {
-        return <PatelNagarSeating />;
-    }
-
     return (
         <Box p={3}>
-            <Box display="flex" justifyContent="space-between">
-                {/* Left Section */}
-                <Paper elevation={3} sx={{ p: 2, width: '30%' }}>
-                    <Typography variant="h6" align="center">Left Side</Typography>
-                    <Grid container direction="row" justifyContent="center" sx={{ mb: 2 }}>
-                        {seats.leftHorizontal2.map(seat => renderSeat(seat))}
-                    </Grid>
-                    <Grid container direction="row" justifyContent="center" sx={{ mb: 2, mt: 8 }}>
-                        {seats.leftHorizontal1.map(seat => renderSeat(seat))}
-                    </Grid>
-                    <Grid container direction="column-reverse" alignItems="flex-start">
-                        {seats.leftVertical.map(seat => renderSeat(seat))}
-                    </Grid>
-                </Paper>
+            <Grid container spacing={2}>
+                {/* Left Wall */}
+                <Grid
+                    item
+                    xs={2}
+                    container
+                    direction="column"
+                    style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', margin: 0, padding: 0 }}
+                >
+                    {/* Vertical seats 1 to 9 */}
+                    <Box display="flex" flexDirection="column" alignItems="flex-start" style={{ width: '100%' }}>
+                        {seats.leftVertical.map(seat => renderSeat(seat, false))}
+                    </Box>
+
+                    {/* Horizontal seats 10 to 13 */}
+                    <Box display="flex" justifyContent="center" mt="1rem">
+                        {seats.bottomLeft.map(seat => renderSeat(seat))}
+                    </Box>
+                </Grid>
 
                 {/* Middle Section */}
-                <Paper elevation={3} sx={{ p: 2, width: '25%', height: '40%', marginTop: '12rem' }}>
-                    <Typography variant="h6" align="center">Middle Section</Typography>
-                    <Grid container spacing={6} justifyContent="center">
-                        <Grid item>
-                            <Grid container direction="column" alignItems="center">
-                                {seats.middleColumn1.map(seat => renderSeat(seat))}
-                            </Grid>
+                <Grid item xs={8} container spacing={2} justifyContent="center">
+                    {/* Vertical Towers */}
+                    <Grid item xs={8} container spacing={2} justifyContent="space-evenly">
+                        {/* Left Tower */}
+                        <Grid
+                            item
+                            xs={6}
+                            container
+                            direction="column"
+                            spacing={1.5}
+                            alignItems="center"
+                            style={{ flex: '1 1 auto' }}
+                        >
+                            {seats.middleVerticalTowers.map(seat => renderSeat(seat))}
                         </Grid>
-                        <Grid item>
-                            <Grid container direction="column" alignItems="center">
-                                {seats.middleColumn2.map(seat => renderSeat(seat))}
-                            </Grid>
-                        </Grid>
-                    </Grid>
-                </Paper>
 
-                {/* Right Section */}
-                <Paper elevation={3} sx={{ p: 2, width: '30%' }}>
-                    <Typography variant="h6" align="center">Right Side</Typography>
-                    <Grid container direction="row" justifyContent="center" sx={{ mb: 2 }}>
-                        {seats.rightHorizontal2.map(seat => renderSeat(seat))}
+                        {/* Right Tower */}
+                        <Grid
+                            item
+                            xs={6}
+                            container
+                            direction="column"
+                            spacing={1.5}
+                            alignItems="center"
+                            style={{ flex: '1 1 auto' }}
+                        >
+                            {seats.middleVerticalOpposite.map(seat => renderSeat(seat))}
+                        </Grid>
                     </Grid>
-                    <Grid container direction="row" justifyContent="center" sx={{ mb: 2, mt: 5 }}>
-                        {seats.rightHorizontal1.map(seat => renderSeat(seat))}
+
+                    {/* Horizontal Rows */}
+                    <Grid sx={{ marginTop: -20, marginLeft: 20 }} item container spacing={2} justifyContent="space-around" mt="1rem">
+                        <Grid sx={{ marginBottom: -20 }} item>
+                            {seats.middleHorizontalRows.slice(5).map(seat => renderSeat(seat))}
+                        </Grid>
+                        <Grid item>
+                            {seats.middleHorizontalRows.slice(0, 5).map(seat => renderSeat(seat))}
+                        </Grid>
                     </Grid>
-                    <Grid container direction="column-reverse" alignItems="flex-end">
-                        {seats.rightVertical.map(seat => renderSeat(seat))}
-                    </Grid>
-                </Paper>
-            </Box>
+                </Grid>
+
+                {/* Right Wall */}
+                <Grid item xs={2} container direction="column" alignItems="flex-end" style={{ height: '100%' }}>
+                    {seats.rightCorner.map(seat => renderSeat(seat))}
+                    {seats.rightVertical.map(seat => renderSeat(seat))}
+                </Grid>
+                <Grid item xs={12} container justifyContent="center" mt="2rem">
+                    {seats.bottomMiddle.map(seat => renderSeat(seat))}
+                </Grid>
+            </Grid>
         </Box>
     );
 };

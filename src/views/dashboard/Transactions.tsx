@@ -23,7 +23,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { utility } from '@/utility'
 
 const StyledCard = styled(Card)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #f6f8f9 0%, #e5ebee 100%)',
+  background: 'linear-gradient(135deg, #f39a28 0%, #e5ebee 100%)',
   borderRadius: theme.spacing(2),
   boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
   transition: 'all 0.3s ease',
