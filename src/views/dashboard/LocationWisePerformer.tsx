@@ -187,7 +187,7 @@ const LocationWisePerformer = () => {
                         flexDirection: 'column',
                         gap: 2,
                         height: '35vh',
-                        background: 'linear-gradient(145deg, #f4f6f9 0%, #e9edf3 100%)'
+                        background: 'linear-gradient(145deg, #FE9496 0%, #e9edf3 100%)'
                       }}
                     >
                       {/* Header with Location */}

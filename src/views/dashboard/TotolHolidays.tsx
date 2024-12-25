@@ -20,7 +20,7 @@ import type { AppDispatch, RootState } from "@/redux/store";
 import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
 
 const StyledCard = styled(Card)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #f6f8f9 0%, #e5ebee 100%)',
+  background: 'linear-gradient(145deg,rgb(110, 160, 137) 0%, #e9edf3 100%)',
   borderRadius: theme.spacing(3),
   boxShadow: '0 15px 30px rgba(0,0,0,0.1)',
   overflow: 'hidden',
@@ -29,7 +29,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   height: 468,
   borderRadius: theme.spacing(2),
-  background: 'rgba(255,255,255,0.8)',
+  background: 'linear-gradient(145deg,rgb(127, 190, 161) 0%, #e9edf3 100%)',
   backdropFilter: 'blur(10px)',
   border: '1px solid rgba(255,255,255,0.2)',
   '&::-webkit-scrollbar': {
@@ -51,7 +51,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   transition: 'background-color 0.3s ease',
   '&:hover': {
-    backgroundColor: 'rgba(44, 60, 227, 0.05)',
+    backgroundColor: 'rgba(24, 36, 162, 0.05)',
   },
 }));
 
@@ -158,7 +158,7 @@ const HolidaysTable = () => {
                   <TableCell>
                     <Chip
                       label={row.title}
-                      color={getChipColor(row.title)}
+                      // color={getChipColor(row.title)}
                       size="small"
                       variant="outlined"
                       sx={{
