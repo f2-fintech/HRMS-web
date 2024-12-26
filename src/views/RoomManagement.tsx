@@ -547,10 +547,10 @@ const RoomManagement = () => {
                                     mb: 1
                                 }}
                             >
-                                Room Booking Management
+                                SPACE SCHEDULAR MANAGEMENT SYSTEM
                             </Typography>
                             <Typography variant='subtitle1' color='text.secondary' sx={{ fontSize: '1.1rem' }}>
-                                Book rooms and manage time slots
+                                Reserve rooms and manage time slots
                             </Typography>
                         </div>
                         {userRole === '1' && (
