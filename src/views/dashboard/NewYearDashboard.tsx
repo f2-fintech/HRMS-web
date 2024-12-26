@@ -7,17 +7,24 @@ import {
     createTheme,
     ThemeProvider
 } from '@mui/material';
-import { Celebration, AutoAwesome, Star } from '@mui/icons-material';
+import {
+    Celebration,
+    AutoAwesome,
+    Star,
+    LocalFireDepartment,
+    Whatshot
+} from '@mui/icons-material';
 
 const darkTheme = createTheme({
     palette: {
         mode: 'dark',
         background: {
-            paper: 'rgba(38, 38, 38, 0.5)',
+            paper: 'rgba(18, 18, 18, 0.95)',
         },
     },
 });
 
+// Existing Balloon component remains unchanged
 const Balloon = ({ color, delay, size = 'medium' }) => {
     const sizes = {
         small: { width: '20px', height: '28px', stringHeight: '20px' },
@@ -42,7 +49,7 @@ const Balloon = ({ color, delay, size = 'medium' }) => {
                     position: 'absolute',
                     width: '2px',
                     height: sizes[size].stringHeight,
-                    background: 'linear-gradient(180deg, #999 0%, #fff 100%)',
+                    background: 'linear-gradient(180deg, #666 0%, #999 100%)',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     top: sizes[size].height,
@@ -66,16 +73,36 @@ const TwinkleStar = ({ delay }) => (
     <Box
         sx={{
             position: 'absolute',
-            width: '4px',
-            height: '4px',
-            background: '#fff',
-            borderRadius: '50%',
             animation: 'twinkle 1.5s infinite',
             animationDelay: `${delay}s`,
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
         }}
-    />
+    >
+        <Star sx={{
+            fontSize: '16px',
+            color: '#ffd700',
+            filter: 'drop-shadow(0 0 3px rgba(255,215,0,0.7))'
+        }} />
+    </Box>
+);
+
+const Firework = ({ delay }) => (
+    <Box
+        sx={{
+            position: 'absolute',
+            animation: 'firework 2s infinite',
+            animationDelay: `${delay}s`,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 50}%`,
+        }}
+    >
+        <Whatshot sx={{
+            fontSize: '24px',
+            color: '#ff6b6b',
+            filter: 'drop-shadow(0 0 4px rgba(255,107,107,0.8))'
+        }} />
+    </Box>
 );
 
 const NewYearWidget = () => {
@@ -104,8 +131,8 @@ const NewYearWidget = () => {
     }, []);
 
     const balloonColors = [
-        '#ef4444', '#3b82f6', '#22c55e', '#eab308', '#a855f7', '#ec4899',
-        '#f97316', '#06b6d4', '#14b8a6', '#f59e0b', '#8b5cf6', '#db2777'
+        '#ff6b6b', '#4dabf7', '#51cf66', '#ffd43b', '#be4bdb', '#ff8787',
+        '#ff922b', '#15aabf', '#20c997', '#fcc419', '#845ef7', '#ff6b6b'
     ];
 
     return (
@@ -115,12 +142,11 @@ const NewYearWidget = () => {
                     width: '100%',
                     position: 'relative',
                     overflow: 'hidden',
-                    background: 'linear-gradient(135deg,rgb(34, 19, 98) 0%, #e5ebee 100%)',
+                    background: 'linear-gradient(135deg, rgb(17, 10, 49) 0%, rgb(60, 52, 52) 100%)',
                     backdropFilter: 'blur(10px)',
-                    // border: '1px solid rgba(104, 132, 171, 0.3)',
                     borderRadius: '1rem',
                     height: '300px',
-                    boxShadow: '0 0 20px rgba(0,0,0,0.3)',
+                    boxShadow: '0 0 30px rgba(0,0,0,0.5)',
                 }}
             >
                 <CardContent>
@@ -136,13 +162,13 @@ const NewYearWidget = () => {
                                 gap: 1,
                                 color: 'white',
                                 fontWeight: 'bold',
-                                textShadow: '0 0 10px rgba(255,255,255,0.5)',
+                                textShadow: '0 0 15px rgba(255,255,255,0.3)',
                                 animation: 'colorChange 5s infinite'
                             }}
                         >
-                            <Celebration sx={{ color: '#fbbf24', animation: 'spin 2s infinite' }} />
+                            <LocalFireDepartment sx={{ color: '#ff6b6b', animation: 'spin 2s infinite' }} />
                             Happy New Year 2025!
-                            <Celebration sx={{ color: '#fbbf24', animation: 'spin 2s infinite' }} />
+                            <LocalFireDepartment sx={{ color: '#ff6b6b', animation: 'spin 2s infinite' }} />
                         </Typography>
                     </Box>
 
@@ -158,11 +184,12 @@ const NewYearWidget = () => {
                                 sx={{
                                     textAlign: 'center',
                                     padding: 1,
-                                    backgroundColor: 'rgba(55, 65, 81, 0.7)',
+                                    backgroundColor: 'rgba(25, 25, 25, 0.8)',
                                     borderRadius: 1,
                                     backdropFilter: 'blur(5px)',
                                     border: '1px solid rgba(255,255,255,0.1)',
                                     animation: 'pulse 2s infinite',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                                 }}
                             >
                                 <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
@@ -185,13 +212,12 @@ const NewYearWidget = () => {
                         mt: 2,
                         animation: 'fadeInOut 2s infinite'
                     }}>
-                        <AutoAwesome sx={{ color: '#fbbf24' }} />
-                        Celebrate the New Beginning!
-                        <AutoAwesome sx={{ color: '#fbbf24' }} />
+                        <Star sx={{ color: '#ffd700' }} />
+                        We're The Award Winning Fintech Company
+                        <Star sx={{ color: '#ffd700' }} />
                     </Typography>
                 </CardContent>
 
-                {/* More varied balloons with different sizes */}
                 {balloonColors.map((color, index) => (
                     <Balloon
                         key={index}
@@ -201,63 +227,72 @@ const NewYearWidget = () => {
                     />
                 ))}
 
-                {/* Add twinkling stars */}
                 {[...Array(15)].map((_, i) => (
                     <TwinkleStar key={i} delay={i * 0.2} />
                 ))}
 
+                {[...Array(8)].map((_, i) => (
+                    <Firework key={i} delay={i * 0.4} />
+                ))}
+
                 <style jsx global>{`
-          @keyframes float {
-            0% {
-              transform: translateY(100vh) rotate(0deg);
-              opacity: 1;
-            }
-            100% {
-              transform: translateY(-100vh) rotate(20deg);
-              opacity: 0;
-            }
-          }
+                    @keyframes float {
+                        0% {
+                            transform: translateY(100vh) rotate(0deg);
+                            opacity: 1;
+                        }
+                        100% {
+                            transform: translateY(-100vh) rotate(20deg);
+                            opacity: 0;
+                        }
+                    }
 
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
 
-          @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-          }
+                    @keyframes pulse {
+                        0% { transform: scale(1); }
+                        50% { transform: scale(1.05); }
+                        100% { transform: scale(1); }
+                    }
 
-          @keyframes colorChange {
-            0% { color: #fff; }
-            25% { color: #fbbf24; }
-            50% { color: #f87171; }
-            75% { color: #818cf8; }
-            100% { color: #fff; }
-          }
+                    @keyframes colorChange {
+                        0% { color: #fff; }
+                        25% { color: #ffd43b; }
+                        50% { color: #ff6b6b; }
+                        75% { color: #748ffc; }
+                        100% { color: #fff; }
+                    }
 
-          @keyframes fadeInOut {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-          }
+                    @keyframes fadeInOut {
+                        0% { opacity: 0.6; }
+                        50% { opacity: 1; }
+                        100% { opacity: 0.6; }
+                    }
 
-          @keyframes twinkle {
-            0% { opacity: 0.3; }
-            50% { opacity: 1; }
-            100% { opacity: 0.3; }
-          }
+                    @keyframes twinkle {
+                        0% { opacity: 0.3; transform: scale(0.8); }
+                        50% { opacity: 1; transform: scale(1.1); }
+                        100% { opacity: 0.3; transform: scale(0.8); }
+                    }
 
-          .animate-title {
-            animation: bounce 1s infinite;
-          }
+                    @keyframes firework {
+                        0% { transform: translateY(0) scale(1); opacity: 1; }
+                        50% { transform: translateY(-20px) scale(1.2); opacity: 0.7; }
+                        100% { transform: translateY(-40px) scale(1); opacity: 0; }
+                    }
 
-          @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-          }
-        `}</style>
+                    .animate-title {
+                        animation: bounce 1s infinite;
+                    }
+
+                    @keyframes bounce {
+                        0%, 100% { transform: translateY(0); }
+                        50% { transform: translateY(-10px); }
+                    }
+                `}</style>
             </Card>
         </ThemeProvider>
     );

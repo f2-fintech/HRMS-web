@@ -62,3 +62,33 @@ export const employeesCountResponse = async (): Promise<any> => {
     throw error;
   }
 };
+
+
+export const fetchMonthlyAttendanceSummary = async (month: number, year: number, page = 1, limit = 10, keyword = '', location = ''): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/attendence/monthly-summary?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${keyword}&location=${location}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const attendanceSummary = await response.json();
+
+    return attendanceSummary;
+  } catch (error) {
+    console.error('Error fetching monthly attendance summary:', error);
+    throw error;
+  }
+};
+
