@@ -213,7 +213,7 @@ const NewYearWidget = () => {
                         animation: 'fadeInOut 2s infinite'
                     }}>
                         <Star sx={{ color: '#ffd700' }} />
-                        We're The Award Winning Fintech Company
+                        One of the best marketplaces for the Paper Industry
                         <Star sx={{ color: '#ffd700' }} />
                     </Typography>
                 </CardContent>
