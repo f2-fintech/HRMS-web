@@ -1,11 +1,30 @@
-// AddAttendanceForm.js
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Grid, TextField, Typography, IconButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import ClearIcon from '@mui/icons-material/Clear';
+import {
+  Box,
+  Button,
+  Grid,
+  TextField,
+  Typography,
+  IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
+  CircularProgress,
+  Paper,
+  Container
+} from '@mui/material';
+import {
+  Close as CloseIcon,
+  Person as PersonIcon,
+  DateRange as DateRangeIcon,
+  CheckCircle as CheckCircleIcon,
+  AssignmentLate as AssignmentLateIcon
+} from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
-import { addOrUpdateAttendance } from '../../redux/features/attendances/attendancesSlice'; // Adjust import as needed
+import { addOrUpdateAttendance } from '../../redux/features/attendances/attendancesSlice';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 
 const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEmployeeName, prefillDate, attendances }) => {
@@ -29,7 +48,6 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
   useEffect(() => {
     const fetchEmployees = async () => {
       const data = await apiResponse();
-
       setEmployees(data);
     };
 
@@ -133,116 +151,183 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
   };
 
   return (
-    <Box sx={{ flexGrow: 1, padding: 2 }}>
-      <Box display='flex' justifyContent='space-between' alignItems='center'>
-        <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
-          {attendance ? 'Edit Attendance' : 'Add Attendance'}
-        </Typography>
-        <IconButton onClick={handleClose}>
-          <CloseIcon />
-        </IconButton>
-      </Box>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label='Date'
-            name='date'
-            type='date'
-            value={formData.date}
-            onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
-            required
-            error={!!errors.date}
-            helperText={errors.date}
-          />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth required error={!!errors.employee}>
-            <Autocomplete
-              id="employee-autocomplete"
-              options={employees}
-              getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
-              value={employees.find((emp) => emp._id === formData.employee) || null}
-              onChange={(event, newValue) => {
-                handleChange({
-                  target: {
-                    name: 'employee',
-                    value: newValue ? newValue._id : '',
-                  },
-                });
+    <Container sx={{ width: 'fit-content', margin: 'auto' }}>
+      <Paper elevation={6} sx={{
+        p: 4,
+        borderRadius: 3,
+        backgroundColor: '#f5f5f5',
+        position: 'relative',
+        width: '100%',
+
+
+      }}>
+        <Box display='flex' justifyContent='space-between' alignItems='center' mb={3}>
+          <Typography
+            variant='h4'
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              fontWeight: 'bold',
+              color: '#333'
+            }}
+          >
+            {attendance ? 'Edit Attendance' : 'Add Attendance'}
+            {attendance ? <AssignmentLateIcon sx={{ ml: 2, color: '#ff902f' }} /> : <CheckCircleIcon sx={{ ml: 2, color: '#4caf50' }} />}
+          </Typography>
+          <IconButton
+            onClick={handleClose}
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              color: '#ff4d4d',
+              backgroundColor: '#fff3f3',
+              '&:hover': {
+                backgroundColor: '#ffebee'
+              }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label='Date'
+              name='date'
+              type='date'
+              value={formData.date}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+              InputProps={{
+                startAdornment: <DateRangeIcon sx={{ mr: 2, color: '#666' }} />,
               }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Select Employee"
-                  variant="outlined"
-                  required
-                  error={!!errors.employee}
-                  helperText={errors.employee}
-                />
-              )}
+              required
+              error={!!errors.date}
+              helperText={errors.date}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: '#fff',
+                  borderRadius: 2
+                }
+              }}
             />
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth required error={!!errors.status}>
-            <InputLabel required id='status-label'>Status</InputLabel>
-            <Select
-              labelId='status-label'
-              id='status'
-              name='status'
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth required error={!!errors.employee}>
+              <Autocomplete
+                id="employee-autocomplete"
+                options={employees}
+                getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                value={employees.find((emp) => emp._id === formData.employee) || null}
+                onChange={(event, newValue) => {
+                  handleChange({
+                    target: {
+                      name: 'employee',
+                      value: newValue ? newValue._id : '',
+                    },
+                  });
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Employee"
+                    variant="outlined"
+                    required
+                    error={!!errors.employee}
+                    helperText={errors.employee}
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: <PersonIcon sx={{ mr: 2, color: '#666' }} />,
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#fff',
+                        borderRadius: 2
+                      }
+                    }}
+                  />
+                )}
+              />
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              select
+              fullWidth
+              label="Status"
+              name="status"
               value={formData.status}
               onChange={handleChange}
+              variant="outlined"
+              required
+              error={!!errors.status}
+              helperText={errors.status}
+              InputProps={{
+                style: { backgroundColor: '#fff', borderRadius: 8 }, // Optional: Rounded border
+              }}
             >
-              <MenuItem value='Present'>PRESENT</MenuItem>
-              <MenuItem value='Absent'>ABSENT</MenuItem>
-              <MenuItem value='On Half'>ON_HALF</MenuItem>
-              <MenuItem value='On Leave'>ON_LEAVE</MenuItem>
-              <MenuItem value='On Field'>ON_FIELD</MenuItem>
-              <MenuItem value='On Wfh'>ON_WFH</MenuItem>
-            </Select>
-            <Typography variant="caption" color="error">{errors.status}</Typography>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth error={!!errors.timeComplete}>
-            <InputLabel id="time-complete-label">Time Completion</InputLabel>
-            <Select
-              labelId="time-complete-label"
+              <MenuItem value="Present">PRESENT</MenuItem>
+              <MenuItem value="Absent">ABSENT</MenuItem>
+              <MenuItem value="On Half">ON_HALF</MenuItem>
+              <MenuItem value="On Leave">ON_LEAVE</MenuItem>
+              <MenuItem value="On Field">ON_FIELD</MenuItem>
+              <MenuItem value="On Wfh">ON_WFH</MenuItem>
+            </TextField>
+
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              select
+              fullWidth
+              label="Time Completion"
               id="timeComplete"
               name="timeComplete"
               value={formData.timeComplete}
               onChange={handleChange}
+              variant="outlined"
+              error={!!errors.timeComplete}
+              helperText={errors.timeComplete}
+              InputProps={{
+                style: { backgroundColor: '#fff', borderRadius: 8 }, // Optional styling
+              }}
             >
               <MenuItem value="Not Completed">Not Completed</MenuItem>
-            </Select>
-          </FormControl>
+            </TextField>
+          </Grid>
+
+          <Grid item xs={12} display="flex" justifyContent="center">
+            <Button
+              variant='contained'
+              onClick={handleSubmit}
+              disabled={isLoading}
+              sx={{
+                fontSize: '16px',
+                fontWeight: 600,
+                color: 'white',
+                padding: '12px 24px',
+                backgroundColor: '#ff902f',
+                borderRadius: 2,
+                '&:hover': {
+                  backgroundColor: '#ff7b21'
+                },
+                '&.Mui-disabled': {
+                  backgroundColor: '#ffc107',
+                  color: 'rgba(255,255,255,0.7)'
+                }
+              }}
+            >
+              {isLoading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                attendance ? 'UPDATE ATTENDANCE' : 'ADD ATTENDANCE'
+              )}
+            </Button>
+          </Grid>
         </Grid>
-        <Grid item xs={12}>
-          <Button
-            variant='contained'
-            fullWidth
-            style={{
-              fontSize: '18px',
-              fontWeight: 600,
-              color: 'white',
-              padding: 15,
-              backgroundColor: '#ff902f',
-              width: 250
-            }}
-            onClick={handleSubmit}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <CircularProgress size={24} color="inherit" />
-            ) : (
-              attendance ? 'UPDATE ATTENDANCE' : 'ADD ATTENDANCE'
-            )}
-          </Button>
-        </Grid>
-      </Grid>
-    </Box>
+      </Paper>
+    </Container>
   );
 };
 

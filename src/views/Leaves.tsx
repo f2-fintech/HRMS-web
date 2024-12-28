@@ -112,11 +112,6 @@ export default function LeavesGrid() {
     setSelectedKeyword(e.target.value)
   }, [])
 
-  const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
-    setPage(newPage + 1)
-    setLimit(newPageSize)
-  }, [])
-
   const handlePaginationModelChange = useCallback((params: { page: number; pageSize: number }) => {
     setPage(params.page + 1) // Add +1 because MUI starts page index at 0
     setLimit(params.pageSize)
@@ -598,8 +593,6 @@ export default function LeavesGrid() {
       }))
   }, [leaves])
 
-  console.log('seleeddate>>>', selectedDate)
-
   return (
     <Box>
       <ToastContainer position="top-center" />
@@ -632,17 +625,17 @@ export default function LeavesGrid() {
             </Typography>
           </Box>
           <Box display='flex' alignItems='center'>
-            {Number(userRole) >= 2 && (
-              <Button
-                style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
-                variant='contained'
-                color='warning'
-                startIcon={<AddIcon />}
-                onClick={handleLeaveAddClick}
-              >
-                Apply Leave
-              </Button>
-            )}
+
+            <Button
+              style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
+              variant='contained'
+              color='warning'
+              startIcon={<AddIcon />}
+              onClick={handleLeaveAddClick}
+            >
+              Apply Leave
+            </Button>
+
           </Box>
         </Box>
         <Grid container spacing={3} alignItems="center" justifyContent="space-between" mb={2}>
@@ -690,7 +683,7 @@ export default function LeavesGrid() {
           loading={loading}
           getRowHeight={() => 'auto'}
           sx={{
-            height: 600,
+            height: 650,
             '& .super-app-theme--header': {
               fontSize: 17,
               fontWeight: 600,

@@ -338,7 +338,7 @@ const BreakSheet: React.FC = () => {
                 sx={{
                     p: 3,
                     borderRadius: 2,
-                    backgroundColor: 'background.paper',
+                    background: 'linear-gradient(45deg,rgb(136, 159, 234) 30%,rgb(224, 240, 222) 90%)',
                     mb: 4
                 }}
             >

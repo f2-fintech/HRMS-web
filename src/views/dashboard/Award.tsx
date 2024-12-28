@@ -164,7 +164,7 @@ const Award = () => {
           <CardContent
             sx={{
               height: '40vh',
-              background: 'linear-gradient(145deg, #f4f6f9 0%, #e9edf3 100%)',
+              background: 'linear-gradient(145deg, #FFEB3B 0%, #e9edf3 100%)',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
@@ -178,7 +178,7 @@ const Award = () => {
                     {userId === awardData.employee._id ? 'Congratulations' : 'Congratulate'}{' '}
                     <span style={{
                       fontWeight: 'bold',
-                      color: '#1976d2',
+                      color: 'blue',
                       textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
                     }}>
                       {capitalizeFirstLetter(awardData.employee.first_name)} {capitalizeFirstLetter(awardData.employee.last_name)} 🎉

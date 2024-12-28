@@ -51,7 +51,9 @@ const UpcomingBirthdays = () => {
         maxWidth: 400,
         margin: 'auto',
         borderRadius: 3,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #AF1763 0%, #e5ebee 100%)',
+
       }}
     >
       <CardHeader
@@ -112,13 +114,14 @@ const UpcomingBirthdays = () => {
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Typography variant="subtitle1" fontWeight="bold">
+                        <Typography style={{ color: 'white' }} variant="subtitle1">
                           {capitalizeFirstLetter(row._doc.first_name)} {capitalizeFirstLetter(row._doc.last_name)}
                         </Typography>
                       }
                       secondary={
                         <>
                           <Typography
+                            style={{ color: 'white' }}
                             component="span"
                             variant="body2"
                             color="text.secondary"
