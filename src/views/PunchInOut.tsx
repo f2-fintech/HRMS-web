@@ -16,6 +16,7 @@ import {
     updatePunch
 } from '@/redux/features/punches/punchesSlice'
 import { RootState } from '@/redux/store'
+import Company from '@/app/(dashboard)/company/page'
 
 interface PunchInOutProps {
     selectedDate: string
@@ -24,6 +25,8 @@ interface PunchInOutProps {
 }
 
 const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeId, disablePunch }) => {
+    const user = typeof window !== "undefined" ? localStorage?.getItem("user") : null;
+    const { company_id } = user ? JSON.parse(user) : {};
     const dispatch = useDispatch()
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -146,7 +149,8 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
             punchOut: '',
             totalTime: '00h 00m 00s',
             date: currentDate,
-            employee: employeeId
+            employee: employeeId,
+            company_id: company_id
         }
 
         await dispatch(addPunch(punchData)).unwrap()

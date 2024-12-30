@@ -10,16 +10,18 @@ export interface Break {
     duration: string
     date: string
     employee: string
+    company_id: string
 }
 
 export const fetchBreaksById = createAsyncThunk('breaks/fetchBreaksById', async (employeeId: string | null) => {
     const token = localStorage.getItem('token');
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
     const url = employeeId ? `${BASE_URL}/breaksheet/employee?employeeId=${employeeId}` : `${BASE_URL}/breaksheet/employee`;
 
     const response = await fetch(url, {
         method: 'GET',
         headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token} ${company_id}`,
             'Content-Type': 'application/json',
         },
     });
@@ -31,11 +33,14 @@ export const fetchBreaksById = createAsyncThunk('breaks/fetchBreaksById', async 
     return await response.json();
 });
 
-
 export const addBreak = createAsyncThunk('breaks/addBreak', async (breakData: Break) => {
+    const token = localStorage.getItem('token');
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
     const response = await fetch(`${BASE_URL}/breaksheet/create`, {
         method: 'POST',
         headers: {
+            'Authorization': `Bearer ${token} ${company_id}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(breakData)
@@ -52,10 +57,11 @@ export const updateBreak = createAsyncThunk(
     'breaks/updateBreak',
     async ({ id, updatedBreak }: { id: string; updatedBreak: Break }) => {
         const token = localStorage.getItem('token');
+        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
         const response = await fetch(`${BASE_URL}/breaksheet/update/${id}`, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${token} ${company_id}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(updatedBreak),
@@ -73,10 +79,11 @@ export const updateLatestBreak = createAsyncThunk(
     'break/updateBreak',
     async ({ employeeId, breakData }: { employeeId: string; breakData: { endTime: string; duration: string } }) => {
         const token = localStorage.getItem('token');
+        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
         const response = await fetch(`${BASE_URL}/breaksheet/update-latest/break/${employeeId}`, {
             method: 'PUT',
             headers: {
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${token} ${company_id}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(breakData),

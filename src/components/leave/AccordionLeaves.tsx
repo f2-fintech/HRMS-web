@@ -158,23 +158,52 @@ const AccordionLeaves: React.FC<AccordionLeavesProps> = ({
                         aria-labelledby={`customized-dialog-title-${leave._id}`}
                         open={openDialogs[leave._id] || false}
                       >
-                        <DialogTitle sx={{ m: 0, p: 2 }} id={`customized-dialog-title-${leave._id}`}>
+                        <DialogTitle
+                          sx={{
+                            m: 0,
+                            p: 2,
+                            fontWeight: 600,
+                            fontSize: '1.25rem',
+                            color: 'primary.main',
+                            borderBottom: '1px solid',
+                            borderColor: 'divider'
+                          }}
+                          id={`customized-dialog-title-${leave._id}`}
+                        >
                           Application
                         </DialogTitle>
                         <IconButton
                           aria-label="close"
                           onClick={() => handleClose(leave._id)}
-                          sx={(theme) => ({
+                          sx={{
                             position: 'absolute',
                             right: 8,
                             top: 8,
-                            color: theme.palette.grey[500],
-                          })}
+                            color: (theme) => theme.palette.grey[500],
+                            '&:hover': {
+                              color: (theme) => theme.palette.grey[700],
+                              backgroundColor: (theme) => theme.palette.grey[100]
+                            },
+                            transition: 'all 0.2s ease-in-out'
+                          }}
                         >
                           <CloseIcon />
                         </IconButton>
-                        <DialogContent>
-                          <Typography>
+                        <DialogContent
+                          sx={{
+                            p: 3,
+                            minWidth: 400,
+                            maxHeight: 500,
+                            overflowY: 'auto'
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: '1rem',
+                              lineHeight: 1.6,
+                              color: 'text.primary'
+                            }}
+                          >
                             {leave.application}
                           </Typography>
                         </DialogContent>

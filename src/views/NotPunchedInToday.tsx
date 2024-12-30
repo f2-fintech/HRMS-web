@@ -1,8 +1,10 @@
+// file 2
+
 'use client'
 
 import React, { useState, useEffect } from 'react';
 import { fetchEmployeesNotPunchedInToday } from '@/utility/apiResponse/getEmployeesNotPunchedIn';
-import { Typography } from '@mui/material';
+import { Typography, Button } from '@mui/material';
 
 interface Employee {
   _id: string;
@@ -21,25 +23,41 @@ const NotPunchedInToday: React.FC<Props> = ({ selectedDate }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // For pagination:
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
+  const limit = 6; // or 10, or however many you’d like per page
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const employeesData = await fetchEmployeesNotPunchedInToday(selectedDate);
-        setEmployeesNotPunchedIn(employeesData);
-        setLoading(false);
+        setLoading(true);
+        setError(null);
+
+        // We expect the return object to be: { totalRecords, data }
+        const { totalRecords, data } = await fetchEmployeesNotPunchedInToday(
+          selectedDate,
+          currentPage,
+          limit
+        );
+        setEmployeesNotPunchedIn(data);
+        setTotalRecords(totalRecords);
       } catch (err) {
         setError('Failed to fetch employees');
+      } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [selectedDate]);
+  }, [selectedDate, currentPage]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalRecords / limit);
 
   if (loading) {
     return <div>Loading...</div>;
   }
-
   if (error) {
     return <div>{error}</div>;
   }
@@ -53,16 +71,47 @@ const NotPunchedInToday: React.FC<Props> = ({ selectedDate }) => {
         <div className="employee-grid">
           {employeesNotPunchedIn.map((employee) => (
             <div key={employee?._id} className="employee-card">
-
-              <img src={employee.image} alt={`${employee.first_name} ${employee.last_name}`} className="employee-image" />
+              <img
+                src={employee.image}
+                alt={`${employee.first_name} ${employee.last_name}`}
+                className="employee-image"
+              />
               <div className="employee-name">
                 {employee.first_name} {employee.last_name}
               </div>
-              <Typography style={{ color: 'blue' }}>{employee?.location.toUpperCase()}</Typography>
+              <Typography style={{ color: 'blue' }}>
+                {employee?.location.toUpperCase()}
+              </Typography>
             </div>
           ))}
         </div>
       )}
+
+      {/* Pagination Buttons */}
+      <div style={{ marginTop: '20px' }}>
+        <Button
+          variant="contained"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((prev) => prev - 1)}
+          style={{ marginRight: '10px' }}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="contained"
+          disabled={currentPage === totalPages || totalPages === 0}
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+        >
+          Next
+        </Button>
+        <Typography>
+          Page {currentPage} of {totalPages}
+        </Typography>
+        <Typography>
+          Total Number of employees not Punch-in today : {totalRecords}
+        </Typography>
+      </div>
+
       <style jsx>{`
         .employee-grid {
           display: grid;

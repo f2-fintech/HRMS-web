@@ -46,8 +46,21 @@ const initialState: EmployeesState = {
 export const fetchUpcomingBirthdays = createAsyncThunk(
   'employees/fetchUpcomingBirthdays',
   async (days: number = 30) => {
+    let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" && JSON.parse(localStorage?.getItem("user") || "{}");
+
+    if (typeof window !== "undefined") {
+      token = localStorage?.getItem("token");
+    }
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/employees/upcoming-birthdays?days=${days}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/employees/upcoming-birthdays?days=${days}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      }
     );
 
     if (!response.ok) {
@@ -70,12 +83,11 @@ export const fetchEmployees = createAsyncThunk(
     const isSearch = search.trim().length > 0;
 
     let token: string | null = null;
-    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+    const { company_id } = typeof window !== "undefined" && JSON.parse(localStorage?.getItem("user") || "{}");
 
     if (typeof window !== "undefined") {
       token = localStorage?.getItem("token");
     }
-    console.log("companyId", company_id);
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL}/employees/get?page=${page}&limit=${limit}&search=${search}&designation=${designation}`,

@@ -9,8 +9,7 @@ import { utility } from '@/utility';
 const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFetch }) => {
   const { capitalizeInput } = utility();
 
-  const { role, company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
-  console.log(" role, company_id", role, company_id);
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
 
   const [formData, setFormData] = useState({
     title: '',

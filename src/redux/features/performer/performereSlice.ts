@@ -23,7 +23,21 @@ const initialState: AwardsState = {
 
 // Async thunk to fetch awards from the server
 export const fetchAwards = createAsyncThunk<Award[]>('awards/fetchAwards', async () => {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards`)
+  let token: string | null = null;
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+  if (typeof window !== "undefined") {
+    token = localStorage?.getItem("token");
+  }
+  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  )
 
   if (!response.ok) {
     throw new Error('Failed to fetch awards')

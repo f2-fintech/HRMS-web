@@ -43,15 +43,16 @@ const initialState: QueryState = {
 // Thunk to fetch all queries (Admin)
 export const fetchAllQueries = createAsyncThunk(
     'queries/fetchAllQueries',
-    async ({ page = 1, limit = 10, keyword = '', month, year }: { page?: number; limit?: number; keyword?: string; month?: number; year?: number }) => {
+    async ({ page = 1, limit = 10, keyword = '', month, year }: { page?: number; limit?: number; keyword?: string; month?: string; year?: string }) => {
         const token = localStorage.getItem('token') || '';
+        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
 
         const queryParams = new URLSearchParams({
-            page: page.toString(),
-            limit: limit.toString(),
+            page: page,
+            limit: limit,
             keyword,
-            ...(month !== undefined ? { month: month.toString() } : {}),
-            ...(year !== undefined ? { year: year.toString() } : {}),
+            ...(month !== undefined ? { month: month } : {}),
+            ...(year !== undefined ? { year: year } : {}),
         });
 
         const response = await fetch(
@@ -59,7 +60,7 @@ export const fetchAllQueries = createAsyncThunk(
             {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${token} ${company_id}`,
                     'Content-Type': 'application/json',
                 },
             }
@@ -79,11 +80,12 @@ export const fetchAllQueries = createAsyncThunk(
 export const fetchUserQueries = createAsyncThunk(
     'queries/fetchUserQueries',
     async (
-        { page = 1, limit = 10, keyword = '', year }: { page?: number; limit?: number; keyword?: string; year?: number },
+        { page = 1, limit = 10, keyword = '', month = '', year }: { page?: number; limit?: number; keyword?: string; month?: string, year?: string },
         { getState }
     ) => {
         const state = getState() as RootState;
         const token = localStorage.getItem('token') || '';
+        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
 
         // Construct query parameters dynamically
         const queryParams = new URLSearchParams({
@@ -98,7 +100,7 @@ export const fetchUserQueries = createAsyncThunk(
             {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${token} ${company_id}`,
                     'Content-Type': 'application/json',
                 },
             }
@@ -118,9 +120,10 @@ export const fetchUserQueries = createAsyncThunk(
 export const fetchQueriesByToQueryId = createAsyncThunk(
     'queries/fetchQueriesByToQueryId',
     async (
-        { toQueryId, page = 1, limit = 10, keyword = '', year }: { toQueryId: string; page?: number; limit?: number; keyword?: string; year?: number }
+        { toQueryId, page = 1, limit = 10, keyword = '', year }: { toQueryId: string; page?: number; limit?: number; keyword?: string; month?: string; year?: string }
     ) => {
         const token = localStorage.getItem('token') || '';
+        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
 
         // Construct query parameters dynamically
         const queryParams = new URLSearchParams({
@@ -135,7 +138,7 @@ export const fetchQueriesByToQueryId = createAsyncThunk(
             {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${token} ${company_id}`,
                     'Content-Type': 'application/json',
                 },
             }

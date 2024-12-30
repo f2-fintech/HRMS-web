@@ -39,9 +39,6 @@ export default function AddAssets() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-
-  console.log('asset>', addassets)
-
   const debouncedFetch = useCallback(
     debounce(() => {
       dispatch(fetchAddAssets({ page, limit, keyword: selectedKeyword }));
@@ -77,6 +74,8 @@ export default function AddAssets() {
   }, []);
 
   function AddAssetForm({ handleClose, asset }) {
+    const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
+    const company_id = user?.company_id;
     const [formData, setFormData] = useState({
       assetName: '',
       category: '',
@@ -87,6 +86,7 @@ export default function AddAssets() {
       type: '',
       location: '',
       attachment: '',
+      company_id: company_id
     });
 
     const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
@@ -119,6 +119,7 @@ export default function AddAssets() {
             type: selected.type,
             location: selected.location,
             attachment: selected.attachment,
+            company_id: selected.company_id
           });
           setImagePreviewUrl(selected.attachment);
         }
@@ -211,8 +212,6 @@ export default function AddAssets() {
       }));
     };
 
-    console.log("formdata", formData)
-
     const handleSubmit = () => {
       if (validateForm()) {
         const method = asset ? 'PUT' : 'POST';
@@ -228,12 +227,11 @@ export default function AddAssets() {
         formPayload.append('uniqueCode', formData.uniqueCode);
         formPayload.append('type', formData.type);
         formPayload.append('location', formData.location);
+        formPayload.append('company_id', formData.company_id);
 
         if (selectedImage) {
           formPayload.append('attachment', selectedImage);
         }
-
-        console.log([...formPayload.entries()]);
 
         fetch(url, {
           method,

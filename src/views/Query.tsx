@@ -76,7 +76,7 @@ const Query = () => {
                 if (userRole === '1') {
                     dispatch(fetchAllQueries({ page, limit, keyword: selectedKeyword, month: month, year: year }))
                 } else if (queryType === 'own') {
-                    dispatch(fetchUserQueries({ page, limit, keyword: selectedKeyword, month: 0, year: year }))
+                    dispatch(fetchUserQueries({ page, limit, keyword: selectedKeyword, month: "0", year: year }))
                 } else {
                     dispatch(fetchQueriesByToQueryId({ toQueryId: userId, page, limit, keyword: selectedKeyword, month: 0, year: year }))
                 }
@@ -140,6 +140,7 @@ const Query = () => {
     }, [])
 
     const handleFormSubmit = async (formData: any) => {
+        console.log("formdata", formData);
         try {
             if (selectedQuery) {
                 await dispatch(updateQueryById({ id: selectedQuery._id, data: formData })).unwrap()

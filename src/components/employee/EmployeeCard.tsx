@@ -63,15 +63,12 @@ const EmailTypography = styled(Typography)(({ theme }) => ({
   },
 }));
 
-
-
 const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, capitalizeWords }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [userRole, setUserRole] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const dispatch: AppDispatch = useDispatch();
-
 
   const handleMenuOpen = (event) => {
     event.stopPropagation();
@@ -108,8 +105,6 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
     e.stopPropagation();
     window.location.href = `mailto:${employee.email}`;
   };
-
-
 
   return (
     <>

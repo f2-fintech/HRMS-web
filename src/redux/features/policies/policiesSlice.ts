@@ -6,6 +6,7 @@ interface Policy {
   name: string;
   description: string;
   document_url: string;
+  company_id: string;
 }
 
 interface PoliciesState {
@@ -30,10 +31,25 @@ export const fetchPolicies = createAsyncThunk<
 >(
   "policies/fetchPolicies",
   async ({ page = 1, limit = 10, keyword = "" }) => {
+
+    let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+    if (typeof window !== "undefined") {
+      token = localStorage?.getItem("token");
+    }
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL}/policies/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(
         keyword
-      )}`
+      )}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      }
     );
 
     if (!response.ok) {

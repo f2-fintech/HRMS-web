@@ -1,6 +1,28 @@
 import React, { useEffect, useState } from 'react';
 
-import { TextField, Button, MenuItem, Box, Autocomplete } from '@mui/material';
+import {
+  TextField,
+  Button,
+  Box,
+  Autocomplete,
+  IconButton,
+  InputAdornment,
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Typography
+} from '@mui/material';
+import {
+  Event as EventIcon,
+  Person as PersonIcon,
+  Label as LabelIcon,
+  Save as SaveIcon,
+  Close as CloseIcon,
+  Add as AddIcon,
+  Edit as EditIcon
+} from '@mui/icons-material';
+import { CurrencyRupee } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 
 import { toast, ToastContainer } from 'react-toastify';
@@ -24,7 +46,9 @@ interface FineFormProps {
     };
   };
   onClose: () => void;
-
+  setToast?: (message: string) => void;
+  month?: string;
+  year?: string;
 }
 
 export default function FineForm({ fine, onClose, setToast, month, year }: FineFormProps) {
@@ -33,7 +57,7 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
   const [form, setForm] = useState({
     fineType: fine?.fineType || '',
     fineAmount: fine?.fineAmount || '',
-    fineDate: fine?.fineDate || new Date().toISOString().split('T')[0], // Set default to current date
+    fineDate: fine?.fineDate || new Date().toISOString().split('T')[0],
     employeeId: fine?.employee?._id || '',
   });
 
@@ -43,7 +67,6 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
     const fetchEmployees = async () => {
       try {
         const data = await apiResponse();
-
         setEmployees(data);
       } catch (error) {
         console.error('Failed to fetch employees');
@@ -55,7 +78,6 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-
     setForm((prevForm) => ({
       ...prevForm,
       [name]: value,
@@ -74,7 +96,9 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
 
     try {
       let token = null;
-
+      const { company_id } = typeof window !== "undefined" && localStorage?.getItem("user")
+        ? JSON.parse(localStorage.getItem("user"))
+        : {};
       if (typeof window !== 'undefined') {
         token = localStorage?.getItem('token');
       }
@@ -84,6 +108,7 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
         fineAmount: form.fineAmount,
         fineDate: form.fineDate,
         employee: form.employeeId,
+        company_id: company_id
       };
 
       const method = fine ? 'PUT' : 'POST';
@@ -91,8 +116,6 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
       const url = fine
         ? `${process.env.NEXT_PUBLIC_APP_URL}/fines/update/${fine._id}`
         : `${process.env.NEXT_PUBLIC_APP_URL}/fines/create`;
-
-
 
       fetch(url, {
         method,
@@ -120,70 +143,137 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
     } catch (error) {
       console.error('Error:', error);
     }
-
   };
 
-
   return (
-    <>
-      <Box component="form" onSubmit={handleSubmit}>
-        <Autocomplete
-          options={employees}
-          getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
-          value={employees.find((emp) => emp._id === form.employeeId) || null}
-          onChange={handleEmployeeChange}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Search Employee"
-              margin="normal"
+    <Card
+      sx={{
+        maxWidth: 500,
+        margin: 'auto',
+        boxShadow: 3,
+        borderRadius: 2
+      }}
+    >
+      <CardHeader
+        avatar={fine ? <EditIcon color="primary" /> : <AddIcon color="primary" />}
+        title={
+          <Typography variant="h6" color="primary">
+            {fine ? 'Update Fine' : 'Create New Fine'}
+          </Typography>
+        }
+        sx={{
+          backgroundColor: '#f5f5f5',
+          borderBottom: '1px solid rgba(0,0,0,0.12)'
+        }}
+      />
+      <Divider />
+      <CardContent>
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Autocomplete
+            options={employees}
+            getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+            value={employees.find((emp) => emp._id === form.employeeId) || null}
+            onChange={handleEmployeeChange}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Search Employee"
+                variant="outlined"
+                margin="normal"
+                fullWidth
+                required
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
+          />
+          <TextField
+            label="Fine Type"
+            name="fineType"
+            value={form.fineType}
+            onChange={handleChange}
+            variant="outlined"
+            fullWidth
+            required
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <LabelIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            label="Fine Amount"
+            name="fineAmount"
+            value={form.fineAmount}
+            onChange={handleChange}
+            variant="outlined"
+            fullWidth
+            required
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <CurrencyRupee color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            label="Fine Date"
+            name="fineDate"
+            type="date"
+            value={form.fineDate}
+            onChange={handleChange}
+            variant="outlined"
+            fullWidth
+            InputLabelProps={{
+              shrink: true,
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <EventIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+            required
+          />
+
+          <Box display="flex" justifyContent="space-between" mt={2} gap={2}>
+            <Button
+              variant="contained"
+              type="submit"
               fullWidth
-              required
-            />
-          )}
-        />
-        <TextField
-          label="Fine Type"
-          name="fineType"
-          value={form.fineType}
-          onChange={handleChange}
-          fullWidth
-          margin="normal"
-          required
-        />
-        <TextField
-          label="Fine Amount"
-          name="fineAmount"
-          value={form.fineAmount}
-          onChange={handleChange}
-          fullWidth
-          margin="normal"
-          required
-        />
-        <TextField
-          label="Fine Date"
-          name="fineDate"
-          type="date"
-          value={form.fineDate}
-          onChange={handleChange}
-          fullWidth
-          margin="normal"
-          InputLabelProps={{
-            shrink: true,
-          }}
-          required
-        />
-
-        <Box display="flex" justifyContent="space-between" mt={2}>
-          <Button variant="contained" type="submit" sx={{ backgroundColor: '#ff902f' }}>
-            {fine ? 'Update Fine' : 'Create Fine'}
-          </Button>
-          <Button variant="outlined" onClick={onClose}>
-            Cancel
-          </Button>
+              startIcon={<SaveIcon />}
+              sx={{
+                backgroundColor: '#ff902f',
+                '&:hover': {
+                  backgroundColor: '#ff7f1a'
+                }
+              }}
+            >
+              {fine ? 'Update Fine' : 'Create Fine'}
+            </Button>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={onClose}
+              startIcon={<CloseIcon />}
+              color="secondary"
+            >
+              Cancel
+            </Button>
+          </Box>
         </Box>
-      </Box>
-    </>
+      </CardContent>
+      <ToastContainer />
+    </Card>
   );
-
 }

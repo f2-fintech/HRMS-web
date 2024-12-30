@@ -1,9 +1,37 @@
 import React, { useState, useEffect } from 'react';
 
-import { Box, Grid, TextField, Typography, IconButton, Button, FormControl, InputLabel, Select, MenuItem, InputAdornment, Autocomplete } from '@mui/material';
+import {
+  Box,
+  Grid,
+  TextField,
+  Typography,
+  IconButton,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  InputAdornment,
+  Autocomplete,
+  Paper
+} from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { useDispatch, useSelector } from 'react-redux';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import PersonIcon from '@mui/icons-material/Person';
+import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
+import EmailIcon from '@mui/icons-material/Email';
+import WorkIcon from '@mui/icons-material/Work';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import TransgenderIcon from '@mui/icons-material/Transgender';
+import BadgeIcon from '@mui/icons-material/Badge';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
+import { useDispatch, useSelector } from 'react-redux';
 import { toast, ToastContainer } from 'react-toastify';
 
 import type { AppDispatch, RootState } from '../../redux/store';
@@ -211,21 +239,42 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
 
   console.log("formDAta>>", formData);
   return (
-    <Box sx={{ flexGrow: 1, padding: 2 }}>
+    <Paper
+      elevation={3}
+      sx={{
+        flexGrow: 1,
+        padding: 3,
+        borderRadius: 2,
+        backgroundColor: '#f5f5f5'
+      }}
+    >
       <ToastContainer position="top-center" autoClose={3000} hideProgressBar={false} />
-      <Box display='flex' justifyContent='space-between' alignItems='center'>
-        <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
+      <Box display='flex' justifyContent='space-between' alignItems='center' mb={3}>
+        <Typography
+          variant='h4'
+          gutterBottom
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            fontWeight: 'bold',
+            color: '#333'
+          }}
+        >
+          {employee ? <EditIcon sx={{ mr: 2, color: '#ff902f' }} /> : <PersonAddIcon sx={{ mr: 2, color: '#ff902f' }} />}
           {employee ? 'Edit Employee' : 'Add Employee'}
         </Typography>
-        <Box display="flex">
+        <Box display="flex" alignItems="center">
           {employee && !isPasswordFieldVisible && (
-            <Grid item xs={12} md={6}>
-              <Button variant="outlined" onClick={handlePasswordFieldVisibility}>
-                Change Password
-              </Button>
-            </Grid>
+            <Button
+              variant="outlined"
+              startIcon={<LockResetIcon />}
+              onClick={handlePasswordFieldVisibility}
+              sx={{ mr: 2 }}
+            >
+              Change Password
+            </Button>
           )}
-          <IconButton onClick={handleClose}>
+          <IconButton onClick={handleClose} color="error">
             <CloseIcon />
           </IconButton>
         </Box>
@@ -241,6 +290,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             required
             error={!!errors.first_name}
             helperText={errors.first_name}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <PersonIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -253,6 +309,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             required
             error={!!errors.last_name}
             helperText={errors.last_name}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <PersonIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -265,6 +328,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             required
             error={!!errors.contact}
             helperText={errors.contact}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <ContactPhoneIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -277,6 +347,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             required
             error={!!errors.email}
             helperText={errors.email}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <EmailIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -289,6 +366,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             required
             error={!!errors.work_email}
             helperText={errors.work_email}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <WorkIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -303,6 +387,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             required
             error={!!errors.dob}
             helperText={errors.dob}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <CalendarTodayIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -318,6 +409,11 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               value={formData.gender}
               onChange={handleChange}
               fullWidth
+              startAdornment={
+                <InputAdornment position="start">
+                  <TransgenderIcon color="action" />
+                </InputAdornment>
+              }
             >
               <MenuItem value='Male'>Male</MenuItem>
               <MenuItem value='Female'>Female</MenuItem>
@@ -338,6 +434,11 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 onChange={handleChange}
                 autoComplete="off"
                 InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockResetIcon color="action" />
+                    </InputAdornment>
+                  ),
                   endAdornment: (
                     <InputAdornment position='end'>
                       <IconButton
@@ -346,7 +447,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                         onClick={handleClickShowPassword}
                         onMouseDown={e => e.preventDefault()}
                       >
-                        <i className={isPasswordShown ? 'ri-eye-off-line' : 'ri-eye-line'} />
+                        {isPasswordShown ? <VisibilityOffIcon /> : <VisibilityIcon />}
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -365,6 +466,11 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 onChange={handleChange}
                 autoComplete="off"
                 InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockResetIcon color="action" />
+                    </InputAdornment>
+                  ),
                   endAdornment: (
                     <InputAdornment position='end'>
                       <IconButton
@@ -373,9 +479,10 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                         onClick={handleClickShowPassword}
                         onMouseDown={e => e.preventDefault()}
                       >
-                        <i className={isPasswordShown ? 'ri-eye-off-line' : 'ri-eye-line'} />
+                        {isPasswordShown ? <VisibilityOffIcon /> : <VisibilityIcon />}
                       </IconButton>
                     </InputAdornment>
+
                   ),
                 }}
                 error={!!errors.confirm_password}
@@ -396,6 +503,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             required
             error={!!errors.joining_date}
             helperText={errors.joining_date}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <CalendarTodayIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
         </Grid>
         {employee &&
@@ -408,6 +522,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               value={formData.leaving_date}
               onChange={handleChange}
               InputLabelProps={{ shrink: true }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarTodayIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
         }
@@ -458,7 +579,19 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))}
               getOptionLabel={(option) => option}
               renderInput={(params) => (
-                <TextField {...params} label="Select Designation" variant="outlined" />
+                <TextField
+                  {...params}
+                  label="Select Designation"
+                  variant="outlined"
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <BadgeIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
               )}
               value={formData.designation}
               onChange={(event, newValue) => {
@@ -501,11 +634,17 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             required
             error={!!errors.code}
             helperText={errors.code}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <BadgeIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth error={!!errors.location}>
-            <InputLabel id="demo-simple-select-label">Select Location</InputLabel>
             <LocationDropdown
               selectedLocation={formData.location}
               setSelectedLocation={(location) =>
@@ -521,7 +660,17 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
 
         <Grid item xs={12} md={6}>
           <Box display="flex" flexDirection="column">
-            <Button variant='contained' component='label'>
+            <Button
+              variant='contained'
+              component='label'
+              startIcon={<CloudUploadIcon />}
+              sx={{
+                backgroundColor: '#ff902f',
+                '&:hover': {
+                  backgroundColor: '#ff7f2f'
+                }
+              }}
+            >
               Upload Image
               <input
                 type='file'
@@ -534,23 +683,27 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               <img
                 src={imagePreviewUrl}
                 alt='Preview'
-                style={{ maxHeight: '100%', marginTop: '10px' }}
+                style={{ maxHeight: '200px', marginTop: '10px', borderRadius: '8px', objectFit: 'cover' }}
               />
             )}
             {errors.image && <Typography color='error'>{errors.image}</Typography>}
           </Box>
-
         </Grid>
         <Grid item xs={12}>
           <Box display="flex" justifyContent="center">
             <Button
-              style={{
+              startIcon={employee ? <EditIcon /> : <PersonAddIcon />}
+              sx={{
                 fontSize: '18px',
                 fontWeight: 600,
                 color: 'white',
-                padding: 15,
+                padding: 2,
                 backgroundColor: '#ff902f',
-                width: 200
+                width: 250,
+                borderRadius: 2,
+                '&:hover': {
+                  backgroundColor: '#ff7f2f'
+                }
               }}
               variant='contained'
               onClick={handleSubmit}
@@ -560,7 +713,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
           </Box>
         </Grid>
       </Grid>
-    </Box>
+    </Paper>
   );
 };
 

@@ -16,11 +16,6 @@ const StyledFooter = styled.footer<StyledFooterProps>`
   margin-inline: auto;
   max-inline-size: ${themeConfig.compactContentWidth}px;
 
-  & .${verticalLayoutClasses.footerContentWrapper} {
-    padding-block: 15px;
-    padding-inline: ${themeConfig.layoutPadding}px;
-  }
-
   ${({ overrideStyles }) => overrideStyles}
 `
 

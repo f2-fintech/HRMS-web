@@ -43,17 +43,16 @@ export const fetchAssests = createAsyncThunk<{
   'leaves/fetchAssests',
   async ({ page, limit, keyword }: { page: number; limit: number; keyword: string }) => {
     let token: string | null = null;
-
+    const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
+    const company_id = user?.company_id;
     if (typeof window !== "undefined") {
       token = localStorage?.getItem('token');
     }
 
-    console.log('token is', token)
-
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/assests/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token} ${company_id}`,
         'Content-Type': 'application/json',
       },
     });

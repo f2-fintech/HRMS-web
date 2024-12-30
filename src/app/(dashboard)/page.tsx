@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
 
-// Components Imports
 import Award from '@views/dashboard/Award'
 import Transactions from '@views/dashboard/Transactions'
 import UpcomingBirthdays from '@/views/dashboard/UpcomingBirthdays'

@@ -37,6 +37,7 @@ interface QueryFormData {
     description: string;
     department: string;
     status?: string;
+    company_id?: string;
 }
 
 const departments = [
@@ -53,6 +54,8 @@ const departments = [
 const statuses = ['Pending', 'Resolved', 'On Process'];
 
 const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClose, queryType }) => {
+    const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
+    const company_id = user?.company_id;
     const theme = useTheme();
     const [formData, setFormData] = useState<QueryFormData>({
         toQuery: '',
@@ -60,6 +63,7 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
         description: '',
         department: '',
         status: 'Pending',
+        company_id: company_id
     });
 
     const [employees, setEmployees] = useState<any[]>([]);
@@ -83,6 +87,7 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                         description: query.description || '',
                         department: query.department || '',
                         status: query.status || 'Pending',
+                        company_id: query?.company_id
                     });
                 }
             } catch (error) {
@@ -135,7 +140,7 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
         if (validate()) {
             setSubmitting(true);
             try {
-                await onSubmit(formData);
+                onSubmit(formData);
             } finally {
                 setSubmitting(false);
             }

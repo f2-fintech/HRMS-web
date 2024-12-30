@@ -12,6 +12,7 @@ interface addAsset {
   type: string;
   location: string;
   attachment: string;
+  company_id: string;
 }
 
 interface addAssetsState {
@@ -36,12 +37,24 @@ export const fetchAddAssets = createAsyncThunk<
 >(
   "add-assets/fetchAddAssets",
   async ({ page = 1, limit = 10, keyword = "" }) => {
+    let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+    if (typeof window !== "undefined") {
+      token = localStorage?.getItem("token");
+    }
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL}/add-assets/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(
         keyword
-      )}`
+      )}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      }
     );
-    console.log("ass>>", response)
 
     if (!response.ok) {
       throw new Error("Failed to fetch assets");

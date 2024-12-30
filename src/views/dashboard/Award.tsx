@@ -37,11 +37,25 @@ const Award = () => {
     setUserRole(user.role)
 
     const fetchEmployeesAndAwards = async () => {
+      let token: string | null = null;
+      const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+      if (typeof window !== "undefined") {
+        token = localStorage?.getItem("token");
+      }
       try {
-        const employeesData = await apiResponse()
+        const employeesData = await apiResponse();
         setEmployees(employeesData)
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards/get`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards/get`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token} ${company_id}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
 
         if (!response.ok) {
           throw new Error('Failed to fetch award')
@@ -68,7 +82,13 @@ const Award = () => {
   }, [])
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+    event.preventDefault();
+    let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+    if (typeof window !== "undefined") {
+      token = localStorage?.getItem("token");
+    }
 
     try {
       let url = `${process.env.NEXT_PUBLIC_APP_URL}/awards/performer/month`
@@ -81,12 +101,14 @@ const Award = () => {
       const response = await fetch(url, {
         method,
         headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           employee: employeeName?._id,
           amount,
-          awardTitle
+          awardTitle,
+          company_id
         })
       })
 

@@ -52,8 +52,9 @@ export default function AssestsGrid() {
   );
 
   useEffect(() => {
-    debouncedFetch();
-
+    if (selectedKeyword !== "") {
+      debouncedFetch();
+    }
     return debouncedFetch.cancel;
   }, [page, limit, selectedKeyword, debouncedFetch]);
 
@@ -87,12 +88,15 @@ export default function AssestsGrid() {
   const AddAssetForm: React.FC<AddAssetFormProps> = ({ handleClose, asset }) => {
     const { employees } = useSelector((state: RootState) => state.employees)
     const { addassets } = useSelector((state: RootState) => state.addAssets);
+    const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
+    const company_id = user?.company_id;
 
     const [formData, setFormData] = useState({
       employee: '',
       name: '',
       assignment_date: '',
       return_date: '',
+      company_id: company_id
     })
 
     const [errors, setErrors] = useState({
@@ -115,6 +119,7 @@ export default function AssestsGrid() {
             name: selected.name,
             assignment_date: selected.assignment_date,
             return_date: selected.return_date,
+            company_id: selected.company_id
           })
         }
       }
@@ -182,7 +187,6 @@ export default function AssestsGrid() {
         })
           .then(response => response.json())
           .then(data => {
-            console.log("data>>>", data);
             if (data.message) {
               if (data.message.includes('success')) {
                 toast.success(data.message, {
@@ -387,32 +391,10 @@ export default function AssestsGrid() {
   const generateColumns = () => {
     const columns = [
       ...(userRole === '1' ? [
-        // {
-        //   field: 'employee',
-        //   headerName: 'Employee',
-        //   width: 250,
-        //   headerAlign: 'center',
-        //   headerClassName: 'super-app-theme--header',
-        //   align: "center",
-        //   sortable: true,
-        //   renderCell: (params) => {
-        //     return (
-        //       <Box display="flex" alignItems="center" height="100%">
-        //         <Avatar
-        //           src={params.row.employee.image}
-        //           sx={{ marginLeft: 10, width: 40, height: 40 }}
-        //         />
-        //         <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
-        //           {params.row.employee.first_name} {params.row.employee.last_name}
-        //         </Typography>
-        //       </Box>
-        //     )
-        //   },
-        // },
         {
           field: 'assets',
           headerName: 'Assets Details',
-          width: 1020,
+          flex: 1,
           headerAlign: 'center',
           headerClassName: 'super-app-theme--header',
           renderCell: (params) => {
@@ -486,10 +468,7 @@ export default function AssestsGrid() {
                                 >
                                   <DeleteIcon />
                                 </Button>
-
                               </TableCell>
-
-
                             </TableRow>
                           ))}
                         </TableBody>
@@ -627,8 +606,9 @@ export default function AssestsGrid() {
           </Grid>
         </Grid>}
       </Box>
-      <Box sx={{ height: 600, width: '100%' }}>
+      <Box sx={{ width: '100%' }}>
         <DataGrid
+          autoHeight
           getRowHeight={() => 'auto'}
           sx={{
             '& .super-app-theme--header': {

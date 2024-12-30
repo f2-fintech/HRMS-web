@@ -10,6 +10,7 @@ interface Team {
   manager_id: string;
   employee_ids: string;
   code: string;
+  company_id: string;
 }
 
 interface TeamsState {
@@ -28,7 +29,17 @@ const initialState: TeamsState = {
 
 // Thunk for fetching teams
 export const fetchTeams = createAsyncThunk('teams/fetchTeams', async ({ page, limit, keyword }: { page: number; limit: number; keyword: string }) => {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/teams/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`);
+  const token = typeof window !== "undefined" ? localStorage.getItem('token') : "";
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/teams/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error('Failed to fetch teams');
@@ -39,11 +50,12 @@ export const fetchTeams = createAsyncThunk('teams/fetchTeams', async ({ page, li
 export const fetchTeamsByManager = createAsyncThunk(
   'teams/fetchTeamsByManager',
   async (managerId: string) => {
-    const token = localStorage.getItem('token'); // Fetch token from localStorage
+    const token = typeof window !== "undefined" ? localStorage.getItem('token') : "";
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/teams/manager/${managerId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token} ${company_id}`,
         'Content-Type': 'application/json',
       },
     });

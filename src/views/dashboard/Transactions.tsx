@@ -80,11 +80,23 @@ const Welcome = () => {
     };
 
     const fetchLatestQuote = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/quotes`);
-        const result = await response.json();
+      let token: string | null = null;
+      const { company_id } = typeof window !== "undefined" && JSON.parse(localStorage?.getItem("user") || "{}");
 
-        console.log('API response for quotes:', result);
+      if (typeof window !== "undefined") {
+        token = localStorage?.getItem("token");
+      }
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/quotes`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token} ${company_id}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        const result = await response.json();
 
         const { data } = result;
 
@@ -121,13 +133,14 @@ const Welcome = () => {
   }, [latestQuote]);
 
   const handleSubmit = async () => {
+    const { company_id } = typeof window !== "undefined" && JSON.parse(localStorage?.getItem("user") || "{}");
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/quotes/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ quote, author }),
+        body: JSON.stringify({ quote, author, company_id }),
       });
 
       const result = await response.json();

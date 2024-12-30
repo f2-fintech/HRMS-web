@@ -40,7 +40,6 @@ const Designation = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-
   const debouncedFetch = useCallback(
     debounce(() => {
       console.log('i m called');
@@ -55,7 +54,6 @@ const Designation = () => {
     return debouncedFetch.cancel;
   }, [page, limit, selectedKeyword, debouncedFetch]);
 
-
   const handleInputChange = (e: { target: { value: React.SetStateAction<string>; }; }) => {
     setSelectedKeyword(e.target.value);
   };
@@ -64,7 +62,6 @@ const Designation = () => {
     setPage(newPage + 1);
     setLimit(newPageSize);
   };
-
 
   const handlePaginationModelChange = (params: { page: number; pageSize: number }) => {
     handlePageChange(params.page, params.pageSize);
@@ -80,10 +77,13 @@ const Designation = () => {
 
 
   function AddDesignationForm({ id, handleClose }) {
+    const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
+    const company_id = user?.company_id;
     const [formData, setFormData] = useState({
       title: '',
       description: '',
       grade: '',
+      company_id: company_id
     });
 
     const [errors, setErrors] = useState({
@@ -96,13 +96,12 @@ const Designation = () => {
       if (id) {
         const selected = designations.find(des => des._id === id);
 
-        console.log('selected', selected);
-
         if (selected) {
           setFormData({
             title: selected.title,
             description: selected.description,
-            grade: selected.grade
+            grade: selected.grade,
+            company_id: selected.company_id
           });
         }
       }
@@ -274,7 +273,6 @@ const Designation = () => {
       </Box>
     );
   }
-
 
   const handleDesignationAddClick = () => {
     setSelectedDesignation(null);

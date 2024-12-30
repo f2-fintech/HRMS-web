@@ -23,9 +23,6 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
 import DialogTitle from '@mui/material/DialogTitle';
-import InputAdornment from '@mui/material/InputAdornment';
-import { DriveFileRenameOutlineOutlined } from '@mui/icons-material'
-import DeleteIcon from '@mui/icons-material/Delete';
 import { useDispatch, useSelector } from 'react-redux';
 import { format } from 'date-fns';
 import IconButton from '@mui/material/IconButton';
@@ -134,9 +131,10 @@ export default function LeavesGrid() {
     () =>
       debounce(() => {
         if (userRole === '1') {
-          dispatch(fetchLeaves({ page, limit, month, year, keyword: selectedKeyword }))
-        } else {
-          dispatch(fetchLeaves({ page, limit, month: '0', year, keyword: selectedKeyword }))
+          dispatch(fetchLeaves({ page, limit, month, year, keyword: selectedKeyword }));
+        }
+        if (Number(userRole) > 1) {
+          dispatch(fetchLeaves({ page, limit, month: '0', year, keyword: selectedKeyword }));
         }
       }, 300),
     [dispatch, page, limit, selectedKeyword, userId, month, year, userRole]
@@ -257,7 +255,6 @@ export default function LeavesGrid() {
           {
             field: 'leave',
             headerName: 'Leave Details',
-            width: 1024,
             ...baseColumnStyles,
             renderCell: (params) => (
               <AccordionLeaves
@@ -400,23 +397,53 @@ export default function LeavesGrid() {
                     aria-labelledby="customized-dialog-title"
                     open={open}
                   >
-                    <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
+                    <DialogTitle
+                      sx={{
+                        m: 0,
+                        p: 2,
+                        fontWeight: 600,
+                        fontSize: '1.25rem',
+                        color: 'primary.main',
+                        borderBottom: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                      id="customized-dialog-title"
+                    >
                       Application
                     </DialogTitle>
                     <IconButton
                       aria-label="close"
                       onClick={handleDialogClose}
-                      sx={(theme) => ({
+                      sx={{
                         position: 'absolute',
                         right: 8,
                         top: 8,
-                        color: theme.palette.grey[500],
-                      })}
+                        color: (theme) => theme.palette.grey[500],
+                        '&:hover': {
+                          color: (theme) => theme.palette.grey[700],
+                          backgroundColor: (theme) => theme.palette.grey[100]
+                        },
+                        transition: 'all 0.2s ease-in-out'
+                      }}
                     >
                       <CloseIcon />
                     </IconButton>
-                    <DialogContent >
-                      <Typography>
+
+                    <DialogContent
+                      sx={{
+                        p: 3,
+                        minWidth: 400,
+                        maxHeight: 500,
+                        overflowY: 'auto'
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: '1rem',
+                          lineHeight: 1.6,
+                          color: 'text.primary'
+                        }}
+                      >
                         {params.row.application}
                       </Typography>
                     </DialogContent>
@@ -559,7 +586,7 @@ export default function LeavesGrid() {
           {/* Enhanced search and date picker section */}
           <Grid container spacing={3} alignItems="center">
             {userRole === '1' && (
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={8}>
                 <TextField
                   fullWidth
                   placeholder="Search employees..."
@@ -624,10 +651,10 @@ export default function LeavesGrid() {
             noResultsOverlay: CustomNoRowsOverlay
           }}
           sx={{
-            border: 'none',
+            border: '0.5px solid #80808047',
             '& .super-app-theme--header': {
-              backgroundColor: theme.palette.primary.main,
-              color: theme.palette.primary.contrastText,
+              backgroundColor: "#2c3ce3",
+              color: "white",
               fontSize: '1rem',
               fontWeight: 600
             },

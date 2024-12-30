@@ -9,6 +9,7 @@ export interface Punch {
     totalTime: string
     date: string
     employee: string
+    company_id: string
 }
 
 export interface TotalWorkingHours {
@@ -20,13 +21,14 @@ export interface TotalWorkingHours {
 export const fetchTotalWorkingHours = createAsyncThunk(
     'punch/fetchTotalWorkingHours',
     async ({ employeeId, date }: { employeeId: string | null; date: string }) => {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem('token');
+        const { company_id }: any = localStorage.getItem('user') || {};
         const url = `${BASE_URL}/punch/working-hours?employeeId=${employeeId}&date=${date}`
 
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                Authorization: `Bearer ${token}`,
+                "Authorization": `Bearer ${token} ${company_id}`,
                 'Content-Type': 'application/json'
             }
         })
@@ -42,13 +44,14 @@ export const fetchTotalWorkingHours = createAsyncThunk(
 export const fetchPunchByEmployeeAndDate = createAsyncThunk(
     'punch/fetchPunchByEmployeeAndDate',
     async ({ employeeId, date }: { employeeId: string | null; date: string }) => {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem('token');
+        const { company_id }: any = localStorage.getItem('user') || {};
         const url = `${BASE_URL}/punch/employee/${employeeId}?date=${date}`
 
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${token} ${company_id}`,
                 'Content-Type': 'application/json'
             }
         })
@@ -61,6 +64,7 @@ export const fetchPunchByEmployeeAndDate = createAsyncThunk(
         return responseData
     }
 )
+
 export const addPunch = createAsyncThunk('punch/addPunch', async (punchData: Punch) => {
     const token = localStorage.getItem('token')
     const response = await fetch(`${BASE_URL}/punch/create`, {

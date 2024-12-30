@@ -40,7 +40,7 @@ export const fetchFines = createAsyncThunk<{
   'fines/fetchFines',
   async ({ page, limit, keyword, month, year }: { page: number; limit: number; keyword: string; month: string; year: string; }) => {
     let token: string | null = null;
-
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
     if (typeof window !== "undefined") {
       token = localStorage?.getItem('token');
     }
@@ -48,7 +48,7 @@ export const fetchFines = createAsyncThunk<{
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/fines/getAll?page=${page}&limit=${limit}&month=${month}&year=${year}&keyword=${encodeURIComponent(keyword)}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token} ${company_id}`,
         'Content-Type': 'application/json',
       },
     });

@@ -84,11 +84,16 @@ export default function PolicyGrid() {
   }, []);
 
   function AddPolicyForm({ handleClose, policy }) {
+    const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
+    const company_id = user?.company_id;
     const [formData, setFormData] = useState({
       name: '',
       description: '',
-      file: null
+      file: null,
+      company_id: company_id
     });
+
+    console.log("company_id", company_id);
     const { capitalizeInput } = utility();
 
     const [errors, setErrors] = useState({
@@ -104,7 +109,8 @@ export default function PolicyGrid() {
           setFormData({
             name: selected.name,
             description: selected.description,
-            file: null
+            file: null,
+            company_id: selected.company_id
           });
         }
       }
@@ -157,6 +163,7 @@ export default function PolicyGrid() {
         if (formData.file) {
           formPayload.append('file', formData.file);
         }
+        formPayload.append('company_id', formData.company_id);
 
         fetch(url, {
           method,
