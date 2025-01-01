@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
     Card,
     CardContent,
@@ -8,23 +8,51 @@ import {
     ThemeProvider
 } from '@mui/material';
 import {
-    Celebration,
-    AutoAwesome,
-    Star,
     LocalFireDepartment,
-    Whatshot
+    Star,
+    Whatshot,
+    Celebration,
+    MusicNote,
+    Cake,
+    CardGiftcard
 } from '@mui/icons-material';
 
 const darkTheme = createTheme({
     palette: {
         mode: 'dark',
         background: {
+            default: '#121212',
             paper: 'rgba(18, 18, 18, 0.95)',
         },
+        primary: {
+            main: '#90caf9',
+        },
+        secondary: {
+            main: '#f48fb1',
+        },
+        text: {
+            primary: '#ffffff',
+            secondary: 'rgba(255, 255, 255, 0.7)',
+        }
     },
+    components: {
+        MuiCard: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: 'rgba(18, 18, 18, 0.95)',
+                }
+            }
+        },
+        MuiTypography: {
+            styleOverrides: {
+                root: {
+                    color: '#ffffff',
+                }
+            }
+        }
+    }
 });
 
-// Existing Balloon component remains unchanged
 const Balloon = ({ color, delay, size = 'medium' }) => {
     const sizes = {
         small: { width: '20px', height: '28px', stringHeight: '20px' },
@@ -106,29 +134,28 @@ const Firework = ({ delay }) => (
 );
 
 const NewYearWidget = () => {
-    const [countdown, setCountdown] = useState({
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0
-    });
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            const now = new Date();
-            const newYear = new Date(now.getFullYear() + 1, 0, 1);
-            const diff = newYear - now;
-
-            setCountdown({
-                days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-                hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-                minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-                seconds: Math.floor((diff % (1000 * 60)) / 1000)
-            });
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, []);
+    const celebrations = [
+        {
+            icon: <Celebration sx={{ color: '#ffd700' }} />,
+            value: 'Party Time',
+            label: 'Let\'s Celebrate'
+        },
+        {
+            icon: <MusicNote sx={{ color: '#ff6b6b' }} />,
+            value: 'Dance',
+            label: 'Feel the Beat'
+        },
+        {
+            icon: <Cake sx={{ color: '#4dabf7' }} />,
+            value: 'Treats',
+            label: 'Sweet Moments'
+        },
+        {
+            icon: <CardGiftcard sx={{ color: '#51cf66' }} />,
+            value: 'Joy',
+            label: 'Spread Happiness'
+        }
+    ];
 
     const balloonColors = [
         '#ff6b6b', '#4dabf7', '#51cf66', '#ffd43b', '#be4bdb', '#ff8787',
@@ -167,7 +194,7 @@ const NewYearWidget = () => {
                             }}
                         >
                             <LocalFireDepartment sx={{ color: '#ff6b6b', animation: 'spin 2s infinite' }} />
-                            Happy New Year 2025!
+                            🎉🎊 Hello, Year of Dreams - 2025! 🎊🎉
                             <LocalFireDepartment sx={{ color: '#ff6b6b', animation: 'spin 2s infinite' }} />
                         </Typography>
                     </Box>
@@ -178,9 +205,9 @@ const NewYearWidget = () => {
                         gap: 1,
                         my: 3
                     }}>
-                        {Object.entries(countdown).map(([unit, value]) => (
+                        {celebrations.map(({ icon, value, label }, index) => (
                             <Box
-                                key={unit}
+                                key={index}
                                 sx={{
                                     textAlign: 'center',
                                     padding: 1,
@@ -189,14 +216,37 @@ const NewYearWidget = () => {
                                     backdropFilter: 'blur(5px)',
                                     border: '1px solid rgba(255,255,255,0.1)',
                                     animation: 'pulse 2s infinite',
+                                    animationDelay: `${index * 0.2}s`,
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.3s ease',
+                                    '&:hover': {
+                                        transform: 'translateY(-5px)',
+                                    }
                                 }}
                             >
-                                <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
+                                <Box sx={{
+                                    mb: 1,
+                                    fontSize: '2rem',
+                                    animation: 'bounce 2s infinite',
+                                    animationDelay: `${index * 0.2}s`
+                                }}>
+                                    {icon}
+                                </Box>
+                                <Typography variant="h5" sx={{
+                                    color: 'white',
+                                    fontWeight: 'bold',
+                                    animation: 'colorChange 4s infinite',
+                                    animationDelay: `${index * 0.2}s`
+                                }}>
                                     {value}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: 'grey.400', textTransform: 'capitalize' }}>
-                                    {unit}
+                                <Typography variant="caption" sx={{
+                                    color: 'grey.400',
+                                    display: 'block',
+                                    marginTop: '4px'
+                                }}>
+                                    {label}
                                 </Typography>
                             </Box>
                         ))}
