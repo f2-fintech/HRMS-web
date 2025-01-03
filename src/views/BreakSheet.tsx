@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
+
 import { useDispatch, useSelector } from 'react-redux'
 import {
     Button,
@@ -17,18 +18,32 @@ import {
     Chip,
     LinearProgress,
     Paper,
+    ListItemIcon,
     Stack
 } from '@mui/material'
+import WcIcon from '@mui/icons-material/Wc';
+import Fastfood from '@mui/icons-material/Fastfood';
+import LocalCafeIcon from '@mui/icons-material/LocalCafe';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import Phone from '@mui/icons-material/Phone';
+import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt';
+import CategoryIcon from '@mui/icons-material/Category';
+
+import { AccessTime, Coffee, EventNote, Group, MoreVert, Person, Timer } from '@mui/icons-material'
+
+import type {
+    Break
+} from '@/redux/features/breaksheets/breaksSlice';
 import {
     addBreak,
-    Break,
     fetchBreaksById,
     updateBreak,
     updateLatestBreak
 } from '@/redux/features/breaksheets/breaksSlice'
-import { RootState, AppDispatch } from '@/redux/store'
+import type { RootState, AppDispatch } from '@/redux/store'
 import { apiResponse } from '../utility/apiResponse/employeesResponse'
-import { AccessTime, Coffee, EventNote, Group, MoreVert, Person, Timer } from '@mui/icons-material'
+
+
 import EditBreakForm from '@/components/breaksheet/BreakSheetForm'
 import TeamBreakSheets from '@/utility/breaksheets/TeamBreakSheets'
 import PunchInOut from './PunchInOut'
@@ -68,12 +83,22 @@ const BreakSheet: React.FC = () => {
     const employeeId = employee?.id
     const userRole = employee?.role
     const userDesignation = employee?.desg
+
     console.log('jdkjak', userDesignation)
 
-    const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
+    const breakOptions = [
+        { label: 'Washroom', icon: <WcIcon /> },
+        { label: 'Lunch', icon: <Fastfood /> },
+        { label: 'Refreshment', icon: <StorefrontIcon /> },
+        { label: 'Tea', icon: <LocalCafeIcon /> },
+        { label: 'Personal Call', icon: <Phone /> },
+        { label: 'On Field', icon: <AddLocationAltIcon /> },
+        { label: 'Other', icon: < CategoryIcon /> }
+    ];
 
     useEffect(() => {
         const today = new Date().toISOString().split('T')[0]
+
         setIsCurrentDate(selectedDate === today)
     }, [selectedDate])
 
@@ -93,6 +118,7 @@ const BreakSheet: React.FC = () => {
             const fetchEmployees = async () => {
                 try {
                     const employeeData = await apiResponse()
+
                     setEmployees(employeeData)
                 } catch (error) {
                     console.error('Error fetching employees:', error)
@@ -129,6 +155,7 @@ const BreakSheet: React.FC = () => {
         intervalRef.current = setInterval(() => {
             const currentTime = Date.now()
             const diff = currentTime - timestamp
+
             setDuration(formatTime(diff))
         }, 1000)
     }
@@ -138,6 +165,7 @@ const BreakSheet: React.FC = () => {
             clearInterval(intervalRef.current)
             intervalRef.current = null
         }
+
         setDuration('00h 00m 00s')
         setTimerRunning(false)
     }
@@ -154,17 +182,23 @@ const BreakSheet: React.FC = () => {
         const seconds = Math.floor((milliseconds / 1000) % 60)
         const minutes = Math.floor((milliseconds / (1000 * 60)) % 60)
         const hours = Math.floor((milliseconds / (1000 * 60 * 60)) % 24)
+
+
         return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`
     }
 
     const convertToMilliseconds = (timeString: string) => {
         if (!timeString) return 0
         const [hours, minutes, seconds] = timeString.split(/[hms]/).map(Number)
+
+
         return hours * 3600000 + minutes * 60000 + seconds * 1000
     }
 
     const getTimestampFromTime = (timeString: string, dateString: string) => {
         const combinedString = `${dateString} ${timeString}`
+
+
         return new Date(combinedString).getTime()
     }
 
@@ -177,6 +211,7 @@ const BreakSheet: React.FC = () => {
                 setStartTime(runningBreak.startTime)
 
                 const startTimestamp = getTimestampFromTime(runningBreak.startTime, runningBreak.date)
+
                 setStartTimestamp(startTimestamp)
                 setTimerRunning(true)
                 startBreakTimer(startTimestamp)
@@ -189,10 +224,13 @@ const BreakSheet: React.FC = () => {
     const handleStartTime = () => {
         if (!breakType) {
             alert('Please select a break type before starting your break.')
+
             return
         }
+
         if (breakType === 'Other' && !otherBreakType.trim()) {
             alert('Please specify the break type')
+
             return
         }
 
@@ -219,6 +257,7 @@ const BreakSheet: React.FC = () => {
 
         startBreakTimer(timestamp)
     }
+
     const handleEndTime = () => {
         if (startTime) {
             const now = new Date()
@@ -282,6 +321,7 @@ const BreakSheet: React.FC = () => {
     const handleEditSubmit = updatedBreak => {
         if (updatedBreak && updatedBreak._id) {
             const breakId = updatedBreak._id
+
             dispatch(updateBreak({ id: breakId, updatedBreak }))
             dispatch(fetchBreaksById(selectedEmployeeId || employeeId))
             setOpenEditForm(false)
@@ -504,20 +544,16 @@ const BreakSheet: React.FC = () => {
                                         <Grid item xs={12} md={6}>
                                             <TextField
                                                 select
-                                                label='Choose Break Type'
+                                                label="Choose Break Type"
                                                 value={breakType}
                                                 onChange={e => setBreakType(e.target.value)}
                                                 fullWidth
-                                                variant='outlined'
-                                                disabled={
-                                                    !isCurrentDate ||
-                                                    (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2')
-                                                }
-                                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                                variant="outlined"
                                             >
                                                 {breakOptions.map(option => (
-                                                    <MenuItem key={option} value={option}>
-                                                        {option}
+                                                    <MenuItem key={option.label} value={option.label}>
+                                                        <ListItemIcon>{option.icon}</ListItemIcon>
+                                                        {option.label}
                                                     </MenuItem>
                                                 ))}
                                             </TextField>
@@ -553,16 +589,46 @@ const BreakSheet: React.FC = () => {
                                                 }
                                                 fullWidth
                                                 sx={{
-                                                    py: 1.5,
-                                                    borderRadius: 2,
-                                                    boxShadow: 2,
-                                                    background: timerRunning
-                                                        ? 'linear-gradient(45deg, #FFB74D 30%, #FF9800 90%)'
-                                                        : 'linear-gradient(45deg, #4CAF50 30%, #81C784 90%)'
+                                                    backgroundColor: '#81C784',
+                                                    borderRadius: '100px',
+                                                    boxShadow: `
+      rgba(0, 0, 0, 0.2) 0px -25px 18px -14px inset,
+      rgba(0, 0, 0, 0.15) 0px 1px 2px,
+      rgba(0, 0, 0, 0.15) 0px 2px 4px,
+      rgba(0, 0, 0, 0.15) 0px 4px 8px,
+      rgba(0, 0, 0, 0.15) 0px 8px 16px,
+      rgba(0, 0, 0, 0.15) 0px 16px 32px
+    `,
+                                                    color: 'black',
+                                                    cursor: 'pointer',
+                                                    fontFamily: 'CerebriSans-Regular, -apple-system, system-ui, Roboto, sans-serif',
+                                                    py: 3.5, // Increased height by increasing vertical padding
+                                                    px: 3,
+                                                    textAlign: 'center',
+                                                    textDecoration: 'none',
+                                                    transition: 'all 200ms',
+                                                    border: 'none',
+                                                    fontSize: '16px',
+                                                    userSelect: 'none',
+                                                    WebkitUserSelect: 'none',
+                                                    touchAction: 'manipulation',
+                                                    '&:hover': {
+                                                        backgroundColor: '#4CAF50',
+                                                        boxShadow: `
+        rgba(0, 0, 0, 0.35) 0px -20px 16px -12px inset,
+        rgba(0, 0, 0, 0.25) 0px 1px 2px,
+        rgba(0, 0, 0, 0.25) 0px 2px 4px,
+        rgba(0, 0, 0, 0.25) 0px 4px 8px,
+        rgba(0, 0, 0, 0.25) 0px 8px 16px,
+        rgba(0, 0, 0, 0.25) 0px 16px 32px
+      `,
+                                                        transform: 'scale(1.02)', // Reduced scaling
+                                                    },
                                                 }}
                                             >
                                                 {timerRunning ? 'Break Running...' : 'Start Break'}
                                             </Button>
+
                                         </Grid>
 
                                         <Grid item xs={12} md={6}>
@@ -600,14 +666,46 @@ const BreakSheet: React.FC = () => {
                                                 fullWidth
                                                 sx={{
                                                     display: { xs: 'none', sm: 'block' },
-                                                    py: 1.5,
-                                                    borderRadius: 2,
-                                                    boxShadow: 2,
-                                                    background: 'linear-gradient(45deg, #F44336 30%, #EF5350 90%)'
+                                                    py: 2, // Increased height by increasing vertical padding
+                                                    px: 3, // Horizontal padding
+                                                    backgroundColor: '#EF5350',
+                                                    borderRadius: '100px', // Rounded button
+                                                    boxShadow: `
+      rgba(0, 0, 0, 0.2) 0px -25px 18px -14px inset,
+      rgba(0, 0, 0, 0.15) 0px 1px 2px,
+      rgba(0, 0, 0, 0.15) 0px 2px 4px,
+      rgba(0, 0, 0, 0.15) 0px 4px 8px,
+      rgba(0, 0, 0, 0.15) 0px 8px 16px,
+      rgba(0, 0, 0, 0.15) 0px 16px 32px
+    `,
+                                                    color: 'black',
+                                                    cursor: 'pointer',
+                                                    fontFamily: 'CerebriSans-Regular, -apple-system, system-ui, Roboto, sans-serif',
+                                                    textAlign: 'center',
+                                                    textDecoration: 'none',
+                                                    transition: 'all 200ms',
+                                                    border: 'none',
+                                                    fontSize: '16px',
+                                                    userSelect: 'none',
+                                                    WebkitUserSelect: 'none',
+                                                    touchAction: 'manipulation',
+                                                    '&:hover': {
+                                                        backgroundColor: '#F44336',
+                                                        boxShadow: `
+        rgba(0, 0, 0, 0.35) 0px -20px 16px -12px inset,
+        rgba(0, 0, 0, 0.25) 0px 1px 2px,
+        rgba(0, 0, 0, 0.25) 0px 2px 4px,
+        rgba(0, 0, 0, 0.25) 0px 4px 8px,
+        rgba(0, 0, 0, 0.25) 0px 8px 16px,
+        rgba(0, 0, 0, 0.25) 0px 16px 32px
+      `,
+                                                        transform: 'scale(1.02)', // Slight scaling on hover
+                                                    },
                                                 }}
                                             >
                                                 End Break
                                             </Button>
+
                                         </Grid>
                                     </Grid>
                                 </CardContent>

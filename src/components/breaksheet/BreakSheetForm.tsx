@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
+
 import { Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem } from '@mui/material'
 import { TimePicker } from '@mui/x-date-pickers/TimePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { Break } from '@/redux/features/breaksheets/breaksSlice'
+
+import type { Break } from '@/redux/features/breaksheets/breaksSlice'
 
 interface EditBreakFormProps {
     open: boolean
@@ -29,6 +31,7 @@ const EditBreakForm: React.FC<EditBreakFormProps> = ({ open, onClose, onSubmit, 
             const currentDate = new Date();
             const start = new Date(`${currentDate.toDateString()} ${breakToEdit.startTime}`);
             const end = new Date(`${currentDate.toDateString()} ${breakToEdit.endTime}`);
+
             setFormValues({
                 type: breakToEdit.type || '',
                 startTime: start,
@@ -46,12 +49,14 @@ const EditBreakForm: React.FC<EditBreakFormProps> = ({ open, onClose, onSubmit, 
     useEffect(() => {
         if (formValues.startTime && formValues.endTime) {
             const durationInMs = formValues.endTime.getTime() - formValues.startTime.getTime();
+
             if (durationInMs >= 0) {
                 const durationDate = new Date(durationInMs);
                 const hours = durationDate.getUTCHours();
                 const minutes = durationDate.getUTCMinutes();
                 const seconds = durationDate.getUTCSeconds();
                 const durationString = `${hours}h ${minutes}m ${seconds}s`;
+
                 setFormValues(prevState => ({
                     ...prevState,
                     duration: durationString,
@@ -62,6 +67,7 @@ const EditBreakForm: React.FC<EditBreakFormProps> = ({ open, onClose, onSubmit, 
 
     const handleTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { value } = e.target;
+
         setFormValues(prevState => ({
             ...prevState,
             type: value,
@@ -84,6 +90,7 @@ const EditBreakForm: React.FC<EditBreakFormProps> = ({ open, onClose, onSubmit, 
     const handleSubmit = () => {
         if (breakToEdit) {
             const finalBreakType = formValues.type === 'Other' ? otherBreakType : formValues.type;
+
             onSubmit({
                 ...breakToEdit,
                 type: finalBreakType,
