@@ -21,6 +21,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
   borderRadius: '16px',
   boxShadow: '0 4px 20px 0 rgba(0,0,0,0.12)',
   transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+  background: 'linear-gradient(45deg,rgb(234, 186, 136) 30%, #1a237e 90%)',
   '&:hover': {
     transform: 'translateY(-5px)',
     boxShadow: '0 12px 30px 0 rgba(0,0,0,0.16)',
@@ -121,7 +122,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
         ) : (
           <CardContent>
             <Box display='flex' justifyContent='flex-end'>
-              <IconButton aria-label='settings' onClick={handleMenuOpen}>
+              <IconButton style={{ color: 'white' }} aria-label='settings' onClick={handleMenuOpen}>
                 <MoreVertIcon />
               </IconButton>
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>

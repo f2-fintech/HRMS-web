@@ -1,11 +1,5 @@
 import { Box, Grid, Typography, Card, CardHeader, CardContent, styled } from '@mui/material';
 import { CalendarToday } from '@mui/icons-material';
-import dayjs from 'dayjs';
-
-interface AttendanceStatusListProps {
-    attendanceData: any;
-    selectedMonth: number;
-}
 
 // Styled Components
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -46,8 +40,12 @@ const StatusBadge = styled(Box, {
                 return theme.palette.success.main;
             case 'absent':
                 return theme.palette.error.main;
-            case 'late':
+            case 'on half':
                 return theme.palette.warning.main;
+            case 'on field':
+                return theme.palette.info.main;
+            case 'on wfh':
+                return theme.palette.secondary.main;
             default:
                 return theme.palette.grey[500];
         }
@@ -64,24 +62,33 @@ const StatusBadge = styled(Box, {
     };
 });
 
+interface AttendanceStatusListProps {
+    attendanceData: Record<string, string>;
+    selectedMonth: number;
+}
+
 export default function AttendanceStatusList({
     attendanceData,
     selectedMonth
 }: AttendanceStatusListProps) {
     const filteredData = Object.entries(attendanceData).filter(([date]) => {
-        const month = dayjs(date).month() + 1;
+        const month = new Date(date).getMonth() + 1;
         return month === selectedMonth;
     });
 
     const formatDate = (dateStr: string) => {
-        return dayjs(dateStr).format('MMM DD, YYYY');
+        return new Date(dateStr).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
     };
 
     return (
         <StyledCard>
             <StyledCardHeader
                 title={
-                    <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <CalendarToday sx={{ mr: 1 }} />
                         <Typography variant="h6" component="span">
                             Attendance Status
@@ -93,7 +100,7 @@ export default function AttendanceStatusList({
                 <Grid container spacing={2}>
                     {filteredData.length > 0 ? (
                         filteredData.map(([date, status]) => (
-                            <Grid item xs={12} md={6} key={date}>
+                            <Grid item xs={12} md={4} key={date}>
                                 <AttendanceItem>
                                     <Typography
                                         variant="body2"
@@ -101,7 +108,7 @@ export default function AttendanceStatusList({
                                     >
                                         {formatDate(date)}
                                     </Typography>
-                                    <StatusBadge status={status as string}>
+                                    <StatusBadge status={status}>
                                         {status}
                                     </StatusBadge>
                                 </AttendanceItem>
