@@ -1,81 +1,81 @@
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Box,
   Card,
   CardContent,
   Typography,
   IconButton,
-  Tooltip
-} from '@mui/material'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
-
-import AwardForm from '../../components/performer/AwardForm'
-import { apiResponse } from '@/utility/apiResponse/employeesResponse'
-import { utility } from '@/utility'
+  Tooltip,
+  Paper,
+  Avatar
+} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import AwardForm from '../../components/performer/AwardForm';
+import { apiResponse } from '@/utility/apiResponse/employeesResponse';
+import { utility } from '@/utility';
 
 const Award = () => {
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [employees, setEmployees] = useState([])
-  const [employeeName, setEmployeeName] = useState(null)
-  const [amount, setAmount] = useState('')
-  const [awardTitle, setAwardTitle] = useState('')
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [awardData, setAwardData] = useState(null)
-  const [userRole, setUserRole] = useState<string>("")
-  const [userId, setUserId] = useState(null)
-  const [userDesg, setUserDesg] = useState(null)
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [employeeName, setEmployeeName] = useState(null);
+  const [amount, setAmount] = useState('');
+  const [awardTitle, setAwardTitle] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [awardData, setAwardData] = useState(null);
+  const [userRole, setUserRole] = useState("");
+  const [userId, setUserId] = useState(null);
+  const [userDesg, setUserDesg] = useState(null);
 
-  const { capitalizeFirstLetter } = utility()
+  const { capitalizeFirstLetter } = utility();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-    setUserId(user.id)
-    setUserDesg(user.designation)
-    setUserRole(user.role)
+    setUserId(user.id);
+    setUserDesg(user.designation);
+    setUserRole(user.role);
 
     const fetchEmployeesAndAwards = async () => {
       try {
-        const employeesData = await apiResponse()
-        setEmployees(employeesData)
+        const employeesData = await apiResponse();
+        setEmployees(employeesData);
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards/get`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards/get`);
 
         if (!response.ok) {
-          throw new Error('Failed to fetch award')
+          throw new Error('Failed to fetch award');
         }
 
-        const awardData = await response.json()
+        const awardData = await response.json();
 
         if (Array.isArray(awardData) && awardData.length > 0) {
-          const award = awardData[0]
-          award.employee = employeesData.find(emp => emp._id === award.employee._id) || award.employee
-          setAwardData(award)
-          setAwardTitle(award.awardTitle || 'Best seller of the month')
+          const award = awardData[0];
+          award.employee = employeesData.find(emp => emp._id === award.employee._id) || award.employee;
+          setAwardData(award);
+          setAwardTitle(award.awardTitle || 'Best seller of the month');
         } else {
-          setAwardData(awardData)
+          setAwardData(awardData);
         }
 
-        setIsEditMode(!!awardData)
+        setIsEditMode(!!awardData);
       } catch (error) {
-        console.error('Error fetching data:', error)
+        console.error('Error fetching data:', error);
       }
-    }
+    };
 
-    fetchEmployeesAndAwards()
-  }, [])
+    fetchEmployeesAndAwards();
+  }, []);
 
-  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const handleFormSubmit = async (event) => {
+    event.preventDefault();
 
     try {
-      let url = `${process.env.NEXT_PUBLIC_APP_URL}/awards/performer/month`
-      const method = awardData && awardData._id ? 'PUT' : 'POST'
+      let url = `${process.env.NEXT_PUBLIC_APP_URL}/awards/performer/month`;
+      const method = awardData && awardData._id ? 'PUT' : 'POST';
 
       if (method === 'PUT') {
-        url = `${process.env.NEXT_PUBLIC_APP_URL}/awards/month/performer/${awardData._id}`
+        url = `${process.env.NEXT_PUBLIC_APP_URL}/awards/month/performer/${awardData._id}`;
       }
 
       const response = await fetch(url, {
@@ -88,56 +88,55 @@ const Award = () => {
           amount,
           awardTitle
         })
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to save award')
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save award');
       }
 
-      const newAward = await response.json()
-      const updatedEmployee = employees.find(emp => emp._id === newAward.employee)
+      const newAward = await response.json();
+      const updatedEmployee = employees.find(emp => emp._id === newAward.employee);
 
       setAwardData({
         ...newAward,
         employee: updatedEmployee || newAward.employee
-      })
+      });
 
-      setEmployeeName(null)
-      setIsFormOpen(false)
+      setEmployeeName(null);
+      setIsFormOpen(false);
     } catch (error) {
-      console.error('Error saving award:', error.message)
-      alert(`Error: ${error.message}`)
+      console.error('Error saving award:', error.message);
+      alert(`Error: ${error.message}`);
     }
-  }
+  };
 
   const handleEditClick = () => {
-    setIsEditMode(true)
+    setIsEditMode(true);
 
     if (awardData) {
-      setEmployeeName(awardData.employee)
-      setAmount(awardData.amount?.toString())
-      setAwardTitle(awardData.awardTitle || 'Best seller of the month')
+      setEmployeeName(awardData.employee);
+      setAmount(awardData.amount?.toString());
+      setAwardTitle(awardData.awardTitle || 'Best seller of the month');
     }
 
-    setIsFormOpen(true)
-  }
+    setIsFormOpen(true);
+  };
 
   const handleCloseForm = () => {
-    setIsFormOpen(false)
-    setIsEditMode(false)
-  }
+    setIsFormOpen(false);
+    setIsEditMode(false);
+  };
 
   return (
     <Box
       sx={{
-        minHeight: '40vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        // padding: '20px',
-        backgroundColor: '#f4f6f9',
-        mr: '4rem'
+        // height: 'auto',
+        // display: 'flex',
+        // alignItems: 'center',
+        // justifyContent: 'center',
+        // backgroundColor: 'red',
+        // marginRight: '4rem'
       }}
     >
       <motion.div
@@ -148,95 +147,159 @@ const Award = () => {
         <Card
           key={awardData ? awardData._id : 'no-award'}
           sx={{
-            minHeight: '200px',
+            height: "auto",
+            width: '100%',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            borderRadius: '16px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-            background: 'rgba(255,255,255,0.9)',
-            transition: 'transform 0.3s ease',
+            borderRadius: '20px',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+            background: '#1a237e',
+            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+            overflow: 'hidden',
+            position: 'relative',
             '&:hover': {
-              transform: 'translateY(-5px)'
+              transform: 'translateY(-5px)',
             }
           }}
         >
           <CardContent
             sx={{
-              height: '40vh',
-              background: 'linear-gradient(145deg, #FFEB3B 0%, #e9edf3 100%)',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              padding: '2rem',
+              backgroundColor: '#ffffff',
+              borderTopLeftRadius: '60px',
+              '&:before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '0.5rem',
+                background: 'linear-gradient(90deg, #FFC107 0%, #FF9800 100%)'
+              }
             }}
           >
             <Box>
-              <Typography variant='h4' color='primary'>
-                {awardData && awardData.employee ? (
-                  <>
-                    {userId === awardData.employee._id ? 'Congratulations' : 'Congratulate'}{' '}
-                    <span style={{
-                      fontWeight: 'bold',
-                      color: 'blue',
-                      textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
-                    }}>
-                      {capitalizeFirstLetter(awardData.employee.first_name)} {capitalizeFirstLetter(awardData.employee.last_name)} 🎉
-                    </span>
-                  </>
-                ) : (
-                  'No Award Data'
-                )}
-              </Typography>
-
-              {awardData && awardData.employee && (
+              <Paper
+                elevation={0}
+                sx={{
+                  background: 'rgba(25, 118, 210, 0.05)',
+                  padding: '1.5rem',
+                  borderRadius: '1rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(25, 118, 210, 0.1)'
+                }}
+              >
                 <Typography
-                  variant='subtitle1'
+                  variant="h4"
                   sx={{
-                    color: '#7e57c2',
-                    fontStyle: 'italic',
-                    marginTop: '8px'
+                    color: '#1a237e',
+                    fontWeight: 700,
+                    marginBottom: '0.5rem',
+                    letterSpacing: '-0.03125rem',
                   }}
                 >
-                  {awardData.employee.designation}
+                  {awardData && awardData.employee ? (
+                    <>
+                      {userId === awardData.employee._id ? 'Congratulations' : 'Congratulate'}{' '}
+                      <span
+                        style={{
+                          background: 'linear-gradient(90deg, #1a237e 0%, #3949ab 100%)',
+                          WebkitBackgroundClip: 'text',
+                          fontWeight: 800,
+                        }}
+                      >
+                        {capitalizeFirstLetter(awardData.employee.first_name)}{' '}
+                        {capitalizeFirstLetter(awardData.employee.last_name)}
+                      </span>{' '}
+                      <Avatar
+                        src={awardData.employee.image}
+                        alt={`${awardData.employee.first_name} ${awardData.employee.last_name}`}
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          marginLeft: '0.5rem',
+                          display: 'inline-block',
+                          verticalAlign: 'middle',
+                        }}
+                      />
+                    </>
+                  ) : (
+                    'No Award Data'
+                  )}
                 </Typography>
-              )}
 
-              <Typography
-                variant='h6'
-                sx={{
-                  marginTop: '16px',
-                  color: '#555',
-                  fontWeight: 'medium'
-                }}
-              >
-                {awardData?.awardTitle || 'Best seller of the month'}
-              </Typography>
+                {awardData && awardData.employee && (
+                  <Typography
+                    variant='subtitle1'
+                    sx={{
+                      color: '#5c6bc0',
+                      fontWeight: 500,
+                      letterSpacing: '0.03125rem'
+                    }}
+                  >
+                    {awardData.employee.designation}
+                  </Typography>
+                )}
+              </Paper>
 
-              <Typography
-                variant='h5'
-                color='primary'
-                sx={{
-                  marginTop: '8px',
-                  fontWeight: 'bold',
-                  color: '#1976d2'
-                }}
-              >
-                {awardData?.amount ? awardData.amount : 'N/A'}
-              </Typography>
+              <Box sx={{ marginTop: '1.5rem' }}>
+                <Typography
+                  variant='h6'
+                  sx={{
+                    color: '#3949ab',
+                    fontWeight: 600,
+                    marginBottom: '1rem',
+                    letterSpacing: '0.03125rem'
+                  }}
+                >
+                  {awardData?.awardTitle || 'Best seller of the month'}
+                </Typography>
+
+                <Paper
+                  elevation={0}
+                  sx={{
+                    background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
+                    padding: '1rem 1.5rem',
+                    borderRadius: '0.75rem',
+                    display: 'inline-block'
+                  }}
+                >
+                  <Typography
+                    variant='h5'
+                    sx={{
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      letterSpacing: '0.0625rem'
+                    }}
+                  >
+                    ₹{awardData?.amount ? awardData.amount : 'N/A'}
+                  </Typography>
+                </Paper>
+              </Box>
             </Box>
 
             <Box
               sx={{
                 position: 'absolute',
-                bottom: 16,
-                right: 16
+                bottom: '1.5rem',
+                right: '1.5rem',
+                display: 'flex',
+                alignItems: 'center'
               }}
             >
               <motion.img
                 src='/images/pages/trophy.png'
                 alt='trophy image'
-                height={70}
+                style={{
+                  height: '5rem',
+                  filter: 'drop-shadow(0 0.25rem 0.5rem rgba(0,0,0,0.2))',
+                  width: 'auto'
+                }}
                 initial={{ rotate: -10 }}
                 animate={{
                   rotate: [0, -5, 0, 5, 0],
@@ -255,15 +318,13 @@ const Award = () => {
                   onClick={handleEditClick}
                   sx={{
                     position: 'absolute',
-                    top: 1,
-                    right: 5,
+                    top: '0.2rem',
+                    right: '0.2rem',
+                    // backgroundColor: 'rgba(25, 118, 210, 0.1)',
 
-                    '&:hover': {
-                      background: 'rgba(25,118,210,0.2)'
-                    }
                   }}
                 >
-                  <MoreVertIcon color="primary" />
+                  <MoreVertIcon sx={{ color: '#1a237e' }} />
                 </IconButton>
               </Tooltip>
             )}
@@ -286,7 +347,7 @@ const Award = () => {
         />
       )}
     </Box>
-  )
-}
+  );
+};
 
-export default Award
+export default Award;
