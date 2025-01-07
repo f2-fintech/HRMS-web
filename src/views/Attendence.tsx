@@ -287,7 +287,7 @@ export default function AttendanceGrid() {
 
   const generateColumns = () => {
     const today = new Date();
-    const daysInMonth = getDaysInMonth(month, today.getFullYear());
+    const daysInMonth = getDaysInMonth(month, year);
     const visibleDays: number[] = Array.from({ length: daysInMonth }, (_, i) => i + 1).slice(startDayIndex, startDayIndex + daysToShow);
     const lastSunday = getLastSundayOfMonth(month, today.getFullYear());
 
@@ -307,7 +307,7 @@ export default function AttendanceGrid() {
       },
       // Dynamically generate columns for each day of the month
       ...visibleDays.map(day => {
-        const cellDate = new Date(today.getFullYear(), month - 1, day);
+        const cellDate = new Date(year, month - 1, day);
         const isFutureDate = cellDate > today;
 
         return {

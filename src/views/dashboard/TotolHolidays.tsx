@@ -13,66 +13,116 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Pagination
+  Pagination,
+  Box
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import type { AppDispatch, RootState } from "@/redux/store";
 import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
 
-const StyledCard = styled(Card)(({ theme }) => ({
-  background: 'linear-gradient(145deg,rgb(110, 160, 137) 0%, #e9edf3 100%)',
+// Styled components
+const GradientCard = styled(Card)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  background: 'linear-gradient(135deg, #6B8DD6 0%, #8E37D7 100%)',
+  borderRadius: theme.spacing(4),
+  boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
+  backdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255, 255, 255, 0.18)',
+  height: '700px', // Fixed height
+}));
+
+const CardContentWithFlex = styled(CardContent)(({ theme }) => ({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  padding: theme.spacing(2),
+}));
+
+const ContentCard = styled(Card)(({ theme }) => ({
+  background: 'rgba(255, 255, 255, 0.9)',
   borderRadius: theme.spacing(3),
-  boxShadow: '0 15px 30px rgba(0,0,0,0.1)',
-  overflow: 'hidden',
+  height: '500px',
+  margin: theme.spacing(2),
+  boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
 }));
 
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
-  height: 468,
-  borderRadius: theme.spacing(2),
-  background: 'linear-gradient(145deg,rgb(127, 190, 161) 0%, #e9edf3 100%)',
-  backdropFilter: 'blur(10px)',
-  border: '1px solid rgba(255,255,255,0.2)',
+  flex: 1,
+  borderRadius: theme.spacing(10),
+  background: 'transparent',
+  overflowY: 'auto',
   '&::-webkit-scrollbar': {
-    width: '0.4em',
-    height: '0.4em',
+    width: '8px',
+    height: '8px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: '4px',
   },
   '&::-webkit-scrollbar-thumb': {
-    backgroundColor: 'rgba(44, 60, 227, 0.3)',
-    borderRadius: 4,
+    background: 'linear-gradient(135deg, #6B8DD6 0%, #8E37D7 100%)',
+    borderRadius: '4px',
   },
+}));
+
+const HeaderTypography = styled(Typography)(({ theme }) => ({
+  color: '#fff',
+  fontWeight: 700,
+  textAlign: 'center',
+  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.2)',
+  position: 'relative',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: -10,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: '80px',
+    height: '4px',
+    background: '#fff',
+    borderRadius: '2px',
+  }
 }));
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
-  fontWeight: 'bold',
-  color: 'rgba(0,0,0,0.7)',
-  borderBottom: '1px solid rgba(0,0,0,0.1)',
+  fontWeight: 600,
+  color: 'rgba(0, 0, 0, 0.8)',
+  borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+  padding: theme.spacing(2),
 }));
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  transition: 'background-color 0.3s ease',
+  transition: 'all 0.3s ease',
   '&:hover': {
-    backgroundColor: 'rgba(24, 36, 162, 0.05)',
+    backgroundColor: 'rgba(107, 141, 214, 0.1)',
+    transform: 'scale(1.01)',
   },
 }));
 
-const GradientTypography = styled(Typography)(({ theme }) => ({
-  background: 'linear-gradient(45deg, #2c3ce3 30%, #1a237e 90%)',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-}));
-
-const CustomPagination = styled(Pagination)(({ theme }) => ({
+const StyledPagination = styled(Pagination)(({ theme }) => ({
+  padding: theme.spacing(3),
   '& .MuiPaginationItem-root': {
-    borderRadius: theme.spacing(2),
-    margin: theme.spacing(0, 1),
-    transition: 'all 0.3s ease',
+    color: '#fff',
     '&.Mui-selected': {
-      background: 'linear-gradient(45deg, #2c3ce3 30%, #1a237e 90%)',
-      color: 'white',
+      background: 'rgba(255, 255, 255, 0.2)',
+      fontWeight: 'bold',
     },
     '&:hover': {
-      background: 'rgba(44, 60, 227, 0.1)',
+      background: 'rgba(255, 255, 255, 0.1)',
     },
+  },
+}));
+
+const StyledChip = styled(Chip)(({ theme }) => ({
+  fontWeight: 600,
+  borderRadius: theme.spacing(2),
+  padding: theme.spacing(0.5),
+  background: 'linear-gradient(135deg, #6B8DD6 0%, #8E37D7 100%)',
+  color: '#fff',
+  border: 'none',
+  '& .MuiChip-label': {
+    padding: '0 16px',
   },
 }));
 
@@ -80,7 +130,7 @@ const HolidaysTable = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { holidays, total } = useSelector((state: RootState) => state.holidays);
   const [page, setPage] = useState(1);
-  const limit = 5;
+  const limit = 10;
 
   const totalPages = Math.ceil(total / limit);
 
@@ -92,119 +142,57 @@ const HolidaysTable = () => {
     setPage(value);
   };
 
-  const getChipColor = (title: string) => {
-    switch (title.toLowerCase()) {
-      case 'pending':
-        return 'warning';
-      case 'inactive':
-        return 'error';
-      default:
-        return 'success';
-    }
-  };
-
   return (
-    <StyledCard sx={{ height: '116vh' }}>
+    <GradientCard>
       <CardHeader
-        sx={{
-          paddingTop: '5vh',
-          textAlign: 'center',
-          '& .MuiCardHeader-title': {
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }
-        }}
+        sx={{ py: 4 }}
         title={
-          <GradientTypography
-            variant="h3"
-            sx={{
-              fontWeight: 600,
-              position: 'relative',
-              '&::after': {
-                content: '""',
-                position: 'absolute',
-                bottom: -10,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '100px',
-                height: '4px',
-                background: 'linear-gradient(45deg, #2c3ce3 30%, #1a237e 90%)',
-                borderRadius: '2px',
-              }
-            }}
-          >
-            Holidays
-          </GradientTypography>
+          <HeaderTypography variant="h4">
+            Holiday Schedule
+          </HeaderTypography>
         }
       />
-      <CardContent sx={{ marginTop: '3vh' }}>
-        <StyledTableContainer component={Paper} elevation={0}>
-          <Table stickyHeader aria-label="holidays table">
-            <TableHead>
-              <TableRow sx={{ height: '12vh' }}>
-                <StyledTableCell>Days</StyledTableCell>
-                <StyledTableCell>Start Date</StyledTableCell>
-                <StyledTableCell>End Date</StyledTableCell>
-                <StyledTableCell>Title</StyledTableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {holidays.map((row, index) => (
-                <StyledTableRow key={index} hover sx={{ height: '12.2vh' }}>
-                  <TableCell>{row.day}</TableCell>
-                  <TableCell>{row.start_date}</TableCell>
-                  <TableCell>{row.end_date}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={row.title}
-                      // color={getChipColor(row.title)}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontWeight: 'bold',
-                        borderRadius: 2,
-                        '& .MuiChip-label': {
-                          padding: '0 10px',
-                        }
-                      }}
-                    />
-                  </TableCell>
-                </StyledTableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </StyledTableContainer>
-        <CustomPagination
-          count={totalPages}
-          page={page}
-          onChange={handlePageChange}
-          color="primary"
-          size="large"
-          sx={{
-            marginTop: 12,
-            display: 'flex',
-            justifyContent: 'center',
-            position: 'relative',
-            '.MuiPaginationItem-root': {
-              fontSize: '1.5rem',
-            },
-            'li:first-of-type': {
-              position: 'absolute',
-              left: 0,
-              top: '50%',
-              transform: 'translateY(-50%)',
-            },
-            'li:last-of-type': {
-              position: 'absolute',
-              right: 0,
-              top: '50%',
-              transform: 'translateY(-50%)',
-            },
-          }}
-        />
-      </CardContent>
-    </StyledCard>
+      <CardContentWithFlex>
+        <ContentCard>
+          <StyledTableContainer>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <StyledTableCell>Days</StyledTableCell>
+                  <StyledTableCell>Start Date</StyledTableCell>
+                  <StyledTableCell>End Date</StyledTableCell>
+                  <StyledTableCell>Title</StyledTableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {holidays.map((row, index) => (
+                  <StyledTableRow key={index}>
+                    <StyledTableCell>{row.day}</StyledTableCell>
+                    <StyledTableCell>{row.start_date}</StyledTableCell>
+                    <StyledTableCell>{row.end_date}</StyledTableCell>
+                    <StyledTableCell>
+                      <StyledChip
+                        label={row.title}
+                        size="medium"
+                      />
+                    </StyledTableCell>
+                  </StyledTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </StyledTableContainer>
+        </ContentCard>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <StyledPagination
+            count={totalPages}
+            page={page}
+            onChange={handlePageChange}
+            size="large"
+            shape="rounded"
+          />
+        </Box>
+      </CardContentWithFlex>
+    </GradientCard>
   );
 };
 
