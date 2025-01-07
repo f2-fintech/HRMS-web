@@ -373,7 +373,7 @@ export default function LeavesGrid() {
           {
             field: 'leave',
             headerName: 'Leave Details',
-            width: 1024,
+            flex: 1,
             headerAlign: 'center',
             headerClassName: 'super-app-theme--header',
             renderCell: renderAccordion
@@ -678,8 +678,8 @@ export default function LeavesGrid() {
       </Box>
 
       <Box sx={{ width: '100%', position: 'relative' }}>
-
         <DataGrid
+          autoHeight
           loading={loading}
           getRowHeight={() => 'auto'}
           sx={{
