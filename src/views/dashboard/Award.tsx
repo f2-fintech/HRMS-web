@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react'
+
 import { motion } from 'framer-motion'
 
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  IconButton,
-  Tooltip
-} from '@mui/material'
+import { Box, Card, CardContent, Typography, IconButton, Tooltip } from '@mui/material'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 
 import AwardForm from '../../components/performer/AwardForm'
@@ -23,7 +17,7 @@ const Award = () => {
   const [awardTitle, setAwardTitle] = useState('')
   const [isEditMode, setIsEditMode] = useState(false)
   const [awardData, setAwardData] = useState(null)
-  const [userRole, setUserRole] = useState<string>("")
+  const [userRole, setUserRole] = useState<string>('')
   const [userId, setUserId] = useState(null)
   const [userDesg, setUserDesg] = useState(null)
 
@@ -39,6 +33,7 @@ const Award = () => {
     const fetchEmployeesAndAwards = async () => {
       try {
         const employeesData = await apiResponse()
+
         setEmployees(employeesData)
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards/get`)
@@ -51,6 +46,7 @@ const Award = () => {
 
         if (Array.isArray(awardData) && awardData.length > 0) {
           const award = awardData[0]
+
           award.employee = employeesData.find(emp => emp._id === award.employee._id) || award.employee
           setAwardData(award)
           setAwardTitle(award.awardTitle || 'Best seller of the month')
@@ -92,6 +88,7 @@ const Award = () => {
 
       if (!response.ok) {
         const errorData = await response.json()
+
         throw new Error(errorData.message || 'Failed to save award')
       }
 
@@ -135,6 +132,7 @@ const Award = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+
         // padding: '20px',
         backgroundColor: '#f4f6f9',
         mr: '4rem'
@@ -176,12 +174,15 @@ const Award = () => {
                 {awardData && awardData.employee ? (
                   <>
                     {userId === awardData.employee._id ? 'Congratulations' : 'Congratulate'}{' '}
-                    <span style={{
-                      fontWeight: 'bold',
-                      color: 'blue',
-                      textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
-                    }}>
-                      {capitalizeFirstLetter(awardData.employee.first_name)} {capitalizeFirstLetter(awardData.employee.last_name)} 🎉
+                    <span
+                      style={{
+                        fontWeight: 'bold',
+                        color: 'blue',
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {capitalizeFirstLetter(awardData.employee.first_name)}{' '}
+                      {capitalizeFirstLetter(awardData.employee.last_name)} 🎉
                     </span>
                   </>
                 ) : (
@@ -243,7 +244,7 @@ const Award = () => {
                   transition: {
                     duration: 2,
                     repeat: Infinity,
-                    ease: "easeInOut"
+                    ease: 'easeInOut'
                   }
                 }}
               />
@@ -263,7 +264,7 @@ const Award = () => {
                     }
                   }}
                 >
-                  <MoreVertIcon color="primary" />
+                  <MoreVertIcon color='primary' />
                 </IconButton>
               </Tooltip>
             )}
