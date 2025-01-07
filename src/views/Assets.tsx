@@ -412,7 +412,7 @@ export default function AssestsGrid() {
         {
           field: 'assets',
           headerName: 'Assets Details',
-          width: 1020,
+          flex: 1,
           headerAlign: 'center',
           headerClassName: 'super-app-theme--header',
           renderCell: (params) => {

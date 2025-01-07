@@ -181,7 +181,7 @@ const FineListing = () => {
         {
           field: 'fine',
           headerName: 'Fine Details',
-          width: 1020,
+          flex: 1,
           headerAlign: 'center',
           headerClassName: 'super-app-theme--header',
           renderCell: (params) => {
@@ -443,6 +443,7 @@ const FineListing = () => {
 
         <Box sx={{ height: 500, width: '100%' }}>
           <DataGrid
+            autoHeight
             loading={loading}
 
             getRowHeight={() => 'auto'}
