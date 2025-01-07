@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 import { motion } from 'framer-motion';
 import {
   Box,
@@ -11,6 +12,7 @@ import {
   Avatar
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+
 import AwardForm from '../../components/performer/AwardForm';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 import { utility } from '@/utility';
@@ -39,6 +41,7 @@ const Award = () => {
     const fetchEmployeesAndAwards = async () => {
       try {
         const employeesData = await apiResponse();
+
         setEmployees(employeesData);
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards/get`);
@@ -51,6 +54,7 @@ const Award = () => {
 
         if (Array.isArray(awardData) && awardData.length > 0) {
           const award = awardData[0];
+
           award.employee = employeesData.find(emp => emp._id === award.employee._id) || award.employee;
           setAwardData(award);
           setAwardTitle(award.awardTitle || 'Best seller of the month');
@@ -92,6 +96,7 @@ const Award = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+
         throw new Error(errorData.message || 'Failed to save award');
       }
 
@@ -306,7 +311,7 @@ const Award = () => {
                   transition: {
                     duration: 2,
                     repeat: Infinity,
-                    ease: "easeInOut"
+                    ease: 'easeInOut'
                   }
                 }}
               />
@@ -320,6 +325,7 @@ const Award = () => {
                     position: 'absolute',
                     top: '0.2rem',
                     right: '0.2rem',
+
                     // backgroundColor: 'rgba(25, 118, 210, 0.1)',
 
                   }}

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+
 import { useDispatch, useSelector } from 'react-redux';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 import Tooltip from '@mui/material/Tooltip';
 import Box from '@mui/material/Box';
 import { motion } from 'framer-motion';
@@ -35,11 +37,13 @@ const LocationWisePerformer = () => {
   // Fetch user details and employees on component mount
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+
     setUser(storedUser);
 
     const fetchEmployees = async () => {
       try {
         const data = await apiResponse();
+
         setEmployees(data);
       } catch (error) {
         console.error('Error fetching employees:', error);
@@ -56,6 +60,7 @@ const LocationWisePerformer = () => {
     if (awards[index]) {
       setIsEditMode(true);
       const award = awards[index];
+
       const employee = employees.find(
         (emp) => emp._id === (award.employee?._id || award.employee)
       );
@@ -120,9 +125,9 @@ const LocationWisePerformer = () => {
     <Box
       position="relative"
       sx={{
-        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        // background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
         minHeight: '100vh',
-        // padding: '20px'
+        p: 3
       }}
     >
       <motion.div
@@ -130,230 +135,331 @@ const LocationWisePerformer = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <Card
-          sx={{
-            borderRadius: '16px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-            background: 'rgba(255,255,255,0.9)'
-          }}
-        >
-          <CardContent>
-            {loading && (
-              <Typography
-                variant="h6"
-                color="textSecondary"
-                align="center"
-                sx={{ padding: '20px' }}
-              >
-                Loading awards...
-              </Typography>
-            )}
-            {error && (
-              <Typography
-                color="error"
-                align="center"
-                sx={{ padding: '20px' }}
-              >
-                {error}
-              </Typography>
-            )}
+        {loading && (
+          <Typography variant="h6" color="textSecondary" align="center" sx={{ padding: '20px' }}>
+            Loading awards...
+          </Typography>
+        )}
+        {error && (
+          <Typography color="error" align="center" sx={{ padding: '20px' }}>
+            {error}
+          </Typography>
+        )}
 
-            <Box
-              display="flex"
-              flexDirection="column"
-              gap={4}
+        <Box display="flex" flexDirection="column" gap={4}>
+          {[...awards, ...new Array(3 - awards.length).fill(null)].map((award, index) => (
+            <motion.div
+              key={award ? award._id : index}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: index * 0.1 }}
             >
-              {[...awards, ...new Array(3 - awards.length).fill(null)].map((award, index) => (
-                <motion.div
-                  key={award ? award._id : index}
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card
+              <Card
+                sx={{
+                  borderRadius: '16px',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                  transition: 'all 0.3s ease',
+                  position: 'relative',
+                  bgcolor: 'white',
+                  color: 'inherit',
+                  overflow: 'hidden',
+                  '&:hover': {
+                    transform: 'translateY(-10px)',
+                    boxShadow: '0 12px 48px rgba(0,0,0,0.15)',
+                    '& .edit-button': {
+                      opacity: 1,
+                      visibility: 'visible',
+                    }
+                  }
+                }}
+              >
+                {/* Edit Button */}
+                {(user?.designation === 'Sr. Operation Manager' || user?.role === '1') && (
+                  <IconButton
+                    className="edit-button"
+                    onClick={() => handleMenuClick(index)}
                     sx={{
-                      borderRadius: '12px',
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.08)',
-                      transition: 'transform 0.3s ease',
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      zIndex: 2,
+                      p: 1,
+                      backgroundColor: 'transparent',
+                      boxShadow: 'none',
                       '&:hover': {
-                        transform: 'translateY(-5px)'
-                      }
+                        backgroundColor: 'rgba(255, 255, 255, 1)',
+                        boxShadow: '0px 2px 8px rgba(0,0,0,0.2)',
+                      },
                     }}
                   >
-                    <CardContent
-                      sx={{
-                        position: 'relative',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2,
-                        height: '35vh',
-                        background: 'linear-gradient(145deg, #FE9496 0%, #e9edf3 100%)'
+                    <MoreVertIcon sx={{ color: '#FFFFFF' }} />
+                  </IconButton>
+
+
+
+                )}
+
+                {/* Blue Header section */}
+                <Box
+                  sx={{
+                    background: 'linear-gradient(135deg, #357ABD 60%, #4A90E2 40%)',
+                    height: '80px',
+                    position: 'relative',
+                    mb: 8,
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    px: 3
+                  }}
+                >
+                  {/* Trophy icon only, removed index number */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 16,
+                      right: 30,
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <motion.img
+                      src="/images/pages/trophy.png"
+                      alt="trophy"
+                      style={{
+                        height: 50,
+                        opacity: 0.9
+                      }}
+                      initial={{ scale: 0.8 }}
+                      animate={{
+                        rotate: [0, -5, 0, 5, 0],
+                        transition: {
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }
+                      }}
+                    />
+                  </Box>
+
+                  {/* Employee image */}
+                  {award?.employee?.image ? (
+                    <motion.div
+                      initial={{ y: 30, opacity: 0 }}
+                      animate={{ y: 40, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      style={{
+                        position: 'absolute',
+                        bottom: '18px',
+                        left: '22px'
                       }}
                     >
-                      {/* Header with Location */}
                       <Box
-                        mb={2}
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="space-between"
+                        sx={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: '40px',
+                          border: '2px solid white',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          overflow: 'hidden'
+                        }}
                       >
-                        {/* Employee Image */}
-                        {award?.employee?.image && (
-                          <motion.img
-                            src={award.employee.image}
-                            alt={`${award.employee.first_name} ${award.employee.last_name}`}
-                            style={{
-                              width: '50px',
-                              height: '50px',
-                              borderRadius: '50%',
-                              border: '3px solid #1976d2',
-                              objectFit: 'cover'
-                            }}
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                          />
-                        )}
+                        <img
+                          src={award.employee.image}
+                          alt={`${award.employee.first_name} ${award.employee.last_name}`}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
 
-                        {/* Location */}
-                        <Typography
-                          variant="h6"
-                          sx={{
-                            fontWeight: 'bold',
-                            textTransform: 'uppercase',
-                            flexGrow: 1,
-                            textAlign: 'center',
-                            color: '#1976d2',
-                            letterSpacing: '1px'
                           }}
-                        >
-                          {award?.employee?.location || '---'}
-                        </Typography>
+                        />
                       </Box>
+                    </motion.div>
+                  ) : null}
+                </Box>
 
-                      <Box display="flex" justifyContent="space-between" width="100%">
-                        {/* Award Information */}
-                        <div>
-                          <Typography
-                            variant="h5"
-                            sx={{
-                              fontWeight: 500,
-                              color: '#333',
-                              marginBottom: 1
-                            }}
-                          >
-                            {award?.employee ? (
-                              <>
-                                {user?.id === award.employee._id
-                                  ? 'Congratulations'
-                                  : 'Congratulate'}{' '}
-                                <span
-                                  style={{
-                                    fontWeight: 'bold',
-                                    color: '#1976d2'
-                                  }}
-                                >
-                                  {capitalizeFirstLetter(award.employee.first_name)}{' '}
-                                  {capitalizeFirstLetter(award.employee.last_name)}
-                                </span>
-                                ! 🎉
-                              </>
-                            ) : (
-                              'No Award Data'
-                            )}
-                          </Typography>
-                          {award?.employee && (
-                            <Typography
-                              sx={{
-                                fontWeight: 'normal',
-                                color: '#7e57c2',
-                                fontStyle: 'italic',
-                                marginTop: '4px',
-                              }}
-                            >
-                              {award.employee.designation}
-                            </Typography>
-                          )}
-                          <Typography
-                            variant="h6"
-                            sx={{
-                              fontSize: '1rem',
-                              marginTop: '8px',
-                              wordWrap: 'break-word',
-                              wordBreak: 'break-all',
-                              color: '#555'
-                            }}
-                          >
-                            {award?.awardTitle || 'Best seller of the month'}
-                          </Typography>
-                        </div>
-
-                        {/* Add/Edit Button */}
-                        {(user?.designation === 'Sr. Operation Manager' || user?.role === '1') && (
-                          <Tooltip title="Add/Edit">
-                            <IconButton
-                              onClick={() => handleMenuClick(index)}
-                              sx={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8,
-                                zIndex: 10,
-                                background: 'rgba(25,118,210,0.1)',
-                                '&:hover': {
-                                  background: 'rgba(25,118,210,0.2)'
-                                }
-                              }}
-                            >
-                              <MoreVertIcon color="primary" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Box>
-
-                      {/* Award Amount */}
+                {/* Content area */}
+                <Box sx={{ px: 3, pb: 3 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      mb: 2
+                    }}
+                  >
+                    {/* Name and Role */}
+                    <Box>
                       <Typography
                         variant="h5"
-                        color="primary"
                         sx={{
-                          wordWrap: 'break-word',
-                          wordBreak: 'break-all',
-                          fontWeight: 'bold',
-                          marginTop: 'auto'
+                          fontWeight: 600,
+
+                          // color: '#2C3E50',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          fontFamily: "'Pacifico', cursive",
+                          fontSize: '1.5rem',
+                          color: 'black',
+                          textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)'
                         }}
                       >
-                        {award?.amount ? award.amount : 'N/A'}
+                        {award?.employee ? (
+                          <>
+                            {capitalizeFirstLetter(award.employee.first_name)}{' '}
+                            {capitalizeFirstLetter(award.employee.last_name)}
+                            <span>✨</span>
+                          </>
+                        ) : (
+                          'No Award Data'
+                        )}
                       </Typography>
+                      {award?.employee && (
+                        <Typography
+                          sx={{
+                            color: '#64748B',
+                            mt: 0.5,
+                            fontWeight: 500
+                          }}
+                        >
+                          {award.employee.designation}
+                        </Typography>
+                      )}
+                    </Box>
 
-                      <motion.img
-                        src="/images/pages/trophy.png"
-                        alt="trophy"
-                        style={{
-                          height: 80,
-                          position: 'absolute',
-                          right: 20,
-                          bottom: 20,
-                          opacity: 0.7
+                    {/* Location badge */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        background: 'rgba(74,144,226,0.1)',
+                        px: 2,
+                        py: 1,
+                        borderRadius: '20px'
+                      }}
+                    >
+                      <LocationOnIcon sx={{ color: '#4A90E2', fontSize: '1rem' }} />
+                      <Typography
+                        sx={{
+                          color: '#4A90E2',
+                          fontWeight: 600,
+                          fontSize: '0.875rem'
                         }}
-                        initial={{ rotate: -10 }}
-                        animate={{
-                          rotate: [0, -5, 0, 5, 0],
-                          transition: {
-                            duration: 2,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                          }
+                      >
+                        {award?.employee?.location.toUpperCase() || '---'}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Disbursed Amount Section */}
+                  <Box sx={{ mt: 4 }}>
+                    <Typography
+                      sx={{
+                        color: '#64748B',
+                        fontWeight: 500,
+                        mb: 1
+                      }}
+                    >
+                      Disbursed Amount
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <Typography
+                        variant="h4"
+                        sx={{
+                          color: '#4A90E2',
+                          fontWeight: 700
+                        }}
+                      >
+                        ₹{award?.amount || 'N/A'}
+                      </Typography>
+                    </Box>
+
+                    {/* Progress bar */}
+                    <Box
+                      sx={{
+                        mt: 2,
+                        width: '100%',
+                        height: '6px',
+                        background: '#E2E8F0',
+                        borderRadius: '3px',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          background: 'linear-gradient(90deg, #4A90E2 0%, #357ABD 100%)',
+                          borderRadius: '3px',
+                          animation: 'pulse 2s infinite'
                         }}
                       />
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
+                    </Box>
+
+                    {/* Status */}
+                    <Box
+                      sx={{
+                        mt: 3,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          px: 2,
+                          py: 1,
+                          borderRadius: '16px',
+                          background: 'rgba(16,185,129,0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: '#10B981',
+                            animation: 'pulse 2s infinite'
+                          }}
+                        />
+                        <Typography
+                          sx={{
+                            color: '#10B981',
+                            fontWeight: 600,
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          DISBURSED
+                        </Typography>
+                      </Box>
+                      <Typography
+                        sx={{
+                          color: '#64748B',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        Achievement Unlocked
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </Card>
+            </motion.div>
+          ))}
+        </Box>
       </motion.div>
 
-      {/* Award Form */}
+      {/* Award form */}
       {selectedAwardIndex !== null && (
         <AwardForm
           employees={employees}
