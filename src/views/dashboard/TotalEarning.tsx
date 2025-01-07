@@ -1,40 +1,6 @@
-import { Card } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import React, { useEffect, useRef, memo } from 'react';
 
-// Styled Card component with gradient background and white content area
-const GradientCard = styled(Card)(({ theme }) => ({
-  height: "410px",
-  overflowY: "scroll",
-  background: `linear-gradient(135deg, 
-    #6a82fb 0%,
-    #fc5c7d 100%)`,
-  borderRadius: theme.shape.borderRadius,
-  boxShadow: theme.shadows[3],
-  '&::-webkit-scrollbar': {
-    width: '8px',
-  },
-  '&::-webkit-scrollbar-track': {
-    background: 'transparent',
-  },
-  '&::-webkit-scrollbar-thumb': {
-    background: '#fc5c7d',
-    borderRadius: '4px',
-  },
-  '&:hover': {
-    boxShadow: theme.shadows[6],
-    transition: 'box-shadow 0.3s ease-in-out',
-  },
-  padding: theme.spacing(2),
-}));
-
-// Inner container with white background
-const WhiteContainer = styled('div')({
-  backgroundColor: '#ffffff',
-  borderRadius: 'inherit',
-  height: '100%',
-  padding: '16px',
-});
+import { Card } from '@mui/material';
 
 // Global flag to check if the script has been loaded
 let scriptLoaded = false;
@@ -76,22 +42,22 @@ function TradingViewWidget() {
       scriptLoaded = true;
     }
 
+    // Cleanup function
     return () => {
-      // Cleanup function remains empty as per original code
+
     };
   }, []);
 
   return (
-    <GradientCard>
-      <WhiteContainer>
-        <div
-          className="tradingview-widget-container"
-          ref={container}
-        >
-          <div className="tradingview-widget-container__widget"></div>
-        </div>
-      </WhiteContainer>
-    </GradientCard>
+    <Card sx={{ height: "380px", overflowY: "scroll" }}>
+      <div
+        className="tradingview-widget-container"
+        ref={container}
+      >
+        <div className="tradingview-widget-container__widget"></div>
+      </div>
+    </Card>
+
   );
 }
 
