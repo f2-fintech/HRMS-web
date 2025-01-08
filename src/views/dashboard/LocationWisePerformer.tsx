@@ -1,152 +1,197 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
 
-import { useDispatch, useSelector } from 'react-redux';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import Tooltip from '@mui/material/Tooltip';
-import Box from '@mui/material/Box';
-import { motion } from 'framer-motion';
+import { useDispatch, useSelector } from 'react-redux'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import IconButton from '@mui/material/IconButton'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+import Tooltip from '@mui/material/Tooltip'
+import Box from '@mui/material/Box'
+import { motion } from 'framer-motion'
 
-import { utility } from '@/utility';
-import { apiResponse } from '@/utility/apiResponse/employeesResponse';
-import { fetchAwards, addAward } from '@/redux/features/performer/performereSlice';
-import type { AppDispatch, RootState } from '@/redux/store';
+import { utility } from '@/utility'
+import { apiResponse } from '@/utility/apiResponse/employeesResponse'
+import { fetchAwards, addAward } from '@/redux/features/performer/performereSlice'
+import type { AppDispatch, RootState } from '@/redux/store'
 
-import AwardForm from '@/components/performer/AwardForm';
-import { formatAmount } from '@/utility/formatAmount/formatAmount';
+import AwardForm from '@/components/performer/AwardForm'
+import { formatAmount } from '@/utility/formatAmount/formatAmount'
+
+// Define interfaces for type safety
+interface Employee {
+  _id: string
+  first_name: string
+  last_name: string
+  designation: string
+  location: string
+  image?: string
+}
+
+interface Award {
+  _id: string
+  employee: Employee | string
+  amount: number
+  awardTitle: string
+}
+
+interface User {
+  id: string
+  designation: string
+  role: string
+}
 
 const LocationWisePerformer = () => {
-  const dispatch: AppDispatch = useDispatch();
-  const { awards, loading, error } = useSelector((state: RootState) => state.awards);
+  const dispatch: AppDispatch = useDispatch()
+  const { awards, loading, error } = useSelector((state: RootState) => state.awards)
 
-  const [selectedAwardIndex, setSelectedAwardIndex] = useState<number | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
-  const [amount, setAmount] = useState<string>('');
-  const [awardTitle, setAwardTitle] = useState('');
+  // State declarations
+  const [selectedAwardIndex, setSelectedAwardIndex] = useState<number | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
+  const [amount, setAmount] = useState<string>('')
+  const [awardTitle, setAwardTitle] = useState('')
+  const [user, setUser] = useState<User | null>(null)
 
-  const [user, setUser] = useState<{ id: string; designation: string; role: string } | null>(null);
+  const { capitalizeFirstLetter } = utility()
 
-  const { capitalizeFirstLetter } = utility();
+  const getStatusStyles = (status: string | undefined) => {
+    // Handle empty or undefined status
+    if (!status) {
+      return {
+        background: 'rgba(156, 163, 175, 0.1)',
+        textColor: '#6B7280',
+        pulseColor: '#6B7280'
+      };
+    }
 
-  // Fetch user details and employees on component mount
+    // Convert status to lowercase for case-insensitive comparison
+    const statusLower = status.toLowerCase();
+
+    if (statusLower === 'approved') {
+      return {
+        background: 'rgba(255, 193, 7, 0.1)',
+        textColor: '#FFC107',
+        pulseColor: '#FFC107'
+      };
+    }
+
+    if (statusLower === 'disbursed') {
+      return {
+        background: 'rgba(16,185,129,0.1)',
+        textColor: '#10B981',
+        pulseColor: '#10B981'
+      };
+    }
+
+
+
+    return {
+      background: 'rgb(248, 225, 183)',
+      textColor: 'rgb(117, 78, 26)',
+      pulseColor: 'rgb(117, 78, 26)'
+    };
+  };
+
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
-    setUser(storedUser);
+    setUser(storedUser)
 
     const fetchEmployees = async () => {
       try {
-        const data = await apiResponse();
+        const data = await apiResponse()
 
-        setEmployees(data);
+        setEmployees(data)
       } catch (error) {
-        console.error('Error fetching employees:', error);
+        console.error('Error fetching employees:', error)
       }
-    };
+    }
 
-    fetchEmployees();
-    dispatch(fetchAwards());
-  }, [dispatch]);
+    fetchEmployees()
+    dispatch(fetchAwards())
+  }, [dispatch])
 
+  // Handle menu click for editing
   const handleMenuClick = (index: number) => {
-    setSelectedAwardIndex(index);
+    setSelectedAwardIndex(index)
 
     if (awards[index]) {
-      setIsEditMode(true);
-      const award = awards[index];
+      setIsEditMode(true)
+      const award = awards[index]
 
-      const employee = employees.find(
-        (emp) => emp._id === (award.employee?._id || award.employee)
-      );
+      const employee = employees.find(emp => emp._id === (award.employee?._id || award.employee))
 
-      setSelectedEmployee(employee || null);
-      setAmount(award.amount?.toString() || '');
-      setAwardTitle(award.awardTitle || '');
+      setSelectedEmployee(employee || null)
+      setAmount(award.amount?.toString() || '')
+      setAwardTitle(award.awardTitle || '')
     } else {
-      setIsEditMode(false);
-      setSelectedEmployee(null);
-      setAmount('');
-      setAwardTitle('');
+      setIsEditMode(false)
+      setSelectedEmployee(null)
+      setAmount('')
+      setAwardTitle('')
     }
-  };
+  }
 
+  // Handle form submission
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+    event.preventDefault()
 
     try {
       const url =
         isEditMode && selectedAwardIndex !== null
           ? `${process.env.NEXT_PUBLIC_APP_URL}/awards/${awards[selectedAwardIndex]._id}`
-          : `${process.env.NEXT_PUBLIC_APP_URL}/awards`;
+          : `${process.env.NEXT_PUBLIC_APP_URL}/awards`
 
-      const method = isEditMode && selectedAwardIndex !== null ? 'PUT' : 'POST';
+      const method = isEditMode && selectedAwardIndex !== null ? 'PUT' : 'POST'
 
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           employee: selectedEmployee ? selectedEmployee._id : '',
           amount: amount,
-          awardTitle: awardTitle,
-        }),
-      });
+          awardTitle: awardTitle
+        })
+      })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const newAward = await response.json();
+      const newAward = await response.json()
 
       if (isEditMode) {
-        dispatch(fetchAwards());
+        dispatch(fetchAwards())
       } else {
-        dispatch(addAward({ ...newAward, employee: selectedEmployee }));
+        dispatch(addAward({ ...newAward, employee: selectedEmployee }))
       }
     } catch (error) {
-      console.error('Error saving award:', error);
+      console.error('Error saving award:', error)
     }
 
-    setSelectedAwardIndex(null);
-  };
+    setSelectedAwardIndex(null)
+  }
 
+  // Handle form close
   const handleCloseForm = () => {
-    setSelectedAwardIndex(null);
-  };
+    setSelectedAwardIndex(null)
+  }
 
   return (
     <Box
-      position="relative"
+      position='relative'
       sx={{
-        // background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
         minHeight: '100vh',
         p: 3
       }}
     >
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {loading && (
-          <Typography variant="h6" color="textSecondary" align="center" sx={{ padding: '20px' }}>
-            Loading awards...
-          </Typography>
-        )}
-        {error && (
-          <Typography color="error" align="center" sx={{ padding: '20px' }}>
-            {error}
-          </Typography>
-        )}
-
-        <Box display="flex" flexDirection="column" gap={4}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+        <Box display='flex' flexDirection='column' gap={4}>
           {[...awards, ...new Array(3 - awards.length).fill(null)].map((award, index) => (
             <motion.div
               key={award ? award._id : index}
@@ -168,7 +213,7 @@ const LocationWisePerformer = () => {
                     boxShadow: '0 12px 48px rgba(0,0,0,0.15)',
                     '& .edit-button': {
                       opacity: 1,
-                      visibility: 'visible',
+                      visibility: 'visible'
                     }
                   }
                 }}
@@ -176,7 +221,7 @@ const LocationWisePerformer = () => {
                 {/* Edit Button */}
                 {(user?.designation === 'Sr. Operation Manager' || user?.role === '1') && (
                   <IconButton
-                    className="edit-button"
+                    className='edit-button'
                     onClick={() => handleMenuClick(index)}
                     sx={{
                       position: 'absolute',
@@ -188,15 +233,12 @@ const LocationWisePerformer = () => {
                       boxShadow: 'none',
                       '&:hover': {
                         backgroundColor: 'rgba(255, 255, 255, 1)',
-                        boxShadow: '0px 2px 8px rgba(0,0,0,0.2)',
-                      },
+                        boxShadow: '0px 2px 8px rgba(0,0,0,0.2)'
+                      }
                     }}
                   >
                     <MoreVertIcon sx={{ color: '#FFFFFF' }} />
                   </IconButton>
-
-
-
                 )}
 
                 {/* Blue Header section */}
@@ -211,19 +253,19 @@ const LocationWisePerformer = () => {
                     px: 3
                   }}
                 >
-                  {/* Trophy icon only, removed index number */}
+                  {/* Trophy icon */}
                   <Box
                     sx={{
                       position: 'absolute',
                       top: 16,
                       right: 30,
                       display: 'flex',
-                      alignItems: 'center',
+                      alignItems: 'center'
                     }}
                   >
                     <motion.img
-                      src="/images/pages/trophy.png"
-                      alt="trophy"
+                      src='/images/pages/trophy.png'
+                      alt='trophy'
                       style={{
                         height: 50,
                         opacity: 0.9
@@ -234,7 +276,7 @@ const LocationWisePerformer = () => {
                         transition: {
                           duration: 2,
                           repeat: Infinity,
-                          ease: "easeInOut"
+                          ease: 'easeInOut'
                         }
                       }}
                     />
@@ -269,7 +311,6 @@ const LocationWisePerformer = () => {
                             width: '100%',
                             height: '100%',
                             objectFit: 'cover'
-
                           }}
                         />
                       </Box>
@@ -290,11 +331,9 @@ const LocationWisePerformer = () => {
                     {/* Name and Role */}
                     <Box>
                       <Typography
-                        variant="h5"
+                        variant='h5'
                         sx={{
                           fontWeight: 600,
-
-                          // color: '#2C3E50',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1,
@@ -371,7 +410,7 @@ const LocationWisePerformer = () => {
                       }}
                     >
                       <Typography
-                        variant="h4"
+                        variant='h4'
                         sx={{
                           color: '#4A90E2',
                           fontWeight: 700
@@ -403,7 +442,7 @@ const LocationWisePerformer = () => {
                       />
                     </Box>
 
-                    {/* Status */}
+                    {/* Status Section */}
                     <Box
                       sx={{
                         mt: 3,
@@ -417,7 +456,7 @@ const LocationWisePerformer = () => {
                           px: 2,
                           py: 1,
                           borderRadius: '16px',
-                          background: 'rgba(16,185,129,0.1)',
+                          background: getStatusStyles(award?.awardTitle).background,
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1
@@ -428,18 +467,18 @@ const LocationWisePerformer = () => {
                             width: 6,
                             height: 6,
                             borderRadius: '50%',
-                            background: '#10B981',
+                            background: getStatusStyles(award?.awardTitle).pulseColor,
                             animation: 'pulse 2s infinite'
                           }}
                         />
                         <Typography
                           sx={{
-                            color: '#10B981',
+                            color: getStatusStyles(award?.awardTitle).textColor,
                             fontWeight: 600,
                             fontSize: '0.875rem'
                           }}
                         >
-                          DISBURSED
+                          {award?.awardTitle ? award.awardTitle.toUpperCase() : 'N/A'}
                         </Typography>
                       </Box>
                       <Typography
@@ -475,7 +514,7 @@ const LocationWisePerformer = () => {
         />
       )}
     </Box>
-  );
-};
+  )
+}
 
-export default LocationWisePerformer;
+export default LocationWisePerformer
