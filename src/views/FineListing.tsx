@@ -441,7 +441,7 @@ const FineListing = () => {
 
 
 
-        <Box sx={{ height: 500, width: '100%' }}>
+        <Box sx={{ width: '100%' }}>
           <DataGrid
             autoHeight
             loading={loading}
