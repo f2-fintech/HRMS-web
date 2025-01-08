@@ -184,7 +184,7 @@ const Award = () => {
                 left: 0,
                 right: 0,
                 height: '0.5rem',
-                background: 'linear-gradient(90deg, #FFC107 0%, #FF9800 100%)'
+                // background: 'linear-gradient(90deg, #FFC107 0%, #FF9800 100%)'
               }
             }}
           >
