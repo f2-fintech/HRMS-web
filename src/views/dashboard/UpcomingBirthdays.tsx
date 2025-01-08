@@ -28,14 +28,14 @@ import { utility } from '@/utility';
 const UpcomingBirthdays = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [userId, setUserId] = useState<string | undefined>();
-  const { upcomingBirthdays } = useSelector((state: RootState) => state.upcomingBirthdays);
+  const { upcomingBirthdays, loadingBirthdays } = useSelector((state: RootState) => state.upcomingBirthdays);
   const { capitalizeFirstLetter } = utility();
 
   useEffect(() => {
-    if (upcomingBirthdays.length === 0) {
+    if (!loadingBirthdays && upcomingBirthdays.length === 0) {
       dispatch(fetchUpcomingBirthdays(30));
     }
-  }, [dispatch, upcomingBirthdays]);
+  }, [dispatch, upcomingBirthdays.length]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');

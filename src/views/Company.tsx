@@ -134,7 +134,10 @@ export default function CompanyListing() {
         { field: 'name', headerName: 'Name', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 0.5 },
         { field: 'address', headerName: 'Address', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1 },
         { field: 'website', headerName: 'Web Site', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1 },
-
+        { field: 'email', headerName: 'Email', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1 },
+        { field: 'phone', headerName: 'Phone', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1 },
+        { field: 'status', headerName: 'Status', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 0.5 },
+        { field: 'subscriptionType', headerName: 'Subscription Type', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1 },
         ...(userRole === '0'
             ? [
                 {
@@ -166,6 +169,7 @@ export default function CompanyListing() {
             ]
             : []),
     ];
+
 
     return (
         <ThemeProvider theme={theme}>

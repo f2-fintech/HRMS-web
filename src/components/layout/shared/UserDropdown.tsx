@@ -151,7 +151,7 @@ const UserDropdown = () => {
                       <Typography color='text.primary'>My Profile</Typography>
                     </MenuItem>
                   </Link>
-                  {userData.role_priority === '1' && (
+                  {Number(userData.role_priority) <= 1 && (
                     <Link href={'/account-settings'}>
                       <MenuItem className="gap-3">
                         <i className="ri-settings-4-line" />

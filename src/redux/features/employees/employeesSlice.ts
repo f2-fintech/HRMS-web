@@ -94,7 +94,7 @@ export const fetchEmployees = createAsyncThunk(
       {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token} ${company_id}`,
+          'Authorization': `Bearer ${token} ${company_id === "owner" ? "" : company_id}`,
           'Content-Type': 'application/json',
         },
       }

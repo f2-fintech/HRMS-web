@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-import { Box, Grid, TextField, Typography, IconButton, Button } from '@mui/material';
+import { Box, Grid, TextField, Typography, IconButton, Button, MenuItem } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { toast } from 'react-toastify'; // Assuming you're using react-toastify for notifications
 
@@ -11,14 +11,25 @@ const AddCompanyForm = ({ handleClose, company, companies, debouncedFetch }) => 
 
     const [formData, setFormData] = useState({
         name: '',
-        address: '',
+        email: '',
+        phone: '',
+        alternateNumber: '',
+        billingAddress: '',
+        gst: '',
+        subscriptionType: '',
+        trialDuration: '',
+        date: '',
+        status: '',
         website: '',
     });
 
     const [errors, setErrors] = useState({
         name: '',
+        email: '',
+        phone: '',
         address: '',
-        website: '',
+        billingAddress: '',
+        gst: '',
     });
 
     useEffect(() => {
@@ -28,7 +39,15 @@ const AddCompanyForm = ({ handleClose, company, companies, debouncedFetch }) => 
             if (selected) {
                 setFormData({
                     name: selected.name,
-                    address: selected.address,
+                    email: selected.email || '',
+                    phone: selected.phone || '',
+                    alternateNumber: selected.alternateNumber || '',
+                    billingAddress: selected.billingAddress || '',
+                    gst: selected.gst || '',
+                    subscriptionType: selected.subscriptionType || '',
+                    trialDuration: selected.trialDuration || '',
+                    date: selected.date || '',
+                    status: selected.status || '',
                     website: selected.website,
                 });
             }
@@ -40,12 +59,25 @@ const AddCompanyForm = ({ handleClose, company, companies, debouncedFetch }) => 
 
         const newErrors = {
             name: '',
+            email: '',
+            phone: '',
             address: '',
-            website: '',
+            billingAddress: '',
+            gst: '',
         };
 
         if (!formData.name.trim()) {
             newErrors.name = 'Name is required';
+            isValid = false;
+        }
+
+        if (!formData.email.trim() || !/^[\w-.]+@[\w-]+\.[a-z]{2,}$/i.test(formData.email)) {
+            newErrors.email = 'Valid email is required';
+            isValid = false;
+        }
+
+        if (!formData.phone.trim() || !/^\d{10}$/.test(formData.phone)) {
+            newErrors.phone = 'Valid phone number is required';
             isValid = false;
         }
 
@@ -125,16 +157,106 @@ const AddCompanyForm = ({ handleClose, company, companies, debouncedFetch }) => 
                 <Grid item xs={12} md={6}>
                     <TextField
                         fullWidth
-                        label='Address'
-                        name='address'
-                        value={formData.address}
+                        label='Email'
+                        name='email'
+                        value={formData.email}
                         onChange={handleChange}
-                        InputLabelProps={{ shrink: true }}
                         required
-                        error={!!errors.address}
-                        helperText={errors.address}
+                        error={!!errors.email}
+                        helperText={errors.email}
                         FormHelperTextProps={{ style: { color: 'red' } }}
                     />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label='Phone'
+                        name='phone'
+                        value={formData.phone}
+                        onChange={handleChange}
+                        required
+                        error={!!errors.phone}
+                        helperText={errors.phone}
+                        FormHelperTextProps={{ style: { color: 'red' } }}
+                    />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label='Alternate Number'
+                        name='alternateNumber'
+                        value={formData.alternateNumber}
+                        onChange={handleChange}
+                    />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label='Billing Address'
+                        name='billingAddress'
+                        value={formData.billingAddress}
+                        onChange={handleChange}
+                    />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label='GST'
+                        name='gst'
+                        value={formData.gst}
+                        onChange={handleChange}
+                    />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        select
+                        label='Subscription Type'
+                        name='subscriptionType'
+                        value={formData.subscriptionType}
+                        onChange={handleChange}
+                    >
+                        {['Monthly', 'Quarterly', 'Half-Yearly', 'Annually', 'Trial'].map(type => (
+                            <MenuItem key={type} value={type}>{type}</MenuItem>
+                        ))}
+                    </TextField>
+                </Grid>
+                {formData.subscriptionType !== 'Trial' &&
+                    <Grid item xs={12} md={6}>
+                        <TextField
+                            fullWidth
+                            label='Trial Duration'
+                            name='trialDuration'
+                            value={formData.trialDuration}
+                            onChange={handleChange}
+                            disabled={formData.subscriptionType !== 'Trial'}
+                        />
+                    </Grid>
+                }
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label='Date'
+                        name='date'
+                        type='date'
+                        value={formData.date}
+                        onChange={handleChange}
+                        InputLabelProps={{ shrink: true }}
+                    />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        select
+                        label='Status'
+                        name='status'
+                        value={formData.status}
+                        onChange={handleChange}
+                    >
+                        {['Active', 'Inactive', 'On-Hold'].map(status => (
+                            <MenuItem key={status} value={status}>{status}</MenuItem>
+                        ))}
+                    </TextField>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <TextField
@@ -143,7 +265,6 @@ const AddCompanyForm = ({ handleClose, company, companies, debouncedFetch }) => 
                         name='website'
                         value={formData.website}
                         onChange={handleChange}
-                        InputLabelProps={{ shrink: true }}
                     />
                 </Grid>
                 <Grid item xs={12}>
