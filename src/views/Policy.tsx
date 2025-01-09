@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 
+import { useTheme } from '@mui/material/styles'
+import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import {
   Box,
@@ -90,6 +92,7 @@ export default function PolicyGrid() {
   function AddPolicyForm({ handleClose, policy }) {
     const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
     const company_id = user?.company_id;
+
     const [formData, setFormData] = useState({
       name: '',
       description: '',
@@ -175,6 +178,7 @@ export default function PolicyGrid() {
         if (formData.file) {
           formPayload.append('file', formData.file)
         }
+
         formPayload.append('company_id', formData.company_id);
 
         fetch(url, {
@@ -322,21 +326,36 @@ export default function PolicyGrid() {
               height: '100%'
             }}
           >
-            <Tooltip title='Open File' arrow>
-              <Button
-                variant='contained'
-                color='primary'
+            <Tooltip
+              title='Open Document'
+              arrow
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    backgroundColor: '#333',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    boxShadow: 3
+                  }
+                }
+              }}
+            >
+              {/* Using FileOpenIcon directly without a round button */}
+              <FileOpenIcon
                 onClick={() => {
                   window.open(previewUrl, '_blank')
                 }}
                 sx={{
-                  padding: 4,
-                  minWidth: 'auto',
-                  height: 'auto'
+                  fontSize: '2.5rem',
+                  cursor: 'pointer',
+                  color: 'royalblue',
+                  transition: 'transform 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                    color: '#6c63ff' // Change color on hover
+                  }
                 }}
-              >
-                <FileOpenIcon />
-              </Button>
+              />
             </Tooltip>
           </Box>
         )
@@ -355,35 +374,40 @@ export default function PolicyGrid() {
         const documentUrl = params.row.document_url
 
         return (
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '100%'
+          <Tooltip
+            title='Download Document'
+            arrow
+            componentsProps={{
+              tooltip: {
+                sx: {
+                  backgroundColor: '#333',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  boxShadow: 3
+                }
+              }
             }}
           >
-            <Tooltip title='Download' arrow>
-              <Button
-                variant='contained'
-                color='primary'
-                onClick={() => {
-                  const link = document.createElement('a')
+            <FileDownloadIcon
+              onClick={() => {
+                const link = document.createElement('a')
 
-                  link.href = documentUrl
-                  link.download = documentUrl.split('/').pop()
-                  link.click()
-                }}
-                sx={{
-                  padding: 4,
-                  minWidth: 'auto',
-                  height: 'auto'
-                }}
-              >
-                <DownloadIcon />
-              </Button>
-            </Tooltip>
-          </Box>
+                link.href = documentUrl
+                link.download = documentUrl.split('/').pop()
+                link.click()
+              }}
+              sx={{
+                width: '48px',
+                height: '48px',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease-in-out',
+                color: 'royalblue',
+                '&:hover': {
+                  transform: 'scale(1.1)'
+                }
+              }}
+            />
+          </Tooltip>
         )
       }
     },
@@ -392,52 +416,124 @@ export default function PolicyGrid() {
       field: 'description',
       headerName: 'Description',
       headerClassName: 'super-app-theme--header',
-      flex: 2.5,
+      flex: 0.5,
       headerAlign: 'center',
       align: 'center',
       renderCell: params => {
-        const [showDescription, setShowDescription] = useState(false)
+        const [open, setOpen] = useState(false)
         const description = params.row?.description || 'No description available'
 
-        const handleClick = () => {
-          setShowDescription(prev => !prev)
-        }
+        const handleOpen = () => setOpen(true)
+        const handleClose = () => setOpen(false)
+
+        // Get the current theme mode (light or dark)
+        const theme = useTheme()
+        const textColor = theme.palette.mode === 'dark' ? 'white' : '#333'
 
         return (
           <Box display='flex' justifyContent='center' alignItems='center'>
-            <Tooltip title='View description' arrow>
+            <Tooltip
+              title='View description'
+              arrow
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    backgroundColor: '#333',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    boxShadow: 3
+                  }
+                }
+              }}
+            >
               <IconButton
-                onClick={handleClick}
+                onClick={handleOpen}
                 color='primary'
                 aria-label='View description'
                 sx={{
-                  '& .MuiSvgIcon-root': {
-                    fontSize: '2rem'
-                  },
                   padding: '8px',
+                  minWidth: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  boxShadow: 2,
+                  transition: 'transform 0.2s ease-in-out, background-color 0.3s',
                   '&:hover': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                    backgroundColor: 'rgba(13, 146, 244, 0.1)',
+                    transform: 'scale(1.1)'
+                  },
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.5rem',
+                    color: '#0D92F4'
                   }
                 }}
               >
                 <VisibilityIcon />
               </IconButton>
             </Tooltip>
-            {showDescription && (
-              <Typography
-                variant='body2'
-                ml={1}
-                textAlign='center'
+
+            <Dialog
+              open={open}
+              onClose={handleClose}
+              maxWidth='md'
+              fullWidth
+              PaperProps={{
+                sx: {
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
+                }
+              }}
+            >
+              <Box
                 sx={{
-                  maxWidth: 'calc(100% - 48px)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
+                  p: 3,
+                  background: 'linear-gradient(to right, #0D92F4, #6ab6f1)',
+                  color: 'white',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}
               >
-                {description}
-              </Typography>
-            )}
-          </Box>
+                <Typography
+                  variant="h6"
+                  component="h2"
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    width: '100%',
+                  }}
+                >
+                  Description Details
+                </Typography>
+
+                <IconButton
+                  onClick={handleClose}
+                  sx={{
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }
+                  }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+              <DialogContent sx={{ p: 4 }}>
+                <Typography
+                  variant='body1'
+                  sx={{
+                    fontSize: '1rem',
+                    lineHeight: 1.6,
+                    color: textColor, // Conditionally set color based on theme mode
+                    whiteSpace: 'pre-wrap'
+                  }}
+                >
+                  {description}
+                </Typography>
+              </DialogContent>
+            </Dialog >
+          </Box >
         )
       }
     },
@@ -522,33 +618,61 @@ export default function PolicyGrid() {
           </Grid>
         </Grid>
       </Box>
-      <Box sx={{ height: 500, width: '100%' }}>
+
+      <Box sx={{ width: '100%', padding: '0 4px' }}>
+        {' '}
         <DataGrid
           getRowHeight={() => 'auto'}
           sx={{
-            '& .super-app-theme--header': {
-              fontSize: 17,
-              fontWeight: 600,
-              alignItems: 'center'
-            },
-            '& .mui-yrdy0g-MuiDataGrid-columnHeaderRow ': {
-              background: '#2c3ce3 !important',
+            borderRadius: '12px',
+            '& .MuiDataGrid-columnHeaders': {
+              borderImage: 'linear-gradient(to right, #2193b0, #6dd5ed) 1',
+              backgroundColor: 'rgb(59, 130, 246)',
               color: 'white'
             },
             '& .MuiDataGrid-cell': {
-              fontSize: '10',
-              align: 'center'
-            },
-            '& .MuiDataGrid-row': {
-              '&:nth-of-type(odd)': {
-                backgroundColor: 'rgb(46 38 61 / 12%)'
-              },
-              '&:nth-of-type(even)': {
-                backgroundColor: '#fffff'
-              },
-              fontWeight: '600',
               fontSize: '14px',
-              boxSizing: 'border-box'
+              padding: '16px 8px',
+              borderBottom: '1px solid rgba(224, 224, 224, 0.4)'
+            },
+            '& .super-app-theme--header': {
+              color: 'white',
+              fontSize: '16px',
+              backgroundColor: 'rgb(9, 79, 194)'
+            },
+
+            '& .MuiDataGrid-columnHeaderCheckbox': {
+              backgroundColor: 'rgb(9, 79, 194)'
+            },
+
+            '& .MuiDataGrid-cell--withRenderer .MuiCheckbox-root': {
+              color: 'rgb(59, 130, 246)'
+            },
+
+            '& .MuiDataGrid-footerContainer': {
+              backgroundColor: 'rgb(9, 79, 194)',
+              color: 'white'
+            },
+            '& .MuiTablePagination-root': {
+              color: 'white'
+            },
+            '& .MuiTablePagination-selectLabel': {
+              color: 'white'
+            },
+            '& .MuiTablePagination-displayedRows': {
+              color: 'white'
+            },
+            '& .MuiTablePagination-select': {
+              color: 'white'
+            },
+            '& .MuiTablePagination-selectIcon': {
+              color: 'white'
+            },
+            '& .MuiIconButton-root.Mui-disabled': {
+              color: 'rgba(255, 255, 255, 0.5)'
+            },
+            '& .MuiIconButton-root': {
+              color: 'white'
             }
           }}
           rows={filteredPolicies?.length > 0 ? filteredPolicies : policies}
@@ -561,7 +685,7 @@ export default function PolicyGrid() {
           paginationModel={{ page: page - 1, pageSize: limit }}
           checkboxSelection
           disableRowSelectionOnClick
-        />
+        />{' '}
       </Box>
     </Box>
   )
