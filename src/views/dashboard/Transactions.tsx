@@ -26,7 +26,7 @@ import { utility } from '@/utility';
 const StyledCard = styled(Card)(({ theme }) => ({
   position: 'relative',
   height: 'auto',
-  // backgroundColor: '#1a237e',
+  backgroundColor: 'white',
   // minHeight: '320px',
   padding: '3px',
   borderRadius: theme.spacing(4),
