@@ -26,9 +26,10 @@ import { utility } from '@/utility';
 const StyledCard = styled(Card)(({ theme }) => ({
   position: 'relative',
   height: 'auto',
-  minHeight: '320px',
+  // backgroundColor: '#1a237e',
+  // minHeight: '320px',
   padding: '3px',
-  borderRadius: theme.spacing(8),
+  borderRadius: theme.spacing(4),
   boxShadow: '0 8px 32px rgba(26, 35, 126, 0.15)',
   transition: 'all 0.3s ease',
   // background: 'linear-gradient(50deg,rgb(223, 169, 7) 0%,rgb(12, 21, 75) 100%)',
@@ -44,15 +45,15 @@ const CardInner = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
   display: 'flex',
   flexDirection: 'column',
-  background: 'linear-gradient(90deg,rgb(226, 217, 191) 0%,rgb(111, 112, 117) 100%)',
+  // background: 'linear-gradient(90deg,rgb(226, 217, 191) 0%,rgb(111, 112, 117) 100%)',
   '@media (max-width: 600px)': {
     padding: theme.spacing(2),
   },
 }));
 
 const QuoteCard = styled(Paper)(({ theme }) => ({
-  backgroundColor: '#f8fafc',
-  borderRadius: theme.spacing(2),
+  backgroundColor: 'rgb(25 118 210 / 5%)',
+  borderRadius: theme.spacing(1),
   padding: theme.spacing(3),
   border: '1px solid rgba(0,0,0,0.06)',
   display: 'flex',
@@ -66,7 +67,7 @@ const QuoteCard = styled(Paper)(({ theme }) => ({
 }));
 
 const WeatherCard = styled(Paper)(({ theme }) => ({
-  background: 'linear-gradient(135deg,rgb(192, 194, 219) 0%,rgb(85, 97, 170) 100%)',
+  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
   borderRadius: theme.spacing(2),
   padding: theme.spacing(3),
   // border: '1px solid rgba(219, 28, 28, 0.06)',
@@ -161,13 +162,14 @@ const Welcome = () => {
       }
     };
 
-    const fetchWeather = async () => {
+    const fetchWeather = async (lat, lon) => {
+      setLoadingWeather(true);
       try {
         const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=28.6139&longitude=77.2090&current_weather=true`
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
         );
         const data = await response.json();
-        console.log('weater', data)
+        console.log('weather', data);
         setWeather(data.current_weather);
       } catch (error) {
         console.error('Error fetching weather:', error);
@@ -176,9 +178,27 @@ const Welcome = () => {
       }
     };
 
+    const getUserLocationAndFetchWeather = () => {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            fetchWeather(latitude, longitude);
+          },
+          (error) => {
+            console.error('Error getting location:', error);
+            // Fallback or show an error to the user
+          }
+        );
+      } else {
+        console.error('Geolocation is not supported by this browser.');
+      }
+    };
+
     if (user.id) {
       fetchUserData();
       fetchLatestQuote();
+      getUserLocationAndFetchWeather();
       fetchWeather();
     }
   }, []);
@@ -245,10 +265,11 @@ const Welcome = () => {
         <CardInner>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
             <Typography
+              mb={0}
               variant="h4"
               sx={{
                 fontWeight: 700,
-                color: '#4B382A',
+                color: '#1a237e',
                 '@media (max-width: 600px)': { fontSize: '1.75rem' },
               }}
             >
@@ -259,7 +280,7 @@ const Welcome = () => {
                 <IconButton
                   onClick={handleOpen}
                   sx={{
-                    backgroundColor: '#f1f5f9',
+                    // backgroundColor: '#f1f5f9',
                     borderRadius: '12px',
                     '&:hover': { backgroundColor: '#e2e8f0' },
                   }}
@@ -269,8 +290,7 @@ const Welcome = () => {
               </Tooltip>
             )}
           </Box>
-          <Divider sx={{ mb: 3, borderColor: '#e2e8f0' }} />
-          <QuoteCard elevation={0}>
+          <QuoteCard elevation={2}>
             <Box display="flex" gap={2} mb={2}>
               <FormatQuoteIcon
                 sx={{
@@ -307,7 +327,7 @@ const Welcome = () => {
           </QuoteCard>
           <WeatherCard elevation={0} sx={{ backgroundColor: 'background.paper', color: 'text.primary' }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#0D47A1' }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'white' }}>
                 Current Weather
               </Typography>
               <WbSunnyIcon sx={{ fontSize: 28, color: '#FFCB4A' }} />

@@ -24,12 +24,11 @@ import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
 const GradientCard = styled(Card)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
-  background: 'linear-gradient(135deg, #6B8DD6 0%, #8E37D7 100%)',
+  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
   borderRadius: theme.spacing(4),
   boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
   backdropFilter: 'blur(10px)',
   border: '1px solid rgba(255, 255, 255, 0.18)',
-  height: '700px', // Fixed height
 }));
 
 const CardContentWithFlex = styled(CardContent)(({ theme }) => ({
@@ -42,7 +41,6 @@ const CardContentWithFlex = styled(CardContent)(({ theme }) => ({
 const ContentCard = styled(Card)(({ theme }) => ({
   background: 'rgba(255, 255, 255, 0.9)',
   borderRadius: theme.spacing(3),
-  height: '500px',
   margin: theme.spacing(2),
   boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
 }));
@@ -118,7 +116,7 @@ const StyledChip = styled(Chip)(({ theme }) => ({
   fontWeight: 600,
   borderRadius: theme.spacing(2),
   padding: theme.spacing(0.5),
-  background: 'linear-gradient(135deg, #6B8DD6 0%, #8E37D7 100%)',
+  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
   color: '#fff',
   border: 'none',
   '& .MuiChip-label': {
