@@ -469,8 +469,10 @@ export default function AttendanceGrid() {
 
   const handleMonthChange = (date: Dayjs) => {
     const newMonth = date.month() + 1;
+    const newYear = date.year();
 
     setMonth(newMonth);
+    setYear(newYear);
   };
 
   return (
@@ -755,6 +757,7 @@ export default function AttendanceGrid() {
                   <DateCalendarServerRequest
                     attendanceData={attendanceData}
                     month={month}
+                    year={year}
                     onMonthChange={handleMonthChange}
                   />
                 </Grid>

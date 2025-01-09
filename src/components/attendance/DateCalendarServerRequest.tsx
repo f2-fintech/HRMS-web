@@ -71,7 +71,9 @@ interface DateCalendarServerRequestProps {
     attendanceData: any;
     onMonthChange: (date: Dayjs) => void;
     month: number;
+    year: number;
 }
+
 
 function getRandomNumber(min: number, max: number) {
     return Math.round(Math.random() * (max - min) + min);
@@ -94,6 +96,7 @@ function fakeFetch(date: Dayjs, { signal }: { signal: AbortSignal }) {
 
 export default function DateCalendarServerRequest({
     month,
+    year,
     onMonthChange
 }: DateCalendarServerRequestProps) {
     const requestAbortController = useRef<AbortController | null>(null);
@@ -114,10 +117,11 @@ export default function DateCalendarServerRequest({
         if (userId) {
             dispatch(fetchEmployeeAttendances({
                 employeeId: userId,
-                month: month.toString()
+                year: year.toString(),
+                month: month.toString(),
             }));
         }
-    }, [dispatch, month, userId]);
+    }, [dispatch, month, year, userId]);
 
     const attendanceData = useMemo(() => {
         return filteredAttendance.reduce((acc, { date, status }) => {
