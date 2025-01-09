@@ -1,5 +1,6 @@
-import { Card } from '@mui/material';
 import React, { useEffect, useRef, memo } from 'react';
+
+import { Card } from '@mui/material';
 
 // Global flag to check if the script has been loaded
 let scriptLoaded = false;
@@ -26,7 +27,7 @@ function TradingViewWidget() {
   "showSymbolLogo": true,
   "showFloatingTooltip": true,
   "width": "685",
-  "height": "500",
+  "height": "520",
   "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
   "plotLineColorFalling": "rgba(41, 98, 255, 1)",
   "gridLineColor": "rgba(42, 46, 57, 0)",
@@ -48,7 +49,7 @@ function TradingViewWidget() {
   }, []);
 
   return (
-    <Card sx={{ height: "380px", overflowY: "scroll" }}>
+    <Card sx={{ borderRadius: '20px' }}>
       <div
         className="tradingview-widget-container"
         ref={container}

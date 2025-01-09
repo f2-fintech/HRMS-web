@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+
 import { Button, Typography, Box, Grid, Card, Tooltip, Container, Paper, Stack, Divider } from '@mui/material'
 import {
     AccessTime as AccessTimeIcon,
@@ -9,6 +10,7 @@ import {
     Stop as StopIcon
 } from '@mui/icons-material'
 import { useDispatch, useSelector } from 'react-redux'
+
 import {
     addPunch,
     fetchTotalWorkingHours,
@@ -84,8 +86,10 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                 .then(punchData => {
                     if (punchData.length > 0) {
                         const latestPunch = punchData[punchData.length - 1]
+
                         if (!latestPunch.punchOut) {
                             const punchInTimestamp = new Date(`${selectedDate} ${latestPunch.punchIn}`).getTime()
+
                             setPunchState({
                                 ...punchState,
                                 isPunchIn: true,
@@ -137,6 +141,7 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
 
     const handlePunchIn = async () => {
         const now = new Date()
+
         const startTime = now.toLocaleTimeString('en-US', {
             hour12: false,
             hour: '2-digit',
@@ -168,6 +173,7 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
 
     const handlePunchOut = async () => {
         const now = new Date()
+
         const endTime = now.toLocaleTimeString('en-US', {
             hour12: false,
             hour: '2-digit',
@@ -180,6 +186,7 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
         if (!confirmation) {
             return
         }
+
         stopPunchTimer()
 
         const punchData = {
@@ -505,4 +512,5 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
         </Container>
     )
 }
+
 export default PunchInOut

@@ -134,10 +134,15 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
         .then(response => response.json())
         .then(data => {
           if (data.message) {
-            if (data.message.includes('success')) {
+            if (data.message.includes('already marked')) {
+              // Handle duplicate attendance case
+              toast.warning(data.message, { position: 'top-center' });
+            } else if (data.message.includes('success')) {
+              // Handle successful creation or update
               dispatch(addOrUpdateAttendance(data));
               toast.success(data.message, { position: 'top-center' });
             } else {
+              // Handle other errors
               toast.error('Error: ' + data.message, { position: 'top-center' });
             }
           } else {
@@ -147,13 +152,15 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
           handleClose();
         })
         .catch(error => {
-          console.log('Error', error);
+          console.error('Error:', error);
+          toast.error('An error occurred while submitting the form', { position: 'top-center' });
         })
         .finally(() => {
           setIsLoading(false);
         });
     }
   };
+
 
   return (
     <Container sx={{ width: 'fit-content', margin: 'auto' }}>

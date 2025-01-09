@@ -9,6 +9,7 @@ import UpcomingBirthdays from '@/views/dashboard/UpcomingBirthdays'
 import TotalHolidays from '@/views/dashboard/TotolHolidays'
 import LocationWisePerformer from '@/views/dashboard/LocationWisePerformer'
 import TradingViewWidget from '@views/dashboard/TotalEarning'
+import NewYearDashboard from '@/views/dashboard/NewYearDashboard'
 
 const DashboardAnalytics = () => {
   const [userRole, setUserRole] = useState<string>("");
@@ -23,6 +24,9 @@ const DashboardAnalytics = () => {
 
   return (
     <Grid container spacing={6}>
+      <Grid item xs={12} md={12} lg={12}>
+        <NewYearDashboard />
+      </Grid>
       <Grid item xs={12} md={6} >
         <Award />
       </Grid>
