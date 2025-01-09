@@ -72,11 +72,11 @@ const UpcomingBirthdays = () => {
     <Card
       elevation={5}
       sx={{
-        maxWidth: 460,
+        // maxWidth: 460,
         margin: 'auto',
         borderRadius: 3,
         overflow: 'hidden',
-        backgroundColor: 'white'
+        background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)'
       }}
     >
       {/* Today's Birthday Section */}
@@ -85,15 +85,14 @@ const UpcomingBirthdays = () => {
           sx={{
             textAlign: 'center',
             py: 3,
-            backgroundColor: 'white'
           }}
         >
           <Typography
             variant='h3'
             sx={{
-              fontFamily: "'Pacifico', cursive",
+              // fontFamily: "'Pacifico', cursive",
               fontSize: '2.5rem',
-              color: '#E91E63',
+              color: 'white',
               textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)'
             }}
           >
@@ -141,29 +140,32 @@ const UpcomingBirthdays = () => {
         <Box
           sx={{
             textAlign: 'center',
-            py: 3,
-            backgroundColor: 'white'
+            // py: 3,
+            // backgroundColor: 'white'
           }}
         >
           <Typography
             variant='h3'
             sx={{
-              fontFamily: "'Pacifico', cursive",
-              fontSize: '2.5rem',
-              color: '#E91E63',
-              textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)'
+              margin: "10px",
+              // fontFamily: "'Pacifico', cursive",
+              fontSize: '1.5rem',
+              color: '#64e0e2',
+              // textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)',
+              fontWeight: 800,
+              letterSpacing: 2
             }}
           >
-            Next Celebration{nextBirthdayEmployees.length > 1 ? 's' : ''}
+            Upcoming Birthday {nextBirthdayEmployees.length > 1 ? 's' : ''}
           </Typography>
 
           <Typography
             variant='h6'
             sx={{
-              color: 'green',
+              color: 'white',
               fontWeight: 'bold',
               marginTop: 2,
-              fontStyle: 'italic'
+              // fontStyle: 'italic'
             }}
           >
             Coming up on {dayjs(nextBirthdayEmployees[0]._doc.dob).format('D MMM')}!
@@ -185,7 +187,7 @@ const UpcomingBirthdays = () => {
                 >
                   {!employee._doc.image && <PersonIcon />}
                 </Avatar>
-                <Typography variant='body2' sx={{ color: '#333', mt: 1, textAlign: 'center' }}>
+                <Typography variant='h6' sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
                   {capitalizeFirstLetter(employee._doc.first_name)} {capitalizeFirstLetter(employee._doc.last_name)}
                 </Typography>
               </Grid>
@@ -194,81 +196,104 @@ const UpcomingBirthdays = () => {
         </Box>
       )}
 
-      {/* Upcoming Birthdays Header */}
-      <CardHeader
-        title={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CakeIcon color='primary' />
-            <Typography variant='h5' sx={{ color: '#333', fontWeight: 'bold' }}>
-              Other Upcoming Birthday's
-            </Typography>
-          </Box>
-        }
+      <Card
         sx={{
+          borderRadius: "20px", // Adjust for desired roundness
+          overflow: 'hidden', // Ensure content respects the border radius
+          boxShadow: 3, // Optional for card elevation
           backgroundColor: 'white',
-          borderBottom: '1px solid #ddd',
-          py: 2
+          border: '1px solid #ddd',
         }}
-      />
+      >
+        <CardHeader
+          title={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CakeIcon color="primary" />
+              <Typography variant="h5" sx={{ color: '#333', fontWeight: 'bold' }}>
+                Other Upcoming Birthday's
+              </Typography>
+            </Box>
+          }
+          sx={{
+            backgroundColor: 'white',
+            borderBottom: '1px solid #ddd',
+            py: 2,
+          }}
+        />
+        <CardContent sx={{ p: 0 }}>
+          {remainingUpcoming.length === 0 ? (
+            <Typography
+              variant="body2"
+              sx={{ p: 2, textAlign: 'center', color: '#666' }}
+            >
+              No more upcoming birthdays
+            </Typography>
+          ) : (
+            <List disablePadding>
+              {remainingUpcoming.map((row, index) => (
+                <React.Fragment key={index}>
+                  {index > 0 && <Divider variant="inset" component="li" />}
+                  <ListItem
+                    alignItems="center"
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      '&:hover': {
+                        backgroundColor: '#f9f9f9',
+                        transition: 'background-color 0.3s ease',
+                      },
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar
+                        src={row._doc.image}
+                        alt={`${row._doc.first_name} ${row._doc.last_name}`}
+                        sx={{
+                          width: 56,
+                          height: 56,
+                          border: '3px solid #ddd',
+                          transition: 'transform 0.3s ease',
+                          '&:hover': {
+                            transform: 'scale(1.1)',
+                          },
+                        }}
+                      >
+                        {!row._doc.image && <PersonIcon />}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography
+                          sx={{ color: '#333', fontWeight: 'bold' }}
+                          variant="subtitle1"
+                        >
+                          {capitalizeFirstLetter(row._doc.first_name)}{' '}
+                          {capitalizeFirstLetter(row._doc.last_name)}
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          sx={{ color: '#666' }}
+                        >
+                          {dayjs(row._doc.dob).format('D MMM')}
+                        </Typography>
+                      }
+                    />
+                    <CakeIcon
+                      color="primary"
+                      fontSize="small"
+                      sx={{ opacity: 0.7 }}
+                    />
+                  </ListItem>
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Upcoming Birthdays List - excluding next birthday celebrants */}
-      <CardContent sx={{ p: 0 }}>
-        {remainingUpcoming.length === 0 ? (
-          <Typography variant='body2' sx={{ p: 2, textAlign: 'center', color: '#666' }}>
-            No more upcoming birthdays
-          </Typography>
-        ) : (
-          <List disablePadding>
-            {remainingUpcoming.map((row, index) => (
-              <React.Fragment key={index}>
-                {index > 0 && <Divider variant='inset' component='li' />}
-                <ListItem
-                  alignItems='center'
-                  sx={{
-                    py: 1.5,
-                    px: 2,
-                    '&:hover': {
-                      backgroundColor: '#f9f9f9',
-                      transition: 'background-color 0.3s ease'
-                    }
-                  }}
-                >
-                  <ListItemAvatar>
-                    <Avatar
-                      src={row._doc.image}
-                      alt={`${row._doc.first_name} ${row._doc.last_name}`}
-                      sx={{
-                        width: 56,
-                        height: 56,
-                        border: '3px solid #ddd',
-                        transition: 'transform 0.3s ease',
-                        '&:hover': {
-                          transform: 'scale(1.1)'
-                        }
-                      }}
-                    >
-                      {!row._doc.image && <PersonIcon />}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography sx={{ color: '#333', fontWeight: 'bold' }} variant='subtitle1'>
-                        {capitalizeFirstLetter(row._doc.first_name)} {capitalizeFirstLetter(row._doc.last_name)}
-                      </Typography>
-                    }
-                    secondary={
-                      <Typography component='span' variant='body2' sx={{ color: '#666' }}>
-                        {dayjs(row._doc.dob).format('D MMM')}
-                      </Typography>
-                    }
-                  />
-                  <CakeIcon color='primary' fontSize='small' sx={{ opacity: 0.7 }} />
-                </ListItem>
-              </React.Fragment>
-            ))}
-          </List>
-        )}
-      </CardContent>
     </Card>
   )
 }

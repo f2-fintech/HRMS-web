@@ -136,7 +136,7 @@ const Award = () => {
   return (
     <Box
       sx={{
-        // height: 'auto',
+        // height: '1%',
         // display: 'flex',
         // alignItems: 'center',
         // justifyContent: 'center',
@@ -152,17 +152,18 @@ const Award = () => {
         <Card
           key={awardData ? awardData._id : 'no-award'}
           sx={{
-            height: "auto",
+            height: "100%",
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            borderRadius: '20px',
+            borderRadius: '15px',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
             background: '#1a237e',
             transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            overflow: 'hidden',
-            position: 'relative',
+            // overflow: 'hidden',
+            // position: 'relative',
+            padding: '0px !important',
             '&:hover': {
               transform: 'translateY(-5px)',
             }
@@ -170,13 +171,17 @@ const Award = () => {
         >
           <CardContent
             sx={{
+              height: "100%",
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               padding: '2rem',
               backgroundColor: '#ffffff',
-              borderTopLeftRadius: '60px',
+              margin: '0px 5px 0px 5px',
+              borderTopLeftRadius: '80px',
+              borderBottomRightRadius: '80px',
+              borderBottomLeftRadius: '-10px',
               '&:before': {
                 content: '""',
                 position: 'absolute',
