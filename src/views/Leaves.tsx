@@ -255,11 +255,17 @@ export default function LeavesGrid() {
           {
             field: 'leave',
             headerName: 'Leave Details',
-            width: 1024,
-            headerAlign: 'center',
-            headerClassName: 'super-app-theme--header',
-            renderCell: renderAccordion
-          },
+            ...baseColumnStyles,
+            renderCell: (params) => (
+              <AccordionLeaves
+                params={params}
+                handleLeaveEditClick={handleLeaveEditClick}
+                handleLeavedelete={handleLeavedelete}
+                StyledTableCell={StyledTableCell}
+                BootstrapDialog={StyledDialog}
+              />
+            )
+          }
         ]
         : [
           {
@@ -576,48 +582,48 @@ export default function LeavesGrid() {
               </StyledButton>
             )}
           </Box>
-        </Box>
-        <Grid container spacing={3} alignItems="center" justifyContent="space-between" mb={2}>
-          {userRole === '1' && (
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Search"
-                variant="outlined"
-                value={selectedKeyword}
-                onChange={handleInputChange}
-                InputProps={{
-                  sx: {
-                    borderRadius: '50px',
-                  },
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
+
+          {/* Enhanced search and date picker section */}
+          <Grid container spacing={3} alignItems="center">
+            {userRole === '1' && (
+              <Grid item xs={12} md={8}>
+                <TextField
+                  fullWidth
+                  placeholder="Search employees..."
+                  variant="outlined"
+                  value={selectedKeyword}
+                  onChange={handleInputChange}
+                  InputProps={{
+                    startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
+                    sx: {
+                      borderRadius: '12px',
+                      backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                      '&:hover': {
+                        backgroundColor: theme.palette.background.paper
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+            )}
+            <Grid item xs={12} md={4}>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  views={userRole === '1' ? ['month', 'year'] : ['year']}
+                  label={userRole === '1' ? 'Select Month and Year' : 'Select Year'}
+                  value={dayjs(selectedDate)}
+                  onChange={handleDateChange}
+                  sx={{
+                    width: '100%',
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '12px'
+                    }
+                  }}
+                />
+              </LocalizationProvider>
             </Grid>
-          )}
-          <Grid item xs={12} md={4}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                views={userRole === '1' ? ['month', 'year'] : ['year']}
-                label={userRole === '1' ? 'Select Month and Year' : 'Select Year'}
-                value={dayjs(selectedDate)}
-                onChange={handleDateChange}
-                sx={{
-                  width: '100%',
-                }}
-              />
-            </LocalizationProvider>
           </Grid>
-        </Grid>
-
-      </Box>
-
-      <Box sx={{ width: '100%', position: 'relative' }}>
-
+        </Box>
         <DataGrid
           autoHeight
           loading={loading}
