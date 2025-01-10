@@ -11,6 +11,8 @@ import {
     Card,
     CardContent,
     Stack,
+    Autocomplete,
+    TextField,
 } from '@mui/material';
 
 import { AccessTime, Coffee, Group, Timer } from '@mui/icons-material';
@@ -380,29 +382,37 @@ const BreakSheet: React.FC = () => {
                     {/* Employee Selection (Admin only) */}
                     {Number(userRole) <= 1 && (
                         <Grid item xs={12} md={6}>
-                            <Card variant='outlined' sx={{ borderRadius: 2 }}>
+                            <Card variant="outlined" sx={{ borderRadius: 2 }}>
                                 <CardContent>
-                                    <Stack direction='row' alignItems='center' spacing={2} mb={2}>
-                                        <Typography variant='h6'>Employee Selection</Typography>
+                                    <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+                                        <Typography variant="h6">Employee Selection</Typography>
                                     </Stack>
-                                    {/* This can be any Autocomplete or dropdown you prefer */}
-                                    {/* For brevity, we’re showing a simplified example */}
-                                    <select
-                                        style={{ width: '100%', padding: '8px', borderRadius: '8px' }}
-                                        value={selectedEmployeeId || ''}
-                                        onChange={e => setSelectedEmployeeId(e.target.value)}
-                                    >
-                                        <option value=''>Select an Employee</option>
-                                        {employees.map(emp => (
-                                            <option key={emp._id} value={emp._id}>
-                                                {emp.first_name} {emp.last_name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {/* React Autocomplete for Search */}
+                                    <Autocomplete
+                                        options={employees} // List of employees
+                                        getOptionLabel={(option) =>
+                                            `${option.first_name} ${option.last_name}`
+                                        } // How each option is displayed
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Search Employee"
+                                                variant="outlined"
+                                            />
+                                        )} // Input field with Material-UI TextField
+                                        value={selectedEmployeeId ? employees.find(emp => emp._id === selectedEmployeeId) : null}
+                                        onChange={(event, newValue) => {
+                                            setSelectedEmployeeId(newValue ? newValue._id : '');
+                                        }} // Handle selection
+                                        isOptionEqualToValue={(option, value) =>
+                                            option._id === value._id
+                                        } // Avoid warnings
+                                    />
                                 </CardContent>
                             </Card>
                         </Grid>
                     )}
+
 
                     {/* Time Summary and Date Selection */}
                     <Grid item xs={12}>
