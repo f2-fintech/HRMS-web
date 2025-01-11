@@ -14,7 +14,6 @@ import {
   ListItemText,
   Divider,
   Box,
-  Chip,
   Grid
 } from '@mui/material'
 import CakeIcon from '@mui/icons-material/Cake'
@@ -46,7 +45,6 @@ const UpcomingBirthdays = () => {
   const todayBirthdays = upcomingBirthdays.filter(row => dayjs(row._doc.dob).format('MM-DD') === today)
   const upcomingWithoutToday = upcomingBirthdays.filter(row => dayjs(row._doc.dob).format('MM-DD') !== today)
 
-  // Group upcoming birthdays by date
   const groupedUpcomingBirthdays = upcomingWithoutToday.reduce((acc, curr) => {
     const birthDate = dayjs(curr._doc.dob).format('MM-DD')
 
@@ -59,11 +57,9 @@ const UpcomingBirthdays = () => {
     return acc
   }, {})
 
-  // Get the next birthday date and its employees
   const nextBirthdayDate = Object.keys(groupedUpcomingBirthdays).sort()[0]
   const nextBirthdayEmployees = groupedUpcomingBirthdays[nextBirthdayDate] || []
 
-  // Filter out next birthday celebrants from the list
   const remainingUpcoming = upcomingWithoutToday.filter(employee =>
     dayjs(employee._doc.dob).format('MM-DD') !== nextBirthdayDate
   )
@@ -72,14 +68,12 @@ const UpcomingBirthdays = () => {
     <Card
       elevation={5}
       sx={{
-        // maxWidth: 460,
         margin: 'auto',
         borderRadius: 3,
         overflow: 'hidden',
         background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)'
       }}
     >
-      {/* Today's Birthday Section */}
       {todayBirthdays.length > 0 ? (
         <Box
           sx={{
@@ -90,10 +84,10 @@ const UpcomingBirthdays = () => {
           <Typography
             variant='h3'
             sx={{
-              // fontFamily: "'Pacifico', cursive",
-              fontSize: '2.5rem',
-              color: 'white',
-              textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)'
+              fontSize: '1.5rem',
+              color: '#64e0e2',
+              fontWeight: 800,
+              letterSpacing: 2
             }}
           >
             Happy Birthday
@@ -102,10 +96,9 @@ const UpcomingBirthdays = () => {
           <Typography
             variant='h6'
             sx={{
-              color: 'green',
+              color: 'white',
               fontWeight: 'bold',
               marginTop: 2,
-              fontStyle: 'italic'
             }}
           >
             Wish them today!
@@ -127,7 +120,7 @@ const UpcomingBirthdays = () => {
                 >
                   {!row._doc.image && <PersonIcon />}
                 </Avatar>
-                <Typography variant='body2' sx={{ color: '#333', mt: 1, textAlign: 'center' }}>
+                <Typography variant='h6' sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
                   {capitalizeFirstLetter(row._doc.first_name)} {capitalizeFirstLetter(row._doc.last_name)}
                 </Typography>
               </Grid>
@@ -135,23 +128,17 @@ const UpcomingBirthdays = () => {
           </Grid>
         </Box>
       ) : nextBirthdayEmployees.length > 0 && (
-
-        // Next Upcoming Birthdays Section
         <Box
           sx={{
             textAlign: 'center',
-            // py: 3,
-            // backgroundColor: 'white'
           }}
         >
           <Typography
             variant='h3'
             sx={{
               margin: "10px",
-              // fontFamily: "'Pacifico', cursive",
               fontSize: '1.5rem',
               color: '#64e0e2',
-              // textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)',
               fontWeight: 800,
               letterSpacing: 2
             }}
@@ -165,7 +152,6 @@ const UpcomingBirthdays = () => {
               color: 'white',
               fontWeight: 'bold',
               marginTop: 2,
-              // fontStyle: 'italic'
             }}
           >
             Coming up on {dayjs(nextBirthdayEmployees[0]._doc.dob).format('D MMM')}!
@@ -198,9 +184,9 @@ const UpcomingBirthdays = () => {
 
       <Card
         sx={{
-          borderRadius: "20px", // Adjust for desired roundness
-          overflow: 'hidden', // Ensure content respects the border radius
-          boxShadow: 3, // Optional for card elevation
+          borderRadius: "20px",
+          overflow: 'hidden',
+          boxShadow: 3,
           backgroundColor: 'white',
           border: '1px solid #ddd',
         }}
@@ -293,7 +279,6 @@ const UpcomingBirthdays = () => {
           )}
         </CardContent>
       </Card>
-
     </Card>
   )
 }

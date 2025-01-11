@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react'
+
 import {
   Container,
   Box,
@@ -12,7 +13,7 @@ import {
   Collapse,
   useTheme,
   useMediaQuery
-} from "@mui/material";
+} from '@mui/material'
 import {
   Phone as PhoneIcon,
   Email as EmailIcon,
@@ -22,22 +23,23 @@ import {
   Twitter as TwitterIcon,
   Instagram as InstagramIcon,
   LinkedIn as LinkedInIcon
-} from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
-import { fetchConfiguration } from "@/utility/setting-configuration/settingConfig";
+} from '@mui/icons-material'
+import { styled } from '@mui/material/styles'
+
+import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig'
 
 const FooterSection = styled(Box)(({ theme }) => ({
   [theme.breakpoints.up('md')]: {
-    textAlign: 'left',
+    textAlign: 'left'
   },
   [theme.breakpoints.down('md')]: {
-    textAlign: 'center',
+    textAlign: 'center'
   },
   transition: 'transform 0.3s ease-in-out',
   '&:hover': {
-    transform: 'translateY(-5px)',
-  },
-}));
+    transform: 'translateY(-5px)'
+  }
+}))
 
 const FooterLink = styled(Link)(({ theme }) => ({
   color: theme.palette.common.white,
@@ -52,8 +54,8 @@ const FooterLink = styled(Link)(({ theme }) => ({
     color: '#FFD700',
     paddingLeft: theme.spacing(1),
     '&::before': {
-      width: '15px',
-    },
+      width: '15px'
+    }
   },
   '&::before': {
     content: '""',
@@ -63,9 +65,9 @@ const FooterLink = styled(Link)(({ theme }) => ({
     width: '0',
     height: '2px',
     backgroundColor: '#FFD700',
-    transition: 'width 0.3s ease',
-  },
-}));
+    transition: 'width 0.3s ease'
+  }
+}))
 
 const ContactPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -81,10 +83,10 @@ const ContactPaper = styled(Paper)(({ theme }) => ({
   '@keyframes slideUp': {
     to: {
       transform: 'translateY(0)',
-      opacity: 1,
-    },
-  },
-}));
+      opacity: 1
+    }
+  }
+}))
 
 const SocialIconButton = styled(IconButton)(({ theme }) => ({
   color: theme.palette.common.white,
@@ -92,9 +94,9 @@ const SocialIconButton = styled(IconButton)(({ theme }) => ({
   transition: 'all 0.3s ease',
   '&:hover': {
     color: '#FFD700',
-    transform: 'scale(1.2)',
-  },
-}));
+    transform: 'scale(1.2)'
+  }
+}))
 
 const GradientBackground = styled(Box)(({ theme }) => ({
   background: 'linear-gradient(135deg, #2c3ce3 0%, #1a237e 100%)',
@@ -107,97 +109,99 @@ const GradientBackground = styled(Box)(({ theme }) => ({
     left: 0,
     right: 0,
     height: '100px',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
-  },
-}));
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)'
+  }
+}))
 
 const FooterContent = () => {
-  const [showContactDetails, setShowContactDetails] = useState(false);
-  const [footerData, setFooterData] = useState(null);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [showContactDetails, setShowContactDetails] = useState(false)
+  const [footerData, setFooterData] = useState(null)
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const handleContactClick = () => {
-    setShowContactDetails(!showContactDetails);
-  };
+    setShowContactDetails(!showContactDetails)
+  }
 
   useEffect(() => {
     const fetchFooterData = async () => {
       try {
-        const data = await fetchConfiguration();
-        setFooterData(data);
-      } catch (error) {
-        console.error("Error fetching footer data:", error);
-      }
-    };
+        const data = await fetchConfiguration()
 
-    fetchFooterData();
-  }, []);
+        setFooterData(data)
+      } catch (error) {
+        console.error('Error fetching footer data:', error)
+      }
+    }
+
+    fetchFooterData()
+  }, [])
 
   if (!footerData) {
-    return <Typography>Loading...</Typography>;
+    return <Typography>Loading...</Typography>
   }
 
   return (
     <GradientBackground>
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Grid container spacing={6} justifyContent="space-between">
+      <Container maxWidth='lg' sx={{ py: 8 }}>
+        <Grid container spacing={6} justifyContent='space-between'>
           {/* Company Info */}
           <Grid item xs={12} md={4}>
             <FooterSection>
               <Typography
-                variant="h4"
+                variant='h4'
                 sx={{
                   fontWeight: 700,
                   marginBottom: 3,
                   textAlign: { xs: 'center', md: 'left' },
                   background: 'linear-gradient(45deg, #FFFFFF 30%, #FFD700 90%)',
                   WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  WebkitTextFillColor: 'transparent'
                 }}
               >
                 {footerData?.name || 'Loading...'}
               </Typography>
 
-              {footerData?.address && footerData.address.map((loc, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: 'flex',
-                    justifyContent: { xs: "center", md: "flex-start" },
-                    alignItems: "center",
-                    color: "white",
-                    marginBottom: 2,
-                    gap: 1.5,
-                    transition: 'transform 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateX(10px)',
-                    },
-                  }}
-                >
-                  <LocationOnIcon sx={{ color: '#FFD700' }} />
-                  <Link
-                    href={`https://www.google.com/maps?q=${loc}`}
-                    target="_blank"
+              {footerData?.address &&
+                footerData.address.map((loc, index) => (
+                  <Box
+                    key={index}
                     sx={{
-                      color: "white",
-                      textDecoration: 'none',
+                      display: 'flex',
+                      justifyContent: { xs: 'center', md: 'flex-start' },
+                      alignItems: 'center',
+                      color: 'white',
+                      marginBottom: 2,
+                      gap: 1.5,
+                      transition: 'transform 0.3s ease',
                       '&:hover': {
-                        color: '#FFD700',
-                      },
+                        transform: 'translateX(10px)'
+                      }
                     }}
                   >
-                    {loc}
-                  </Link>
-                </Box>
-              ))}
+                    <LocationOnIcon sx={{ color: '#FFD700' }} />
+                    <Link
+                      href={`https://www.google.com/maps?q=${loc}`}
+                      target='_blank'
+                      sx={{
+                        color: 'white',
+                        textDecoration: 'none',
+                        '&:hover': {
+                          color: '#FFD700'
+                        }
+                      }}
+                    >
+                      {loc}
+                    </Link>
+                  </Box>
+                ))}
 
-              <Box sx={{ mt: 4, textAlign: { xs: 'center', md: 'left' } }}>
+              {/* <Box sx={{ mt: 4, textAlign: { xs: 'center', md: 'left' } }}>
                 <SocialIconButton><FacebookIcon /></SocialIconButton>
                 <SocialIconButton><TwitterIcon /></SocialIconButton>
                 <SocialIconButton><InstagramIcon /></SocialIconButton>
                 <SocialIconButton><LinkedInIcon /></SocialIconButton>
-              </Box>
+              </Box> */}
             </FooterSection>
           </Grid>
 
@@ -205,21 +209,28 @@ const FooterContent = () => {
           <Grid item xs={12} md={3}>
             <FooterSection>
               <Typography
-                variant="h5"
+                variant='h5'
                 sx={{
                   fontWeight: 600,
                   marginBottom: 3,
                   textAlign: { xs: 'center', md: 'left' },
-                  color: '#FFD700',
+                  color: '#FFD700'
                 }}
               >
                 Company
               </Typography>
-              <Box sx={{ pl: { md: 2 } }}>
-                <FooterLink href="#">About us</FooterLink>
-                <FooterLink href="#">Blogs</FooterLink>
-                <FooterLink href="#">Privacy Policy</FooterLink>
-                <FooterLink href="#">Term & Condition</FooterLink>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: { xs: 'center', md: 'flex-start' },
+                  pl: { md: 2 }
+                }}
+              >
+                <FooterLink href='#'>About us</FooterLink>
+                <FooterLink href='#'>Blogs</FooterLink>
+                <FooterLink href='#'>Privacy Policy</FooterLink>
+                <FooterLink href='#'>Term & Condition</FooterLink>
               </Box>
             </FooterSection>
           </Grid>
@@ -228,7 +239,7 @@ const FooterContent = () => {
           <Grid item xs={12} md={4}>
             <FooterSection>
               <Typography
-                variant="h5"
+                variant='h5'
                 sx={{
                   fontWeight: 600,
                   marginBottom: 3,
@@ -236,97 +247,86 @@ const FooterContent = () => {
                   color: '#FFD700',
                 }}
               >
-                Let's Talk
+                Contact Us
               </Typography>
-              <FooterLink
-                component="button"
-                onClick={handleContactClick}
+
+              {/* Phone Number Section */}
+              <Box
                 sx={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: { xs: 'center', md: 'flex-start' },
-                  width: '100%',
+                  gap: 2,
+                  p: 2,
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(44, 60, 227, 0.1)',
+                  marginBottom: 2,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'rgba(44, 60, 227, 0.2)',
+                    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)',
+                  },
                 }}
               >
-                Contact Us
-                <IconButton
-                  size="small"
-                  sx={{
-                    color: 'white',
-                    transform: showContactDetails ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.3s ease',
-                    ml: 1,
-                  }}
-                >
-                  <ExpandMoreIcon />
-                </IconButton>
-              </FooterLink>
+                <PhoneIcon sx={{ color: '#FFD700', fontSize: '1.5rem' }} />
+                <Typography variant='h6' sx={{ fontWeight: '600', color: 'white' }}>
+                  {footerData?.contactNo || 'No contact info'}
+                </Typography>
+              </Box>
 
-              <Collapse in={showContactDetails} timeout="auto" unmountOnExit>
-                <ContactPaper elevation={4}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 3,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        p: 2,
-                        borderRadius: 2,
-                        backgroundColor: 'rgba(44, 60, 227, 0.1)',
-                      }}
-                    >
-                      <PhoneIcon sx={{ color: "#2c3ce3" }} />
-                      <Typography variant="h6" sx={{ fontWeight: "600" }}>
-                        {footerData?.contactNo || 'No contact info'}
-                      </Typography>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        p: 2,
-                        borderRadius: 2,
-                        backgroundColor: 'rgba(44, 60, 227, 0.1)',
-                      }}
-                    >
-                      <EmailIcon sx={{ color: "#2c3ce3" }} />
-                      <Typography variant="h6" sx={{ fontWeight: "600" }}>
-                        {footerData?.email || 'No email info'}
-                      </Typography>
-                    </Box>
-
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        textAlign: 'center',
-                        fontStyle: 'italic',
-                        color: 'text.secondary',
-                      }}
-                    >
-                      {footerData?.description || 'No description available'}
-                    </Typography>
-                  </Box>
-                </ContactPaper>
-              </Collapse>
+              {/* Email Section */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  p: 2,
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(44, 60, 227, 0.1)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'rgba(44, 60, 227, 0.2)',
+                    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)',
+                  },
+                }}
+              >
+                <EmailIcon sx={{ color: '#FFD700', fontSize: '1.5rem' }} />
+                <Typography variant='h6' sx={{ fontWeight: '600', color: 'white' }}>
+                  {footerData?.email || 'No email info'}
+                </Typography>
+              </Box>
             </FooterSection>
           </Grid>
+
         </Grid>
+
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: { xs: 'center', md: 'flex-end' },
+            alignItems: 'center',
+            marginBottom: 2
+          }}
+        >
+          <SocialIconButton>
+            <FacebookIcon />
+          </SocialIconButton>
+          <SocialIconButton>
+            <TwitterIcon />
+          </SocialIconButton>
+          <SocialIconButton>
+            <InstagramIcon />
+          </SocialIconButton>
+          <SocialIconButton>
+            <LinkedInIcon />
+          </SocialIconButton>
+        </Box>
 
         <Divider
           sx={{
             backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            margin: '4rem 0 2rem',
+            margin: '2rem 0 1rem'
           }}
         />
 
@@ -336,14 +336,14 @@ const FooterContent = () => {
             flexDirection: { xs: 'column', md: 'row' },
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: 2,
+            gap: 2
           }}
         >
           <Typography
             sx={{
               color: 'white',
               fontSize: '0.9rem',
-              textAlign: 'center',
+              textAlign: 'center'
             }}
           >
             © {new Date().getFullYear()} All Rights Reserved by {footerData?.name || 'Your Company'}
@@ -353,7 +353,7 @@ const FooterContent = () => {
               color: 'rgba(255, 255, 255, 0.7)',
               fontSize: '0.85rem',
               textAlign: 'center',
-              maxWidth: '600px',
+              maxWidth: '600px'
             }}
           >
             {footerData.description}
@@ -361,7 +361,7 @@ const FooterContent = () => {
         </Box>
       </Container>
     </GradientBackground>
-  );
-};
+  )
+}
 
-export default FooterContent;
+export default FooterContent

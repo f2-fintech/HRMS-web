@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+
+import { useRouter } from 'next/navigation';
+
 import { debounce } from 'lodash';
 import { useSelector, useDispatch } from 'react-redux';
-import { useRouter } from 'next/navigation';
 import {
   Box,
   Grid,
@@ -19,16 +21,18 @@ import {
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import AddIcon from '@mui/icons-material/Add';
-import { fetchEmployees, resetEmployees } from '../redux/features/employees/employeesSlice';
+
+import { toast, ToastContainer } from 'react-toastify';
+
+import { fetchEmployees, resetEmployees, deleteEmployee } from '../redux/features/employees/employeesSlice';
 import { fetchDesignations } from '@/redux/features/designation/designationSlice';
 import Loader from "../components/loader/loader";
 import EmployeeForm from '@/components/employee/EmployeeForm';
 import EmployeeCard from '@/components/employee/EmployeeCard';
 import { utility } from '@/utility';
-import { toast, ToastContainer } from 'react-toastify';
-import { deleteEmployee } from '@/redux/features/employees/employeesSlice';
+
 import 'react-toastify/dist/ReactToastify.css';
-import { RootState } from '@/redux/store';
+import type { RootState } from '@/redux/store';
 
 const { isTokenExpired } = utility();
 
@@ -61,6 +65,7 @@ export default function EmployeeGrid() {
     } else {
       if (userRole === "") {
         const user = JSON.parse(localStorage.getItem("user") || '{}');
+
         setUserRole(user.role);
       }
     }
@@ -80,7 +85,9 @@ export default function EmployeeGrid() {
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 && !loading && hasMore) {
       setPage((prevPage) => {
         const nextPage = prevPage + 1;
+
         dispatch(fetchEmployees({ page: nextPage, limit: 12, search: searchName, designation: selectedDesignation }));
+
         return nextPage;
       });
     }
@@ -88,6 +95,7 @@ export default function EmployeeGrid() {
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll);
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
@@ -103,6 +111,7 @@ export default function EmployeeGrid() {
 
   const handleDelete = async (id) => {
     const confirmDelete = confirm('Are you sure you want to delete this employee?');
+
     if (!confirmDelete) return;
 
     try {
@@ -119,6 +128,7 @@ export default function EmployeeGrid() {
         toast.success('Employee deleted successfully.');
       } else {
         const errorResult = await response.json();
+
         toast.error(`Failed to delete employee: ${errorResult.message}`);
       }
     } catch (error) {
@@ -151,6 +161,7 @@ export default function EmployeeGrid() {
 
     setSelectedDesignation('');
     setSearchName(searchValue);
+
     if (searchValue === '') {
       setPage(1);
       dispatch(resetEmployees());
@@ -162,6 +173,7 @@ export default function EmployeeGrid() {
 
     setSearchName('');
     setSelectedDesignation(designationValue === null ? '' : designationValue);
+
     if (designationValue === '') {
       setPage(1);
       dispatch(resetEmployees());
@@ -177,42 +189,45 @@ export default function EmployeeGrid() {
             <EmployeeForm employee={selectedEmployee} handleClose={handleClose} employees={employees} fetchEmployees={fetchEmployees} page={page} />
           </DialogContent>
         </Dialog>
-        <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Box>
-            <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
-              Employee
+            <Typography style={{ fontSize: '2em' }} variant="h5" gutterBottom>
+              {userRole === '0' ? 'Admin' : 'Employee'}
             </Typography>
             <Typography
               style={{ fontSize: '1em', fontWeight: 'bold' }}
-              variant='subtitle1'
+              variant="subtitle1"
               gutterBottom
             >
-              Dashboard / Employee
+              Dashboard / {userRole === '0' ? 'Admin' : 'Employee'}
             </Typography>
           </Box>
-          <Box display='flex' alignItems='center'>
-            {Number(userRole) <= 1 && <Button
-              style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
-              variant='contained'
-              color='warning'
-              startIcon={<AddIcon />}
-              onClick={handleAddEmployeeClick}
-            >
-              Add Employee
-            </Button>
-            }
+          <Box display="flex" alignItems="center">
+            {(userRole === '0' || userRole === '1') && (
+              <Button
+                style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
+                variant="contained"
+                color="warning"
+                startIcon={<AddIcon />}
+                onClick={handleAddEmployeeClick}
+              >
+                {userRole === '0' ? 'Add Admin' : 'Add Employee'}
+              </Button>
+            )}
           </Box>
         </Box>
-        <Grid container spacing={6} alignItems='center' mb={2}>
+
+        <Grid container spacing={6} alignItems="center" mb={2}>
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label='Employee Name'
-              variant='outlined'
+              label={userRole === '0' ? 'Admin Name' : 'Employee Name'}
+              variant="outlined"
               value={searchName}
               onChange={handleInputChange}
             />
           </Grid>
+
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <Autocomplete
@@ -244,7 +259,7 @@ export default function EmployeeGrid() {
           )}
         </Grid>
         {loading ? <Loader /> : <div></div>}
-      </Box>
+      </Box >
     </>
   );
 }
