@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {
     Card,
     CardContent,
@@ -57,7 +58,7 @@ const NewYearWidget = () => {
                 overflow: 'hidden',
                 background: 'linear-gradient(135deg, rgb(17, 10, 49) 0%, rgb(60, 52, 52) 100%)',
                 borderRadius: '16px',
-                height: '300px',
+                minHeight: '300px',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
             }}
         >
@@ -74,7 +75,13 @@ const NewYearWidget = () => {
                             color: 'white',
                             fontWeight: 'bold',
                             textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            animation: 'colorChange 5s infinite'
+                            animation: 'colorChange 5s infinite',
+                            fontSize: {
+                                xs: '1.5rem',
+                                sm: '2rem',
+                                md: '2.125rem'
+                            },
+                            flexWrap: 'wrap'
                         }}
                     >
                         <LocalFireDepartment sx={{ color: '#ff6b6b', animation: 'spin 2s infinite' }} />
@@ -85,7 +92,11 @@ const NewYearWidget = () => {
 
                 <Box sx={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gridTemplateColumns: {
+                        xs: 'repeat(1, 1fr)',
+                        sm: 'repeat(2, 1fr)',
+                        md: 'repeat(4, 1fr)'
+                    },
                     gap: 2,
                     my: 3
                 }}>
@@ -121,7 +132,11 @@ const NewYearWidget = () => {
                                     color: 'white',
                                     fontWeight: 'bold',
                                     animation: 'colorChange 4s infinite',
-                                    animationDelay: `${index * 0.2}s`
+                                    animationDelay: `${index * 0.2}s`,
+                                    fontSize: {
+                                        xs: '1.125rem',
+                                        sm: '1.25rem'
+                                    }
                                 }}
                             >
                                 {value}
@@ -146,7 +161,14 @@ const NewYearWidget = () => {
                     justifyContent: 'center',
                     gap: 1,
                     mt: 2,
-                    animation: 'fadeInOut 2s infinite'
+                    animation: 'fadeInOut 2s infinite',
+                    fontSize: {
+                        xs: '0.875rem',
+                        sm: '1rem',
+                        md: '1.25rem'
+                    },
+                    flexWrap: 'wrap',
+                    px: { xs: 1, sm: 2 }
                 }}>
                     <WorkspacePremium sx={{ color: '#ffd700' }} />
                     We Grow, F2 Fintech Thrives – Together, We'll Make This Year Extraordinary!

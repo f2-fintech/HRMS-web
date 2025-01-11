@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Card,
@@ -12,25 +13,47 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
+  Box,
   Pagination,
-  Box
+  useTheme
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+
 import type { AppDispatch, RootState } from "@/redux/store";
 import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
 
-// Styled components
-const GradientCard = styled(Card)(({ theme }) => ({
+// ... other styled components remain the same ...
+const GradientCard = styled(Card)(() => ({
   display: 'flex',
   flexDirection: 'column',
-  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
-  borderRadius: theme.spacing(4),
+  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%) !important',
+  borderRadius: '32px',
   boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
   backdropFilter: 'blur(10px)',
   border: '1px solid rgba(255, 255, 255, 0.18)',
 }));
 
+// Modified HeaderTypography to shift title right
+const HeaderTypography = styled(Typography)(() => ({
+  color: '#fff !important',
+  fontWeight: 700,
+  textAlign: 'left',  // Changed from 'center' to 'left'
+  paddingLeft: '100px',  // Added padding to shift right
+  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.2)',
+  position: 'relative',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: -10,
+    left: '100px',  // Adjusted underline position to match text
+    width: '80px',
+    height: '4px',
+    background: '#fff',
+    borderRadius: '2px',
+  }
+}));
+
+// ... rest of the styled components ...
 const CardContentWithFlex = styled(CardContent)(({ theme }) => ({
   flex: 1,
   display: 'flex',
@@ -38,10 +61,10 @@ const CardContentWithFlex = styled(CardContent)(({ theme }) => ({
   padding: theme.spacing(2),
 }));
 
-const ContentCard = styled(Card)(({ theme }) => ({
-  background: 'rgba(255, 255, 255, 0.9)',
-  borderRadius: theme.spacing(3),
-  margin: theme.spacing(2),
+const ContentCard = styled(Card)(() => ({
+  background: 'rgba(255, 255, 255, 0.9) !important',
+  borderRadius: '24px',
+  margin: '16px',
   boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
 }));
 
@@ -64,33 +87,15 @@ const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   },
 }));
 
-const HeaderTypography = styled(Typography)(({ theme }) => ({
-  color: '#fff',
-  fontWeight: 700,
-  textAlign: 'center',
-  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.2)',
-  position: 'relative',
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    bottom: -10,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: '80px',
-    height: '4px',
-    background: '#fff',
-    borderRadius: '2px',
-  }
-}));
-
-const StyledTableCell = styled(TableCell)(({ theme }) => ({
+const StyledTableCell = styled(TableCell)(() => ({
   fontWeight: 600,
-  color: 'rgba(0, 0, 0, 0.8)',
+  color: 'rgba(0, 0, 0, 0.8) !important',
   borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-  padding: theme.spacing(2),
+  padding: '16px',
+  background: 'transparent !important',
 }));
 
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
+const StyledTableRow = styled(TableRow)(() => ({
   transition: 'all 0.3s ease',
   '&:hover': {
     backgroundColor: 'rgba(107, 141, 214, 0.1)',
@@ -98,26 +103,28 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
-const StyledPagination = styled(Pagination)(({ theme }) => ({
+const StyledPagination = styled('div')(({ theme }) => ({
   padding: theme.spacing(3),
-  '& .MuiPaginationItem-root': {
-    color: '#fff',
-    '&.Mui-selected': {
-      background: 'rgba(255, 255, 255, 0.2)',
-      fontWeight: 'bold',
+  '.MuiPagination-root': {
+    '& .MuiPaginationItem-root': {
+      color: '#fff !important',
+      '&.Mui-selected': {
+        background: 'rgba(255, 255, 255, 0.2) !important',
+        fontWeight: 'bold',
+      },
+      '&:hover': {
+        background: 'rgba(255, 255, 255, 0.1) !important',
+      },
     },
-    '&:hover': {
-      background: 'rgba(255, 255, 255, 0.1)',
-    },
-  },
+  }
 }));
 
-const StyledChip = styled(Chip)(({ theme }) => ({
+const StyledChip = styled(Chip)(() => ({
   fontWeight: 600,
-  borderRadius: theme.spacing(2),
-  padding: theme.spacing(0.5),
-  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
-  color: '#fff',
+  borderRadius: '16px',
+  padding: '4px',
+  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%) !important',
+  color: '#fff !important',
   border: 'none',
   '& .MuiChip-label': {
     padding: '0 16px',
@@ -181,13 +188,15 @@ const HolidaysTable = () => {
           </StyledTableContainer>
         </ContentCard>
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-          <StyledPagination
-            count={totalPages}
-            page={page}
-            onChange={handlePageChange}
-            size="large"
-            shape="rounded"
-          />
+          <StyledPagination>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={handlePageChange}
+              size="large"
+              shape="rounded"
+            />
+          </StyledPagination>
         </Box>
       </CardContentWithFlex>
     </GradientCard>
