@@ -37,6 +37,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AccordionLeaves from '@/components/leave/AccordionLeaves'
+import useDebounce from '@/utility/debounce/useDebounce'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'bold',
@@ -127,27 +128,20 @@ export default function LeavesGrid() {
     }
   }
 
-  const debouncedFetch = useMemo(
-    () =>
-      debounce(() => {
-        if (userRole === '1') {
-          dispatch(fetchLeaves({ page, limit, month, year, keyword: selectedKeyword }));
-        }
-        if (Number(userRole) > 1) {
-          dispatch(fetchLeaves({ page, limit, month: '0', year, keyword: selectedKeyword }));
-        }
-      }, 300),
-    [dispatch, page, limit, selectedKeyword, userId, month, year, userRole]
-  )
+  const debouncedKeyword = useDebounce(selectedKeyword, 500);
+
+  useEffect(() => {
+    if (userRole === '1') {
+      dispatch(fetchLeaves({ page, limit, month, year, keyword: debouncedKeyword }));
+    } else if (Number(userRole) > 1) {
+      dispatch(fetchLeaves({ page, limit, month: '0', year, keyword: debouncedKeyword }));
+    }
+  }, [dispatch, page, limit, debouncedKeyword, userId, month, year, userRole]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedKeyword(e.target.value)
   }, [])
 
-  // Fetch leaves whenever dependencies change
-  useEffect(() => {
-    debouncedFetch()
-  }, [page, limit, month, year, selectedKeyword, userRole])
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || '{}')

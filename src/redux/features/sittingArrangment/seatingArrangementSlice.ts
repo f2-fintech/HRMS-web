@@ -36,33 +36,48 @@ export const fetchSeatingArrangements = createAsyncThunk<
     { page?: number; limit?: number; keyword?: string },
     { state: RootState }
 >('seatingArrangement/fetchSeatingArrangements', async ({ page = 1, limit = 10, keyword = '' }) => {
-    const token = localStorage?.getItem('token')
+    const token = localStorage?.getItem('token');
+    const user = localStorage?.getItem('user'); // Retrieve the user object from localStorage
+
+    if (!user) {
+        throw new Error('User information is missing');
+    }
+
+    const parsedUser = JSON.parse(user); // Parse the user JSON
+    const company_id = parsedUser?.company_id; // Extract company_id
+
+    if (!company_id) {
+        throw new Error('Company ID is missing');
+    }
+
     const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/get-all?page=${page}&limit=${limit}&keyword=${encodeURIComponent(
             keyword
-        )}`,
+        )}&company_id=${company_id}`, // Add company_id to the query parameters
         {
             method: 'GET',
             headers: {
                 Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         }
-    )
+    );
 
     if (!response.ok) {
-        throw new Error('Failed to fetch seating arrangements')
+        throw new Error('Failed to fetch seating arrangements');
     }
 
-    const result = await response.json()
+    const result = await response.json();
 
     const seatingArrangements = result.data.map((item: any) => ({
         ...item,
-        employee: item.employeeData
-    }))
+        employee: item.employeeData,
+        company_id: item.company_id, // Include company_id in the mapped results
+    }));
 
-    return { seatingArrangements, total: result.total }
-})
+    return { seatingArrangements, total: result.total };
+});
+
 
 export const fetchSeatingByEmployeeId = createAsyncThunk<
     { seatingArrangements: SeatingArrangement[]; total: number },

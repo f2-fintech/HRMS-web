@@ -32,11 +32,12 @@ const OfficeSeating = () => {
 
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userRole = user.role;
+    const companyId = user.company_id
 
     useEffect(() => {
         const fetchSeatingData = async () => {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/get-all-by-location?location=${location}`);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/get-all-by-location?location=${location}&companyId=${companyId}`);
                 const data = await response.json();
 
                 if (response.ok && data?.data) {
@@ -89,7 +90,9 @@ const OfficeSeating = () => {
 
     const handleSeatHover = async (seat) => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/by-seat/${seat.id}?location=${location}`);
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/by-seat/${seat.id}?location=${location}&company_id=${companyId}`
+            );
             if (response.ok) {
                 const data = await response.json();
                 if (data && data.employeeData) {

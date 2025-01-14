@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Image from 'next/image';
 import type { FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -183,9 +184,14 @@ const Login = ({ mode }: { mode: Mode }) => {
           >
             <CardContent sx={{ padding: { xs: '2rem', sm: '3rem' } }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <Link href='/' className='flex justify-center items-center'>
-                  <Logo />
-                </Link>
+                <div className='flex justify-center items-center'>
+                  <Image
+                    src='/images/logos/ems-logo.jpg'
+                    alt='EMS Logo'
+                    width={100} // Set width as needed
+                    height={90}
+                  />
+                </div>
 
                 <Box sx={{ textAlign: 'center', mb: 2 }}>
                   <Typography

@@ -51,6 +51,7 @@
     "react-redux": "^9.1.2",
     "react-toastify": "^10.0.5",
     "react-use": "^17.5.0",
+    "recharts": "^2.15.0",
     "server-only": "^0.0.1"
   },
   "devDependencies": {
@@ -63,6 +64,7 @@
     "@types/react": "^18.3.3",
     "@types/react-datepicker": "^6.2.0",
     "@types/react-dom": "^18.3.0",
+    "@types/recharts": "^1.8.29",
     "@typescript-eslint/eslint-plugin": "^7.13.0",
     "@typescript-eslint/parser": "^7.13.0",
     "autoprefixer": "^10.4.19",

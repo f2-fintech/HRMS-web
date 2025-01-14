@@ -122,6 +122,7 @@ const RoomManagement = () => {
     const [reason, setReason] = useState('');
     const [userId, setUserId] = useState(null)
     const [userRole, setUserRole] = useState(null)
+    const [companyId, setCompanyId] = useState(null)
     const [snackbarOpen, setSnackbarOpen] = useState(false)
     const [snackbarMessage, setSnackbarMessage] = useState('')
     const [snackbarSeverity, setSnackbarSeverity] = useState('success')
@@ -138,6 +139,7 @@ const RoomManagement = () => {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
         setUserId(user.id || null)
         setUserRole(user.role || null)
+        setCompanyId(user.company_id || null)
     }, [])
 
     const [formData, setFormData] = useState({
@@ -157,42 +159,44 @@ const RoomManagement = () => {
 
     useEffect(() => {
         const fetchRooms = async () => {
+            if (!companyId) return; // Ensure companyId is available before fetching
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/room/rooms/get-all`)
-                const data = await response.json()
+                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/room/rooms/get-all?company_id=${companyId}`);
+                const data = await response.json();
                 setRooms(
                     data.map(room => ({
                         id: room._id,
                         name: room.name,
-                        capacity: room.capacity
+                        capacity: room.capacity,
                     }))
-                )
+                );
             } catch (error) {
-                console.error('Error fetching rooms:', error)
+                console.error('Error fetching rooms:', error);
             }
-        }
-        fetchRooms()
-    }, [])
+        };
+        fetchRooms();
+    }, [companyId]); // Add companyId as a dependency
+
 
     const fetchTimeSlots = async () => {
+        if (!companyId) return; // Ensure companyId is available before making the API call
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/room/get/time-slots?date=${selectedDate}`)
-            const data = await response.json()
+            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/room/get/time-slots?date=${selectedDate}&company_id=${companyId}`);
+            const data = await response.json();
             const slotsByRoom = data.reduce((acc, slot) => {
-                const roomId = slot.room._id
-                if (!acc[roomId]) acc[roomId] = []
-                acc[roomId].push(slot)
-                return acc
-            }, {})
-            setTimeSlots(slotsByRoom)
+                const roomId = slot.room._id;
+                if (!acc[roomId]) acc[roomId] = [];
+                acc[roomId].push(slot);
+                return acc;
+            }, {});
+            setTimeSlots(slotsByRoom);
         } catch (error) {
-            console.error('Error fetching time slots:', error)
+            console.error('Error fetching time slots:', error);
         }
-    }
-
+    };
     useEffect(() => {
         fetchTimeSlots()
-    }, [selectedDate])
+    }, [selectedDate, companyId])
 
     const handleEditSlot = slot => {
         setSelectedRoom(slot.room)
@@ -270,6 +274,7 @@ const RoomManagement = () => {
     const handleAddRoom = async e => {
         e.preventDefault()
         try {
+
             const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/room/create`, {
                 method: 'POST',
                 headers: {
@@ -277,7 +282,8 @@ const RoomManagement = () => {
                 },
                 body: JSON.stringify({
                     name: formData.name,
-                    capacity: Number(formData.capacity)
+                    capacity: Number(formData.capacity),
+                    company_id: companyId,
                 })
             })
 
@@ -343,6 +349,8 @@ const RoomManagement = () => {
                 date: selectedDate,
                 timeSlots: formattedTimeSlot,
                 reason: reason,
+                company_id: companyId
+
             };
 
             // Only include employee if creating a new time slot

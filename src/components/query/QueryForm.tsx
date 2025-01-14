@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
     Autocomplete,
     Box,
@@ -12,32 +12,32 @@ import {
     Container,
     useTheme,
     InputAdornment
-} from '@mui/material';
-import { IconButton } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import PersonIcon from '@mui/icons-material/Person';
-import WorkIcon from '@mui/icons-material/Work';
-import DescriptionIcon from '@mui/icons-material/Description';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+} from '@mui/material'
+import { IconButton } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
+import AssignmentIcon from '@mui/icons-material/Assignment'
+import PersonIcon from '@mui/icons-material/Person'
+import WorkIcon from '@mui/icons-material/Work'
+import DescriptionIcon from '@mui/icons-material/Description'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
-import { apiResponse } from '../../utility/apiResponse/employeesResponse';
+import { apiResponse } from '../../utility/apiResponse/employeesResponse'
 
 interface QueryFormProps {
-    onSubmit: (queryData: QueryFormData) => void;
-    query?: any;
-    userRole: string;
-    onClose: () => void;
-    queryType: 'against' | 'own';
+    onSubmit: (queryData: QueryFormData) => void
+    query?: any
+    userRole: string
+    onClose: () => void
+    queryType: 'against' | 'own'
 }
 
 interface QueryFormData {
-    toQuery: string;
-    queryType: string;
-    description: string;
-    department: string;
-    status?: string;
-    company_id?: string;
+    toQuery: string
+    queryType: string
+    description: string
+    department: string
+    status?: string
+    company_id?: string
 }
 
 const departments = [
@@ -48,15 +48,15 @@ const departments = [
     'OPERATION',
     'CREDIT',
     'Sales',
-    "HR"
-];
+    'HR'
+]
 
-const statuses = ['Pending', 'Resolved', 'On Process'];
+const statuses = ['Pending', 'Resolved', 'On Process']
 
 const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClose, queryType }) => {
-    const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
-    const company_id = user?.company_id;
-    const theme = useTheme();
+    const user = typeof window !== 'undefined' ? JSON.parse(localStorage?.getItem('user') || '{}') : {}
+    const company_id = user?.company_id
+    const theme = useTheme()
     const [formData, setFormData] = useState<QueryFormData>({
         toQuery: '',
         queryType: '',
@@ -64,22 +64,22 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
         department: '',
         status: 'Pending',
         company_id: company_id
-    });
+    })
 
-    const [employees, setEmployees] = useState<any[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [submitting, setSubmitting] = useState<boolean>(false);
+    const [employees, setEmployees] = useState<any[]>([])
+    const [loading, setLoading] = useState<boolean>(false)
+    const [errors, setErrors] = useState<{ [key: string]: string }>({})
+    const [submitting, setSubmitting] = useState<boolean>(false)
 
-    const isEditMode = !!query;
-    const isAgainstQuery = queryType === 'against';
+    const isEditMode = !!query
+    const isAgainstQuery = queryType === 'against'
 
     useEffect(() => {
         const fetchEmployees = async () => {
-            setLoading(true);
+            setLoading(true)
             try {
-                const data = await apiResponse();
-                setEmployees(data);
+                const data = await apiResponse()
+                setEmployees(data)
                 if (query) {
                     setFormData({
                         toQuery: query.toQuery?._id || '',
@@ -88,70 +88,72 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                         department: query.department || '',
                         status: query.status || 'Pending',
                         company_id: query?.company_id
-                    });
+                    })
                 }
             } catch (error) {
-                console.error('Error fetching employees:', error);
+                console.error('Error fetching employees:', error)
             } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchEmployees();
-    }, [query]);
-
-    const handleEmployeeChange = (event: any, value: any) => {
-        setFormData((prev) => ({
-            ...prev,
-            toQuery: value ? value._id : '',
-        }));
-    };
-
-    const handleDepartmentChange = (event: any, value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            department: value,
-        }));
-    };
-
-    const handleStatusChange = (event: any, value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            status: value,
-        }));
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const validate = () => {
-        let tempErrors: { [key: string]: string } = {};
-        if (!formData.toQuery) tempErrors.toQuery = 'Assigned to name is required';
-        if (!formData.queryType) tempErrors.queryType = 'Query Type is required';
-        if (!formData.department) tempErrors.department = 'Department is required';
-        setErrors(tempErrors);
-        return Object.keys(tempErrors).length === 0;
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (validate()) {
-            setSubmitting(true);
-            try {
-                onSubmit(formData);
-            } finally {
-                setSubmitting(false);
+                setLoading(false)
             }
         }
-    };
 
-    const createdByEmployee = employees.find(emp => emp._id === (query?.employee?._id || query?.employee));
-    const toQueryEmployee = employees.find(emp => emp._id === formData.toQuery);
+        fetchEmployees()
+    }, [query])
+
+    const handleEmployeeChange = (event: any, value: any) => {
+        setFormData(prev => ({
+            ...prev,
+            toQuery: value ? value._id : ''
+        }))
+    }
+
+    const handleDepartmentChange = (event: any, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            department: value
+        }))
+    }
+
+    const handleStatusChange = (event: any, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            status: value
+        }))
+    }
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target
+        setFormData(prev => ({ ...prev, [name]: value }))
+    }
+
+    const validate = () => {
+        let tempErrors: { [key: string]: string } = {}
+        if (!formData.toQuery) tempErrors.toQuery = 'Assigned to name is required'
+        if (!formData.queryType) tempErrors.queryType = 'Query Type is required'
+        if (!formData.department) tempErrors.department = 'Department is required'
+        setErrors(tempErrors)
+        return Object.keys(tempErrors).length === 0
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (validate()) {
+            setSubmitting(true) // Set submitting to true
+            try {
+                await onSubmit(formData) // Ensure this is an asynchronous operation
+            } catch (error) {
+                console.error('Submission error:', error)
+            } finally {
+                setSubmitting(false) // Reset submitting to false
+            }
+        }
+    }
+
+    const createdByEmployee = employees.find(emp => emp._id === (query?.employee?._id || query?.employee))
+    const toQueryEmployee = employees.find(emp => emp._id === formData.toQuery)
 
     return (
-        <Container maxWidth="md">
+        <Container maxWidth='md'>
             <Paper
                 elevation={6}
                 sx={{
@@ -173,15 +175,15 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                         position: 'relative'
                     }}
                 >
-                    <Box display="flex" alignItems="center">
+                    <Box display='flex' alignItems='center'>
                         <AssignmentIcon sx={{ mr: 2, fontSize: 32 }} />
-                        <Typography variant="h5" component="h1" fontWeight="bold" sx={{ color: 'white' }}>
+                        <Typography variant='h5' component='h1' fontWeight='bold' sx={{ color: 'white' }}>
                             {query ? 'Edit Query' : 'Create a New Query'}
                         </Typography>
                     </Box>
                     <IconButton
                         onClick={onClose}
-                        aria-label="close"
+                        aria-label='close'
                         sx={{
                             color: 'white',
                             '&:hover': {
@@ -194,7 +196,7 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                 </Box>
 
                 <Box
-                    component="form"
+                    component='form'
                     onSubmit={handleSubmit}
                     sx={{
                         p: 4,
@@ -207,27 +209,27 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                             <Grid item xs={12}>
                                 <Autocomplete
                                     options={employees}
-                                    getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                                    getOptionLabel={option => `${option.first_name} ${option.last_name}`}
                                     loading={loading}
                                     value={createdByEmployee || null}
-                                    renderInput={(params) => (
+                                    renderInput={params => (
                                         <TextField
                                             {...params}
-                                            label="Query By"
-                                            placeholder="Employee"
+                                            label='Query By'
+                                            placeholder='Employee'
                                             InputProps={{
                                                 ...params.InputProps,
                                                 startAdornment: (
-                                                    <InputAdornment position="start">
-                                                        <PersonIcon color="action" />
+                                                    <InputAdornment position='start'>
+                                                        <PersonIcon color='action' />
                                                     </InputAdornment>
                                                 ),
                                                 endAdornment: (
                                                     <>
-                                                        {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                                                        {loading ? <CircularProgress color='inherit' size={20} /> : null}
                                                         {params.InputProps.endAdornment}
                                                     </>
-                                                ),
+                                                )
                                             }}
                                         />
                                     )}
@@ -239,30 +241,30 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                         <Grid item xs={12}>
                             <Autocomplete
                                 options={employees}
-                                getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                                getOptionLabel={option => `${option.first_name} ${option.last_name}`}
                                 loading={loading}
                                 onChange={handleEmployeeChange}
                                 value={toQueryEmployee || null}
-                                renderInput={(params) => (
+                                renderInput={params => (
                                     <TextField
                                         {...params}
-                                        label="Query To"
-                                        placeholder="Select Employee"
+                                        label='Query To'
+                                        placeholder='Select Employee'
                                         error={Boolean(errors.toQuery)}
                                         helperText={errors.toQuery}
                                         InputProps={{
                                             ...params.InputProps,
                                             startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <PersonIcon color="action" />
+                                                <InputAdornment position='start'>
+                                                    <PersonIcon color='action' />
                                                 </InputAdornment>
                                             ),
                                             endAdornment: (
                                                 <>
-                                                    {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                                                    {loading ? <CircularProgress color='inherit' size={20} /> : null}
                                                     {params.InputProps.endAdornment}
                                                 </>
-                                            ),
+                                            )
                                         }}
                                         disabled={isEditMode}
                                     />
@@ -274,19 +276,19 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                             <Autocomplete
                                 options={departments}
                                 onChange={handleDepartmentChange}
-                                value={departments.find((dept) => dept === formData.department) || null}
-                                renderInput={(params) => (
+                                value={departments.find(dept => dept === formData.department) || null}
+                                renderInput={params => (
                                     <TextField
                                         {...params}
-                                        label="Department"
-                                        placeholder="Select Department"
+                                        label='Department'
+                                        placeholder='Select Department'
                                         error={Boolean(errors.department)}
                                         helperText={errors.department}
                                         InputProps={{
                                             ...params.InputProps,
                                             startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <WorkIcon color="action" />
+                                                <InputAdornment position='start'>
+                                                    <WorkIcon color='action' />
                                                 </InputAdornment>
                                             )
                                         }}
@@ -299,8 +301,8 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                         <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
-                                label="Query Type"
-                                name="queryType"
+                                label='Query Type'
+                                name='queryType'
                                 value={formData.queryType}
                                 onChange={handleChange}
                                 required
@@ -309,8 +311,8 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                 disabled={isEditMode && isAgainstQuery}
                                 InputProps={{
                                     startAdornment: (
-                                        <InputAdornment position="start">
-                                            <DescriptionIcon color="action" />
+                                        <InputAdornment position='start'>
+                                            <DescriptionIcon color='action' />
                                         </InputAdornment>
                                     )
                                 }}
@@ -321,17 +323,17 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                             <Autocomplete
                                 options={statuses}
                                 onChange={handleStatusChange}
-                                value={statuses.find((status) => status === formData.status) || null}
-                                renderInput={(params) => (
+                                value={statuses.find(status => status === formData.status) || null}
+                                renderInput={params => (
                                     <TextField
                                         {...params}
-                                        label="Status"
-                                        placeholder="Select Status"
+                                        label='Status'
+                                        placeholder='Select Status'
                                         InputProps={{
                                             ...params.InputProps,
                                             startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <CheckCircleIcon color="action" />
+                                                <InputAdornment position='start'>
+                                                    <CheckCircleIcon color='action' />
                                                 </InputAdornment>
                                             )
                                         }}
@@ -344,8 +346,8 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                         <Grid item xs={12}>
                             <TextField
                                 fullWidth
-                                label="Description"
-                                name="description"
+                                label='Description'
+                                name='description'
                                 value={formData.description}
                                 onChange={handleChange}
                                 multiline
@@ -353,8 +355,8 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                 disabled={isEditMode && isAgainstQuery}
                                 InputProps={{
                                     startAdornment: (
-                                        <InputAdornment position="start">
-                                            <DescriptionIcon color="action" />
+                                        <InputAdornment position='start'>
+                                            <DescriptionIcon color='action' />
                                         </InputAdornment>
                                     )
                                 }}
@@ -372,11 +374,11 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                         <Grid item xs={12}>
                             <Divider sx={{ my: 2 }} />
                             <Button
-                                type="submit"
-                                variant="contained"
-                                color="primary"
+                                type='submit'
+                                variant='contained'
+                                color='primary'
                                 fullWidth
-                                startIcon={<AssignmentIcon />}
+                                startIcon={!submitting && <AssignmentIcon />}
                                 sx={{
                                     py: 1.5,
                                     fontSize: '1rem',
@@ -390,20 +392,16 @@ const QueryForm: React.FC<QueryFormProps> = ({ onSubmit, query, userRole, onClos
                                         background: 'linear-gradient(135deg, #1565c0 0%, #2196f3 100%)'
                                     }
                                 }}
-                                disabled={submitting}
+                                disabled={submitting} // Disable the button during submission
                             >
-                                {submitting ? (
-                                    <CircularProgress size={24} color="inherit" />
-                                ) : (
-                                    query ? 'Update Query' : 'Submit Query'
-                                )}
+                                {submitting ? <CircularProgress size={24} color='inherit' /> : query ? 'Update Query' : 'Submit Query'}
                             </Button>
                         </Grid>
                     </Grid>
                 </Box>
             </Paper>
         </Container>
-    );
-};
+    )
+}
 
-export default QueryForm;
+export default QueryForm
