@@ -227,10 +227,10 @@ const FooterContent = () => {
                   pl: { md: 2 }
                 }}
               >
-                <FooterLink href='#'>About us</FooterLink>
-                <FooterLink href='#'>Blogs</FooterLink>
-                <FooterLink href='#'>Privacy Policy</FooterLink>
-                <FooterLink href='#'>Term & Condition</FooterLink>
+                <FooterLink href='https://www.f2fintech.com/about/'>About us</FooterLink>
+                <FooterLink href='https://www.f2fintech.com/about/'>Blogs</FooterLink>
+                <FooterLink href='https://www.f2fintech.com/privacypolicy.html'>Privacy Policy</FooterLink>
+                <FooterLink href='https://www.f2fintech.com/termsofuse.html'>Term & Condition</FooterLink>
               </Box>
             </FooterSection>
           </Grid>
@@ -310,18 +310,27 @@ const FooterContent = () => {
           }}
         >
           <SocialIconButton>
-            <FacebookIcon />
+            <a href="https://www.facebook.com/f2fintech/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+              <FacebookIcon />
+            </a>
           </SocialIconButton>
           <SocialIconButton>
-            <TwitterIcon />
+            <a href="https://x.com/i/flow/login?redirect_after_login=%2Ff2fintech" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+              <TwitterIcon />
+            </a>
           </SocialIconButton>
           <SocialIconButton>
-            <InstagramIcon />
+            <a href="https://www.instagram.com/f2fintech/reels/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+              <InstagramIcon />
+            </a>
           </SocialIconButton>
           <SocialIconButton>
-            <LinkedInIcon />
+            <a href="https://www.linkedin.com/company/f2fintech/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+              <LinkedInIcon />
+            </a>
           </SocialIconButton>
         </Box>
+
 
         <Divider
           sx={{

@@ -352,7 +352,7 @@ export default function PolicyGrid() {
                   transition: 'transform 0.2s ease-in-out',
                   '&:hover': {
                     transform: 'scale(1.1)',
-                    color: '#6c63ff' // Change color on hover
+                    color: '#6c63ff'
                   }
                 }}
               />
@@ -525,7 +525,7 @@ export default function PolicyGrid() {
                   sx={{
                     fontSize: '1rem',
                     lineHeight: 1.6,
-                    color: textColor, // Conditionally set color based on theme mode
+                    color: textColor,
                     whiteSpace: 'pre-wrap'
                   }}
                 >
