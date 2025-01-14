@@ -84,7 +84,7 @@ const UpcomingBirthdays = () => {
           <Typography
             variant='h3'
             sx={{
-              fontSize: '1.5rem',
+              fontSize: '2rem',
               color: '#64e0e2',
               fontWeight: 800,
               letterSpacing: 2
@@ -131,13 +131,14 @@ const UpcomingBirthdays = () => {
         <Box
           sx={{
             textAlign: 'center',
+            pb: 3  // Added padding bottom for more space
           }}
         >
           <Typography
             variant='h3'
             sx={{
               margin: "10px",
-              fontSize: '1.5rem',
+              fontSize: '2rem',
               color: '#64e0e2',
               fontWeight: 800,
               letterSpacing: 2
@@ -151,7 +152,8 @@ const UpcomingBirthdays = () => {
             sx={{
               color: 'white',
               fontWeight: 'bold',
-              marginTop: 2,
+              marginTop: 5,
+              marginBottom: 5,  // Added margin bottom for more space
             }}
           >
             Coming up on {dayjs(nextBirthdayEmployees[0]._doc.dob).format('D MMM')}!
@@ -164,17 +166,20 @@ const UpcomingBirthdays = () => {
                   src={employee._doc.image}
                   alt={`${employee._doc.first_name} ${employee._doc.last_name}`}
                   sx={{
-                    width: 64,
-                    height: 64,
+                    width: 87,
+                    height: 87,
                     margin: 'auto',
                     border: '2px solid #ddd',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
                   }}
                 >
                   {!employee._doc.image && <PersonIcon />}
                 </Avatar>
-                <Typography variant='h6' sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
+                <Typography variant="h6" sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
                   {capitalizeFirstLetter(employee._doc.first_name)} {capitalizeFirstLetter(employee._doc.last_name)}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#64e0e2', textAlign: 'center', mt: 2 }}>  {/* Increased margin top */}
+                  {employee._doc.designation}
                 </Typography>
               </Grid>
             ))}
@@ -193,7 +198,7 @@ const UpcomingBirthdays = () => {
       >
         <CardHeader
           title={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <CakeIcon color="primary" />
               <Typography variant="h5" sx={{ color: '#333', fontWeight: 'bold' }}>
                 Other Upcoming Birthday's
@@ -253,18 +258,26 @@ const UpcomingBirthdays = () => {
                           sx={{ color: '#333', fontWeight: 'bold' }}
                           variant="subtitle1"
                         >
-                          {capitalizeFirstLetter(row._doc.first_name)}{' '}
-                          {capitalizeFirstLetter(row._doc.last_name)}
+                          {capitalizeFirstLetter(row._doc.first_name)} {capitalizeFirstLetter(row._doc.last_name)}
                         </Typography>
                       }
                       secondary={
-                        <Typography
-                          component="span"
-                          variant="body2"
-                          sx={{ color: '#666' }}
-                        >
-                          {dayjs(row._doc.dob).format('D MMM')}
-                        </Typography>
+                        <Box>
+                          <Typography
+                            component="span"
+                            variant="body2"
+                            sx={{ color: '#666', display: 'block' }}
+                          >
+                            {dayjs(row._doc.dob).format('D MMM')}
+                          </Typography>
+                          <Typography
+                            component="span"
+                            variant="body2"
+                            sx={{ color: '#2196F3' }}
+                          >
+                            {row._doc.designation}
+                          </Typography>
+                        </Box>
                       }
                     />
                     <CakeIcon

@@ -27,7 +27,7 @@ function TradingViewWidget() {
   "showSymbolLogo": true,
   "showFloatingTooltip": true,
   "width": "685",
-  "height": "520",
+  "height": "320",
   "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
   "plotLineColorFalling": "rgba(41, 98, 255, 1)",
   "gridLineColor": "rgba(42, 46, 57, 0)",

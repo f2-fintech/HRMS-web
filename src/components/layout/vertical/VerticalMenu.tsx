@@ -223,7 +223,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
 
         </MenuSection>
       </Menu>
-    </ScrollWrapper>
+    </ScrollWrapper >
   )
 }
 
