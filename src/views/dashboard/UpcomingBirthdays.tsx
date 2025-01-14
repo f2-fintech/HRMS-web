@@ -144,7 +144,10 @@ const UpcomingBirthdays = () => {
               letterSpacing: 2
             }}
           >
-            Upcoming Birthday {nextBirthdayEmployees.length > 1 ? 's' : ''}
+            <div>
+              Upcoming Birthday{nextBirthdayEmployees.length > 1 ? 's' : ''}
+            </div>
+
           </Typography>
 
           <Typography
