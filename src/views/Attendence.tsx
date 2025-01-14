@@ -53,6 +53,7 @@ import Legend from '@/components/attendance/Legend';
 import AttendanceStatusList from '@/components/attendance/AttendanceStatusList';
 import LocationDropdown from '@/utility/locationdropdown/LocationDropdown';
 import { fetchMonthlyAttendanceSummary } from '@/utility/apiResponse/employeesResponse';
+import useDebounce from '@/utility/debounce/useDebounce';
 
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch();
@@ -171,22 +172,6 @@ export default function AttendanceGrid() {
       // toast.error("Failed to load attendance counts.");
     }
   };
-
-  function useDebounce(value, delay) {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-
-    useEffect(() => {
-      const handler = setTimeout(() => {
-        setDebouncedValue(value);
-      }, delay);
-
-      return () => {
-        clearTimeout(handler);
-      };
-    }, [value, delay]);
-
-    return debouncedValue;
-  }
 
   const debouncedSearchName = useDebounce(searchName, 500);
   const debouncedSearchLocation = useDebounce(searchLocation, 500);

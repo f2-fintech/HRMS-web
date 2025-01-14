@@ -96,18 +96,23 @@ export default function AddSeatingArrangementForm({
     const handleSubmit = () => {
         if (!validateForm()) return
 
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const companyId = user.company_id
+
         const url = seatingArrangementId
             ? `${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/update/${seatingArrangementId}`
             : `${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/create`
 
         const method = seatingArrangementId ? 'PUT' : 'POST'
 
+        const requestData = { ...formData, company_id: companyId };
+
         fetch(url, {
             method,
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(requestData)
         })
             .then(async response => {
                 const data = await response.json()

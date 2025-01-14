@@ -1,180 +1,177 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { debounce } from 'lodash';
-import { useSelector, useDispatch } from 'react-redux';
-import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  Button,
-  Select,
-  MenuItem,
-  Dialog,
-  DialogContent,
-  Autocomplete,
-} from '@mui/material';
-import InputLabel from '@mui/material/InputLabel';
-import FormControl from '@mui/material/FormControl';
-import AddIcon from '@mui/icons-material/Add';
-import { fetchEmployees, resetEmployees } from '../redux/features/employees/employeesSlice';
-import { fetchDesignations } from '@/redux/features/designation/designationSlice';
-import Loader from "../components/loader/loader";
-import EmployeeForm from '@/components/employee/EmployeeForm';
-import EmployeeCard from '@/components/employee/EmployeeCard';
-import { utility } from '@/utility';
-import { toast, ToastContainer } from 'react-toastify';
-import { deleteEmployee } from '@/redux/features/employees/employeesSlice';
-import 'react-toastify/dist/ReactToastify.css';
-import { RootState } from '@/redux/store';
+import { useState, useEffect, useCallback } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { useRouter } from 'next/navigation'
+import { Box, Grid, Typography, TextField, Button, Dialog, DialogContent, Autocomplete } from '@mui/material'
+import FormControl from '@mui/material/FormControl'
+import AddIcon from '@mui/icons-material/Add'
+import { fetchEmployees, resetEmployees } from '../redux/features/employees/employeesSlice'
+import { fetchDesignations } from '@/redux/features/designation/designationSlice'
+import Loader from '../components/loader/loader'
+import EmployeeForm from '@/components/employee/EmployeeForm'
+import EmployeeCard from '@/components/employee/EmployeeCard'
+import { utility } from '@/utility'
+import { toast, ToastContainer } from 'react-toastify'
+import { deleteEmployee } from '@/redux/features/employees/employeesSlice'
+import 'react-toastify/dist/ReactToastify.css'
+import { RootState } from '@/redux/store'
+import useDebounce from '@/utility/debounce/useDebounce'
 
-const { isTokenExpired } = utility();
+const { isTokenExpired } = utility()
 
 export default function EmployeeGrid() {
-  const dispatch = useDispatch();
-  const { employees, hasMore, loading, error } = useSelector((state: RootState) => state.employees);
-  const { designations } = useSelector((state: RootState) => state.designations);
+  const dispatch = useDispatch()
+  const { employees, hasMore, loading, error } = useSelector((state: RootState) => state.employees)
+  const { designations } = useSelector((state: RootState) => state.designations)
 
-  const [showForm, setShowForm] = useState(false);
-  const [userRole, setUserRole] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [searchName, setSearchName] = useState('');
-  const [selectedDesignation, setSelectedDesignation] = useState('');
-  const [page, setPage] = useState(1);
+  const [showForm, setShowForm] = useState(false)
+  const [userRole, setUserRole] = useState('')
+  const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [searchName, setSearchName] = useState('')
+  const [selectedDesignation, setSelectedDesignation] = useState('')
+  const [page, setPage] = useState(1)
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const router = useRouter();
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  const router = useRouter()
 
   const capitalizeWords = (name: String) => {
-    return name.split(' ')
+    return name
+      .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
+      .join(' ')
+  }
 
   useEffect(() => {
     if (isTokenExpired(token)) {
-      console.log("isTokenExpired(token)", isTokenExpired(token));
-      localStorage.removeItem('token');
-      router.push('/login');
+      console.log('isTokenExpired(token)', isTokenExpired(token))
+      localStorage.removeItem('token')
+      router.push('/login')
     } else {
-      if (userRole === "") {
-        const user = JSON.parse(localStorage.getItem("user") || '{}');
-        setUserRole(user.role);
+      if (userRole === '') {
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        setUserRole(user.role)
       }
     }
-  }, [token, userRole, router]);
+  }, [token, userRole, router])
 
   useEffect(() => {
-    dispatch(fetchDesignations({ page: 1, limit: 0, keyword: "" }));
+    dispatch(fetchDesignations({ page: 1, limit: 0, keyword: '' }))
   }, [])
 
   useEffect(() => {
     if (searchName === '' && selectedDesignation === '') {
-      dispatch(fetchEmployees({ page, limit: 12, search: '', designation: '' }));
+      dispatch(fetchEmployees({ page, limit: 12, search: '', designation: '' }))
     }
-  }, [dispatch, page, searchName, selectedDesignation]);
+  }, [dispatch, page, searchName, selectedDesignation])
 
   const handleScroll = useCallback(() => {
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 && !loading && hasMore) {
-      setPage((prevPage) => {
-        const nextPage = prevPage + 1;
-        dispatch(fetchEmployees({ page: nextPage, limit: 12, search: searchName, designation: selectedDesignation }));
-        return nextPage;
-      });
+      setPage(prevPage => {
+        const nextPage = prevPage + 1
+        dispatch(fetchEmployees({ page: nextPage, limit: 12, search: searchName, designation: selectedDesignation }))
+        return nextPage
+      })
     }
-  }, [loading, hasMore, searchName, selectedDesignation, dispatch]);
+  }, [loading, hasMore, searchName, selectedDesignation, dispatch])
 
   useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
 
   const handleAddEmployeeClick = () => {
-    setSelectedEmployee(null);
-    setShowForm(true);
-  };
+    setSelectedEmployee(null)
+    setShowForm(true)
+  }
 
-  const handleEditEmployeeClick = (id) => {
-    setSelectedEmployee(id);
-    setShowForm(true);
-  };
+  const handleEditEmployeeClick = id => {
+    setSelectedEmployee(id)
+    setShowForm(true)
+  }
 
-  const handleDelete = async (id) => {
-    const confirmDelete = confirm('Are you sure you want to delete this employee?');
-    if (!confirmDelete) return;
+  const handleDelete = async id => {
+    const confirmDelete = confirm('Are you sure you want to delete this employee?')
+    if (!confirmDelete) return
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/delete/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer',
-        },
-      });
+          Authorization: 'Bearer'
+        }
+      })
 
       if (response.ok) {
-        dispatch(deleteEmployee(id));
-        toast.success('Employee deleted successfully.');
+        dispatch(deleteEmployee(id))
+        toast.success('Employee deleted successfully.')
       } else {
-        const errorResult = await response.json();
-        toast.error(`Failed to delete employee: ${errorResult.message}`);
+        const errorResult = await response.json()
+        toast.error(`Failed to delete employee: ${errorResult.message}`)
       }
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error deleting employee. Please try again.');
+      console.error('Error:', error)
+      toast.error('Error deleting employee. Please try again.')
     }
-  };
-
+  }
 
   const handleClose = () => {
-    setShowForm(false);
-  };
+    setShowForm(false)
+  }
 
-  const debouncedSearch = useCallback(
-    debounce(() => {
-      dispatch(resetEmployees());
-      dispatch(fetchEmployees({ page: 1, limit: 12, search: searchName, designation: selectedDesignation }));
-    }, 500),
-    [searchName, selectedDesignation, dispatch]
-  );
+  const debouncedSearchName = useDebounce(searchName, 500)
+  const debouncedDesignation = useDebounce(selectedDesignation, 500)
 
   useEffect(() => {
-    if (searchName !== '' || selectedDesignation !== '') {
-      debouncedSearch();
+    if (debouncedSearchName !== '' || debouncedDesignation !== '') {
+      dispatch(resetEmployees())
+      dispatch(
+        fetchEmployees({
+          page: 1,
+          limit: 12,
+          search: debouncedSearchName,
+          designation: debouncedDesignation
+        })
+      )
     }
-  }, [searchName, selectedDesignation, debouncedSearch]);
+  }, [debouncedSearchName, debouncedDesignation, dispatch])
 
-  const handleInputChange = (e) => {
-    const searchValue = e.target.value;
+  const handleInputChange = e => {
+    const searchValue = e.target.value
 
-    setSelectedDesignation('');
-    setSearchName(searchValue);
+    setSelectedDesignation('')
+    setSearchName(searchValue)
     if (searchValue === '') {
-      setPage(1);
-      dispatch(resetEmployees());
+      setPage(1)
+      dispatch(resetEmployees())
     }
-  };
+  }
 
-  const handleDesignationChange = (e) => {
-    const designationValue = e.target.value;
+  const handleDesignationChange = e => {
+    const designationValue = e.target.value
 
-    setSearchName('');
-    setSelectedDesignation(designationValue === null ? '' : designationValue);
+    setSearchName('')
+    setSelectedDesignation(designationValue === null ? '' : designationValue)
     if (designationValue === '') {
-      setPage(1);
-      dispatch(resetEmployees());
+      setPage(1)
+      dispatch(resetEmployees())
     }
-  };
+  }
 
   return (
     <>
-      <ToastContainer position="top-center" autoClose={3000} />
+      <ToastContainer position='top-center' autoClose={3000} />
       <Box sx={{ flexGrow: 1, padding: 2 }}>
         <Dialog open={showForm} onClose={handleClose} fullWidth maxWidth='md'>
           <DialogContent>
-            <EmployeeForm employee={selectedEmployee} handleClose={handleClose} employees={employees} fetchEmployees={fetchEmployees} page={page} />
+            <EmployeeForm
+              employee={selectedEmployee}
+              handleClose={handleClose}
+              employees={employees}
+              fetchEmployees={fetchEmployees}
+              page={page}
+            />
           </DialogContent>
         </Dialog>
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
@@ -182,25 +179,22 @@ export default function EmployeeGrid() {
             <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
               Employee
             </Typography>
-            <Typography
-              style={{ fontSize: '1em', fontWeight: 'bold' }}
-              variant='subtitle1'
-              gutterBottom
-            >
+            <Typography style={{ fontSize: '1em', fontWeight: 'bold' }} variant='subtitle1' gutterBottom>
               Dashboard / Employee
             </Typography>
           </Box>
           <Box display='flex' alignItems='center'>
-            {Number(userRole) <= 1 && <Button
-              style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
-              variant='contained'
-              color='warning'
-              startIcon={<AddIcon />}
-              onClick={handleAddEmployeeClick}
-            >
-              Add Employee
-            </Button>
-            }
+            {Number(userRole) <= 1 && (
+              <Button
+                style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
+                variant='contained'
+                color='warning'
+                startIcon={<AddIcon />}
+                onClick={handleAddEmployeeClick}
+              >
+                Add Employee
+              </Button>
+            )}
           </Box>
         </Box>
         <Grid container spacing={6} alignItems='center' mb={2}>
@@ -216,17 +210,15 @@ export default function EmployeeGrid() {
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <Autocomplete
-                id="designation-select"
+                id='designation-select'
                 options={designations
-                  .map((designation) => designation.title)
+                  .map(designation => designation.title)
                   .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))}
-                getOptionLabel={(option) => option}
-                renderInput={(params) => (
-                  <TextField {...params} label="Select Designation" variant="outlined" />
-                )}
+                getOptionLabel={option => option}
+                renderInput={params => <TextField {...params} label='Select Designation' variant='outlined' />}
                 value={selectedDesignation}
                 onChange={(event, newValue) => {
-                  handleDesignationChange({ target: { name: "designation", value: newValue } });
+                  handleDesignationChange({ target: { name: 'designation', value: newValue } })
                 }}
               />
             </FormControl>
@@ -238,7 +230,13 @@ export default function EmployeeGrid() {
           ) : (
             employees.map((employee: any) => (
               <Grid item xs={12} sm={6} md={3} key={employee._id}>
-                <EmployeeCard employee={employee} id={employee._id} handleEditEmployeeClick={handleEditEmployeeClick} capitalizeWords={capitalizeWords} handleDelete={handleDelete} />
+                <EmployeeCard
+                  employee={employee}
+                  id={employee._id}
+                  handleEditEmployeeClick={handleEditEmployeeClick}
+                  capitalizeWords={capitalizeWords}
+                  handleDelete={handleDelete}
+                />
               </Grid>
             ))
           )}
@@ -246,5 +244,5 @@ export default function EmployeeGrid() {
         {loading ? <Loader /> : <div></div>}
       </Box>
     </>
-  );
+  )
 }

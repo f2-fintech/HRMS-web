@@ -322,7 +322,7 @@ const BreakSheet: React.FC = () => {
                         `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
                 }}
             >
-                {showNotPunchedIn ? 'Hide Missing Punches' : 'Show Missing Punches'}
+                {showNotPunchedIn ? 'Hide Missing Punches & Absent' : 'Show Missing Punches & Absent'}
             </Button>
 
             {showNotPunchedIn && <NotPunchedInToday selectedDate={selectedDate} />}

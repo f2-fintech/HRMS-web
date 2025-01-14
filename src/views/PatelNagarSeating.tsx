@@ -18,10 +18,14 @@ const PatelNagarSeating = ({ location, setLocation }) => {
     });
     const [hoveredSeat, setHoveredSeat] = useState(null);
 
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const companyId = user.company_id
+
     useEffect(() => {
         const fetchSeatingData = async () => {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/get-all-by-location?location=${location}`);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/get-all-by-location?location=${location}&companyId=${companyId}`);
                 const data = await response.json();
                 if (response.ok) {
                     setSeats(prevSeats => {
@@ -48,7 +52,7 @@ const PatelNagarSeating = ({ location, setLocation }) => {
 
     const handleSeatHover = async (seat) => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/by-seat/${seat.id}?location=patel nagar`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/by-seat/${seat.id}?location=patel nagar&company_id=${companyId}`);
             if (response.ok) {
                 const data = await response.json();
                 if (data && data.employeeData && data.employeeData.location === "patel nagar") {
