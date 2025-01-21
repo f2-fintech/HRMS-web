@@ -108,6 +108,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
         setImagePreviewUrl(selected.image);
       }
     }
+
     if (role !== "0" && company_id) {
       setFormData(prev => ({
         ...prev,
@@ -162,6 +163,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
 
   const validate = () => {
     const newErrors = {};
+
     const requiredFields = role !== "0" ? ['first_name', 'last_name', 'email', 'work_email', 'contact', 'role_priority', 'dob', 'gender', 'designation', 'joining_date', 'password', 'code', 'location']
       : ['first_name', 'last_name', 'email', 'password', 'role_priority', 'company_id', 'gender'];
 
@@ -238,6 +240,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
   };
 
   console.log("formDAta>>", formData);
+
   return (
     <Paper
       elevation={3}
@@ -297,6 +300,25 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 </InputAdornment>
               ),
             }}
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: 'black',
+              },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: 'black',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'black',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'black',
+                },
+              },
+              '& .MuiInputBase-input': {
+                color: 'black',
+              },
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -315,6 +337,25 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                   <PersonIcon color="action" />
                 </InputAdornment>
               ),
+            }}
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: 'black',
+              },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: 'black',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'black',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'black',
+                },
+              },
+              '& .MuiInputBase-input': {
+                color: 'black',
+              },
             }}
           />
         </Grid>
@@ -335,6 +376,25 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 </InputAdornment>
               ),
             }}
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: 'black',
+              },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: 'black',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'black',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'black',
+                },
+              },
+              '& .MuiInputBase-input': {
+                color: 'black',
+              },
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -354,6 +414,25 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 </InputAdornment>
               ),
             }}
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: 'black',
+              },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: 'black',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'black',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'black',
+                },
+              },
+              '& .MuiInputBase-input': {
+                color: 'black',
+              },
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -372,6 +451,25 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                   <WorkIcon color="action" />
                 </InputAdornment>
               ),
+            }}
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: 'black',
+              },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: 'black',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'black',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'black',
+                },
+              },
+              '& .MuiInputBase-input': {
+                color: 'black',
+              },
             }}
           />
         </Grid>
@@ -394,17 +492,36 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 </InputAdornment>
               ),
             }}
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: 'black',
+              },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: 'black',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'black',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'black',
+                },
+              },
+              '& .MuiInputBase-input': {
+                color: 'black',
+              },
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth error={!!errors.gender}>
-            <InputLabel required id='demo-simple-select-label'>
+            <InputLabel required id="demo-simple-select-label">
               Select Gender
             </InputLabel>
             <Select
-              label='Select Gender'
-              labelId='demo-simple-select-label'
-              id='demo-simple-select'
+              label="Select Gender"
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
               name="gender"
               value={formData.gender}
               onChange={handleChange}
@@ -414,14 +531,26 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                   <TransgenderIcon color="action" />
                 </InputAdornment>
               }
+              sx={{
+                '& .MuiSelect-root': {
+                  color: 'black',
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'black',
+                },
+                '& .MuiInputBase-input': {
+                  color: 'black', // Set the color of the input text
+                },
+              }}
             >
-              <MenuItem value='Male'>Male</MenuItem>
-              <MenuItem value='Female'>Female</MenuItem>
-              <MenuItem value='Other'>Other</MenuItem>
+              <MenuItem value="Male">Male</MenuItem>
+              <MenuItem value="Female">Female</MenuItem>
+              <MenuItem value="Other">Other</MenuItem>
             </Select>
-            {errors.gender && <Typography color='error'>{errors.gender}</Typography>}
+            {errors.gender && <Typography color="error">{errors.gender}</Typography>}
           </FormControl>
         </Grid>
+
         {isPasswordFieldVisible && (
           <>
             <Grid item xs={12} md={6}>
@@ -570,39 +699,60 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             {errors.role_priority && <Typography color='error'>{errors.role_priority}</Typography>}
           </FormControl>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth error={!!errors.designation}>
-            <Autocomplete
-              id="designation-select"
-              options={designations
-                .map((designation) => designation.title)
-                .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))}
-              getOptionLabel={(option) => option}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Select Designation"
-                  variant="outlined"
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <BadgeIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+        {role > 0 &&
+          < Grid item xs={12} md={6}>
+            <FormControl fullWidth error={!!errors.designation}>
+              <Autocomplete
+                id="designation-select"
+                options={designations
+                  .map((designation) => designation.title)
+                  .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))}
+                getOptionLabel={(option) => option}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Designation"
+                    variant="outlined"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <BadgeIcon color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiInputLabel-root': {
+                        color: 'black', // Change label text color to black
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: 'black', // Set border color to black
+                        },
+                        '&:hover fieldset': {
+                          borderColor: 'black', // Set hover border color to black
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'black', // Set focused border color to black
+                        },
+                      },
+                      '& .MuiInputBase-input': {
+                        color: 'black', // Change input text color to black
+                      },
+                    }}
+                  />
+
+                )}
+                value={formData.designation}
+                onChange={(event, newValue) => {
+                  handleChange({ target: { name: "designation", value: newValue } });
+                }}
+              />
+              {errors.designation && (
+                <Typography color="error">{errors.designation}</Typography>
               )}
-              value={formData.designation}
-              onChange={(event, newValue) => {
-                handleChange({ target: { name: "designation", value: newValue } });
-              }}
-            />
-            {errors.designation && (
-              <Typography color="error">{errors.designation}</Typography>
-            )}
-          </FormControl>
-        </Grid>
+            </FormControl>
+          </Grid>}
         {role === "0" ?
           (<Grid item xs={12} md={6}>
             <FormControl fullWidth error={!!errors.company_id}>
@@ -624,39 +774,41 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             </FormControl>
           </Grid>) : null
         }
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label='Employee code'
-            name='code'
-            value={formData.code}
-            onChange={handleChange}
-            required
-            error={!!errors.code}
-            helperText={errors.code}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <BadgeIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth error={!!errors.location}>
-            <LocationDropdown
-              selectedLocation={formData.location}
-              setSelectedLocation={(location) =>
-                setFormData((prevData) => ({
-                  ...prevData,
-                  location, // Update the location in formData state
-                }))
-              }
+        {role > 0 &&
+          < Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label='Employee code'
+              name='code'
+              value={formData.code}
+              onChange={handleChange}
+              required
+              error={!!errors.code}
+              helperText={errors.code}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <BadgeIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
             />
-            {errors.location && <Typography color="error">{errors.location}</Typography>}
-          </FormControl>
-        </Grid>
+          </Grid>}
+        {role > 0 &&
+          < Grid item xs={12} md={6}>
+            <FormControl fullWidth error={!!errors.location}>
+              <LocationDropdown
+                selectedLocation={formData.location}
+                setSelectedLocation={(location) =>
+                  setFormData((prevData) => ({
+                    ...prevData,
+                    location, // Update the location in formData state
+                  }))
+                }
+              />
+              {errors.location && <Typography color="error">{errors.location}</Typography>}
+            </FormControl>
+          </Grid>}
 
         <Grid item xs={12} md={6}>
           <Box display="flex" flexDirection="column">
@@ -713,7 +865,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
           </Box>
         </Grid>
       </Grid>
-    </Paper>
+    </Paper >
   );
 };
 
