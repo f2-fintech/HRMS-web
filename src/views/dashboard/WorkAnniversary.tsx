@@ -103,6 +103,18 @@ const WorkAnniversary = () => {
         return anniversaryDate.format('MM-DD') === today.format('MM-DD');
     };
 
+    const getAnniversaryIcon = (joiningDate: string) => {
+        if (isTodayAnniversary(joiningDate)) {
+            const years = calculateYearsOfService(joiningDate);
+
+
+            return getCelebrationIcon(years);
+        }
+
+
+        return null;
+    };
+
     if (loadingAnniversaries) {
         return (
             <Card elevation={5}>
@@ -133,6 +145,7 @@ const WorkAnniversary = () => {
                 margin: 'auto',
                 borderRadius: 3,
                 overflow: 'hidden',
+
                 background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)'
             }}
         >
@@ -154,6 +167,16 @@ const WorkAnniversary = () => {
                     >
                         Today's Work Anniversary Celebration
                     </Typography>
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            color: 'white',
+                            fontWeight: 'bold',
+                        }}
+                    >
+                        🌟"Your journey with F2Fintech has been inspiring. Warm wishes on your work anniversary from all of us!"🌟
+                    </Typography>
+
 
                     <Grid container spacing={3} justifyContent="center">
                         {todayAnniversaries.map((employee, index) => {
@@ -174,14 +197,16 @@ const WorkAnniversary = () => {
                                         >
                                             {!employee.image && <PersonIcon />}
                                         </Avatar>
-                                        <Typography variant="h6" sx={{ color: 'white', textAlign: 'center' }}>
-                                            {capitalizeFirstLetter(employee.first_name)}{' '}
-                                            {capitalizeFirstLetter(employee.last_name)}
-                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Typography variant="h6" sx={{ color: 'white', textAlign: 'center' }}>
+                                                {capitalizeFirstLetter(employee.first_name)}{' '}
+                                                {capitalizeFirstLetter(employee.last_name)}
+                                            </Typography>
+                                            {getAnniversaryIcon(employee.joining_date)}
+                                        </Box>
                                         <Typography variant="body1" sx={{ color: '#64e0e2', textAlign: 'center' }}>
                                             Completed {yearsCompleted} {yearsCompleted === 1 ? 'year' : 'years'}
                                         </Typography>
-                                        {getCelebrationIcon(yearsCompleted)}
                                     </Box>
                                 </Grid>
                             );
@@ -191,7 +216,7 @@ const WorkAnniversary = () => {
             ) : otherAnniversaries.length > 0 && (
                 <Box sx={{ textAlign: 'center', py: 3 }}>
                     <Typography
-                        variant="h3"
+                        variant="h"
                         sx={{
                             fontSize: '1.5rem',
                             color: '#64e0e2',
@@ -202,6 +227,20 @@ const WorkAnniversary = () => {
                     >
                         Upcoming Work Anniversaries
                     </Typography>
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            color: 'rgb(255, 246, 218)',
+                            fontWeight: 'bold',
+                            marginTop: 3,
+                            marginBottom: 3,
+                            textAlign: 'center',
+                            lineHeight: 1.5,
+                        }}
+                    >
+                        🌟"A milestone is approaching as we prepare to celebrate a work anniversary at F2Fintech."🌟
+                    </Typography>
+
 
                     <Grid container spacing={3} justifyContent="center">
                         {otherAnniversaries.slice(0, 2).map((employee, index) => {
@@ -223,10 +262,13 @@ const WorkAnniversary = () => {
                                         >
                                             {!employee.image && <PersonIcon />}
                                         </Avatar>
-                                        <Typography variant="h6" sx={{ color: 'white', textAlign: 'center' }}>
-                                            {capitalizeFirstLetter(employee.first_name)}{' '}
-                                            {capitalizeFirstLetter(employee.last_name)}
-                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Typography variant="h6" sx={{ color: 'white', textAlign: 'center' }}>
+                                                {capitalizeFirstLetter(employee.first_name)}{' '}
+                                                {capitalizeFirstLetter(employee.last_name)}
+                                            </Typography>
+                                            {getAnniversaryIcon(employee.joining_date)}
+                                        </Box>
                                         <Typography variant="body1" sx={{ color: '#64e0e2', textAlign: 'center' }}>
                                             {anniversaryDate.format('D MMM')} • Completing {yearsCompleting} {yearsCompleting === 1 ? 'year' : 'years'}
                                         </Typography>
@@ -245,13 +287,14 @@ const WorkAnniversary = () => {
                     boxShadow: 3,
                     backgroundColor: 'white',
                     border: '1px solid #ddd',
+
                 }}
             >
                 <CardHeader
                     title={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <WorkIcon color="primary" />
-                            <Typography variant="h5" sx={{ color: '#333', fontWeight: 'bold' }}>
+                            <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
                                 Other Work Anniversaries
                             </Typography>
                         </Box>
@@ -264,7 +307,7 @@ const WorkAnniversary = () => {
                 />
                 <CardContent sx={{ p: 0 }}>
                     <List disablePadding>
-                        {otherAnniversaries.slice(2).map((employee, index) => {
+                        {(todayAnniversaries.length > 0 ? otherAnniversaries : otherAnniversaries.slice(2)).map((employee, index) => {
                             const joiningDate = dayjs(employee.joining_date);
                             const yearsCompleting = calculateYearsOfService(employee.joining_date) + 1;
 
@@ -301,13 +344,16 @@ const WorkAnniversary = () => {
                                         </ListItemAvatar>
                                         <ListItemText
                                             primary={
-                                                <Typography
-                                                    sx={{ color: '#333', fontWeight: 'bold' }}
-                                                    variant="subtitle1"
-                                                >
-                                                    {capitalizeFirstLetter(employee.first_name)}{' '}
-                                                    {capitalizeFirstLetter(employee.last_name)}
-                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                    <Typography
+                                                        sx={{ color: '#333', fontWeight: 'bold' }}
+                                                        variant="subtitle1"
+                                                    >
+                                                        {capitalizeFirstLetter(employee.first_name)}{' '}
+                                                        {capitalizeFirstLetter(employee.last_name)}
+                                                    </Typography>
+                                                    {getAnniversaryIcon(employee.joining_date)}
+                                                </Box>
                                             }
                                             secondary={
                                                 <Box>
@@ -328,7 +374,6 @@ const WorkAnniversary = () => {
                                                 </Box>
                                             }
                                         />
-                                        {getCelebrationIcon(yearsCompleting)}
                                     </ListItem>
                                 </React.Fragment>
                             );
