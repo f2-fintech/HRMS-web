@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 
-import { useDispatch, useSelector } from 'react-redux'
-import dayjs from 'dayjs'
+import { useDispatch, useSelector } from 'react-redux';
+import dayjs from 'dayjs';
 import {
   Card,
   CardHeader,
@@ -15,13 +15,13 @@ import {
   Divider,
   Box,
   Grid
-} from '@mui/material'
-import CakeIcon from '@mui/icons-material/Cake'
-import PersonIcon from '@mui/icons-material/Person'
+} from '@mui/material';
+import CakeIcon from '@mui/icons-material/Cake';
+import PersonIcon from '@mui/icons-material/Person';
 
-import { fetchUpcomingBirthdays } from '@/redux/features/employees/employeesSlice'
-import type { AppDispatch, RootState } from '@/redux/store'
-import { utility } from '@/utility'
+import { fetchUpcomingBirthdays } from '@/redux/features/employees/employeesSlice';
+import type { AppDispatch, RootState } from '@/redux/store';
+import { utility } from '@/utility';
 
 const UpcomingBirthdays = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -30,39 +30,61 @@ const UpcomingBirthdays = () => {
   const { capitalizeFirstLetter } = utility();
 
   useEffect(() => {
-    if (!loadingBirthdays && upcomingBirthdays.length === 0) {
+    if (!loadingBirthdays) {
       dispatch(fetchUpcomingBirthdays(30));
     }
-  }, [dispatch, upcomingBirthdays.length]);
+  }, [dispatch]);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-    setUserId(user.id)
-  }, [])
+    setUserId(user.id);
+  }, []);
 
-  const today = dayjs().format('MM-DD')
-  const todayBirthdays = upcomingBirthdays.filter(row => dayjs(row._doc.dob).format('MM-DD') === today)
-  const upcomingWithoutToday = upcomingBirthdays.filter(row => dayjs(row._doc.dob).format('MM-DD') !== today)
+  // Get today's date in MM-DD format
+  const today = dayjs().format('MM-DD');
 
-  const groupedUpcomingBirthdays = upcomingWithoutToday.reduce((acc, curr) => {
-    const birthDate = dayjs(curr._doc.dob).format('MM-DD')
+  // Filter birthdays into today and upcoming
+  const todayBirthdays = upcomingBirthdays.filter(row =>
+    dayjs(row._doc.dob).format('MM-DD') === today
+  );
 
-    if (!acc[birthDate]) {
-      acc[birthDate] = []
-    }
+  // Get all upcoming birthdays (excluding today)
+  const upcomingWithoutToday = upcomingBirthdays.filter(row =>
+    dayjs(row._doc.dob).format('MM-DD') !== today
+  );
 
-    acc[birthDate].push(curr)
+  // If there are birthdays today, all other birthdays go to the remaining list
+  const allUpcoming = todayBirthdays.length > 0
+    ? upcomingWithoutToday
+    : upcomingWithoutToday;
 
-    return acc
-  }, {})
+  // Only show next birthday section if there are no birthdays today
+  const nextBirthdayEmployees = todayBirthdays.length === 0 ? (() => {
+    const groupedUpcoming = allUpcoming.reduce((acc, curr) => {
+      const birthDate = dayjs(curr._doc.dob).format('MM-DD');
 
-  const nextBirthdayDate = Object.keys(groupedUpcomingBirthdays).sort()[0]
-  const nextBirthdayEmployees = groupedUpcomingBirthdays[nextBirthdayDate] || []
+      if (!acc[birthDate]) {
+        acc[birthDate] = [];
+      }
 
-  const remainingUpcoming = upcomingWithoutToday.filter(employee =>
-    dayjs(employee._doc.dob).format('MM-DD') !== nextBirthdayDate
-  )
+      acc[birthDate].push(curr);
+
+      return acc;
+    }, {});
+
+    const nextDate = Object.keys(groupedUpcoming).sort()[0];
+
+
+    return groupedUpcoming[nextDate] || [];
+  })() : [];
+
+  // Get remaining upcoming birthdays (excluding next birthday employees if no today birthdays)
+  const remainingUpcoming = todayBirthdays.length > 0
+    ? allUpcoming
+    : allUpcoming.filter(employee =>
+      dayjs(employee._doc.dob).format('MM-DD') !== dayjs(nextBirthdayEmployees[0]?._doc.dob).format('MM-DD')
+    );
 
   return (
     <Card
@@ -71,18 +93,15 @@ const UpcomingBirthdays = () => {
         margin: 'auto',
         borderRadius: 3,
         overflow: 'hidden',
-        background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)'
+        background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
+
       }}
     >
-      {todayBirthdays.length > 0 ? (
-        <Box
-          sx={{
-            textAlign: 'center',
-            py: 3,
-          }}
-        >
+      {/* Today's Birthdays Section */}
+      {todayBirthdays.length > 0 && (
+        <Box sx={{ textAlign: 'center', py: 3 }}>
           <Typography
-            variant='h3'
+            variant="h3"
             sx={{
               fontSize: '2rem',
               color: '#64e0e2',
@@ -94,25 +113,26 @@ const UpcomingBirthdays = () => {
           </Typography>
 
           <Typography
-            variant='h6'
+            variant="h6"
             sx={{
-              color: 'white',
+              color: 'rgb(255, 246, 218)',
               fontWeight: 'bold',
               marginTop: 2,
+              marginBottom: 2,
             }}
           >
-            Wish them today!
+            🌟"Cheers to you on your special day! Warm wishes from your F2Fintech family."🌟
           </Typography>
 
-          <Grid container spacing={2} justifyContent='center'>
+          <Grid container spacing={2} justifyContent="center">
             {todayBirthdays.map((row, index) => (
               <Grid item key={index} xs={4}>
                 <Avatar
                   src={row._doc.image}
                   alt={`${row._doc.first_name} ${row._doc.last_name}`}
                   sx={{
-                    width: 64,
-                    height: 64,
+                    width: 85,
+                    height: 85,
                     margin: 'auto',
                     border: '2px solid #ddd',
                     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
@@ -120,76 +140,80 @@ const UpcomingBirthdays = () => {
                 >
                   {!row._doc.image && <PersonIcon />}
                 </Avatar>
-                <Typography variant='h6' sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
+                <Typography variant="h6" sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
                   {capitalizeFirstLetter(row._doc.first_name)} {capitalizeFirstLetter(row._doc.last_name)}
                 </Typography>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-      ) : nextBirthdayEmployees.length > 0 && (
-        <Box
-          sx={{
-            textAlign: 'center',
-            pb: 3  // Added padding bottom for more space
-          }}
-        >
-          <Typography
-            variant='h3'
-            sx={{
-              margin: "10px",
-              fontSize: '2rem',
-              color: '#64e0e2',
-              fontWeight: 800,
-              letterSpacing: 2
-            }}
-          >
-            <div>
-              Upcoming Birthday{nextBirthdayEmployees.length > 1 ? 's' : ''}
-            </div>
-
-          </Typography>
-
-          <Typography
-            variant='h6'
-            sx={{
-              color: 'white',
-              fontWeight: 'bold',
-              marginTop: 5,
-              marginBottom: 5,  // Added margin bottom for more space
-            }}
-          >
-            Coming up on {dayjs(nextBirthdayEmployees[0]._doc.dob).format('D MMM')}!
-          </Typography>
-
-          <Grid container spacing={2} justifyContent='center' sx={{ mt: 1 }}>
-            {nextBirthdayEmployees.map((employee, index) => (
-              <Grid item key={index} xs={4}>
-                <Avatar
-                  src={employee._doc.image}
-                  alt={`${employee._doc.first_name} ${employee._doc.last_name}`}
-                  sx={{
-                    width: 87,
-                    height: 87,
-                    margin: 'auto',
-                    border: '2px solid #ddd',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-                  }}
-                >
-                  {!employee._doc.image && <PersonIcon />}
-                </Avatar>
                 <Typography variant="h6" sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
-                  {capitalizeFirstLetter(employee._doc.first_name)} {capitalizeFirstLetter(employee._doc.last_name)}
+                  {row._doc.designation}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#64e0e2', textAlign: 'center', mt: 2 }}>  {/* Increased margin top */}
-                  {employee._doc.designation}
-                </Typography>
+
               </Grid>
             ))}
           </Grid>
-        </Box>
+        </Box >
       )}
 
+      {/* Next Upcoming Birthdays Section - Only shown if no birthdays today */}
+      {
+        todayBirthdays.length === 0 && nextBirthdayEmployees.length > 0 && (
+          <Box sx={{ textAlign: 'center', pb: 3, pt: 3 }}>
+            <Typography
+              variant="h3"
+              sx={{
+                margin: "10px",
+                fontSize: '2rem',
+                color: '#64e0e2',
+                fontWeight: 800,
+                letterSpacing: 2
+              }}
+            >
+              <div>
+                Upcoming Birthday{nextBirthdayEmployees.length > 1 ? 's' : ''}
+              </div>
+            </Typography>
+
+            <Typography
+              variant="h6"
+              sx={{
+                color: 'rgb(255, 246, 218)',
+                fontWeight: 'bold',
+                marginTop: 1,
+                marginBottom: 1,
+              }}
+            >
+              Coming up on {dayjs(nextBirthdayEmployees[0]._doc.dob).format('D MMM')}!
+            </Typography>
+
+            <Grid container spacing={2} justifyContent="center" sx={{ mt: 1 }}>
+              {nextBirthdayEmployees.map((employee, index) => (
+                <Grid item key={index} xs={4}>
+                  <Avatar
+                    src={employee._doc.image}
+                    alt={`${employee._doc.first_name} ${employee._doc.last_name}`}
+                    sx={{
+                      width: 87,
+                      height: 87,
+                      margin: 'auto',
+                      border: '2px solid #ddd',
+                      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                    }}
+                  >
+                    {!employee._doc.image && <PersonIcon />}
+                  </Avatar>
+                  <Typography variant="h6" sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
+                    {capitalizeFirstLetter(employee._doc.first_name)} {capitalizeFirstLetter(employee._doc.last_name)}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#64e0e2', textAlign: 'center', mt: 2 }}>
+                    {employee._doc.designation}
+                  </Typography>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )
+      }
+
+      {/* Other Upcoming Birthdays Section */}
       <Card
         sx={{
           borderRadius: "20px",
@@ -197,6 +221,7 @@ const UpcomingBirthdays = () => {
           boxShadow: 3,
           backgroundColor: 'white',
           border: '1px solid #ddd',
+
         }}
       >
         <CardHeader
@@ -295,8 +320,8 @@ const UpcomingBirthdays = () => {
           )}
         </CardContent>
       </Card>
-    </Card>
-  )
-}
+    </Card >
+  );
+};
 
-export default UpcomingBirthdays
+export default UpcomingBirthdays;
