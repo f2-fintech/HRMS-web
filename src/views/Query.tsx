@@ -21,13 +21,12 @@ import {
     Tooltip
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
-import EditIcon from '@mui/icons-material/Edit'
 import SearchIcon from '@mui/icons-material/Search'
+import { DriveFileRenameOutlineOutlined } from '@mui/icons-material'
 import { useDispatch, useSelector } from 'react-redux'
-import dayjs, { Dayjs } from 'dayjs';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-
+import dayjs, { Dayjs } from 'dayjs'
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 
 import type { AppDispatch, RootState } from '@/redux/store'
 import {
@@ -57,18 +56,16 @@ const Query = () => {
     const [snackbarMessage, setSnackbarMessage] = useState('')
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success')
 
-    const [selectedDate, setSelectedDate] = React.useState(dayjs());
+    const [selectedDate, setSelectedDate] = React.useState(dayjs())
 
-    const month = selectedDate.format('MM');
-    const year = selectedDate.format('YYYY');
-
+    const month = selectedDate.format('MM')
+    const year = selectedDate.format('YYYY')
 
     const handleDateChange = (newValue: Dayjs | null) => {
-
         if (newValue) {
-            setSelectedDate(newValue);
+            setSelectedDate(newValue)
         }
-    };
+    }
 
     const debouncedFetch = useMemo(
         () =>
@@ -76,9 +73,11 @@ const Query = () => {
                 if (userRole === '1') {
                     dispatch(fetchAllQueries({ page, limit, keyword: selectedKeyword, month: month, year: year }))
                 } else if (queryType === 'own') {
-                    dispatch(fetchUserQueries({ page, limit, keyword: selectedKeyword, month: "0", year: year }))
+                    dispatch(fetchUserQueries({ page, limit, keyword: selectedKeyword, month: '0', year: year }))
                 } else {
-                    dispatch(fetchQueriesByToQueryId({ toQueryId: userId, page, limit, keyword: selectedKeyword, month: 0, year: year }))
+                    dispatch(
+                        fetchQueriesByToQueryId({ toQueryId: userId, page, limit, keyword: selectedKeyword, month: 0, year: year })
+                    )
                 }
             }, 300),
         [dispatch, page, limit, selectedKeyword, queryType, userId, userRole, month, year]
@@ -109,10 +108,10 @@ const Query = () => {
 
     const handleInputChange = useCallback(
         debounce((event: React.ChangeEvent<HTMLInputElement>) => {
-            setSelectedKeyword(event.target.value);
+            setSelectedKeyword(event.target.value)
         }, 3000), // 3 seconds debounce
         []
-    );
+    )
 
     const handlePaginationModelChange = useCallback((params: { page: number; pageSize: number }) => {
         setPage(params.page + 1)
@@ -140,7 +139,7 @@ const Query = () => {
     }, [])
 
     const handleFormSubmit = async (formData: any) => {
-        console.log("formdata", formData);
+        console.log('formdata', formData)
         try {
             if (selectedQuery) {
                 await dispatch(updateQueryById({ id: selectedQuery._id, data: formData })).unwrap()
@@ -175,13 +174,12 @@ const Query = () => {
 
     useEffect(() => {
         return () => {
-            handleInputChange.cancel(); // Cleanup debounced function
-        };
-    }, []);
+            handleInputChange.cancel() // Cleanup debounced function
+        }
+    }, [])
 
     const generateColumns = useMemo(() => {
         const columns: GridColDef[] = [
-
             ...(queryType !== 'own'
                 ? [
                     {
@@ -197,11 +195,11 @@ const Query = () => {
                                     {params.row.employee.first_name} {params.row.employee.last_name}
                                 </Typography>
                             </Box>
-                        ),
-                    },
+                        )
+                    }
                 ]
                 : []),
-            ...(userRole === '1' || queryType !== 'against' && userRole
+            ...(userRole === '1' || (queryType !== 'against' && userRole)
                 ? [
                     {
                         field: 'toQueryName',
@@ -210,14 +208,14 @@ const Query = () => {
                         headerAlign: 'center',
                         align: 'center',
                         renderCell: params => (
-                            <Box display="flex" alignItems="center">
+                            <Box display='flex' alignItems='center'>
                                 <Avatar src={params.row.toQuery.image} sx={{ mr: 1, width: 32, height: 32 }} />
-                                <Typography variant="body2" noWrap>
+                                <Typography variant='body2' noWrap>
                                     {params.row.toQuery.first_name} {params.row.toQuery.last_name}
                                 </Typography>
                             </Box>
-                        ),
-                    },
+                        )
+                    }
                 ]
                 : []),
             {
@@ -304,12 +302,15 @@ const Query = () => {
                 renderCell: params => (
                     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
                         <Button
-                            sx={{ textAlign: 'center' }}
                             variant='contained'
-                            startIcon={<EditIcon />}
+                            sx={{
+                                minWidth: '50px',
+                                backgroundColor: '#2c3ce3',
+                                '&:hover': { backgroundColor: '#1a237e' }
+                            }}
                             onClick={() => handleEditClick(params.row)}
                         >
-                            Edit
+                            <DriveFileRenameOutlineOutlined />
                         </Button>
                     </Box>
                 )
@@ -339,7 +340,13 @@ const Query = () => {
             <Box sx={{ flexGrow: 1, padding: 4 }}>
                 <Dialog open={showForm} onClose={handleClose} fullWidth maxWidth='md'>
                     <DialogContent>
-                        <QueryForm onSubmit={handleFormSubmit} query={selectedQuery} userRole={userRole} onClose={handleClose} queryType={queryType} />
+                        <QueryForm
+                            onSubmit={handleFormSubmit}
+                            query={selectedQuery}
+                            userRole={userRole}
+                            onClose={handleClose}
+                            queryType={queryType}
+                        />
                     </DialogContent>
                 </Dialog>
                 <Box display='flex' justifyContent='space-between' alignItems='center' mb={4}>
@@ -374,7 +381,7 @@ const Query = () => {
                                     >
                                         <Button
                                             style={{ borderRadius: 8 }}
-                                            variant="contained"
+                                            variant='contained'
                                             color={queryType === 'against' ? 'secondary' : 'info'}
                                             onClick={toggleQueryView}
                                             sx={{ textTransform: 'none', px: 3, py: 1 }}
@@ -383,12 +390,11 @@ const Query = () => {
                                         </Button>
                                     </Tooltip>
                                 )}
-
                             </>
                         )}
                     </Box>
                 </Box>
-                <Grid container spacing={3} mb={2} alignItems="center">
+                <Grid container spacing={3} mb={2} alignItems='center'>
                     {/* Search Input */}
                     <Grid item xs={12} md={8}>
                         <Autocomplete
@@ -396,24 +402,24 @@ const Query = () => {
                             options={autocompleteOptions}
                             inputValue={selectedKeyword}
                             onInputChange={(event, newInputValue) => {
-                                setSelectedKeyword(newInputValue);
-                                fetchAutocompleteOptions(newInputValue);
+                                setSelectedKeyword(newInputValue)
+                                fetchAutocompleteOptions(newInputValue)
                             }}
-                            renderInput={(params) => (
+                            renderInput={params => (
                                 <TextField
                                     {...params}
                                     fullWidth
-                                    label="Search"
-                                    variant="outlined"
+                                    label='Search'
+                                    variant='outlined'
                                     onChange={handleInputChange}
                                     InputProps={{
                                         ...params.InputProps,
                                         sx: { borderRadius: '3rem' },
                                         endAdornment: (
-                                            <InputAdornment position="end">
+                                            <InputAdornment position='end'>
                                                 <SearchIcon />
                                             </InputAdornment>
-                                        ),
+                                        )
                                     }}
                                 />
                             )}
@@ -421,7 +427,7 @@ const Query = () => {
                     </Grid>
 
                     {/* Date Picker */}
-                    <Grid item xs={12} md={4} display="flex" justifyContent="flex-end">
+                    <Grid item xs={12} md={4} display='flex' justifyContent='flex-end'>
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <DatePicker
                                 views={userRole === '1' ? ['month', 'year'] : ['year']}
@@ -429,25 +435,24 @@ const Query = () => {
                                 value={dayjs(selectedDate)}
                                 onChange={handleDateChange}
                                 sx={{
-                                    width: '80%',
+                                    width: '80%'
                                 }}
                             />
                         </LocalizationProvider>
                     </Grid>
                 </Grid>
-
             </Box>
             <Box sx={{ width: '100%', height: 600 }}>
                 <DataGrid
                     rows={rows}
                     columns={generateColumns}
                     getRowId={row => row._id}
-                    paginationMode="server"
+                    paginationMode='server'
                     rowCount={total}
                     onPaginationModelChange={handlePaginationModelChange}
                     pageSizeOptions={[10, 20, 30]}
                     paginationModel={{ page: page - 1, pageSize: limit }}
-                    getRowClassName={(params) => {
+                    getRowClassName={params => {
                         if (params.row.status === 'Pending') return 'status-pending'
                         if (params.row.status === 'Resolved') return 'status-resolved'
                         if (params.row.status === 'On Progress') return 'status-on-progress'
@@ -469,7 +474,7 @@ const Query = () => {
                             display: 'flex',
                             justifyContent: 'center', // Centers horizontally
                             alignItems: 'center', // Centers vertically
-                            padding: '8px',
+                            padding: '8px'
                         },
                         '& .MuiDataGrid-row': {
                             fontWeight: '600',
@@ -484,9 +489,7 @@ const Query = () => {
                     slots={{
                         toolbar: GridToolbar
                     }}
-
                 />
-
             </Box>
 
             <Snackbar

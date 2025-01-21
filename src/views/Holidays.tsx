@@ -135,7 +135,7 @@ export default function HolidayGrid() {
     { field: 'title', headerName: 'Title', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1 },
     {
       field: 'start_date',
-      headerName: 'Closing Date',
+      headerName: 'Opening Date',
       headerClassName: 'super-app-theme--header',
       headerAlign: 'center',
       align: 'center',
@@ -150,7 +150,7 @@ export default function HolidayGrid() {
     },
     {
       field: 'end_date',
-      headerName: 'Opening Date',
+      headerName: 'Closing Date',
       headerClassName: 'super-app-theme--header',
       headerAlign: 'center',
       align: 'center',

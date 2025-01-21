@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { Description, DriveFileRenameOutlineOutlined } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { ToastContainer, toast } from 'react-toastify';
@@ -477,6 +478,32 @@ export default function AddAssets() {
     setShowForm(true);
   };
 
+  const handleDeleteInventory = (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this Inventory?");
+    if (confirmDelete) {
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/add-assets/delete/${id}`, {
+        method: 'DELETE',
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.message && data.message.includes('success')) {
+            toast.success(data.message, { position: 'top-center' });
+            debouncedFetch(); // Refresh the data grid
+          } else {
+            toast.error('Deletion failed: ' + (data.message || 'Unknown error'), { position: 'top-center' });
+          }
+        })
+        .catch(error => {
+          toast.error('Error: ' + error.message, { position: 'top-center' });
+        });
+    }
+  };
+
   const handleClose = () => {
     setShowForm(false);
   };
@@ -501,16 +528,29 @@ export default function AddAssets() {
     ...(userRole === '1'
       ? [
         {
-          field: 'edit',
-          headerName: 'Edit',
+          field: 'actions',
+          headerName: 'Actions',
           sortable: false,
           headerAlign: 'center',
-          width: 160,
+          width: 220,
           headerClassName: 'super-app-theme--header',
           renderCell: ({ row: { _id } }) => (
-            <Box width="85%" m="0 auto" p="5px" display="flex" justifyContent="space-around">
-              <Button color="info" variant="contained" sx={{ minWidth: '50px' }} onClick={() => handleAssetEditClick(_id)}>
+            <Box width="100%" display="flex" justifyContent="space-around">
+              <Button
+                color="info"
+                variant="contained"
+                sx={{ minWidth: '50px' }}
+                onClick={() => handleAssetEditClick(_id)}
+              >
                 <DriveFileRenameOutlineOutlined />
+              </Button>
+              <Button
+                color="error"
+                variant="contained"
+                sx={{ minWidth: '50px' }}
+                onClick={() => handleDeleteInventory(_id)}
+              >
+                <DeleteIcon />
               </Button>
             </Box>
           ),
@@ -518,7 +558,6 @@ export default function AddAssets() {
       ]
       : []),
   ];
-
 
   return (
     <Box>

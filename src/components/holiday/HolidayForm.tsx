@@ -185,7 +185,7 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label='Closing Date'
+            label='Opening Date'
             name='start_date'
             value={formData.start_date}
             type='date'
@@ -200,7 +200,7 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label='Opening Date'
+            label='Closing Date'
             name='end_date'
             type='date'
             value={formData.end_date}
