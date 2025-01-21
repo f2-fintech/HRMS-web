@@ -17,7 +17,7 @@ import {
     fetchPunchByEmployeeAndDate,
     updatePunch
 } from '@/redux/features/punches/punchesSlice'
-import { RootState } from '@/redux/store'
+import type { RootState } from '@/redux/store'
 import Company from '@/app/(dashboard)/company/page'
 
 interface PunchInOutProps {
@@ -363,6 +363,7 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                                             position: 'absolute',
                                             top: `${y}%`,
                                             left: `${x}%`,
+                                            color: 'black',
                                             transform: 'translate(-50%, -50%)',
                                             fontSize: 14,
                                             fontWeight: 'bold'
@@ -374,10 +375,16 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                             })}
                         </Box>
 
-                        <Typography variant='h6' sx={{ mt: 2 }}>
+                        <Typography variant='h6' sx={{
+                            mt: 2,
+                            color: 'black'
+                        }}>
                             {currentDateTime.toLocaleDateString('en-US', { weekday: 'long' })}
                         </Typography>
-                        <Typography variant='h6' sx={{ mt: 1 }}>
+                        <Typography variant='h6' sx={{
+                            mt: 1,
+                            color: 'black'
+                        }}>
                             {currentDateTime.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </Typography>
                     </Grid>
@@ -459,28 +466,49 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                             p: 3
                         }}
                     >
-                        <Typography variant='h5' sx={{ mb: 3 }}>
+                        <Typography variant='h5' sx={{
+                            mb: 3,
+                            color: 'black'
+                        }}>
                             Attendance Logs
                         </Typography>
 
                         <Grid container spacing={2} sx={{ textAlign: 'center', mb: 2 }}>
                             <Grid item xs={4}>
-                                <Typography variant='subtitle1' fontWeight='bold'>
+                                <Typography variant='subtitle1' fontWeight='bold'
+                                    sx={{
+                                        color: 'black'
+                                    }}>
                                     Punch In
                                 </Typography>
-                                <Typography color='text.secondary'>{currentPunch?.punchIn || '-'}</Typography>
+                                <Typography color='text.secondary'
+                                    sx={{
+                                        color: 'black'
+                                    }}>{currentPunch?.punchIn || '-'}</Typography>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography variant='subtitle1' fontWeight='bold'>
+                                <Typography variant='subtitle1' fontWeight='bold'
+                                    sx={{
+                                        color: 'black'
+                                    }}  >
                                     Punch Out
                                 </Typography>
-                                <Typography color='text.secondary'>{currentPunch?.punchOut || '-'}</Typography>
+                                <Typography color='text.secondary'
+                                    sx={{
+                                        color: 'black'
+                                    }}>{currentPunch?.punchOut || '-'}</Typography>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography variant='subtitle1' fontWeight='bold'>
+                                <Typography variant='subtitle1' fontWeight='bold'
+                                    sx={{
+                                        color: 'black'
+                                    }}>
                                     Total Time
                                 </Typography>
-                                <Typography color='text.secondary'>{currentPunch?.totalTime || '-'}</Typography>
+                                <Typography color='text.secondary'
+                                    sx={{
+                                        color: 'black'
+                                    }}>{currentPunch?.totalTime || '-'}</Typography>
                             </Grid>
                         </Grid>
 
@@ -503,13 +531,17 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                         textAlign: 'center'
                     }}
                 >
-                    <Typography variant='h6'>Total Working Hours of {selectedDate}</Typography>
-                    <Typography variant='h4' color='primary'>
+                    <Typography variant='h6'
+                        sx={{
+                            color: 'black'
+                        }}>Total Working Hours of {selectedDate}</Typography>
+                    <Typography variant='h4' color='primary'
+                    >
                         {`${totalWorkingHours?.hours || 0}h ${totalWorkingHours?.minutes || 0}m ${totalWorkingHours?.seconds || 0}s`}
                     </Typography>
                 </Box>
             </Card>
-        </Container>
+        </Container >
     )
 }
 

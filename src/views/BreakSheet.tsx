@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+
 import { useDispatch, useSelector } from 'react-redux';
 import {
     Button,
@@ -17,14 +18,16 @@ import {
 
 import { AccessTime, Coffee, Group, Timer } from '@mui/icons-material';
 
+import type {
+    Break
+} from '@/redux/features/breaksheets/breaksSlice';
 import {
     addBreak,
-    Break,
     fetchBreaksById,
     updateBreak,
     updateLatestBreak,
 } from '@/redux/features/breaksheets/breaksSlice';
-import { RootState, AppDispatch } from '@/redux/store';
+import type { RootState, AppDispatch } from '@/redux/store';
 
 import { apiResponse } from '../utility/apiResponse/employeesResponse'; // Adjust the path if needed
 import { fetchTotalWorkingHours } from '@/redux/features/punches/punchesSlice';
@@ -84,6 +87,7 @@ const BreakSheet: React.FC = () => {
     const employeeId = employee?.id;
     const userRole = employee?.role;
     const userDesignation = employee?.desg;
+
     console.log("employee", employee)
 
     const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other'];
@@ -91,6 +95,7 @@ const BreakSheet: React.FC = () => {
     // Check if the selected date is the current date
     useEffect(() => {
         const today = new Date().toISOString().split('T')[0];
+
         setIsCurrentDate(selectedDate === today);
     }, [selectedDate]);
 
@@ -99,8 +104,10 @@ const BreakSheet: React.FC = () => {
         const handleResize = () => {
             setIsLargeScreen(window.innerWidth >= 1024);
         };
+
         handleResize();
         window.addEventListener('resize', handleResize);
+
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
@@ -110,11 +117,13 @@ const BreakSheet: React.FC = () => {
             const fetchEmployees = async () => {
                 try {
                     const employeeData = await apiResponse();
+
                     setEmployees(employeeData);
                 } catch (error) {
                     console.error('Error fetching employees:', error);
                 }
             };
+
             fetchEmployees();
         }
     }, [userRole]);
@@ -128,9 +137,11 @@ const BreakSheet: React.FC = () => {
                 );
 
                 const { hours = 0, minutes = 0, seconds = 0 } = workingHoursResponse.payload || {};
+
                 setSelectedEmployeeWorkingHours(`${hours}h ${minutes}m ${seconds}s`);
             }
         };
+
         fetchWorkingHours();
     }, [selectedEmployeeId, selectedDate, dispatch]);
 
@@ -139,9 +150,11 @@ const BreakSheet: React.FC = () => {
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
         }
+
         intervalRef.current = setInterval(() => {
             const currentTime = Date.now();
             const diff = currentTime - timestamp;
+
             setDuration(formatTime(diff));
         }, 1000);
     };
@@ -152,6 +165,7 @@ const BreakSheet: React.FC = () => {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
+
         setDuration('00h 00m 00s');
         setTimerRunning(false);
     };
@@ -173,11 +187,13 @@ const BreakSheet: React.FC = () => {
             if (runningBreak) {
                 setStartTime(runningBreak.startTime);
                 const startTS = getTimestampFromTime(runningBreak.startTime, runningBreak.date);
+
                 setStartTimestamp(startTS);
                 setTimerRunning(true);
                 startBreakTimer(startTS);
             }
         };
+
         dispatch(fetchBreaksById(employeeId)).then(() => {
             // After fetching all breaks, check if there's a running break
             fetchRunningBreak();
@@ -189,12 +205,16 @@ const BreakSheet: React.FC = () => {
     const handleStartTime = () => {
         if (!breakType) {
             alert('Please select a break type before starting your break.');
+
             return;
         }
+
         if (breakType === 'Other' && !otherBreakType.trim()) {
             alert('Please specify the break type');
+
             return;
         }
+
         const now = new Date();
         const formattedStartTime = now.toLocaleTimeString('en-US');
         const timestamp = now.getTime();
@@ -237,6 +257,7 @@ const BreakSheet: React.FC = () => {
                     stopBreakTimer();
                     setStartTime('');
                     setEndTime('');
+
                     return dispatch(fetchBreaksById(employeeId));
                 })
                 .catch(error => {
@@ -280,6 +301,7 @@ const BreakSheet: React.FC = () => {
     const handleEditSubmit = (updatedBreak: Break) => {
         if (updatedBreak && updatedBreak._id) {
             const breakId = updatedBreak._id;
+
             dispatch(updateBreak({ id: breakId, updatedBreak }));
             dispatch(fetchBreaksById(selectedEmployeeId || employeeId));
             setOpenEditForm(false);
@@ -321,29 +343,59 @@ const BreakSheet: React.FC = () => {
                     variant="contained"
                     onClick={toggleNotPunchedInToday}
                     sx={{
-                        borderRadius: 2,
+                        borderRadius: '999px',
                         py: 1.5,
-                        boxShadow: 2,
-                        background: theme =>
-                            `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
+                        px: 4.5,
+                        boxShadow: '#5E5DF0 0 10px 20px -10px',
+                        background: '#5E5DF0',
+                        color: '#FFFFFF',
+                        fontFamily: 'Inter, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", EmojiSymbols, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif',
+                        fontSize: '16px',
+                        fontWeight: 700,
+                        lineHeight: '24px',
+                        opacity: 1,
+                        outline: '0 solid transparent',
+                        userSelect: 'none',
+                        '-webkit-user-select': 'none',
+                        touchAction: 'manipulation',
+                        width: 'fit-content',
+                        wordBreak: 'break-word',
+                        border: 0,
+                        cursor: 'pointer',
                     }}
                 >
-                    {showNotPunchedIn ? 'Hide Missing Punches & Absent' : 'Show Missing Punches & Absent'}
+                    {showNotPunchedIn ? 'Hide' : 'Missing Punches & Absent'}
                 </Button>
 
                 <Button
                     variant="contained"
                     onClick={toggleNotPunchedOut}
                     sx={{
-                        borderRadius: 2,
+                        borderRadius: '999px',
                         py: 1.5,
-                        boxShadow: 2,
-                        background: theme =>
-                            `linear-gradient(45deg, ${theme.palette.secondary.main} 30%, ${theme.palette.secondary.light} 90%)`,
+                        px: 4.5,
+                        boxShadow: '#808080 0 10px 20px -10px',
+                        background: '#808080',
+                        color: '#FFFFFF',
+                        fontFamily: 'Inter, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", EmojiSymbols, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif',
+                        fontSize: '16px',
+                        fontWeight: 700,
+                        lineHeight: '24px',
+                        opacity: 1,
+                        outline: '0 solid transparent',
+                        userSelect: 'none',
+                        '-webkit-user-select': 'none',
+                        touchAction: 'manipulation',
+                        width: 'fit-content',
+                        wordBreak: 'break-word',
+                        border: 0,
+                        cursor: 'pointer',
                     }}
                 >
-                    {showNotPunchedOut ? 'Hide Not Punched Out' : 'Show Not Punched Out'}
+                    {showNotPunchedOut ? 'Hide' : '❌ Punched Out'}
                 </Button>
+
+
             </Stack>
 
             {/* Render the NotPunchedInToday component if toggled */}
