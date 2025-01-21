@@ -42,6 +42,7 @@ import DateSelection from '@/components/breaksheet/DateSelection';
 
 // Utility functions
 import { formatTime, convertToMilliseconds, getTimestampFromTime } from '@/utility/timeUtils';
+import NotPunchedOutPage from './NotPunchedOutPage';
 
 const BreakSheet: React.FC = () => {
     const dispatch: AppDispatch = useDispatch();
@@ -69,6 +70,7 @@ const BreakSheet: React.FC = () => {
     const [currentBreak, setCurrentBreak] = useState<Break | null>(null);
     const [specifyError, setSpecifyError] = useState<string>('');
     const [showNotPunchedIn, setShowNotPunchedIn] = useState(false);
+    const [showNotPunchedOut, setShowNotPunchedOut] = useState(false);
 
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -307,25 +309,48 @@ const BreakSheet: React.FC = () => {
         setShowNotPunchedIn(prev => !prev);
     };
 
+    const toggleNotPunchedOut = () => {
+        setShowNotPunchedOut(prev => !prev);
+    };
+
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: 'background.default' }}>
-            {/* Toggle Missing Punches */}
-            <Button
-                variant='contained'
-                onClick={toggleNotPunchedInToday}
-                sx={{
-                    borderRadius: 2,
-                    py: 1.5,
-                    boxShadow: 2,
-                    ml: '1.5rem',
-                    background: theme =>
-                        `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
-                }}
-            >
-                {showNotPunchedIn ? 'Hide Missing Punches & Absent' : 'Show Missing Punches & Absent'}
-            </Button>
+            {/* Row with two buttons */}
+            <Stack direction="row" spacing={2} mb={2}>
+                <Button
+                    variant="contained"
+                    onClick={toggleNotPunchedInToday}
+                    sx={{
+                        borderRadius: 2,
+                        py: 1.5,
+                        boxShadow: 2,
+                        background: theme =>
+                            `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
+                    }}
+                >
+                    {showNotPunchedIn ? 'Hide Missing Punches & Absent' : 'Show Missing Punches & Absent'}
+                </Button>
 
+                <Button
+                    variant="contained"
+                    onClick={toggleNotPunchedOut}
+                    sx={{
+                        borderRadius: 2,
+                        py: 1.5,
+                        boxShadow: 2,
+                        background: theme =>
+                            `linear-gradient(45deg, ${theme.palette.secondary.main} 30%, ${theme.palette.secondary.light} 90%)`,
+                    }}
+                >
+                    {showNotPunchedOut ? 'Hide Not Punched Out' : 'Show Not Punched Out'}
+                </Button>
+            </Stack>
+
+            {/* Render the NotPunchedInToday component if toggled */}
             {showNotPunchedIn && <NotPunchedInToday selectedDate={selectedDate} />}
+
+            {/* Conditionally render the NotPunchedOutPage component */}
+            {showNotPunchedOut && <NotPunchedOutPage selectedDate={selectedDate} />}
 
             {/* Punch In / Out Component */}
             <PunchInOut
@@ -333,7 +358,6 @@ const BreakSheet: React.FC = () => {
                 selectedEmployeeId={selectedEmployeeId}
                 disablePunch={showTeamBreakSheets}
             />
-
             <Paper
                 elevation={3}
                 sx={{

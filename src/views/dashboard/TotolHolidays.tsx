@@ -24,6 +24,7 @@ import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
 
 // ... other styled components remain the same ...
 const GradientCard = styled(Card)(() => ({
+  minHeight: '645px',
   display: 'flex',
   flexDirection: 'column',
   background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%) !important',
