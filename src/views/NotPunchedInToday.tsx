@@ -33,7 +33,7 @@ const NotPunchedInToday: React.FC<Props> = ({ selectedDate }) => {
         setLoading(true)
         setError(null)
 
-        const { totalRecords, data } = await fetchEmployeesNotPunchedInToday(selectedDate, currentPage, limit)
+        const { totalRecords, data } = await fetchEmployeesNotPunchedInToday(selectedDate)
         setEmployeesNotPunchedIn(data)
         setTotalRecords(totalRecords)
       } catch (err) {
@@ -92,24 +92,6 @@ const NotPunchedInToday: React.FC<Props> = ({ selectedDate }) => {
 
       {/* Pagination Buttons */}
       <div style={{ marginTop: '20px' }}>
-        <Button
-          variant='contained'
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(prev => prev - 1)}
-          style={{ marginRight: '10px' }}
-        >
-          Previous
-        </Button>
-        <Button
-          variant='contained'
-          disabled={currentPage === totalPages || totalPages === 0}
-          onClick={() => setCurrentPage(prev => prev + 1)}
-        >
-          Next
-        </Button>
-        <Typography>
-          Page {currentPage} of {totalPages}
-        </Typography>
         <Typography>Total Number of employees not Punch-in today & Absent : {totalRecords}</Typography>
       </div>
 

@@ -1,7 +1,5 @@
 export const fetchEmployeesNotPunchedInToday = async (
     date: string,
-    page: number = 1,
-    limit: number = 10
 ) => {
     let token: string | null = null;
     const { company_id } =
@@ -12,7 +10,7 @@ export const fetchEmployeesNotPunchedInToday = async (
     }
 
     const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/punch/employees-not-punches-by-date?date=${date}&page=${page}&limit=${limit}`,
+        `${process.env.NEXT_PUBLIC_APP_URL}/punch/employees-not-punches-by-date?date=${date}`,
         {
             method: 'GET',
             headers: {

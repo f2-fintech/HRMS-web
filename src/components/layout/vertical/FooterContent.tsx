@@ -10,7 +10,6 @@ import {
   Grid,
   Paper,
   IconButton,
-  Collapse,
   useTheme,
   useMediaQuery
 } from '@mui/material'
@@ -18,7 +17,6 @@ import {
   Phone as PhoneIcon,
   Email as EmailIcon,
   LocationOn as LocationOnIcon,
-  ExpandMore as ExpandMoreIcon,
   Facebook as FacebookIcon,
   Twitter as TwitterIcon,
   Instagram as InstagramIcon,
@@ -26,7 +24,9 @@ import {
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 
-import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig'
+import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch, RootState } from '@/redux/store'
+import { fetchConfiguration } from '@/redux/features/configuration/configurationSlice'
 
 const FooterSection = styled(Box)(({ theme }) => ({
   [theme.breakpoints.up('md')]: {
@@ -114,9 +114,10 @@ const GradientBackground = styled(Box)(({ theme }) => ({
 }))
 
 const FooterContent = () => {
+  const dispatch = useDispatch<AppDispatch>()
   const [showContactDetails, setShowContactDetails] = useState(false)
-  const [footerData, setFooterData] = useState(null)
   const theme = useTheme()
+  const { data: footerData, loading } = useSelector((state: RootState) => state.configuration)
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const handleContactClick = () => {
@@ -124,18 +125,11 @@ const FooterContent = () => {
   }
 
   useEffect(() => {
-    const fetchFooterData = async () => {
-      try {
-        const data = await fetchConfiguration()
-
-        setFooterData(data)
-      } catch (error) {
-        console.error('Error fetching footer data:', error)
-      }
+    // Fetch configuration data if not already loaded
+    if (!footerData) {
+      dispatch(fetchConfiguration())
     }
-
-    fetchFooterData()
-  }, [])
+  }, [dispatch, footerData])
 
   if (!footerData) {
     return <Typography>Loading...</Typography>
@@ -244,7 +238,7 @@ const FooterContent = () => {
                   fontWeight: 600,
                   marginBottom: 3,
                   textAlign: { xs: 'center', md: 'left' },
-                  color: '#FFD700',
+                  color: '#FFD700'
                 }}
               >
                 Contact Us
@@ -264,8 +258,8 @@ const FooterContent = () => {
                   cursor: 'pointer',
                   '&:hover': {
                     backgroundColor: 'rgba(44, 60, 227, 0.2)',
-                    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)',
-                  },
+                    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)'
+                  }
                 }}
               >
                 <PhoneIcon sx={{ color: '#FFD700', fontSize: '1.5rem' }} />
@@ -287,8 +281,8 @@ const FooterContent = () => {
                   cursor: 'pointer',
                   '&:hover': {
                     backgroundColor: 'rgba(44, 60, 227, 0.2)',
-                    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)',
-                  },
+                    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)'
+                  }
                 }}
               >
                 <EmailIcon sx={{ color: '#FFD700', fontSize: '1.5rem' }} />
@@ -298,7 +292,6 @@ const FooterContent = () => {
               </Box>
             </FooterSection>
           </Grid>
-
         </Grid>
 
         <Box
@@ -310,27 +303,46 @@ const FooterContent = () => {
           }}
         >
           <SocialIconButton>
-            <a href="https://www.facebook.com/f2fintech/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <a
+              href='https://www.facebook.com/f2fintech/'
+              target='_blank'
+              rel='noopener noreferrer'
+              style={{ color: 'inherit', textDecoration: 'none' }}
+            >
               <FacebookIcon />
             </a>
           </SocialIconButton>
           <SocialIconButton>
-            <a href="https://x.com/i/flow/login?redirect_after_login=%2Ff2fintech" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <a
+              href='https://x.com/i/flow/login?redirect_after_login=%2Ff2fintech'
+              target='_blank'
+              rel='noopener noreferrer'
+              style={{ color: 'inherit', textDecoration: 'none' }}
+            >
               <TwitterIcon />
             </a>
           </SocialIconButton>
           <SocialIconButton>
-            <a href="https://www.instagram.com/f2fintech/reels/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <a
+              href='https://www.instagram.com/f2fintech/reels/'
+              target='_blank'
+              rel='noopener noreferrer'
+              style={{ color: 'inherit', textDecoration: 'none' }}
+            >
               <InstagramIcon />
             </a>
           </SocialIconButton>
           <SocialIconButton>
-            <a href="https://www.linkedin.com/company/f2fintech/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <a
+              href='https://www.linkedin.com/company/f2fintech/'
+              target='_blank'
+              rel='noopener noreferrer'
+              style={{ color: 'inherit', textDecoration: 'none' }}
+            >
               <LinkedInIcon />
             </a>
           </SocialIconButton>
         </Box>
-
 
         <Divider
           sx={{

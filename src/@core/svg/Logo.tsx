@@ -1,31 +1,20 @@
-import React, { useEffect, useState } from 'react'
-import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig'
+import React, { useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchConfiguration } from '@/redux/features/configuration/configurationSlice'
+import { RootState, AppDispatch } from '@/redux/store'
 
 const Logo = () => {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(true) // Loading state
+  const dispatch = useDispatch<AppDispatch>()
+
+  const { data: configuration, loading } = useSelector((state: RootState) => state.configuration)
 
   useEffect(() => {
-    const loadLogo = async () => {
-      try {
-        const config = await fetchConfiguration() // Fetch configuration from the API
-        if (config?.image) {
-          setLogoUrl(config.image) // Set the logo URL
-        } else {
-          console.error('No logo URL found in configuration')
-        }
-      } catch (error) {
-        console.error('Error fetching logo configuration:', error)
-      } finally {
-        setIsLoading(false) // End loading state
-      }
+    if (!configuration) {
+      dispatch(fetchConfiguration())
     }
+  }, [dispatch, configuration])
 
-    loadLogo()
-  }, [])
-
-  if (isLoading) {
-    // Render a spinner while loading
+  if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '180px' }}>
         <div className='spinner'></div>
@@ -35,11 +24,11 @@ const Logo = () => {
 
   return (
     <img
-      src={logoUrl || '/images/logos/placeholder-logo.png'}
+      src={configuration?.image || '/images/logos/placeholder-logo.png'}
       alt='Logo'
       width='150px'
       height='150px'
-      style={{ objectFit: 'cover' }} // Maintain aspect ratio, but crop if needed
+      style={{ objectFit: 'cover' }}
     />
   )
 }
