@@ -1,11 +1,11 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react';
 import Image from 'next/image';
-import type { FormEvent } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ToastContainer, toast } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+import type { FormEvent } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import {
   Card,
@@ -21,17 +21,13 @@ import {
   Container,
   createTheme,
   ThemeProvider
-} from '@mui/material'
+} from '@mui/material';
 
-import { Visibility, VisibilityOff } from '@mui/icons-material'
-import type { Mode } from '@core/types'
-import { useImageVariant } from '@core/hooks/useImageVariant'
-import Logo from '@components/layout/shared/Logo'
-import Illustrations from '@components/Illustrations'
-import themeConfig from '@configs/themeConfig'
-import Loader from '../components/loader/loader'
-import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
-import Company from '@/app/(dashboard)/company/page';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
+import type { Mode } from '@core/types';
+import { useImageVariant } from '@core/hooks/useImageVariant';
+import Illustrations from '@components/Illustrations';
+import Loader from '../components/loader/loader';
 
 const bankingTheme = createTheme({
   palette: {

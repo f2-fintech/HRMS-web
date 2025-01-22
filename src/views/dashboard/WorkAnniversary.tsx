@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
 
-import { useDispatch, useSelector } from 'react-redux';
-import dayjs from 'dayjs';
+import { useDispatch, useSelector } from 'react-redux'
+import dayjs from 'dayjs'
 import {
     Card,
     CardHeader,
@@ -16,16 +16,17 @@ import {
     Box,
     Grid,
     Alert
-} from '@mui/material';
-import WorkIcon from '@mui/icons-material/Work';
-import PersonIcon from '@mui/icons-material/Person';
-import StarIcon from '@mui/icons-material/Star';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
+} from '@mui/material'
+import WorkIcon from '@mui/icons-material/Work'
+import PersonIcon from '@mui/icons-material/Person'
+import StarIcon from '@mui/icons-material/Star'
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
+import MilitaryTechIcon from '@mui/icons-material/MilitaryTech'
 
-import { fetchWorkAnniversaries } from '@/redux/features/employees/employeesSlice';
-import type { AppDispatch, RootState } from '@/redux/store';
-import { utility } from '@/utility';
+import { fetchWorkAnniversaries } from '@/redux/features/employees/employeesSlice'
+import type { AppDispatch, RootState } from '@/redux/store'
+import { utility } from '@/utility'
+import { fetchConfiguration } from '@/redux/features/configuration/configurationSlice'
 
 const IconLegend = () => {
     return (
@@ -42,101 +43,89 @@ const IconLegend = () => {
         >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <StarIcon sx={{ color: '#9C27B0' }} />
-                <Typography sx={{ color: 'white', fontSize: '0.875rem' }}>
-                    1-3 Years
-                </Typography>
+                <Typography sx={{ color: 'white', fontSize: '0.875rem' }}>1-3 Years</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <EmojiEventsIcon sx={{ color: '#2196F3' }} />
-                <Typography sx={{ color: 'white', fontSize: '0.875rem' }}>
-                    3-5 Years
-                </Typography>
+                <Typography sx={{ color: 'white', fontSize: '0.875rem' }}>3-5 Years</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <MilitaryTechIcon sx={{ color: '#FFD700' }} />
-                <Typography sx={{ color: 'white', fontSize: '0.875rem' }}>
-                    5+ Years
-                </Typography>
+                <Typography sx={{ color: 'white', fontSize: '0.875rem' }}>5+ Years</Typography>
             </Box>
         </Box>
-    );
-};
+    )
+}
 
-const WorkAnniversary = () => {
-    const dispatch = useDispatch<AppDispatch>();
-    const { capitalizeFirstLetter } = utility();
-    const [error, setError] = useState<string | null>(null);
+const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loading: boolean }) => {
+    const dispatch = useDispatch<AppDispatch>()
+    const { capitalizeFirstLetter } = utility()
+    const [error, setError] = useState<string | null>(null)
 
-    const { workAnniversaries, loadingAnniversaries, error: reduxError } = useSelector(
-        (state: RootState) => state.employees
-    );
+    const {
+        workAnniversaries,
+        loadingAnniversaries,
+        error: reduxError
+    } = useSelector((state: RootState) => state.employees)
 
     useEffect(() => {
         if (!loadingAnniversaries) {
             dispatch(fetchWorkAnniversaries(5))
                 .unwrap()
-                .catch((err) => setError(err.message));
+                .catch(err => setError(err.message))
         }
-    }, [dispatch]);
+    }, [dispatch])
 
     const calculateYearsOfService = (joiningDate: string) => {
-        const start = dayjs(joiningDate);
-        const now = dayjs();
+        const start = dayjs(joiningDate)
+        const now = dayjs()
 
-
-        return now.diff(start, 'year');
-    };
+        return now.diff(start, 'year')
+    }
 
     const getCelebrationIcon = (years: number) => {
-        if (years >= 5) return <MilitaryTechIcon sx={{ color: '#FFD700' }} />;
-        if (years >= 3) return <EmojiEventsIcon sx={{ color: '#2196F3' }} />;
-        if (years >= 1) return <StarIcon sx={{ color: '#9C27B0' }} />;
+        if (years >= 5) return <MilitaryTechIcon sx={{ color: '#FFD700' }} />
+        if (years >= 3) return <EmojiEventsIcon sx={{ color: '#2196F3' }} />
+        if (years >= 1) return <StarIcon sx={{ color: '#9C27B0' }} />
 
-        return null;
-    };
+        return null
+    }
 
     const isTodayAnniversary = (joiningDate: string) => {
-        const anniversaryDate = dayjs(joiningDate);
-        const today = dayjs();
+        const anniversaryDate = dayjs(joiningDate)
+        const today = dayjs()
 
-
-        return anniversaryDate.format('MM-DD') === today.format('MM-DD');
-    };
+        return anniversaryDate.format('MM-DD') === today.format('MM-DD')
+    }
 
     const getAnniversaryIcon = (joiningDate: string) => {
         if (isTodayAnniversary(joiningDate)) {
-            const years = calculateYearsOfService(joiningDate);
+            const years = calculateYearsOfService(joiningDate)
 
-
-            return getCelebrationIcon(years);
+            return getCelebrationIcon(years)
         }
 
-
-        return null;
-    };
+        return null
+    }
 
     if (loadingAnniversaries) {
         return (
             <Card elevation={5}>
                 <CardContent>
-                    <Typography variant="body1" align="center">
+                    <Typography variant='body1' align='center'>
                         Loading...
                     </Typography>
                 </CardContent>
             </Card>
-        );
+        )
     }
 
     if (error || reduxError) {
-        return (
-            <Alert severity="error">
-                {error || reduxError}
-            </Alert>
-        );
+        return <Alert severity='error'>{error || reduxError}</Alert>
     }
 
-    const todayAnniversaries = workAnniversaries.filter(emp => isTodayAnniversary(emp.joining_date));
-    const otherAnniversaries = workAnniversaries.filter(emp => !isTodayAnniversary(emp.joining_date));
+    const todayAnniversaries = workAnniversaries.filter(emp => isTodayAnniversary(emp.joining_date))
+    const otherAnniversaries = workAnniversaries.filter(emp => !isTodayAnniversary(emp.joining_date))
 
     return (
         <Card
@@ -156,7 +145,7 @@ const WorkAnniversary = () => {
             {todayAnniversaries.length > 0 ? (
                 <Box sx={{ textAlign: 'center', py: 3 }}>
                     <Typography
-                        variant="h3"
+                        variant='h3'
                         sx={{
                             fontSize: '1.5rem',
                             color: '#64e0e2',
@@ -168,19 +157,22 @@ const WorkAnniversary = () => {
                         Today's Work Anniversary Celebration
                     </Typography>
                     <Typography
-                        variant="h6"
+                        variant='h6'
                         sx={{
                             color: 'white',
-                            fontWeight: 'bold',
+                            fontWeight: 'bold'
                         }}
                     >
-                        🌟"Your journey with F2Fintech has been inspiring. Warm wishes on your work anniversary from all of us!"🌟
+                        🌟 Your journey with{' '}
+                        <span style={{ color: 'yellow', fontWeight: 'bold' }}>
+                            {loading ? '...' : companyDetails?.name || 'Your Company'}
+                        </span>{' '}
+                        has been inspiring. Warm wishes on your work anniversary from all of us! 🌟
                     </Typography>
 
-
-                    <Grid container spacing={3} justifyContent="center">
+                    <Grid container spacing={3} justifyContent='center'>
                         {todayAnniversaries.map((employee, index) => {
-                            const yearsCompleted = calculateYearsOfService(employee.joining_date);
+                            const yearsCompleted = calculateYearsOfService(employee.joining_date)
 
                             return (
                                 <Grid item key={employee._id || index} xs={12} sm={6} md={4}>
@@ -198,103 +190,106 @@ const WorkAnniversary = () => {
                                             {!employee.image && <PersonIcon />}
                                         </Avatar>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Typography variant="h6" sx={{ color: 'white', textAlign: 'center' }}>
-                                                {capitalizeFirstLetter(employee.first_name)}{' '}
-                                                {capitalizeFirstLetter(employee.last_name)}
+                                            <Typography variant='h6' sx={{ color: 'white', textAlign: 'center' }}>
+                                                {capitalizeFirstLetter(employee.first_name)} {capitalizeFirstLetter(employee.last_name)}
                                             </Typography>
                                             {getAnniversaryIcon(employee.joining_date)}
                                         </Box>
-                                        <Typography variant="body1" sx={{ color: '#64e0e2', textAlign: 'center' }}>
+                                        <Typography variant='body1' sx={{ color: '#64e0e2', textAlign: 'center' }}>
                                             Completed {yearsCompleted} {yearsCompleted === 1 ? 'year' : 'years'}
                                         </Typography>
                                     </Box>
                                 </Grid>
-                            );
+                            )
                         })}
                     </Grid>
                 </Box>
-            ) : otherAnniversaries.length > 0 && (
-                <Box sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography
-                        variant="h"
-                        sx={{
-                            fontSize: '1.5rem',
-                            color: '#64e0e2',
-                            fontWeight: 800,
-                            letterSpacing: 2,
-                            mb: 3
-                        }}
-                    >
-                        Upcoming Work Anniversaries
-                    </Typography>
-                    <Typography
-                        variant="h6"
-                        sx={{
-                            color: 'rgb(255, 246, 218)',
-                            fontWeight: 'bold',
-                            marginTop: 3,
-                            marginBottom: 3,
-                            textAlign: 'center',
-                            lineHeight: 1.5,
-                        }}
-                    >
-                        🌟"A milestone is approaching as we prepare to celebrate a work anniversary at F2Fintech."🌟
-                    </Typography>
+            ) : (
+                otherAnniversaries.length > 0 && (
+                    <Box sx={{ textAlign: 'center', py: 3 }}>
+                        <Typography
+                            variant='h'
+                            sx={{
+                                fontSize: '1.5rem',
+                                color: '#64e0e2',
+                                fontWeight: 800,
+                                letterSpacing: 2,
+                                mb: 3
+                            }}
+                        >
+                            Upcoming Work Anniversaries
+                        </Typography>
+                        <Typography
+                            variant='h6'
+                            sx={{
+                                color: 'rgb(255, 246, 218)',
+                                fontWeight: 'bold',
+                                marginTop: 3,
+                                marginBottom: 3,
+                                textAlign: 'center',
+                                lineHeight: 1.5
+                            }}
+                        >
+                            🌟 A milestone is approaching as we prepare to celebrate a work anniversary at{' '}
+                            <span style={{ color: 'yellow', fontWeight: 'bold' }}>
+                                {loading ? '...' : companyDetails?.name || 'Your Company'}
+                            </span>
+                            . 🌟
+                        </Typography>
 
+                        <Grid container spacing={3} justifyContent='center'>
+                            {otherAnniversaries.slice(0, 2).map((employee, index) => {
+                                const yearsCompleting = calculateYearsOfService(employee.joining_date) + 1
+                                const anniversaryDate = dayjs(employee.joining_date)
 
-                    <Grid container spacing={3} justifyContent="center">
-                        {otherAnniversaries.slice(0, 2).map((employee, index) => {
-                            const yearsCompleting = calculateYearsOfService(employee.joining_date) + 1;
-                            const anniversaryDate = dayjs(employee.joining_date);
-
-                            return (
-                                <Grid item key={employee._id || index} xs={12} sm={6} md={4}>
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                        <Avatar
-                                            src={employee.image}
-                                            alt={`${employee.first_name} ${employee.last_name}`}
-                                            sx={{
-                                                width: 80,
-                                                height: 80,
-                                                border: '3px solid #64e0e2',
-                                                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
-                                            }}
-                                        >
-                                            {!employee.image && <PersonIcon />}
-                                        </Avatar>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Typography variant="h6" sx={{ color: 'white', textAlign: 'center' }}>
-                                                {capitalizeFirstLetter(employee.first_name)}{' '}
-                                                {capitalizeFirstLetter(employee.last_name)}
+                                return (
+                                    <Grid item key={employee._id || index} xs={12} sm={6} md={4}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                            <Avatar
+                                                src={employee.image}
+                                                alt={`${employee.first_name} ${employee.last_name}`}
+                                                sx={{
+                                                    width: 80,
+                                                    height: 80,
+                                                    border: '3px solid #64e0e2',
+                                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                                                }}
+                                            >
+                                                {!employee.image && <PersonIcon />}
+                                            </Avatar>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Typography variant='h6' sx={{ color: 'white', textAlign: 'center' }}>
+                                                    {capitalizeFirstLetter(employee.first_name)} {capitalizeFirstLetter(employee.last_name)}
+                                                </Typography>
+                                                {getAnniversaryIcon(employee.joining_date)}
+                                            </Box>
+                                            <Typography variant='body1' sx={{ color: '#64e0e2', textAlign: 'center' }}>
+                                                {anniversaryDate.format('D MMM')} • Completing {yearsCompleting}{' '}
+                                                {yearsCompleting === 1 ? 'year' : 'years'}
                                             </Typography>
-                                            {getAnniversaryIcon(employee.joining_date)}
                                         </Box>
-                                        <Typography variant="body1" sx={{ color: '#64e0e2', textAlign: 'center' }}>
-                                            {anniversaryDate.format('D MMM')} • Completing {yearsCompleting} {yearsCompleting === 1 ? 'year' : 'years'}
-                                        </Typography>
-                                    </Box>
-                                </Grid>
-                            );
-                        })}
-                    </Grid>
-                </Box>
+                                    </Grid>
+                                )
+                            })}
+                        </Grid>
+                    </Box>
+                )
             )}
 
             <Card
                 sx={{
-                    borderRadius: "20px",
+                    borderRadius: '20px',
                     overflow: 'hidden',
                     boxShadow: 3,
                     backgroundColor: 'white',
-                    border: '1px solid #ddd',
-
+                    border: '1px solid #ddd'
                 }}
             >
                 <CardHeader
                     title={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <WorkIcon color="primary" />
-                            <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
+                            <WorkIcon color='primary' />
+                            <Typography variant='h6' sx={{ color: '#333', fontWeight: 'bold' }}>
                                 Other Work Anniversaries
                             </Typography>
                         </Box>
@@ -302,87 +297,78 @@ const WorkAnniversary = () => {
                     sx={{
                         backgroundColor: 'white',
                         borderBottom: '1px solid #ddd',
-                        py: 2,
+                        py: 2
                     }}
                 />
                 <CardContent sx={{ p: 0 }}>
                     <List disablePadding>
-                        {(todayAnniversaries.length > 0 ? otherAnniversaries : otherAnniversaries.slice(2)).map((employee, index) => {
-                            const joiningDate = dayjs(employee.joining_date);
-                            const yearsCompleting = calculateYearsOfService(employee.joining_date) + 1;
+                        {(todayAnniversaries.length > 0 ? otherAnniversaries : otherAnniversaries.slice(2)).map(
+                            (employee, index) => {
+                                const joiningDate = dayjs(employee.joining_date)
+                                const yearsCompleting = calculateYearsOfService(employee.joining_date) + 1
 
-                            return (
-                                <React.Fragment key={employee._id || index}>
-                                    {index > 0 && <Divider variant="inset" component="li" />}
-                                    <ListItem
-                                        alignItems="center"
-                                        sx={{
-                                            py: 1.5,
-                                            px: 2,
-                                            '&:hover': {
-                                                backgroundColor: '#f9f9f9',
-                                                transition: 'background-color 0.3s ease',
-                                            },
-                                        }}
-                                    >
-                                        <ListItemAvatar>
-                                            <Avatar
-                                                src={employee.image}
-                                                alt={`${employee.first_name} ${employee.last_name}`}
-                                                sx={{
-                                                    width: 56,
-                                                    height: 56,
-                                                    border: '3px solid #ddd',
-                                                    transition: 'transform 0.3s ease',
-                                                    '&:hover': {
-                                                        transform: 'scale(1.1)',
-                                                    },
-                                                }}
-                                            >
-                                                {!employee.image && <PersonIcon />}
-                                            </Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText
-                                            primary={
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                    <Typography
-                                                        sx={{ color: '#333', fontWeight: 'bold' }}
-                                                        variant="subtitle1"
-                                                    >
-                                                        {capitalizeFirstLetter(employee.first_name)}{' '}
-                                                        {capitalizeFirstLetter(employee.last_name)}
-                                                    </Typography>
-                                                    {getAnniversaryIcon(employee.joining_date)}
-                                                </Box>
-                                            }
-                                            secondary={
-                                                <Box>
-                                                    <Typography
-                                                        component="span"
-                                                        variant="body2"
-                                                        sx={{ color: '#666', display: 'block' }}
-                                                    >
-                                                        {joiningDate.format('D MMM YYYY')} • Completing {yearsCompleting} {yearsCompleting === 1 ? 'year' : 'years'}
-                                                    </Typography>
-                                                    <Typography
-                                                        component="span"
-                                                        variant="body2"
-                                                        sx={{ color: '#2196F3' }}
-                                                    >
-                                                        {employee.designation}
-                                                    </Typography>
-                                                </Box>
-                                            }
-                                        />
-                                    </ListItem>
-                                </React.Fragment>
-                            );
-                        })}
+                                return (
+                                    <React.Fragment key={employee._id || index}>
+                                        {index > 0 && <Divider variant='inset' component='li' />}
+                                        <ListItem
+                                            alignItems='center'
+                                            sx={{
+                                                py: 1.5,
+                                                px: 2,
+                                                '&:hover': {
+                                                    backgroundColor: '#f9f9f9',
+                                                    transition: 'background-color 0.3s ease'
+                                                }
+                                            }}
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar
+                                                    src={employee.image}
+                                                    alt={`${employee.first_name} ${employee.last_name}`}
+                                                    sx={{
+                                                        width: 56,
+                                                        height: 56,
+                                                        border: '3px solid #ddd',
+                                                        transition: 'transform 0.3s ease',
+                                                        '&:hover': {
+                                                            transform: 'scale(1.1)'
+                                                        }
+                                                    }}
+                                                >
+                                                    {!employee.image && <PersonIcon />}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Typography sx={{ color: '#333', fontWeight: 'bold' }} variant='subtitle1'>
+                                                            {capitalizeFirstLetter(employee.first_name)} {capitalizeFirstLetter(employee.last_name)}
+                                                        </Typography>
+                                                        {getAnniversaryIcon(employee.joining_date)}
+                                                    </Box>
+                                                }
+                                                secondary={
+                                                    <Box>
+                                                        <Typography component='span' variant='body2' sx={{ color: '#666', display: 'block' }}>
+                                                            {joiningDate.format('D MMM YYYY')} • Completing {yearsCompleting}{' '}
+                                                            {yearsCompleting === 1 ? 'year' : 'years'}
+                                                        </Typography>
+                                                        <Typography component='span' variant='body2' sx={{ color: '#2196F3' }}>
+                                                            {employee.designation}
+                                                        </Typography>
+                                                    </Box>
+                                                }
+                                            />
+                                        </ListItem>
+                                    </React.Fragment>
+                                )
+                            }
+                        )}
                     </List>
                 </CardContent>
             </Card>
         </Card>
-    );
-};
+    )
+}
 
-export default WorkAnniversary;
+export default WorkAnniversary

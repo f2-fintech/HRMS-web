@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import type { AppDispatch, RootState } from '@/redux/store';
 
 import Grid from '@mui/material/Grid'
 
@@ -12,23 +13,37 @@ import TradingViewWidget from '@views/dashboard/TotalEarning'
 import NewYearDashboard from '@/views/dashboard/NewYearDashboard'
 import SuperAdminDashboard from '@/views/dashboard/SuperAdmin'
 import WorkAnniversary from '@/views/dashboard/WorkAnniversary'
+import { fetchConfiguration } from '@/redux/features/configuration/configurationSlice'
+import { useDispatch, useSelector } from 'react-redux';
 
 const DashboardAnalytics = () => {
   const [userRole, setUserRole] = useState<string>("");
 
-  useEffect(() => {
-    if (userRole === "") {
-      const user = JSON.parse(localStorage.getItem("user") || '{}');
+  const dispatch = useDispatch<AppDispatch>();
 
+  const { data: companyDetails, loading: companyLoading } = useSelector(
+    (state: RootState) => state.configuration
+  );
+
+  // Fetch user role from localStorage
+  useEffect(() => {
+    if (userRole === '') {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
       setUserRole(user.role);
     }
   }, [userRole]);
 
+  // Fetch company details once
+  useEffect(() => {
+    if (!companyDetails) {
+      dispatch(fetchConfiguration());
+    }
+  }, [dispatch, companyDetails]);
   return (
     <Grid container spacing={6}>
       {/* Common New Year Dashboard */}
       <Grid item xs={12} md={12} lg={12}>
-        <NewYearDashboard />
+        <NewYearDashboard companyDetails={companyDetails} loading={companyLoading} />
       </Grid>
       {/* Conditional Rendering Based on Role */}
       {userRole === '0' ? (
@@ -50,10 +65,10 @@ const DashboardAnalytics = () => {
 
           {/* Upcoming Birthdays and Work Anniversary in one row */}
           <Grid item xs={12} md={6}>
-            <UpcomingBirthdays />
+            <UpcomingBirthdays companyDetails={companyDetails} loading={companyLoading} />
           </Grid>
           <Grid item xs={12} md={6}>
-            {userRole !== '' && <WorkAnniversary />}
+            {userRole !== '' && <WorkAnniversary companyDetails={companyDetails} loading={companyLoading} />}
           </Grid>
 
           {/* LocationWise Performer and Total Holidays in one row */}

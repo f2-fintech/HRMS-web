@@ -23,6 +23,7 @@ import punchSheetReducer from '@/redux/features/punches/punchesSlice'
 import queryReducer from '@/redux/features/queries/queriesSlice'
 import sittingArrangmentReducer from '@/redux/features/sittingArrangment/seatingArrangementSlice'
 import companiesReducer from '@/redux/features/company/companyslice'
+import configurationReducer from './features/configuration/configurationSlice'
 
 // const store = configureStore({
 //   reducer: {
@@ -66,7 +67,8 @@ const appReducer = combineReducers({
   punches: punchSheetReducer,
   queries: queryReducer,
   sittingArrangment: sittingArrangmentReducer,
-  companies: companiesReducer
+  companies: companiesReducer,
+  configuration: configurationReducer,
 })
 
 // Root reducer with RESET functionality

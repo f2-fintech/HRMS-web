@@ -234,7 +234,7 @@ const Welcome = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ quote, author }),
+        body: JSON.stringify({ quote, author, company_id }),
       });
 
       const result = await response.json();
@@ -255,11 +255,12 @@ const Welcome = () => {
   };
 
   const handleEdit = async () => {
+    const { company_id } = JSON.parse(localStorage?.getItem("user") || "{}");
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/quotes/update/${latestQuote._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quote, author }),
+        body: JSON.stringify({ quote, author, company_id }),
       });
 
       const result = await response.json();
