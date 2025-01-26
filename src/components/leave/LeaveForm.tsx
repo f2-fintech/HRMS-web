@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
 import {
   Box,
   Button,
@@ -17,22 +17,21 @@ import {
   Paper,
   Container,
   Tooltip
-} from '@mui/material';
+} from '@mui/material'
 import {
   Close as CloseIcon,
   EventNote as CalendarIcon,
   Person as EmployeeIcon,
   AssignmentTurnedIn as LeaveTypeIcon,
   Description as ApplicationIcon,
-
   CheckCircle as SubmitIcon,
   EmojiObjects as ReasonIcon
-} from '@mui/icons-material';
-import { AccessTime as HalfDayIcon, AccessTime } from '@mui/icons-material';
+} from '@mui/icons-material'
+import { AccessTime as HalfDayIcon, AccessTime } from '@mui/icons-material'
 
-import { toast } from 'react-toastify';
-import { useDispatch } from 'react-redux';
-import { fetchLeaves } from '../../redux/features/leaves/leavesSlice';
+import { toast } from 'react-toastify'
+import { useDispatch } from 'react-redux'
+import { fetchLeaves } from '../../redux/features/leaves/leavesSlice'
 
 const AddLeavesForm = ({
   handleClose,
@@ -47,7 +46,7 @@ const AddLeavesForm = ({
   year,
   selectedKeyword
 }) => {
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+  const { company_id } = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user')) : {}
   const [formData, setFormData] = useState({
     employee: '',
     start_date: '',
@@ -59,7 +58,7 @@ const AddLeavesForm = ({
     day: '',
     half_day_period: null,
     company_id: company_id
-  });
+  })
 
   const [errors, setErrors] = useState({
     employee: '',
@@ -71,18 +70,16 @@ const AddLeavesForm = ({
     type: '',
     day: '',
     half_day_period: ''
-  });
+  })
 
-  const [isHalfDay, setIsHalfDay] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const dispatch = useDispatch();
+  const [isHalfDay, setIsHalfDay] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const dispatch = useDispatch()
 
   useEffect(() => {
     if (leave) {
-      const foundLeave = leaves.find(employee =>
-        employee.leaves.find(ass => ass._id === leave)
-      )
-      const selected = foundLeave.leaves.find(l => l._id === leave);
+      const foundLeave = leaves.find(employee => employee.leaves.find(ass => ass._id === leave))
+      const selected = foundLeave.leaves.find(l => l._id === leave)
 
       if (selected) {
         setFormData({
@@ -94,147 +91,147 @@ const AddLeavesForm = ({
           reason: selected.reason || '',
           type: selected.type,
           day: selected.day ? selected.day : calculateDaysDifference(selected.start_date, selected.end_date),
-          half_day_period: selected.day === "0.5" ? selected.half_day_period : null,
+          half_day_period: selected.day === '0.5' ? selected.half_day_period : null,
           company_id: selected.company_id
-        });
+        })
 
-        if (selected.day === "0.5") {
-          setIsHalfDay(true);
+        if (selected.day === '0.5') {
+          setIsHalfDay(true)
         }
       }
     } else if (userRole !== '1') {
       setFormData(prevState => ({
         ...prevState,
         employee: userId
-      }));
+      }))
     }
-  }, [leave, leaves, userRole, userId]);
+  }, [leave, leaves, userRole, userId])
 
   const validateForm = () => {
-    let isValid = true;
-    const newErrors = {};
+    let isValid = true
+    const newErrors = {}
 
-    const requiredFields = ['employee', 'start_date', 'status', 'application', 'type', 'day'];
+    const requiredFields = ['employee', 'start_date', 'status', 'application', 'type', 'day']
 
     requiredFields.forEach(field => {
       if (!formData[field] || formData[field].trim() === '') {
-        newErrors[field] = `${field.replace('_', ' ').toUpperCase()} is required`;
-        isValid = false;
+        newErrors[field] = `${field.replace('_', ' ').toUpperCase()} is required`
+        isValid = false
       }
-    });
+    })
 
     if (isHalfDay && (!formData.half_day_period || formData.half_day_period.trim() === '')) {
-      newErrors.half_day_period = 'Half-day period is required';
-      isValid = false;
+      newErrors.half_day_period = 'Half-day period is required'
+      isValid = false
     }
 
-    setErrors(newErrors);
+    setErrors(newErrors)
 
-    return isValid;
-  };
+    return isValid
+  }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = e => {
+    const { name, value } = e.target
 
     setFormData(prevState => {
-      const updatedFormData = { ...prevState, [name]: value };
+      const updatedFormData = { ...prevState, [name]: value }
 
       if (name === 'start_date' || name === 'end_date') {
-        const days = calculateDaysDifference(updatedFormData.start_date, updatedFormData.end_date);
+        const days = calculateDaysDifference(updatedFormData.start_date, updatedFormData.end_date)
 
-        updatedFormData.day = isHalfDay ? '0.5' : days.toString();
+        updatedFormData.day = isHalfDay ? '0.5' : days.toString()
       }
 
-      return updatedFormData;
-    });
-  };
+      return updatedFormData
+    })
+  }
 
   const calculateDaysDifference = (start, end) => {
     if (start && end) {
-      const startDate = new Date(start);
-      const endDate = new Date(end);
-      const differenceInTime = endDate.getTime() - startDate.getTime();
-      const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24)) + 1;
+      const startDate = new Date(start)
+      const endDate = new Date(end)
+      const differenceInTime = endDate.getTime() - startDate.getTime()
+      const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24)) + 1
 
-      return differenceInDays === 0 ? 1 : differenceInDays;
+      return differenceInDays === 0 ? 1 : differenceInDays
     }
 
-    return 0;
-  };
+    return 0
+  }
 
-  const handleHalfDayChange = (e) => {
-    const checked = e.target.checked;
+  const handleHalfDayChange = e => {
+    const checked = e.target.checked
 
-    setIsHalfDay(checked);
+    setIsHalfDay(checked)
 
     if (checked) {
       setFormData(prevState => ({
         ...prevState,
         day: '0.5',
         half_day_period: ''
-      }));
+      }))
     } else {
       setFormData(prevState => {
-        const days = calculateDaysDifference(prevState.start_date, prevState.end_date);
+        const days = calculateDaysDifference(prevState.start_date, prevState.end_date)
 
         return {
           ...prevState,
           day: days.toString(),
           half_day_period: null
-        };
-      });
+        }
+      })
     }
-  };
+  }
 
   const handleSubmit = () => {
     if (validateForm()) {
-      setLoading(true);
+      setLoading(true)
 
-      const leaveData = { ...formData };
+      const leaveData = { ...formData }
 
       if (!isHalfDay) {
-        delete leaveData.half_day_period;
+        delete leaveData.half_day_period
       }
 
-      const method = leave ? 'PUT' : 'POST';
+      const method = leave ? 'PUT' : 'POST'
 
       const url = leave
         ? `${process.env.NEXT_PUBLIC_APP_URL}/leaves/update/${leave}`
-        : `${process.env.NEXT_PUBLIC_APP_URL}/leaves/create`;
+        : `${process.env.NEXT_PUBLIC_APP_URL}/leaves/create`
 
       fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(leaveData),
+        body: JSON.stringify(leaveData)
       })
         .then(response => response.json())
         .then(data => {
           if (data.message) {
             toast[data.message.includes('success') ? 'success' : 'error'](data.message, {
-              position: 'top-center',
-            });
+              position: 'top-center'
+            })
           } else {
             toast.error('Unexpected error occurred', {
-              position: 'top-center',
-            });
+              position: 'top-center'
+            })
           }
 
-          handleClose();
-          dispatch(fetchLeaves({ page, limit, month: userRole === '1' ? month : '0', year, keyword: selectedKeyword }));
+          handleClose()
+          dispatch(fetchLeaves({ page, limit, month: userRole === '1' ? month : '0', year, keyword: selectedKeyword }))
         })
         .catch(error => {
-          console.error('Error:', error);
+          console.error('Error:', error)
         })
         .finally(() => {
-          setLoading(false);
-        });
+          setLoading(false)
+        })
     }
-  };
+  }
 
-  const filteredEmployees = userRole !== '1' ? employees.filter(emp => emp._id === userId) : employees;
+  const filteredEmployees = userRole !== '1' ? employees.filter(emp => emp._id === userId) : employees
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth='md'>
       <Paper
         elevation={3}
         sx={{
@@ -246,7 +243,7 @@ const AddLeavesForm = ({
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={3}>
           <Typography
             variant='h4'
-            color="primary"
+            color='primary'
             sx={{
               fontWeight: 600,
               display: 'flex',
@@ -257,45 +254,44 @@ const AddLeavesForm = ({
             <LeaveTypeIcon />
             {leave ? 'Edit Leave' : 'Add Leave'}
           </Typography>
-          <Box display="flex" alignItems="center">
-            <Tooltip title="Click here to apply for half-day leave" arrow>
+          <Box display='flex' alignItems='center'>
+            <Tooltip title='Click here to apply for half-day leave' arrow>
               <FormControlLabel
                 control={
                   <Checkbox
                     checked={isHalfDay}
                     onChange={handleHalfDayChange}
-                    name="halfDay"
-                    color="primary"
+                    name='halfDay'
+                    color='primary'
                     icon={<HalfDayIcon />}
-                    checkedIcon={<HalfDayIcon color="primary" />}
+                    checkedIcon={<HalfDayIcon color='primary' />}
                   />
                 }
-                label="Half-day Leave"
+                label='Half-day Leave'
               />
             </Tooltip>
-            <IconButton onClick={handleClose} color="error">
+            <IconButton onClick={handleClose} color='error'>
               <CloseIcon />
             </IconButton>
           </Box>
-
         </Box>
 
         <Grid container spacing={3}>
           {Number(userRole) < 3 && (
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required variant="outlined">
+              <FormControl fullWidth required variant='outlined'>
                 <InputLabel required>Employee</InputLabel>
                 <Select
                   label='Select Employee'
-                  name="employee"
+                  name='employee'
                   value={formData.employee}
                   onChange={handleChange}
                   required
                   error={!!errors.employee}
                   disabled={userRole !== '1'}
-                  startAdornment={<EmployeeIcon color="action" />}
+                  startAdornment={<EmployeeIcon color='action' />}
                 >
-                  {filteredEmployees.map((employee) => (
+                  {filteredEmployees.map(employee => (
                     <MenuItem key={employee._id} value={employee._id}>
                       {employee.first_name} {employee.last_name}
                     </MenuItem>
@@ -318,9 +314,9 @@ const AddLeavesForm = ({
               required
               error={!!errors.start_date}
               helperText={errors.start_date}
-              variant="outlined"
+              variant='outlined'
               InputProps={{
-                startAdornment: <CalendarIcon color="action" />
+                startAdornment: <CalendarIcon color='action' />
               }}
             />
           </Grid>
@@ -335,9 +331,9 @@ const AddLeavesForm = ({
                 value={formData.end_date}
                 onChange={handleChange}
                 InputLabelProps={{ shrink: true }}
-                variant="outlined"
+                variant='outlined'
                 InputProps={{
-                  startAdornment: <CalendarIcon color="action" />
+                  startAdornment: <CalendarIcon color='action' />
                 }}
               />
             </Grid>
@@ -352,44 +348,44 @@ const AddLeavesForm = ({
               type='text'
               InputProps={{
                 readOnly: true,
-                startAdornment: <AccessTime color="action" />
+                startAdornment: <AccessTime color='action' />
               }}
               InputLabelProps={{ shrink: true }}
               required
               error={!!errors.day}
               helperText={errors.day}
-              variant="outlined"
+              variant='outlined'
             />
           </Grid>
 
           {isHalfDay && (
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required error={!!errors.half_day_period} variant="outlined">
+              <FormControl fullWidth required error={!!errors.half_day_period} variant='outlined'>
                 <InputLabel required>Half-day Period</InputLabel>
                 <Select
-                  label="Select Half-day Period"
-                  name="half_day_period"
+                  label='Select Half-day Period'
+                  name='half_day_period'
                   value={formData.half_day_period}
                   onChange={handleChange}
-                  startAdornment={<HalfDayIcon color="action" />}
+                  startAdornment={<HalfDayIcon color='action' />}
                 >
-                  <MenuItem value="First Half">First Half</MenuItem>
-                  <MenuItem value="Second Half">Second Half</MenuItem>
+                  <MenuItem value='First Half'>First Half</MenuItem>
+                  <MenuItem value='Second Half'>Second Half</MenuItem>
                 </Select>
-                {errors.half_day_period && <Typography color="error">{errors.half_day_period}</Typography>}
+                {errors.half_day_period && <Typography color='error'>{errors.half_day_period}</Typography>}
               </FormControl>
             </Grid>
           )}
 
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth required error={!!errors.type} variant="outlined">
+            <FormControl fullWidth required error={!!errors.type} variant='outlined'>
               <InputLabel required>Type</InputLabel>
               <Select
                 label='Select Type'
                 name='type'
                 value={formData.type}
                 onChange={handleChange}
-                startAdornment={<LeaveTypeIcon color="action" />}
+                startAdornment={<LeaveTypeIcon color='action' />}
               >
                 <MenuItem value='Annual'>ANNUAL</MenuItem>
                 <MenuItem value='Sick'>SICK</MenuItem>
@@ -399,7 +395,7 @@ const AddLeavesForm = ({
                 <MenuItem value='Maternity'>MATERNITY</MenuItem>
                 <MenuItem value='Others'>OTHERS</MenuItem>
               </Select>
-              {errors.type && <Typography color="error">{errors.type}</Typography>}
+              {errors.type && <Typography color='error'>{errors.type}</Typography>}
             </FormControl>
           </Grid>
 
@@ -407,12 +403,12 @@ const AddLeavesForm = ({
             <FormControl fullWidth error={!!errors.application}>
               <InputLabel shrink>Application</InputLabel>
               <Box
-                component="textarea"
-                name="application"
+                component='textarea'
+                name='application'
                 value={formData.application}
                 onChange={handleChange}
                 rows={4} // Adjust rows for height
-                placeholder="Enter your application here"
+                placeholder='Enter your application here'
                 style={{
                   width: '100%',
                   padding: '10px',
@@ -421,14 +417,11 @@ const AddLeavesForm = ({
                   fontSize: '16px',
                   fontFamily: 'inherit',
                   outline: 'none',
-                  resize: 'vertical', // Allow vertical resizing
+                  resize: 'vertical' // Allow vertical resizing
                 }}
               />
-              {errors.application && (
-                <FormHelperText>{errors.application}</FormHelperText>
-              )}
+              {errors.application && <FormHelperText>{errors.application}</FormHelperText>}
             </FormControl>
-
           </Grid>
 
           {leave && (
@@ -442,9 +435,9 @@ const AddLeavesForm = ({
                 required
                 error={!!errors.reason}
                 helperText={errors.reason}
-                variant="outlined"
+                variant='outlined'
                 InputProps={{
-                  startAdornment: <ReasonIcon color="action" />
+                  startAdornment: <ReasonIcon color='action' />
                 }}
               />
             </Grid>
@@ -452,7 +445,7 @@ const AddLeavesForm = ({
 
           {leave && (
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required error={!!errors.status} variant="outlined">
+              <FormControl fullWidth required error={!!errors.status} variant='outlined'>
                 <InputLabel required>Status</InputLabel>
                 <Select
                   label='Select Status'
@@ -465,19 +458,18 @@ const AddLeavesForm = ({
                   <MenuItem value='Approved'>Approved</MenuItem>
                   <MenuItem value='Rejected'>Rejected</MenuItem>
                 </Select>
-                {errors.status && <Typography color="error">{errors.status}</Typography>}
+                {errors.status && <Typography color='error'>{errors.status}</Typography>}
               </FormControl>
             </Grid>
           )}
 
-
-          <Grid item xs={12} display="flex" justifyContent="center">
+          <Grid item xs={12} display='flex' justifyContent='center'>
             <Button
               variant='contained'
-              color="primary"
+              color='primary'
               onClick={handleSubmit}
               disabled={loading}
-              startIcon={loading ? <CircularProgress size={24} color="inherit" /> : <SubmitIcon />}
+              startIcon={loading ? <CircularProgress size={24} color='inherit' /> : <SubmitIcon />}
               sx={{
                 fontSize: '16px',
                 fontWeight: 600,
@@ -485,13 +477,13 @@ const AddLeavesForm = ({
                 borderRadius: 2
               }}
             >
-              {loading ? 'Processing...' : (leave ? 'UPDATE LEAVE' : 'ADD LEAVE')}
+              {loading ? 'Processing...' : leave ? 'UPDATE LEAVE' : 'ADD LEAVE'}
             </Button>
           </Grid>
         </Grid>
       </Paper>
     </Container>
-  );
-};
+  )
+}
 
-export default AddLeavesForm;
+export default AddLeavesForm

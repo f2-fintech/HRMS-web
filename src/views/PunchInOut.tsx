@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-
+import { useMediaQuery, useTheme } from '@mui/material'
 import { Button, Typography, Box, Grid, Card, Tooltip, Container, Paper, Stack, Divider } from '@mui/material'
 import {
     AccessTime as AccessTimeIcon,
@@ -26,9 +26,16 @@ interface PunchInOutProps {
     disablePunch?: boolean
 }
 
-const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeId, disablePunch }) => {
-    const user = typeof window !== "undefined" ? localStorage?.getItem("user") : null;
-    const { company_id } = user ? JSON.parse(user) : {};
+const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
+    selectedDate,
+    selectedEmployeeId,
+    disablePunch,
+    isMinimalView = false
+}) => {
+    const user = typeof window !== 'undefined' ? localStorage?.getItem('user') : null
+    const { company_id } = user ? JSON.parse(user) : {}
+    const theme = useTheme()
+    const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'))
     const dispatch = useDispatch()
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -51,7 +58,7 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id
     const userRole = employee?.role
-    const userDesg = employee?.desg
+    const userDesg = employee?.designation
     const totalWorkingHours = useSelector((state: RootState) => state.punches.totalWorkingHours)
     const punch = useSelector((state: RootState) => state.punches.punches)
     const loading = useSelector((state: RootState) => state.punches.loading)
@@ -158,8 +165,7 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
             company_id: company_id
         }
 
-        await dispatch(addPunch(punchData)).unwrap()
-
+        // Immediately update local state
         setPunchState({
             ...punchState,
             isPunchIn: true,
@@ -168,6 +174,10 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
             isPunchOutDisabled: false
         })
 
+        // Dispatch the punch action
+        await dispatch(addPunch(punchData)).unwrap()
+
+        // Start the punch-in timer
         startPunchInTimer(now.getTime())
     }
 
@@ -187,29 +197,57 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
             return
         }
 
+        // Stop the punch-in timer
         stopPunchTimer()
+
+        // Immediately update local state
+        setPunchState({
+            isPunchIn: false,
+            startTime: '',
+            endTime,
+            totalTime: timer,
+            isPunchInDisabled: false,
+            isPunchOutDisabled: true
+        })
 
         const punchData = {
             punchOut: endTime,
             totalTime: timer
         }
 
-        await dispatch(updatePunch({ employeeId, punchData }))
+        // Dispatch the punch-out action
+        await dispatch(updatePunch({ employeeId, punchData })).unwrap()
 
-        setPunchState({
-            isPunchIn: false,
-            startTime: '',
-            endTime: '',
-            totalTime: '00h 00m 00s',
-            isPunchInDisabled: false,
-            isPunchOutDisabled: true
-        })
-
-        // localStorage.removeItem('punchState')
-
-        await dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
+        // Fetch updated data from Redux
+        dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
         dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
     }
+
+    // Sync local state with Redux state
+    useEffect(() => {
+        if (punch.length > 0) {
+            const latestPunch = punch[punch.length - 1]
+
+            if (!latestPunch.punchOut) {
+                setPunchState({
+                    ...punchState,
+                    isPunchIn: true,
+                    startTime: latestPunch.punchIn,
+                    isPunchInDisabled: true,
+                    isPunchOutDisabled: false
+                })
+            } else {
+                setPunchState({
+                    ...punchState,
+                    isPunchIn: false,
+                    startTime: latestPunch.punchIn,
+                    endTime: latestPunch.punchOut,
+                    isPunchInDisabled: false,
+                    isPunchOutDisabled: true
+                })
+            }
+        }
+    }, [punch]) // Listen for changes in the Redux state
 
     useEffect(() => {
         return () => {
@@ -240,7 +278,105 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
     }
 
     const currentPunch = punch.length > 0 ? punch[currentPunchIndex] : null
+    if (isMinimalView) {
+        const isButtonEnabledOnPhone =
+            userDesg === 'Co-Founder & MD' || userDesg === 'Founder & CEO' || userDesg === 'Full Stack Developer'
 
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
+                    p: 3,
+                    borderRadius: 4,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
+                    maxWidth: 'auto',
+                    mx: 'auto',
+                    mt: 2
+                }}
+            >
+                <Typography
+                    variant='h5'
+                    sx={{
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        mb: 3,
+                        color: 'white'
+                    }}
+                >
+                    Punch In / Out
+                </Typography>
+
+                <Box
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'space-around',
+                        alignItems: 'center',
+                        width: '100%',
+                        gap: 2
+                    }}
+                >
+                    {/* Punch In Section */}
+                    <Box sx={{ textAlign: 'center' }}>
+                        <Button
+                            variant='contained'
+                            color='success'
+                            onClick={handlePunchIn}
+                            disabled={
+                                (!isButtonEnabledOnPhone && isSmallScreen) || // Disable for other users on phones
+                                punchState.isPunchInDisabled ||
+                                disablePunch
+                            }
+                            sx={{ mb: 1 }}
+                        >
+                            Punch In
+                        </Button>
+                        <Typography
+                            variant='body2'
+                            sx={{
+                                color: 'white',
+                                fontWeight: 'bold',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            {punchState.startTime || 'Not Punched In'}
+                        </Typography>
+                    </Box>
+
+                    {/* Punch Out Section */}
+                    <Box sx={{ textAlign: 'center' }}>
+                        <Button
+                            variant='contained'
+                            color='error'
+                            onClick={handlePunchOut}
+                            disabled={
+                                (!isButtonEnabledOnPhone && isSmallScreen) || // Disable for other users on phones
+                                punchState.isPunchOutDisabled ||
+                                disablePunch
+                            }
+                            sx={{ mb: 1 }}
+                        >
+                            Punch Out
+                        </Button>
+                        <Typography
+                            variant='body2'
+                            sx={{
+                                color: 'white',
+                                fontWeight: 'bold',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            {punchState.endTime || 'Not Punched Out'}
+                        </Typography>
+                    </Box>
+                </Box>
+            </Box>
+        )
+    }
     return (
         <Container maxWidth='lg' sx={{ py: 4 }}>
             <Card
@@ -375,16 +511,22 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                             })}
                         </Box>
 
-                        <Typography variant='h6' sx={{
-                            mt: 2,
-                            color: 'black'
-                        }}>
+                        <Typography
+                            variant='h6'
+                            sx={{
+                                mt: 2,
+                                color: 'black'
+                            }}
+                        >
                             {currentDateTime.toLocaleDateString('en-US', { weekday: 'long' })}
                         </Typography>
-                        <Typography variant='h6' sx={{
-                            mt: 1,
-                            color: 'black'
-                        }}>
+                        <Typography
+                            variant='h6'
+                            sx={{
+                                mt: 1,
+                                color: 'black'
+                            }}
+                        >
                             {currentDateTime.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </Typography>
                     </Grid>
@@ -466,49 +608,73 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                             p: 3
                         }}
                     >
-                        <Typography variant='h5' sx={{
-                            mb: 3,
-                            color: 'black'
-                        }}>
+                        <Typography
+                            variant='h5'
+                            sx={{
+                                mb: 3,
+                                color: 'black'
+                            }}
+                        >
                             Attendance Logs
                         </Typography>
 
                         <Grid container spacing={2} sx={{ textAlign: 'center', mb: 2 }}>
                             <Grid item xs={4}>
-                                <Typography variant='subtitle1' fontWeight='bold'
+                                <Typography
+                                    variant='subtitle1'
+                                    fontWeight='bold'
                                     sx={{
                                         color: 'black'
-                                    }}>
+                                    }}
+                                >
                                     Punch In
                                 </Typography>
-                                <Typography color='text.secondary'
+                                <Typography
+                                    color='text.secondary'
                                     sx={{
                                         color: 'black'
-                                    }}>{currentPunch?.punchIn || '-'}</Typography>
+                                    }}
+                                >
+                                    {currentPunch?.punchIn || '-'}
+                                </Typography>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography variant='subtitle1' fontWeight='bold'
+                                <Typography
+                                    variant='subtitle1'
+                                    fontWeight='bold'
                                     sx={{
                                         color: 'black'
-                                    }}  >
+                                    }}
+                                >
                                     Punch Out
                                 </Typography>
-                                <Typography color='text.secondary'
+                                <Typography
+                                    color='text.secondary'
                                     sx={{
                                         color: 'black'
-                                    }}>{currentPunch?.punchOut || '-'}</Typography>
+                                    }}
+                                >
+                                    {currentPunch?.punchOut || '-'}
+                                </Typography>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography variant='subtitle1' fontWeight='bold'
+                                <Typography
+                                    variant='subtitle1'
+                                    fontWeight='bold'
                                     sx={{
                                         color: 'black'
-                                    }}>
+                                    }}
+                                >
                                     Total Time
                                 </Typography>
-                                <Typography color='text.secondary'
+                                <Typography
+                                    color='text.secondary'
                                     sx={{
                                         color: 'black'
-                                    }}>{currentPunch?.totalTime || '-'}</Typography>
+                                    }}
+                                >
+                                    {currentPunch?.totalTime || '-'}
+                                </Typography>
                             </Grid>
                         </Grid>
 
@@ -531,17 +697,20 @@ const PunchInOut: React.FC<PunchInOutProps> = ({ selectedDate, selectedEmployeeI
                         textAlign: 'center'
                     }}
                 >
-                    <Typography variant='h6'
+                    <Typography
+                        variant='h6'
                         sx={{
                             color: 'black'
-                        }}>Total Working Hours of {selectedDate}</Typography>
-                    <Typography variant='h4' color='primary'
+                        }}
                     >
+                        Total Working Hours of {selectedDate}
+                    </Typography>
+                    <Typography variant='h4' color='primary'>
                         {`${totalWorkingHours?.hours || 0}h ${totalWorkingHours?.minutes || 0}m ${totalWorkingHours?.seconds || 0}s`}
                     </Typography>
                 </Box>
             </Card>
-        </Container >
+        </Container>
     )
 }
 
