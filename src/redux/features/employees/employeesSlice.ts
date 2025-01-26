@@ -24,6 +24,7 @@ interface Employee {
 
 interface EmployeesState {
   employees: Employee[]
+  deletedEmployees: Employee[]
   filteredEmployees: Employee[]
   upcomingBirthdays: Employee[]
   workAnniversaries: Employee[]
@@ -38,6 +39,7 @@ interface EmployeesState {
 
 const initialState: EmployeesState = {
   employees: [],
+  deletedEmployees: [],
   filteredEmployees: [],
   upcomingBirthdays: [],
   workAnniversaries: [],
@@ -153,12 +155,65 @@ export const fetchEmployees = createAsyncThunk(
   }
 )
 
+
+export const deleteEmployees = createAsyncThunk(
+  'employees/deleteEmployees',
+  async (
+    {
+      page = 1,
+      limit = 12,
+      search = '',
+      designation = ''
+    }: { page?: number; limit?: number; search?: string; designation?: string },
+    { getState }
+  ) => {
+    const state = getState() as RootState
+    const isSearch = search.trim().length > 0
+
+    let token: string | null = null
+    const { company_id } = typeof window !== 'undefined' && JSON.parse(localStorage?.getItem('user') || '{}')
+
+    if (typeof window !== 'undefined') {
+      token = localStorage?.getItem('token')
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/employees/deleted/get?page=${page}&limit=${limit}&search=${search}&designation=${designation}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token} ${company_id === 'owner' ? '' : company_id}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch employees')
+    }
+
+    const data = await response.json()
+
+    const deletedEmployees = isSearch ? [] : state.employees.deletedEmployees
+
+    const newEmployees = data.filter(
+      (employee: Employee) => !deletedEmployees.some(existingEmployee => existingEmployee._id === employee._id)
+    )
+
+    return {
+      employees: [...deletedEmployees, ...newEmployees],
+      hasMore: data.length === limit
+    }
+  }
+)
+
 const employeesSlice = createSlice({
   name: 'employees',
   initialState,
   reducers: {
     resetEmployees(state) {
       state.employees = []
+      state.deletedEmployees = [];
       state.filteredEmployees = []
       state.upcomingBirthdays = []
       state.workAnniversaries = []
@@ -193,6 +248,7 @@ const employeesSlice = createSlice({
         state.employees.splice(index, 1)
       }
     }
+
   },
   extraReducers: builder => {
     builder
@@ -238,6 +294,21 @@ const employeesSlice = createSlice({
         state.loadingAnniversaries = false
         state.errorAnniversaries = action.error.message || 'Failed to fetch work anniversaries'
       })
+
+    builder
+      .addCase(deleteEmployees.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteEmployees.fulfilled, (state, action) => {
+        state.loading = false;
+        state.deletedEmployees = action.payload.employees;
+        state.hasMore = action.payload.hasMore;
+      })
+      .addCase(deleteEmployees.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch deleted employees';
+      });
   }
 })
 

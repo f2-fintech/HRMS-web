@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import type { AppDispatch, RootState } from '@/redux/store';
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '@/redux/store'
 
 import Grid from '@mui/material/Grid'
 
@@ -13,47 +14,54 @@ import TradingViewWidget from '@views/dashboard/TotalEarning'
 import NewYearDashboard from '@/views/dashboard/NewYearDashboard'
 import SuperAdminDashboard from '@/views/dashboard/SuperAdmin'
 import WorkAnniversary from '@/views/dashboard/WorkAnniversary'
+import PunchInOut from '@/views/PunchInOut'
+
 import { fetchConfiguration } from '@/redux/features/configuration/configurationSlice'
-import { useDispatch, useSelector } from 'react-redux';
 
 const DashboardAnalytics = () => {
-  const [userRole, setUserRole] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>('')
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
 
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useDispatch<AppDispatch>()
 
-  const { data: companyDetails, loading: companyLoading } = useSelector(
-    (state: RootState) => state.configuration
-  );
+  const { data: companyDetails, loading: companyLoading } = useSelector((state: RootState) => state.configuration)
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const employeeId = user.id || ''
 
   // Fetch user role from localStorage
   useEffect(() => {
-    if (userRole === '') {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      setUserRole(user.role);
+    if (!userRole) {
+      setUserRole(user.role || '')
     }
-  }, [userRole]);
+  }, [userRole, user.role])
 
   // Fetch company details once
   useEffect(() => {
     if (!companyDetails) {
-      dispatch(fetchConfiguration());
+      dispatch(fetchConfiguration())
     }
-  }, [dispatch, companyDetails]);
+  }, [dispatch, companyDetails])
+
   return (
     <Grid container spacing={6}>
       {/* Common New Year Dashboard */}
       <Grid item xs={12} md={12} lg={12}>
         <NewYearDashboard companyDetails={companyDetails} loading={companyLoading} />
       </Grid>
+
+      {/* Punch In/Out Component */}
+      <Grid item xs={12} md={12} lg={12}>
+        <PunchInOut selectedDate={selectedDate} selectedEmployeeId={employeeId} isMinimalView={true} />
+      </Grid>
+
       {/* Conditional Rendering Based on Role */}
       {userRole === '0' ? (
-
         // AdminDashboard for role '0'
         <Grid item xs={12}>
           <SuperAdminDashboard />
         </Grid>
       ) : (
-
         // Regular Dashboard for other roles
         <>
           <Grid item xs={12} md={6}>
@@ -81,28 +89,10 @@ const DashboardAnalytics = () => {
               <TradingViewWidget />
             </div>
           </Grid>
-
-
-          {/* TradingView Widget - this will be alone on the next row */}
-          {/* <Grid item xs={12} md={7} lg={7}>
-        <TradingViewWidget />
-      </Grid> */}
-
-          {/* Additional components (like Table) can go here */}
-          <Grid item xs={12}>
-            {/* <Table /> */}
-          </Grid>
-
         </>
       )}
     </Grid>
-  );
-};
+  )
+}
 
-export default DashboardAnalytics;
-
-
-
-
-
-
+export default DashboardAnalytics

@@ -174,11 +174,21 @@ const EmployeeAttendanceStatus: React.FC = () => {
   const [expandedLocations, setExpandedLocations] = useState<{ [key: string]: boolean }>({});
 
   let token: string | null = null;
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+  let company_id: string | null = null;
 
-  if (typeof window !== 'undefined') {
-    token = localStorage.getItem('token');
+  if (typeof window !== "undefined") {
+    const user = localStorage.getItem("user");
+    if (user) {
+      const parsedUser = JSON.parse(user);
+      company_id = parsedUser?.company_id || null;
+    }
+    token = localStorage.getItem("token");
   }
+
+  if (!company_id) {
+    console.error("Company ID is missing in localStorage");
+  }
+
 
   const handleLocationExpand = (location: string) => {
     setExpandedLocations(prev => ({

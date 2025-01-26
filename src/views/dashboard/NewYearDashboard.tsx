@@ -183,6 +183,7 @@ const NewYearWidget = ({ companyDetails, loading }: { companyDetails: any; loadi
                     )}
                     <WorkspacePremium sx={{ color: "#ffd700" }} />
                 </Typography>
+
             </CardContent>
 
             <style jsx global>{`

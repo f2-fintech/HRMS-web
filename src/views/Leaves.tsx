@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable padding-line-between-statements */
-"use client"
+'use client'
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { debounce } from 'lodash'
 import { ToastContainer, toast } from 'react-toastify'
@@ -22,20 +22,20 @@ import {
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
-import DialogTitle from '@mui/material/DialogTitle';
-import { useDispatch, useSelector } from 'react-redux';
-import { format } from 'date-fns';
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/Close';
+import DialogTitle from '@mui/material/DialogTitle'
+import { useDispatch, useSelector } from 'react-redux'
+import { format } from 'date-fns'
+import IconButton from '@mui/material/IconButton'
+import CloseIcon from '@mui/icons-material/Close'
 
-import type { AppDispatch, RootState } from '@/redux/store';
-import { fetchLeaves } from '@/redux/features/leaves/leavesSlice';
-import { apiResponse } from '@/utility/apiResponse/employeesResponse';
-import AddLeavesForm from '@/components/leave/LeaveForm';
+import type { AppDispatch, RootState } from '@/redux/store'
+import { fetchLeaves } from '@/redux/features/leaves/leavesSlice'
+import { apiResponse } from '@/utility/apiResponse/employeesResponse'
+import AddLeavesForm from '@/components/leave/LeaveForm'
 import Loader from '@/components/loader/loader'
-import dayjs, { Dayjs } from 'dayjs';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs, { Dayjs } from 'dayjs'
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import AccordionLeaves from '@/components/leave/AccordionLeaves'
 import useDebounce from '@/utility/debounce/useDebounce'
 
@@ -48,12 +48,12 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialogContent-root': {
-    padding: theme.spacing(2),
+    padding: theme.spacing(2)
   },
   '& .MuiDialogActions-root': {
-    padding: theme.spacing(1),
-  },
-}));
+    padding: theme.spacing(1)
+  }
+}))
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -94,7 +94,7 @@ const CustomNoRowsOverlay = () => {
       }}
     >
       <Box sx={{ mt: 1 }}>
-        <Typography variant="h6" color="text.secondary">
+        <Typography variant='h6' color='text.secondary'>
           No data available
         </Typography>
       </Box>
@@ -114,39 +114,38 @@ export default function LeavesGrid() {
   const [userRole, setUserRole] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
   const [employees, setEmployees] = useState([])
-  const [selectedKeyword, setSelectedKeyword] = useState('');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [selectedDate, setSelectedDate] = React.useState(dayjs());
+  const [selectedKeyword, setSelectedKeyword] = useState('')
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [selectedDate, setSelectedDate] = React.useState(dayjs())
 
-  const month = selectedDate.format('MM');
-  const year = selectedDate.format('YYYY');
+  const month = selectedDate.format('MM')
+  const year = selectedDate.format('YYYY')
 
   const handleDateChange = (newValue: Dayjs | null) => {
     if (newValue) {
-      setSelectedDate(newValue);
+      setSelectedDate(newValue)
     }
   }
 
-  const debouncedKeyword = useDebounce(selectedKeyword, 500);
+  const debouncedKeyword = useDebounce(selectedKeyword, 500)
 
   useEffect(() => {
     if (userRole === '1') {
-      dispatch(fetchLeaves({ page, limit, month, year, keyword: debouncedKeyword }));
+      dispatch(fetchLeaves({ page, limit, month, year, keyword: debouncedKeyword }))
     } else if (Number(userRole) > 1) {
-      dispatch(fetchLeaves({ page, limit, month: '0', year, keyword: debouncedKeyword }));
+      dispatch(fetchLeaves({ page, limit, month: '0', year, keyword: debouncedKeyword }))
     }
-  }, [dispatch, page, limit, debouncedKeyword, userId, month, year, userRole]);
+  }, [dispatch, page, limit, debouncedKeyword, userId, month, year, userRole])
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedKeyword(e.target.value)
   }, [])
 
-
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || '{}')
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
     setUserRole(user.role)
-    setUserId(user.id);
+    setUserId(user.id)
 
     // For admins (role < 3), fetch employees if not already fetched
     if (Number(user.role) < 3 && employees.length === 0) {
@@ -169,30 +168,37 @@ export default function LeavesGrid() {
   }, [])
 
   const handleLeavedelete = async (id: string) => {
-    const confirmDelete = confirm('Are you sure you want to delete');
-    if (!confirmDelete) return;
+    const confirmDelete = confirm('Are you sure you want to delete this leave?')
+    if (!confirmDelete) return
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/leaves/delete/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer',
-        },
-      });
+          Authorization: 'Bearer' // Add actual token logic if required
+        }
+      })
 
       if (response.ok) {
-        toast.success('Leave deleted successfully.');
-        debouncedFetch()
+        // Parse the response
+        const data = await response.json()
+
+        // Show success toast
+        toast.success(data.message || 'Leave deleted successfully.')
+
+        // Optimistically update UI
+        dispatch(fetchLeaves({ page, limit, month, year, keyword: selectedKeyword }))
       } else {
-        const errorResult = await response.json();
-        toast.error(`Failed to delete leave: ${errorResult.message}`);
+        // Parse and display error message
+        const errorResult = await response.json()
+        toast.error(errorResult.message || 'Failed to delete leave.')
       }
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error deleting leave. Please try again.');
+      console.error('Error:', error)
+      toast.error('An unexpected error occurred while deleting leave.')
     }
-  };
+  }
 
   const handleClose = useCallback(() => {
     setShowForm(false)
@@ -227,7 +233,7 @@ export default function LeavesGrid() {
       headerClassName: 'super-app-theme--header',
       sortable: false,
       flex: 1,
-      renderCell: (params) => (
+      renderCell: params => (
         <Box
           sx={{
             width: '100%',
@@ -250,7 +256,7 @@ export default function LeavesGrid() {
             field: 'leave',
             headerName: 'Leave Details',
             ...baseColumnStyles,
-            renderCell: (params) => (
+            renderCell: params => (
               <AccordionLeaves
                 params={params}
                 handleLeaveEditClick={handleLeaveEditClick}
@@ -270,9 +276,9 @@ export default function LeavesGrid() {
             align: 'center',
             headerClassName: 'super-app-theme--header',
             sortable: false,
-            renderCell: (params) => {
-              const dayValue = parseFloat(params.value);
-              const halfDayPeriod = params.row.half_day_period;
+            renderCell: params => {
+              const dayValue = parseFloat(params.value)
+              const halfDayPeriod = params.row.half_day_period
 
               if (dayValue === 0.5 && halfDayPeriod) {
                 return (
@@ -282,15 +288,15 @@ export default function LeavesGrid() {
                       justifyContent: 'center',
                       alignItems: 'center',
                       width: '100%',
-                      height: '100%',
+                      height: '100%'
                     }}
                   >
                     <Typography fontWeight='bold'>{dayValue}</Typography>
                   </Box>
                 )
               }
-              return <Typography fontWeight='bold'>{dayValue}</Typography>;
-            },
+              return <Typography fontWeight='bold'>{dayValue}</Typography>
+            }
           },
           {
             field: 'start_date',
@@ -371,26 +377,22 @@ export default function LeavesGrid() {
             align: 'center',
             headerClassName: 'super-app-theme--header',
             sortable: false,
-            renderCell: (params) => {
-              const [open, setOpen] = useState(false);
+            renderCell: params => {
+              const [open, setOpen] = useState(false)
 
               const handleClickOpen = () => {
-                setOpen(true);
-              };
+                setOpen(true)
+              }
               const handleDialogClose = () => {
-                setOpen(false);
-              };
+                setOpen(false)
+              }
 
               return (
                 <>
-                  <Button variant="outlined" onClick={handleClickOpen}>
+                  <Button variant='outlined' onClick={handleClickOpen}>
                     View
                   </Button>
-                  <BootstrapDialog
-                    onClose={handleDialogClose}
-                    aria-labelledby="customized-dialog-title"
-                    open={open}
-                  >
+                  <BootstrapDialog onClose={handleDialogClose} aria-labelledby='customized-dialog-title' open={open}>
                     <DialogTitle
                       sx={{
                         m: 0,
@@ -401,21 +403,21 @@ export default function LeavesGrid() {
                         borderBottom: '1px solid',
                         borderColor: 'divider'
                       }}
-                      id="customized-dialog-title"
+                      id='customized-dialog-title'
                     >
                       Application
                     </DialogTitle>
                     <IconButton
-                      aria-label="close"
+                      aria-label='close'
                       onClick={handleDialogClose}
                       sx={{
                         position: 'absolute',
                         right: 8,
                         top: 8,
-                        color: (theme) => theme.palette.grey[500],
+                        color: theme => theme.palette.grey[500],
                         '&:hover': {
-                          color: (theme) => theme.palette.grey[700],
-                          backgroundColor: (theme) => theme.palette.grey[100]
+                          color: theme => theme.palette.grey[700],
+                          backgroundColor: theme => theme.palette.grey[100]
                         },
                         transition: 'all 0.2s ease-in-out'
                       }}
@@ -510,10 +512,10 @@ export default function LeavesGrid() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-      <ToastContainer position="top-center" />
+      <ToastContainer position='top-center' />
 
       <Box sx={{ flexGrow: 1, padding: 3 }}>
-        <StyledDialog open={showForm} onClose={handleClose} fullWidth maxWidth="md">
+        <StyledDialog open={showForm} onClose={handleClose} fullWidth maxWidth='md'>
           <DialogContent>
             <AddLeavesForm
               handleClose={handleClose}
@@ -540,10 +542,10 @@ export default function LeavesGrid() {
             gap: 2
           }}
         >
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box display='flex' justifyContent='space-between' alignItems='center'>
             <Box>
               <Typography
-                variant="h4"
+                variant='h4'
                 sx={{
                   fontWeight: 700,
                   background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
@@ -555,7 +557,7 @@ export default function LeavesGrid() {
                 Leave Management
               </Typography>
               <Typography
-                variant="subtitle1"
+                variant='subtitle1'
                 sx={{
                   color: 'text.secondary',
                   fontWeight: 500
@@ -565,26 +567,21 @@ export default function LeavesGrid() {
               </Typography>
             </Box>
 
-            {Number(userRole) >= 2 && (
-              <StyledButton
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleLeaveAddClick}
-              >
+            {Number(userRole) >= 1 && (
+              <StyledButton variant='contained' color='primary' startIcon={<AddIcon />} onClick={handleLeaveAddClick}>
                 Apply Leave
               </StyledButton>
             )}
           </Box>
 
           {/* Enhanced search and date picker section */}
-          <Grid container spacing={3} alignItems="center">
+          <Grid container spacing={3} alignItems='center'>
             {userRole === '1' && (
               <Grid item xs={12} md={8}>
                 <TextField
                   fullWidth
-                  placeholder="Search employees..."
-                  variant="outlined"
+                  placeholder='Search employees...'
+                  variant='outlined'
                   value={selectedKeyword}
                   onChange={handleInputChange}
                   InputProps={{
@@ -635,9 +632,9 @@ export default function LeavesGrid() {
           rowCount={total}
           pageSizeOptions={[10, 20, 30]}
           paginationModel={{ page: page - 1, pageSize: limit }}
-          onPaginationModelChange={(params) => {
-            setPage(params.page + 1);
-            setLimit(params.pageSize);
+          onPaginationModelChange={params => {
+            setPage(params.page + 1)
+            setLimit(params.pageSize)
           }}
           slots={{
             loadingOverlay: Loader,
@@ -647,8 +644,8 @@ export default function LeavesGrid() {
           sx={{
             border: '0.5px solid #80808047',
             '& .super-app-theme--header': {
-              backgroundColor: "#2c3ce3",
-              color: "white",
+              backgroundColor: '#2c3ce3',
+              color: 'white',
               fontSize: '1rem',
               fontWeight: 600
             },
