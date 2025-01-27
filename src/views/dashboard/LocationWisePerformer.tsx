@@ -349,15 +349,16 @@ const LocationWisePerformer = () => {
                               textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)'
                             }}
                           >
-                            {typeof award.employee !== 'string' ? (
+                            {typeof award.employee !== 'string' && award.employee ? (
                               <>
-                                {capitalizeFirstLetter(award.employee.first_name)}{' '}
-                                {capitalizeFirstLetter(award.employee.last_name)}
+                                {capitalizeFirstLetter(award.employee.first_name || '')}{' '}
+                                {capitalizeFirstLetter(award.employee.last_name || '')}
                                 <span>✨</span>
                               </>
                             ) : (
                               'No Award Data'
                             )}
+
                           </Typography>
                           {typeof award.employee !== 'string' && (
                             <Typography
@@ -367,7 +368,7 @@ const LocationWisePerformer = () => {
                                 fontWeight: 500
                               }}
                             >
-                              {award.employee.designation}
+                              {award.employee?.designation}
                             </Typography>
                           )}
                         </Box>
