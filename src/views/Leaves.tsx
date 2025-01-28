@@ -567,7 +567,7 @@ export default function LeavesGrid() {
               </Typography>
             </Box>
 
-            {Number(userRole) >= 1 && (
+            {Number(userRole) >= 2 && (
               <StyledButton variant='contained' color='primary' startIcon={<AddIcon />} onClick={handleLeaveAddClick}>
                 Apply Leave
               </StyledButton>
