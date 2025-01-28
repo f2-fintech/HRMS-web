@@ -56,6 +56,7 @@ import LocationDropdown from '@/utility/locationdropdown/LocationDropdown'
 import { fetchMonthlyAttendanceSummary } from '@/utility/apiResponse/employeesResponse'
 import useDebounce from '@/utility/debounce/useDebounce'
 
+
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch()
   const theme = useTheme()
@@ -89,8 +90,6 @@ export default function AttendanceGrid() {
       setError(null)
       try {
         const employeesData = await fetchMonthlyAttendanceSummary(month, year)
-        console.log('emp dataaaaaaaaaaaaa', employeesData)
-
         setAllEmployees(employeesData)
       } catch (error: any) {
         setError(error.message || 'Failed to fetch employee data')
@@ -187,12 +186,14 @@ export default function AttendanceGrid() {
   const debouncedSearchLocation = useDebounce(searchLocation, 500)
 
   useEffect(() => {
-    if (debouncedSearchName.trim() === '' && debouncedSearchLocation.trim() === '') {
+    if (userRole === '1' && debouncedSearchName.trim() === '' && debouncedSearchLocation.trim() === '') {
+      fetchStatusCounts()
+
       dispatch(
         fetchAttendances({
           month,
           year, // Added year
-          page: 1, // Reset to first page
+          page, // Reset to first page
           limit,
           keyword: '',
           location: ''
@@ -218,22 +219,6 @@ export default function AttendanceGrid() {
     const newName = e.target.value
     setSearchName(newName)
   }
-
-  useEffect(() => {
-    if (userRole === '1' && searchName === '' && searchLocation === '') {
-      fetchStatusCounts()
-      dispatch(
-        fetchAttendances({
-          month: month,
-          year, // Added year
-          page: page,
-          limit: limit,
-          keyword: searchName,
-          location: searchLocation
-        })
-      )
-    }
-  }, [dispatch, month, year, page, limit, userRole])
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -453,8 +438,8 @@ export default function AttendanceGrid() {
     return sortedData
   }
 
-  const columns = React.useMemo(() => generateColumns(), [month])
-  const rows = React.useMemo(() => transformData(), [attendances, statusCounts, month])
+  const columns = React.useMemo(() => generateColumns(), [month, year])
+  const rows = React.useMemo(() => transformData(), [attendances, statusCounts, month, year])
 
   const handleMonthChange = (date: Dayjs) => {
     const newMonth = date.month() + 1
@@ -663,6 +648,8 @@ export default function AttendanceGrid() {
               '& .sticky-header': {
                 position: 'sticky',
                 left: 0,
+                backgroundColor: 'rgb(20, 9, 44)',
+                color: 'white',
                 zIndex: 2 // Ensure header stays above cells
               }
             }}
