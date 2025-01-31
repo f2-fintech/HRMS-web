@@ -1,132 +1,144 @@
-'use client';
+'use client'
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react'
 
-import { useDispatch, useSelector } from 'react-redux';
-import {
-    Button,
-    Grid,
-    Typography,
-    Box,
-    Paper,
-    Card,
-    CardContent,
-    Stack,
-    Autocomplete,
-    TextField,
-} from '@mui/material';
+import { useDispatch, useSelector } from 'react-redux'
+import { Button, Grid, Typography, Box, Paper, Card, CardContent, Stack, Autocomplete, TextField } from '@mui/material'
 
-import { AccessTime, Coffee, Group, Timer } from '@mui/icons-material';
+import { AccessTime, Coffee, Group, Timer } from '@mui/icons-material'
 
-import type {
-    Break
-} from '@/redux/features/breaksheets/breaksSlice';
-import {
-    addBreak,
-    fetchBreaksById,
-    updateBreak,
-    updateLatestBreak,
-} from '@/redux/features/breaksheets/breaksSlice';
-import type { RootState, AppDispatch } from '@/redux/store';
+import type { Break } from '@/redux/features/breaksheets/breaksSlice'
+import { addBreak, fetchBreaksById, updateBreak, updateLatestBreak } from '@/redux/features/breaksheets/breaksSlice'
+import type { RootState, AppDispatch } from '@/redux/store'
 
-import { apiResponse } from '../utility/apiResponse/employeesResponse'; // Adjust the path if needed
-import { fetchTotalWorkingHours } from '@/redux/features/punches/punchesSlice';
+import { apiResponse } from '../utility/apiResponse/employeesResponse' // Adjust the path if needed
+import { fetchTotalWorkingHours } from '@/redux/features/punches/punchesSlice'
 
-import PunchInOut from '@/views/PunchInOut';
-import NotPunchedInToday from '@/views/NotPunchedInToday';
-import TeamBreakSheets from '@/utility/breaksheets/TeamBreakSheets';
-import EditBreakForm from '@components/breaksheet/BreakSheetForm';
+import PunchInOut from '@/views/PunchInOut'
+import NotPunchedInToday from '@/views/NotPunchedInToday'
+import TeamBreakSheets from '@/utility/breaksheets/TeamBreakSheets'
+import EditBreakForm from '@components/breaksheet/BreakSheetForm'
 
 // Split sub-components
-import BreakControls from '@/components/breaksheet/BreakControls';
-import BreakList from '@/components/breaksheet/BreakList';
-import TimeSummary from '@/components/breaksheet/TimeSummary';
-import DateSelection from '@/components/breaksheet/DateSelection';
+import BreakControls from '@/components/breaksheet/BreakControls'
+import BreakList from '@/components/breaksheet/BreakList'
+import TimeSummary from '@/components/breaksheet/TimeSummary'
+import DateSelection from '@/components/breaksheet/DateSelection'
 
 // Utility functions
-import { formatTime, convertToMilliseconds, getTimestampFromTime } from '@/utility/timeUtils';
-import NotPunchedOutPage from './NotPunchedOutPage';
+import { formatTime, convertToMilliseconds, getTimestampFromTime } from '@/utility/timeUtils'
+import NotPunchedOutPage from './NotPunchedOutPage'
+import ExceedOneHourBreak from '@/components/attendance/ExceedOneHourBreak'
 
 const BreakSheet: React.FC = () => {
-    const dispatch: AppDispatch = useDispatch();
-    const { breaks } = useSelector((state: RootState) => state.breaks);
+    const dispatch: AppDispatch = useDispatch()
+    const { breaks } = useSelector((state: RootState) => state.breaks)
 
-    const [breakType, setBreakType] = useState<string>('');
-    const [otherBreakType, setOtherBreakType] = useState<string>('');
-    const [startTime, setStartTime] = useState<string>('');
-    const [endTime, setEndTime] = useState<string>('');
-    const [duration, setDuration] = useState<string>('');
+    const [breakType, setBreakType] = useState<string>('')
+    const [otherBreakType, setOtherBreakType] = useState<string>('')
+    const [startTime, setStartTime] = useState<string>('')
+    const [endTime, setEndTime] = useState<string>('')
+    const [duration, setDuration] = useState<string>('')
 
-    const [filteredBreaks, setFilteredBreaks] = useState<Break[]>([]);
-    const [onFieldBreaks, setOnFieldBreaks] = useState<Break[]>([]);
+    const [filteredBreaks, setFilteredBreaks] = useState<Break[]>([])
+    const [onFieldBreaks, setOnFieldBreaks] = useState<Break[]>([])
 
-    const [timerRunning, setTimerRunning] = useState<boolean>(false);
-    const [startTimestamp, setStartTimestamp] = useState<number | null>(null);
+    const [timerRunning, setTimerRunning] = useState<boolean>(false)
+    const [startTimestamp, setStartTimestamp] = useState<number | null>(null)
 
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    const [isCurrentDate, setIsCurrentDate] = useState<boolean>(true);
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+    const [isCurrentDate, setIsCurrentDate] = useState<boolean>(true)
 
-    const [employees, setEmployees] = useState<any[]>([]);
-    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+    const [employees, setEmployees] = useState<any[]>([])
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
+    const [exceedBreakEmployees, setExceedBreakEmployees] = useState<Employee[]>([])
+    const [showExceedBreaks, setShowExceedBreaks] = useState(false)
 
-    const [openEditForm, setOpenEditForm] = useState(false);
-    const [currentBreak, setCurrentBreak] = useState<Break | null>(null);
-    const [specifyError, setSpecifyError] = useState<string>('');
-    const [showNotPunchedIn, setShowNotPunchedIn] = useState(false);
-    const [showNotPunchedOut, setShowNotPunchedOut] = useState(false);
+    const [openEditForm, setOpenEditForm] = useState(false)
+    const [currentBreak, setCurrentBreak] = useState<Break | null>(null)
+    const [specifyError, setSpecifyError] = useState<string>('')
+    const [showNotPunchedIn, setShowNotPunchedIn] = useState(false)
+    const [showNotPunchedOut, setShowNotPunchedOut] = useState(false)
 
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-    const [showTeamBreakSheets, setShowTeamBreakSheets] = useState(false);
-    const [isLargeScreen, setIsLargeScreen] = useState(false);
+    const [showTeamBreakSheets, setShowTeamBreakSheets] = useState(false)
+    const [isLargeScreen, setIsLargeScreen] = useState(false)
 
-    const [selectedEmployeeWorkingHours, setSelectedEmployeeWorkingHours] = useState<string>('00h 00m 00s');
+    const [selectedEmployeeWorkingHours, setSelectedEmployeeWorkingHours] = useState<string>('00h 00m 00s')
 
     // Retrieve employee from localStorage (if available)
-    const employee = JSON.parse(localStorage.getItem('user') || '{}');
-    const employeeId = employee?.id;
-    const userRole = employee?.role;
-    const userDesignation = employee?.desg;
+    const employee = JSON.parse(localStorage.getItem('user') || '{}')
+    const employeeId = employee?.id
+    const userRole = employee?.role
+    const userDesignation = employee?.desg
+    const companyId = employee?.company_id
 
-    console.log("employee", employee)
+    console.log('employee', employee)
 
-    const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other'];
+    const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
+
+    const fetchExceedBreakEmployees = async () => {
+        if (showExceedBreaks) {
+            // If currently visible, hide the section
+            setShowExceedBreaks(false)
+            return
+        }
+
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL}/breaksheet/long-breaks?companyId=${companyId}&date=${selectedDate}`
+            )
+            const data = await response.json()
+            setExceedBreakEmployees(data)
+            setShowExceedBreaks(true) // Show the exceed break list
+        } catch (error) {
+            console.error('Error fetching exceed break employees:', error)
+        }
+    }
+
+    useEffect(() => {
+        if (showExceedBreaks) {
+            fetchExceedBreakEmployees();
+        }
+    }, [selectedDate]); // Run when selectedDate changes
+
 
     // Check if the selected date is the current date
     useEffect(() => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0]
 
-        setIsCurrentDate(selectedDate === today);
-    }, [selectedDate]);
+        setIsCurrentDate(selectedDate === today)
+    }, [selectedDate])
 
     // Handle screen resizing
     useEffect(() => {
         const handleResize = () => {
-            setIsLargeScreen(window.innerWidth >= 1024);
-        };
+            setIsLargeScreen(window.innerWidth >= 1024)
+        }
 
-        handleResize();
-        window.addEventListener('resize', handleResize);
+        handleResize()
+        window.addEventListener('resize', handleResize)
 
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     // If user is Admin or Manager, fetch employees
     useEffect(() => {
         if (Number(userRole) <= 2) {
             const fetchEmployees = async () => {
                 try {
-                    const employeeData = await apiResponse();
+                    const employeeData = await apiResponse()
 
-                    setEmployees(employeeData);
+                    setEmployees(employeeData)
                 } catch (error) {
-                    console.error('Error fetching employees:', error);
+                    console.error('Error fetching employees:', error)
                 }
-            };
+            }
 
-            fetchEmployees();
+            fetchEmployees()
         }
-    }, [userRole]);
+    }, [userRole])
 
     // Fetch total working hours for the selectedEmployeeId and date
     useEffect(() => {
@@ -134,94 +146,94 @@ const BreakSheet: React.FC = () => {
             if (selectedEmployeeId && selectedDate) {
                 const workingHoursResponse = await dispatch(
                     fetchTotalWorkingHours({ employeeId: selectedEmployeeId, date: selectedDate })
-                );
+                )
 
-                const { hours = 0, minutes = 0, seconds = 0 } = workingHoursResponse.payload || {};
+                const { hours = 0, minutes = 0, seconds = 0 } = workingHoursResponse.payload || {}
 
-                setSelectedEmployeeWorkingHours(`${hours}h ${minutes}m ${seconds}s`);
+                setSelectedEmployeeWorkingHours(`${hours}h ${minutes}m ${seconds}s`)
             }
-        };
+        }
 
-        fetchWorkingHours();
-    }, [selectedEmployeeId, selectedDate, dispatch]);
+        fetchWorkingHours()
+    }, [selectedEmployeeId, selectedDate, dispatch])
 
     // Timer start
     const startBreakTimer = (timestamp: number) => {
         if (intervalRef.current) {
-            clearInterval(intervalRef.current);
+            clearInterval(intervalRef.current)
         }
 
         intervalRef.current = setInterval(() => {
-            const currentTime = Date.now();
-            const diff = currentTime - timestamp;
+            const currentTime = Date.now()
+            const diff = currentTime - timestamp
 
-            setDuration(formatTime(diff));
-        }, 1000);
-    };
+            setDuration(formatTime(diff))
+        }, 1000)
+    }
 
     // Timer stop
     const stopBreakTimer = () => {
         if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
+            clearInterval(intervalRef.current)
+            intervalRef.current = null
         }
 
-        setDuration('00h 00m 00s');
-        setTimerRunning(false);
-    };
+        setDuration('00h 00m 00s')
+        setTimerRunning(false)
+    }
 
     useEffect(() => {
         return () => {
             if (intervalRef.current) {
-                clearInterval(intervalRef.current);
+                clearInterval(intervalRef.current)
             }
-        };
-    }, []);
+        }
+    }, [])
 
     // Check if there's a running break
     useEffect(() => {
         const fetchRunningBreak = async () => {
-            const runningBreakResponse = await dispatch(fetchBreaksById(employeeId));
-            const runningBreak = runningBreakResponse?.payload?.find((b: Break) => !b.endTime);
+            const runningBreakResponse = await dispatch(fetchBreaksById(employeeId))
+            const runningBreak = runningBreakResponse?.payload?.find((b: Break) => !b.endTime)
 
             if (runningBreak) {
-                setStartTime(runningBreak.startTime);
-                const startTS = getTimestampFromTime(runningBreak.startTime, runningBreak.date);
+                setStartTime(runningBreak.startTime)
+                const startTS = getTimestampFromTime(runningBreak.startTime, runningBreak.date)
 
-                setStartTimestamp(startTS);
-                setTimerRunning(true);
-                startBreakTimer(startTS);
+                setStartTimestamp(startTS)
+                setTimerRunning(true)
+                startBreakTimer(startTS)
             }
-        };
+        }
 
         dispatch(fetchBreaksById(employeeId)).then(() => {
             // After fetching all breaks, check if there's a running break
-            fetchRunningBreak();
-        });
+            fetchRunningBreak()
+        })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dispatch, employeeId]);
+    }, [dispatch, employeeId])
 
     // Handle Start Break
     const handleStartTime = () => {
         if (!breakType) {
-            alert('Please select a break type before starting your break.');
+            alert('Please select a break type before starting your break.')
 
-            return;
+            return
         }
 
         if (breakType === 'Other' && !otherBreakType.trim()) {
-            alert('Please specify the break type');
+            alert('Please specify the break type')
 
-            return;
+            return
         }
 
-        const now = new Date();
-        const formattedStartTime = now.toLocaleTimeString('en-US');
-        const timestamp = now.getTime();
+        const now = new Date()
+        const formattedStartTime = now.toLocaleTimeString('en-US')
+        const timestamp = now.getTime()
 
-        setStartTime(formattedStartTime);
-        setStartTimestamp(timestamp);
-        setTimerRunning(true);
+        setStartTime(formattedStartTime)
+        setStartTimestamp(timestamp)
+        setTimerRunning(true)
 
         const breakData = {
             type: breakType === 'Other' ? otherBreakType : breakType,
@@ -230,117 +242,117 @@ const BreakSheet: React.FC = () => {
             date: new Date().toISOString().split('T')[0],
             employee: employeeId,
             company_id: employee.company_id
-        };
+        }
 
         dispatch(addBreak(breakData)).then(() => {
-            setBreakType('');
-            setOtherBreakType('');
-        });
-        startBreakTimer(timestamp);
-    };
+            setBreakType('')
+            setOtherBreakType('')
+        })
+        startBreakTimer(timestamp)
+    }
 
     // Handle End Break
     const handleEndTime = () => {
         if (startTime) {
-            const now = new Date();
-            const formattedEndTime = now.toLocaleTimeString('en-US');
+            const now = new Date()
+            const formattedEndTime = now.toLocaleTimeString('en-US')
 
-            setEndTime(formattedEndTime);
-            setTimerRunning(false);
+            setEndTime(formattedEndTime)
+            setTimerRunning(false)
 
             const breakData = {
-                endTime: formattedEndTime,
-            };
+                endTime: formattedEndTime
+            }
 
             dispatch(updateLatestBreak({ employeeId, breakData }))
                 .then(() => {
-                    stopBreakTimer();
-                    setStartTime('');
-                    setEndTime('');
+                    stopBreakTimer()
+                    setStartTime('')
+                    setEndTime('')
 
-                    return dispatch(fetchBreaksById(employeeId));
+                    return dispatch(fetchBreaksById(employeeId))
                 })
                 .catch(error => {
-                    console.error('Error updating the latest break:', error);
-                });
+                    console.error('Error updating the latest break:', error)
+                })
         }
-    };
+    }
 
     // Fetch breaks for either the selected employee if manager/admin or for self
     useEffect(() => {
         if (Number(userRole) <= 2 && selectedEmployeeId) {
-            dispatch(fetchBreaksById(selectedEmployeeId));
+            dispatch(fetchBreaksById(selectedEmployeeId))
         } else {
-            dispatch(fetchBreaksById(employeeId));
+            dispatch(fetchBreaksById(employeeId))
         }
-    }, [dispatch, selectedEmployeeId, userRole, employeeId]);
+    }, [dispatch, selectedEmployeeId, userRole, employeeId])
 
     // Filter breaks for the selected date
     useEffect(() => {
-        const filtered = breaks.filter(b => b.date === selectedDate);
-        const onField = filtered.filter(b => b.type === 'On Field');
-        const nonOnFieldBreaks = filtered.filter(b => b.type !== 'On Field');
+        const filtered = breaks.filter(b => b.date === selectedDate)
+        const onField = filtered.filter(b => b.type === 'On Field')
+        const nonOnFieldBreaks = filtered.filter(b => b.type !== 'On Field')
 
-        setFilteredBreaks(filtered);
-        setOnFieldBreaks(onField);
-    }, [selectedDate, breaks]);
+        setFilteredBreaks(filtered)
+        setOnFieldBreaks(onField)
+    }, [selectedDate, breaks])
 
     // Calculate total durations
     const totalDurationForDate = filteredBreaks
         .filter(b => b.type !== 'On Field')
-        .reduce((acc, b) => acc + convertToMilliseconds(b.duration), 0);
+        .reduce((acc, b) => acc + convertToMilliseconds(b.duration), 0)
 
-    const totalOnFieldDuration = onFieldBreaks.reduce((acc, b) => acc + convertToMilliseconds(b.duration), 0);
+    const totalOnFieldDuration = onFieldBreaks.reduce((acc, b) => acc + convertToMilliseconds(b.duration), 0)
 
     // Edit Break Handlers
     const handleEditClick = (breakToEdit: Break) => {
-        setCurrentBreak(breakToEdit);
-        setOpenEditForm(true);
-    };
+        setCurrentBreak(breakToEdit)
+        setOpenEditForm(true)
+    }
 
     const handleEditSubmit = (updatedBreak: Break) => {
         if (updatedBreak && updatedBreak._id) {
-            const breakId = updatedBreak._id;
+            const breakId = updatedBreak._id
 
-            dispatch(updateBreak({ id: breakId, updatedBreak }));
-            dispatch(fetchBreaksById(selectedEmployeeId || employeeId));
-            setOpenEditForm(false);
+            dispatch(updateBreak({ id: breakId, updatedBreak }))
+            dispatch(fetchBreaksById(selectedEmployeeId || employeeId))
+            setOpenEditForm(false)
         } else {
-            console.error('Error: Break ID is undefined.');
+            console.error('Error: Break ID is undefined.')
         }
-    };
+    }
 
     // Handler for manager to see employee’s breaks
     const handleEmployeeClick = (empId: string) => {
-        setSelectedEmployeeId(empId);
-        dispatch(fetchBreaksById(empId));
-    };
+        setSelectedEmployeeId(empId)
+        dispatch(fetchBreaksById(empId))
+    }
 
     // Toggle Team Break Sheets
     const handleTeamsBreakSheetClick = () => {
-        setShowTeamBreakSheets(prev => !prev);
-        setSelectedEmployeeId(null);
-    };
+        setShowTeamBreakSheets(prev => !prev)
+        setSelectedEmployeeId(null)
+    }
 
     // Calculate break progress
-    const maxAllowedBreakTime = 3600000; // 1 hour in ms
-    const breakProgress = (totalDurationForDate / maxAllowedBreakTime) * 100;
+    const maxAllowedBreakTime = 3600000 // 1 hour in ms
+    const breakProgress = (totalDurationForDate / maxAllowedBreakTime) * 100
 
     // Toggle Not Punched In Today
     const toggleNotPunchedInToday = () => {
-        setShowNotPunchedIn(prev => !prev);
-    };
+        setShowNotPunchedIn(prev => !prev)
+    }
 
     const toggleNotPunchedOut = () => {
-        setShowNotPunchedOut(prev => !prev);
-    };
+        setShowNotPunchedOut(prev => !prev)
+    }
 
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: 'background.default' }}>
             {/* Row with two buttons */}
-            <Stack direction="row" spacing={2} mb={2}>
+            <Stack direction='row' spacing={2} mb={2}>
                 <Button
-                    variant="contained"
+                    variant='contained'
                     onClick={toggleNotPunchedInToday}
                     sx={{
                         borderRadius: '999px',
@@ -349,7 +361,8 @@ const BreakSheet: React.FC = () => {
                         boxShadow: '#5E5DF0 0 10px 20px -10px',
                         background: '#5E5DF0',
                         color: '#FFFFFF',
-                        fontFamily: 'Inter, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", EmojiSymbols, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif',
+                        fontFamily:
+                            'Inter, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", EmojiSymbols, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif',
                         fontSize: '16px',
                         fontWeight: 700,
                         lineHeight: '24px',
@@ -361,14 +374,14 @@ const BreakSheet: React.FC = () => {
                         width: 'fit-content',
                         wordBreak: 'break-word',
                         border: 0,
-                        cursor: 'pointer',
+                        cursor: 'pointer'
                     }}
                 >
                     {showNotPunchedIn ? 'Hide' : 'Missing Punches & Absent'}
                 </Button>
 
                 <Button
-                    variant="contained"
+                    variant='contained'
                     onClick={toggleNotPunchedOut}
                     sx={{
                         borderRadius: '999px',
@@ -377,7 +390,8 @@ const BreakSheet: React.FC = () => {
                         boxShadow: '#808080 0 10px 20px -10px',
                         background: '#808080',
                         color: '#FFFFFF',
-                        fontFamily: 'Inter, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", EmojiSymbols, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif',
+                        fontFamily:
+                            'Inter, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", EmojiSymbols, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif',
                         fontSize: '16px',
                         fontWeight: 700,
                         lineHeight: '24px',
@@ -389,14 +403,38 @@ const BreakSheet: React.FC = () => {
                         width: 'fit-content',
                         wordBreak: 'break-word',
                         border: 0,
-                        cursor: 'pointer',
+                        cursor: 'pointer'
                     }}
                 >
                     {showNotPunchedOut ? 'Hide' : '❌ Punched Out'}
                 </Button>
 
-
+                {userRole === "1" && <Button
+                    variant='contained'
+                    onClick={fetchExceedBreakEmployees}
+                    sx={{
+                        borderRadius: '999px',
+                        py: 1.5,
+                        px: 4.5,
+                        boxShadow: '#d32f2f 0 10px 20px -10px',
+                        background: '#d32f2f',
+                        color: '#FFFFFF',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                    }}
+                >
+                    {showExceedBreaks ? 'Collapse Long Breaks' : '📊 Monitor Long Breaks'}
+                </Button>}
             </Stack>
+            {showExceedBreaks && (
+                <Grid container spacing={2} sx={{ mt: 2 }}>
+                    {exceedBreakEmployees.map(employee => (
+                        <Grid item xs={12} sm={6} md={3} key={employee._id}>
+                            <ExceedOneHourBreak employee={employee} />
+                        </Grid>
+                    ))}
+                </Grid>
+            )}
 
             {/* Render the NotPunchedInToday component if toggled */}
             {showNotPunchedIn && <NotPunchedInToday selectedDate={selectedDate} />}
@@ -416,7 +454,7 @@ const BreakSheet: React.FC = () => {
                     p: 3,
                     borderRadius: 2,
                     backgroundColor: 'background.paper',
-                    mb: 4,
+                    mb: 4
                 }}
             >
                 <Grid container spacing={3}>
@@ -440,7 +478,7 @@ const BreakSheet: React.FC = () => {
                                     py: 1.5,
                                     boxShadow: 2,
                                     background: theme =>
-                                        `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
+                                        `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`
                                 }}
                             >
                                 {showTeamBreakSheets ? 'Hide Team Break Sheets' : 'View Team Break Sheets'}
@@ -458,37 +496,26 @@ const BreakSheet: React.FC = () => {
                     {/* Employee Selection (Admin only) */}
                     {Number(userRole) <= 1 && (
                         <Grid item xs={12} md={6}>
-                            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                            <Card variant='outlined' sx={{ borderRadius: 2 }}>
                                 <CardContent>
-                                    <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-                                        <Typography variant="h6">Employee Selection</Typography>
+                                    <Stack direction='row' alignItems='center' spacing={2} mb={2}>
+                                        <Typography variant='h6'>Employee Selection</Typography>
                                     </Stack>
                                     {/* React Autocomplete for Search */}
                                     <Autocomplete
                                         options={employees} // List of employees
-                                        getOptionLabel={(option) =>
-                                            `${option.first_name} ${option.last_name}`
-                                        } // How each option is displayed
-                                        renderInput={(params) => (
-                                            <TextField
-                                                {...params}
-                                                label="Search Employee"
-                                                variant="outlined"
-                                            />
-                                        )} // Input field with Material-UI TextField
+                                        getOptionLabel={option => `${option.first_name} ${option.last_name}`} // How each option is displayed
+                                        renderInput={params => <TextField {...params} label='Search Employee' variant='outlined' />} // Input field with Material-UI TextField
                                         value={selectedEmployeeId ? employees.find(emp => emp._id === selectedEmployeeId) : null}
                                         onChange={(event, newValue) => {
-                                            setSelectedEmployeeId(newValue ? newValue._id : '');
+                                            setSelectedEmployeeId(newValue ? newValue._id : '')
                                         }} // Handle selection
-                                        isOptionEqualToValue={(option, value) =>
-                                            option._id === value._id
-                                        } // Avoid warnings
+                                        isOptionEqualToValue={(option, value) => option._id === value._id} // Avoid warnings
                                     />
                                 </CardContent>
                             </Card>
                         </Grid>
                     )}
-
 
                     {/* Time Summary and Date Selection */}
                     <Grid item xs={12}>
@@ -504,10 +531,7 @@ const BreakSheet: React.FC = () => {
                                     />
 
                                     {/* Date Selection */}
-                                    <DateSelection
-                                        selectedDate={selectedDate}
-                                        setSelectedDate={setSelectedDate}
-                                    />
+                                    <DateSelection selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
                                 </Stack>
                             </CardContent>
                         </Card>
@@ -552,16 +576,10 @@ const BreakSheet: React.FC = () => {
                             <CardContent>
                                 <Stack direction='row' alignItems='center' spacing={2} mb={3}>
                                     <AccessTime color='primary' />
-                                    <Typography variant='h6'>
-                                        Breaks Taken on {selectedDate}
-                                    </Typography>
+                                    <Typography variant='h6'>Breaks Taken on {selectedDate}</Typography>
                                 </Stack>
 
-                                <BreakList
-                                    filteredBreaks={filteredBreaks}
-                                    userRole={userRole}
-                                    handleEditClick={handleEditClick}
-                                />
+                                <BreakList filteredBreaks={filteredBreaks} userRole={userRole} handleEditClick={handleEditClick} />
                             </CardContent>
                         </Card>
                     </Grid>
@@ -578,7 +596,7 @@ const BreakSheet: React.FC = () => {
                 />
             )}
         </Box>
-    );
-};
+    )
+}
 
-export default BreakSheet;
+export default BreakSheet
