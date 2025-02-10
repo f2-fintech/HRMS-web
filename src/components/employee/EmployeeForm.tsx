@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import {
+
   Box,
   Grid,
   TextField,
@@ -131,6 +132,44 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
   const handleChange = (e) => {
     const { name, value } = e.target;
 
+    // Add validation for joining date
+    if (name === 'joining_date') {
+      const selectedDate = new Date(value);
+      const today = new Date();
+
+      // Reset time portion for accurate date comparison
+      selectedDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate > today) {
+        setErrors(prevErrors => ({
+          ...prevErrors,
+          joining_date: 'Joining date cannot be in the future'
+        }));
+
+        return; // Don't update the form data if date is invalid
+      }
+    }
+
+    if (name === 'email' || name === 'work_email') {
+      if (!value) {
+        setErrors(prevErrors => ({
+          ...prevErrors,
+          [name]: 'This field is required'
+        }));
+      } else if (!EMAIL_REGEX.test(value)) {
+        setErrors(prevErrors => ({
+          ...prevErrors,
+          [name]: 'Please enter a valid email address'
+        }));
+      } else {
+        setErrors(prevErrors => ({
+          ...prevErrors,
+          [name]: ''
+        }));
+      }
+    }
+
     setFormData(prevState => ({
       ...prevState,
       [name]: value
@@ -172,6 +211,14 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
         newErrors[field] = `${field.replace('_', ' ')} is require`
       }
     });
+
+    if (formData.email && !validateEmail('email', formData.email)) {
+      newErrors.email = errors.email;
+    }
+
+    if (formData.work_email && !validateEmail('work_email', formData.work_email)) {
+      newErrors.work_email = errors.work_email;
+    }
 
     if (formData.password !== formData.confirm_password && isPasswordFieldVisible) {
       newErrors.confirm_password = 'Passwords do not match';
@@ -229,6 +276,35 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
         console.error('Error:', error);
         toast.error('An error occurred. Please try again.');
       });
+  };
+
+  const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+
+  const validateEmail = (fieldName, value) => {
+    if (!value) {
+      setErrors(prev => ({
+        ...prev,
+        [fieldName]: 'This field is required'
+      }));
+
+      return false;
+    }
+
+    if (!EMAIL_REGEX.test(value)) {
+      setErrors(prev => ({
+        ...prev,
+        [fieldName]: 'Please enter a valid email address'
+      }));
+
+      return false;
+    }
+
+    setErrors(prev => ({
+      ...prev,
+      [fieldName]: ''
+    }));
+
+    return true;
   };
 
   const handlePasswordFieldVisibility = () => {
@@ -404,6 +480,24 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             name='email'
             value={formData.email}
             onChange={handleChange}
+            onBlur={(e) => {
+              if (!e.target.value) {
+                setErrors(prev => ({
+                  ...prev,
+                  email: 'Email is required'
+                }));
+              } else if (!EMAIL_REGEX.test(e.target.value)) {
+                setErrors(prev => ({
+                  ...prev,
+                  email: 'Please enter a valid email address'
+                }));
+              } else {
+                setErrors(prev => ({
+                  ...prev,
+                  email: ''
+                }));
+              }
+            }}
             required
             error={!!errors.email}
             helperText={errors.email}
@@ -442,6 +536,24 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             name='work_email'
             value={formData.work_email}
             onChange={handleChange}
+            onBlur={(e) => {
+              if (!e.target.value) {
+                setErrors(prev => ({
+                  ...prev,
+                  work_email: 'Work email is required'
+                }));
+              } else if (!EMAIL_REGEX.test(e.target.value)) {
+                setErrors(prev => ({
+                  ...prev,
+                  work_email: 'Please enter a valid email address'
+                }));
+              } else {
+                setErrors(prev => ({
+                  ...prev,
+                  work_email: ''
+                }));
+              }
+            }}
             required
             error={!!errors.work_email}
             helperText={errors.work_email}
@@ -476,11 +588,34 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            type='date'
-            label='DOB'
+            type="date"
+            label="DOB"
             name="dob"
             value={formData.dob}
-            onChange={handleChange}
+            onChange={(e) => {
+              const selectedDate = new Date(e.target.value);
+              const today = new Date();
+
+              let age = today.getFullYear() - selectedDate.getFullYear();
+              const monthDiff = today.getMonth() - selectedDate.getMonth();
+              const dayDiff = today.getDate() - selectedDate.getDate();
+
+              // Adjust age if the birthday hasn't occurred yet this year
+              if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+                age--;
+              }
+
+              if (age < 18) {
+                setErrors((prevErrors) => ({
+                  ...prevErrors,
+                  dob: "You must be at least 18 years old.",
+                }));
+              } else {
+                setErrors((prevErrors) => ({ ...prevErrors, dob: "" }));
+              }
+
+              handleChange(e);
+            }}
             InputLabelProps={{ shrink: true }}
             required
             error={!!errors.dob}
@@ -493,23 +628,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               ),
             }}
             sx={{
-              '& .MuiInputLabel-root': {
-                color: 'black',
+              "& .MuiInputLabel-root": { color: "black" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "black" },
+                "&:hover fieldset": { borderColor: "black" },
+                "&.Mui-focused fieldset": { borderColor: "black" },
               },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': {
-                  borderColor: 'black',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'black',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: 'black',
-                },
-              },
-              '& .MuiInputBase-input': {
-                color: 'black',
-              },
+              "& .MuiInputBase-input": { color: "black" },
             }}
           />
         </Grid>
@@ -841,31 +966,63 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             {errors.image && <Typography color='error'>{errors.image}</Typography>}
           </Box>
         </Grid>
+
+
         <Grid item xs={12}>
           <Box display="flex" justifyContent="center">
             <Button
               startIcon={employee ? <EditIcon /> : <PersonAddIcon />}
               sx={{
-                fontSize: '18px',
+                fontSize: "18px",
                 fontWeight: 600,
-                color: 'white',
+                color: "white",
                 padding: 2,
-                backgroundColor: '#ff902f',
+                backgroundColor: "#ff902f",
                 width: 250,
                 borderRadius: 2,
-                '&:hover': {
-                  backgroundColor: '#ff7f2f'
-                }
+                "&:hover": { backgroundColor: "#ff7f2f" },
               }}
-              variant='contained'
-              onClick={handleSubmit}
+              variant="contained"
+              onClick={() => {
+                const selectedDate = new Date(formData.dob);
+                const today = new Date();
+
+                let age = today.getFullYear() - selectedDate.getFullYear();
+                const monthDiff = today.getMonth() - selectedDate.getMonth();
+                const dayDiff = today.getDate() - selectedDate.getDate();
+
+                // Adjust age if the birthday hasn't occurred yet this year
+                if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+                  age--;
+                }
+
+                if (age < 18) {
+                  setErrors((prevErrors) => ({
+                    ...prevErrors,
+                    dob: "You must be at least 18 years old.",
+                  }));
+
+                  return;
+                }
+
+                if (formData.contact.length !== 10) {
+                  setErrors((prevErrors) => ({
+                    ...prevErrors,
+                    contact: "Please input exactly 10 digits",
+                  }));
+
+                  return;
+                }
+
+                handleSubmit();
+              }}
             >
               {employee ? "UPDATE EMPLOYEE" : "ADD EMPLOYEE"}
             </Button>
           </Box>
         </Grid>
       </Grid>
-    </Paper >
+    </Paper>
   );
 };
 

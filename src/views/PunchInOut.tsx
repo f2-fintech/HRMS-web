@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useMediaQuery, useTheme } from '@mui/material'
-import { Button, Typography, Box, Grid, Card, Tooltip, Container, Paper, Stack, Divider } from '@mui/material'
+
+import { useMediaQuery, useTheme, Button, Typography, Box, Grid, Card, Tooltip, Container, Paper, Stack, Divider } from '@mui/material'
+import Avatar from '@mui/material/Avatar'
 import {
     AccessTime as AccessTimeIcon,
     Timer as TimerIcon,
@@ -10,6 +11,8 @@ import {
     Stop as StopIcon
 } from '@mui/icons-material'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
 
 import {
     addPunch,
@@ -54,7 +57,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [isLargeScreen, setIsLargeScreen] = useState(false)
     const [startTimestamp, setStartTimestamp] = useState<number | null>(null)
     const [currentTime, setCurrentTime] = useState(new Date())
-
+    const [logoUrl, setLogoUrl] = useState('/images/logos/fintech.png');
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id
     const userRole = employee?.role
@@ -63,7 +66,29 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const punch = useSelector((state: RootState) => state.punches.punches)
     const loading = useSelector((state: RootState) => state.punches.loading)
     const error = useSelector((state: RootState) => state.punches.error)
+    const [userData, setUserData] = useState(null)
 
+    useEffect(() => {
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch(
+                    `${process.env.NEXT_PUBLIC_APP_URL}/employees/get/${user.id}`
+                )
+
+                const data = await response.json()
+
+                setUserData(data)
+            } catch (error) {
+                console.error('Error fetching user data:', error)
+            }
+        }
+
+        if (user.id) {
+            fetchUserData()
+        }
+    }, [])
     const currentDate = new Date().toISOString().split('T')[0]
     const isCurrentDate = selectedDate === currentDate
 
@@ -86,6 +111,23 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         return () => clearInterval(timerInterval)
     }, [])
 
+    //to get clock logo from account-settings
+    useEffect(() => {
+        const getConfiguration = async () => {
+            try {
+                const config = await fetchConfiguration();
+
+                if (config.image) {
+                    setLogoUrl(config.image);
+                }
+            } catch (error) {
+                console.error('Error fetching configuration:', error);
+
+            }
+        };
+
+        getConfiguration();
+    }, []);
     useEffect(() => {
         if (employeeId && selectedDate) {
             dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
@@ -278,9 +320,26 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const currentPunch = punch.length > 0 ? punch[currentPunchIndex] : null
+
+    //dashboard punchin_out
     if (isMinimalView) {
         const isButtonEnabledOnPhone =
-            userDesg === 'Co-Founder & MD' || userDesg === 'Founder & CEO' || userDesg === 'Full Stack Developer'
+            userDesg === 'Co-Founder & MD' || userDesg === 'Founder & CEO' || userDesg === 'Full Stack Developer';
+
+        // Get current punch-in time
+        const punchInTime = punchState.startTime ? new Date(`1970-01-01T${punchState.startTime}`) : null;
+        const referenceTime9AM = new Date('1970-01-01T09:00:00');
+        const referenceTime10_15AM = new Date('1970-01-01T10:15:00');
+
+        let punchMessage = '';
+
+        if (punchInTime) {
+            if (punchInTime <= referenceTime10_15AM && punchInTime >= referenceTime9AM) {
+                punchMessage = '✅ Great job! Being on time shows commitment and professionalism. Keep up the good work!';
+            } else if (punchInTime > referenceTime10_15AM) {
+                punchMessage = '⏰ Punctuality is not just about being on time; it’s about respecting your work, your team, and your commitments.';
+            }
+        }
 
         return (
             <Box
@@ -299,6 +358,38 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     mt: 2
                 }}
             >
+                {/* Punch Message - Now Appears at the Top */}
+                {punchMessage && (
+                    <Typography
+                        variant="body1"
+                        sx={{
+                            textAlign: 'center',
+                            fontWeight: 'bold',
+                            color: 'yellow',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            p: 1.5,
+                            borderRadius: 2,
+                            width: '100%',
+                            mb: 2
+                        }}
+                    >
+                        {punchMessage}
+                    </Typography>
+                )}
+
+                {/* User Image */}
+                <Avatar
+                    alt={userData?.first_name || 'User'}
+                    src={userData?.image}
+                    sx={{
+                        width: 64,
+                        height: 64,
+                        border: '2px solid white',
+                        mb: 1
+                    }}
+                />
+
+                {/* Display Current Day Instead of Punch In/Out Text */}
                 <Typography
                     variant='h5'
                     sx={{
@@ -308,7 +399,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         color: 'white'
                     }}
                 >
-                    Punch In / Out
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
                 </Typography>
 
                 <Box
@@ -327,7 +418,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             color='success'
                             onClick={handlePunchIn}
                             disabled={
-                                (!isButtonEnabledOnPhone && isSmallScreen) || // Disable for other users on phones
+                                (!isButtonEnabledOnPhone && isSmallScreen) ||
                                 punchState.isPunchInDisabled ||
                                 disablePunch
                             }
@@ -335,17 +426,20 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         >
                             Punch In
                         </Button>
-                        <Typography
-                            variant='body2'
-                            sx={{
-                                color: 'white',
-                                fontWeight: 'bold',
-                                fontSize: '0.9rem'
-                            }}
-                        >
-                            {punchState.startTime || 'Not Punched In'}
-                        </Typography>
                     </Box>
+
+                    {/* Date Display - Moved Between Punch In and Punch Out */}
+                    <Typography
+                        variant='body2'
+                        sx={{
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem',
+                            textAlign: 'center'
+                        }}
+                    >
+                        {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Typography>
 
                     {/* Punch Out Section */}
                     <Box sx={{ textAlign: 'center' }}>
@@ -354,7 +448,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             color='error'
                             onClick={handlePunchOut}
                             disabled={
-                                (!isButtonEnabledOnPhone && isSmallScreen) || // Disable for other users on phones
+                                (!isButtonEnabledOnPhone && isSmallScreen) ||
                                 punchState.isPunchOutDisabled ||
                                 disablePunch
                             }
@@ -362,21 +456,16 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         >
                             Punch Out
                         </Button>
-                        <Typography
-                            variant='body2'
-                            sx={{
-                                color: 'white',
-                                fontWeight: 'bold',
-                                fontSize: '0.9rem'
-                            }}
-                        >
-                            {punchState.endTime || 'Not Punched Out'}
-                        </Typography>
                     </Box>
                 </Box>
             </Box>
-        )
+
+
+
+        );
     }
+
+
     return (
         <Container maxWidth='lg' sx={{ py: 4 }}>
             <Card
@@ -461,35 +550,36 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 }}
                             />
 
-                            {/* F2 Text in the center */}
+                            {/* Company logo inside Clock */}
                             <Box
                                 sx={{
                                     position: 'absolute',
-                                    top: '35%',
+                                    top: '39%',
                                     left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    width: '80px', // Adjust width and height as needed
-                                    height: '100px',
+                                    transform: 'translate(-50%, -30%)',
+                                    width: '65px',
+                                    height: '65px',
                                     overflow: 'hidden',
-                                    opacity: '0.6'
+                                    opacity: '0.6',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'transparent'
                                 }}
                             >
                                 <img
-                                    src='/images/logos/fintech.png' // Path to your logo image
-                                    alt='F2 Fintech'
+                                    src={logoUrl}
+                                    alt='Company Logo'
                                     style={{
                                         width: '100%',
-                                        height: '120%',
-                                        objectFit: 'contain' // Adjust to maintain aspect ratio
+                                        height: '100%',
+                                        objectFit: 'cover'
                                     }}
                                 />
                             </Box>
-
                             {/* Clock Numbers (1 to 12) */}
                             {Array.from({ length: 12 }).map((_, index) => {
-                                const angle = (index + 1) * 30 // Each number is 30 degrees apart
-                                const x = 50 + 35 * Math.cos((angle - 90) * (Math.PI / 180)) // X coordinate
-                                const y = 50 + 35 * Math.sin((angle - 90) * (Math.PI / 180)) // Y coordinate
+                                const angle = (index + 1) * 30
+                                const x = 50 + 35 * Math.cos((angle - 90) * (Math.PI / 180))
+                                const y = 50 + 35 * Math.sin((angle - 90) * (Math.PI / 180))
 
                                 return (
                                     <Typography

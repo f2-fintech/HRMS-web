@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 import {
   Box,
   Button,
@@ -24,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
+
 import { addOrUpdateAttendance } from '../../redux/features/attendances/attendancesSlice';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 
@@ -32,6 +34,7 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
 
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     employee: prefillEmployee || '',
     date: prefillDate || '',
@@ -51,6 +54,7 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
   useEffect(() => {
     const fetchEmployees = async () => {
       const data = await apiResponse();
+
       setEmployees(data);
     };
 
@@ -106,11 +110,13 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
     }
 
     setErrors(newErrors);
+
     return isValid;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData(prevState => ({
       ...prevState,
       [name]: value,

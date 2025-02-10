@@ -1,9 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
+
 import { useDispatch, useSelector } from 'react-redux'
-import type { AppDispatch, RootState } from '@/redux/store'
 
 import Grid from '@mui/material/Grid'
+
+import type { AppDispatch, RootState } from '@/redux/store'
+
 
 import Award from '@views/dashboard/Award'
 import Transactions from '@views/dashboard/Transactions'
@@ -17,6 +20,8 @@ import WorkAnniversary from '@/views/dashboard/WorkAnniversary'
 import PunchInOut from '@/views/PunchInOut'
 
 import { fetchConfiguration } from '@/redux/features/configuration/configurationSlice'
+import Achievement from '@/views/Achievement'
+import IndianNewsViewer from '@/views/dashboard/IndianNewsViewer'
 
 const DashboardAnalytics = () => {
   const [userRole, setUserRole] = useState<string>('')
@@ -49,49 +54,56 @@ const DashboardAnalytics = () => {
       <Grid item xs={12} md={12} lg={12}>
         <NewYearDashboard companyDetails={companyDetails} loading={companyLoading} />
       </Grid>
-
-      {/* Punch In/Out Component */}
-      <Grid item xs={12} md={12} lg={12}>
-        <PunchInOut selectedDate={selectedDate} selectedEmployeeId={employeeId} isMinimalView={true} />
-      </Grid>
-
-      {/* Conditional Rendering Based on Role */}
-      {userRole === '0' ? (
-        // AdminDashboard for role '0'
-        <Grid item xs={12}>
-          <SuperAdminDashboard />
+      <>
+        {/* Punch In/Out Component */}
+        <Grid item xs={12} md={6}>
+          <PunchInOut selectedDate={selectedDate} selectedEmployeeId={employeeId} isMinimalView={true} />
         </Grid>
-      ) : (
-        // Regular Dashboard for other roles
-        <>
-          <Grid item xs={12} md={6}>
-            <Award />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Transactions />
-          </Grid>
+        <Grid item xs={12} md={6}>
+          <Transactions />
+        </Grid>
+      </>
+      {/* Conditional Rendering Based on Role */}
+      {
+        userRole === '0' ? (
 
-          {/* Upcoming Birthdays and Work Anniversary in one row */}
-          <Grid item xs={12} md={6}>
-            <UpcomingBirthdays companyDetails={companyDetails} loading={companyLoading} />
+          // AdminDashboard for role '0'
+          <Grid item xs={12}>
+            <SuperAdminDashboard />
           </Grid>
-          <Grid item xs={12} md={6}>
-            {userRole !== '' && <WorkAnniversary companyDetails={companyDetails} loading={companyLoading} />}
-          </Grid>
+        ) : (
 
-          {/* LocationWise Performer and Total Holidays in one row */}
-          <Grid item xs={12} md={6}>
-            {userRole !== '' && <LocationWisePerformer />}
-          </Grid>
-          <Grid item xs={12} md={6}>
-            {userRole !== '' && <TotalHolidays />}
-            <div style={{ marginTop: '16px' }}>
-              <TradingViewWidget />
-            </div>
-          </Grid>
-        </>
-      )}
-    </Grid>
+          // Regular Dashboard for other roles
+          <>
+            <Grid item xs={12} md={6}>
+              <Award />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Achievement />
+            </Grid>
+
+            {/* Upcoming Birthdays and Work Anniversary in one row */}
+            <Grid item xs={12} md={6}>
+              <UpcomingBirthdays companyDetails={companyDetails} loading={companyLoading} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              {userRole !== '' && <WorkAnniversary companyDetails={companyDetails} loading={companyLoading} />}
+            </Grid>
+
+            {/* LocationWise Performer and Total Holidays in one row */}
+            <Grid item xs={12} md={6}>
+              {userRole !== '' && <LocationWisePerformer />}
+            </Grid>
+            <Grid item xs={12} md={6}>
+              {userRole !== '' && <TotalHolidays />}
+              <div style={{ marginTop: '16px' }}>
+                <TradingViewWidget />
+              </div>
+            </Grid>
+          </>
+        )
+      }
+    </Grid >
   )
 }
 

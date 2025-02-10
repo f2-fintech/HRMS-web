@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { DataGrid, GridToolbar, type GridColDef } from '@mui/x-data-grid'
@@ -41,6 +42,8 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs' // For managing and formatting dates
 
+import { Pagination } from '@mui/material';  // If not already imported
+
 import type { AppDispatch, RootState } from '@/redux/store'
 import { fetchAttendances } from '@/redux/features/attendances/attendancesSlice'
 import AttendanceSummary from '@/utility/attendancesummry/AttendanceSummary'
@@ -55,7 +58,7 @@ import AttendanceStatusList from '@/components/attendance/AttendanceStatusList'
 import LocationDropdown from '@/utility/locationdropdown/LocationDropdown'
 import { fetchMonthlyAttendanceSummary } from '@/utility/apiResponse/employeesResponse'
 import useDebounce from '@/utility/debounce/useDebounce'
-
+import AttendanceCard from '@/components/attendancecard/AttendanceCard'
 
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch()
@@ -88,8 +91,10 @@ export default function AttendanceGrid() {
   useEffect(() => {
     const fetchEmployees = async () => {
       setError(null)
+
       try {
         const employeesData = await fetchMonthlyAttendanceSummary(month, year)
+
         setAllEmployees(employeesData)
       } catch (error: any) {
         setError(error.message || 'Failed to fetch employee data')
@@ -124,6 +129,7 @@ export default function AttendanceGrid() {
     // Define the CSV header
     const csvContent = [
       ['Employee Name', 'Present', 'Absent', 'On Half', 'On Leave', 'On WFH', 'On Field'],
+
       // Map attendance data to rows
       ...allEmployees.map(emp => [
         emp.employeeName,
@@ -141,9 +147,11 @@ export default function AttendanceGrid() {
     // Create a blob from the CSV content
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
+
     if (link.download !== undefined) {
       // Create a download link
       const url = URL.createObjectURL(blob)
+
       link.setAttribute('href', url)
       link.setAttribute('download', fileName) // Set the dynamic file name
       link.style.visibility = 'hidden'
@@ -160,6 +168,7 @@ export default function AttendanceGrid() {
     if (typeof window !== 'undefined') {
       token = localStorage.getItem('token')
     }
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}&location=${searchLocation}`,
@@ -171,13 +180,17 @@ export default function AttendanceGrid() {
           }
         }
       )
+
       if (!response.ok) {
         throw new Error('Network response was not ok')
       }
+
       const data = await response.json()
+
       setStatusCounts(data.statusCounts)
     } catch (error) {
       console.error('Error fetching status counts:', error)
+
       // toast.error("Failed to load attendance counts.");
     }
   }
@@ -217,6 +230,7 @@ export default function AttendanceGrid() {
 
   const handleInputChange = e => {
     const newName = e.target.value
+
     setSearchName(newName)
   }
 
@@ -259,6 +273,7 @@ export default function AttendanceGrid() {
   const attendanceData = filteredAttendance.reduce(
     (acc, { date, status }) => {
       acc[date] = status
+
       return acc
     },
     {} as Record<string, string>
@@ -296,6 +311,7 @@ export default function AttendanceGrid() {
           </Box>
         )
       },
+
       // Generate columns for all days in the selected month
       ...Array.from({ length: daysInMonth }, (_, i) => {
         const day = i + 1
@@ -392,6 +408,7 @@ export default function AttendanceGrid() {
   const transformData = () => {
     const statusCountsMap = statusCounts.reduce((acc, count) => {
       acc[count.employeeId] = count.statuses || {}
+
       return acc
     }, {})
 
@@ -425,6 +442,7 @@ export default function AttendanceGrid() {
         }
 
         const cumulativeCounts = statusCountsMap[employee._id] || {}
+
         acc[employee._id].statusCount = { ...acc[employee._id].statusCount, ...cumulativeCounts }
       }
 
@@ -616,64 +634,42 @@ export default function AttendanceGrid() {
           </Backdrop>
         )}
         {userRole === '1' ? (
-          <DataGrid
-            autoHeight
-            getRowHeight={() => 'auto'}
-            sx={{
-              '& .MuiDataGrid-columnHeader .MuiDataGrid-sortIcon': {
-                color: 'white'
-              },
-              '& .MuiDataGrid-columnHeader .MuiDataGrid-menuIconButton': {
-                color: 'white'
-              },
-              '& .mui-yrdy0g-MuiDataGrid-columnHeaderRow ': {
-                background: 'linear-gradient(270deg, var(--mui-palette-primary-main), rgb(40, 18, 88) 100%) !important',
-                color: 'white'
-              },
-              '& .mui-wop1k0-MuiDataGrid-footerContainer': {
-                background:
-                  'linear-gradient(270deg, var(--mui-palette-primary-main), rgb(240, 236, 250) 100%) !important'
-              },
-              '& .MuiDataGrid-cell': {
-                fontSize: '1.2em',
-                color: '#633030',
-                align: 'center'
-              },
-              '& .sticky-cell': {
-                position: 'sticky',
-                left: 0,
-                backgroundColor: '#fff', // Prevent overlap
-                zIndex: 1
-              },
-              '& .sticky-header': {
-                position: 'sticky',
-                left: 0,
-                backgroundColor: 'rgb(20, 9, 44)',
-                color: 'white',
-                zIndex: 2 // Ensure header stays above cells
-              }
-            }}
-            slots={{
-              toolbar: GridToolbar
-              // loadingOverlay: Loader,
-            }}
-            rows={rows}
-            columns={columns}
-            getRowId={row => row._id}
-            initialState={{
-              sorting: {
-                sortModel: [{ field: 'employee_id', sort: 'asc' }]
-              }
-            }}
-            pageSizeOptions={[10, 20, 30]}
-            paginationMode='server'
-            onPaginationModelChange={handlePaginationModelChange}
-            paginationModel={{ page: page - 1, pageSize: limit }}
-            checkboxSelection
-            rowCount={count}
-            disableRowSelectionOnClick
-          // loading={loading}
-          />
+          <Box sx={{ width: '100%', padding: 2 }}>
+            {loading ? (
+              <Backdrop
+                sx={{
+                  color: '#fff',
+                  zIndex: theme => theme.zIndex.drawer + 1
+                }}
+                open={loading}
+              >
+                <Loader />
+              </Backdrop>
+            ) : (
+              <>
+                {rows.map((employeeData) => (
+                  <AttendanceCard
+                    key={employeeData._id}
+                    employeeData={employeeData}
+                    handleAttendanceAddClick={handleAttendanceAddClick}
+                    handleAttendanceEditClick={handleAttendanceEditClick}
+                    selectedMonth={month}
+                    selectedYear={year}
+                  />
+                ))}
+
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                  <Pagination
+                    count={Math.ceil(count / limit)}
+                    page={page}
+                    onChange={(_, newPage) => handlePaginationModelChange({ page: newPage - 1, pageSize: limit })}
+                    color="primary"
+                    size="large"
+                  />
+                </Box>
+              </>
+            )}
+          </Box>
         ) : (
           <Grid container spacing={2}>
             <Grid item xs={12} md={4} lg={3}>

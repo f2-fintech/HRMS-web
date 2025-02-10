@@ -1,34 +1,21 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
-import {
-    TextField,
-    Button,
-    Box,
-    Typography,
-    CircularProgress,
-    Paper,
-    Container,
-    IconButton,
-    InputAdornment,
-    Stack,
-    Alert,
-} from '@mui/material';
-import { CloudUpload, Close } from '@mui/icons-material';
+
+import { TextField, Button, Box, Typography, CircularProgress } from '@mui/material';
 
 const API_URL = process.env.NEXT_PUBLIC_APP_URL + '/achievements';
 
 interface AchievementFormProps {
     id?: string;
     onSuccess: () => void;
+    onClose: () => void; // New prop for closing the form
 }
 
-const AchievementForm: React.FC<AchievementFormProps> = ({ id, onSuccess }) => {
+const AchievementForm: React.FC<AchievementFormProps> = ({ id, onSuccess, onClose }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -38,15 +25,17 @@ const AchievementForm: React.FC<AchievementFormProps> = ({ id, onSuccess }) => {
 
     const fetchAchievement = async (achievementId: string) => {
         setLoading(true);
+
         try {
             const response = await fetch(`${API_URL}/${achievementId}`);
             const data = await response.json();
-            setTitle(data.title || '');
-            setDescription(data.description || '');
+
+            setTitle(data?.title || '');
+            setDescription(data?.description || '');
         } catch (error) {
             console.error('Error fetching achievement:', error);
-            setError('Failed to load achievement details');
         }
+
         setLoading(false);
     };
 
@@ -59,9 +48,8 @@ const AchievementForm: React.FC<AchievementFormProps> = ({ id, onSuccess }) => {
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setLoading(true);
-        setError(null);
-
         const formData = new FormData();
+
         formData.append('title', title || 'N/A');
         formData.append('description', description || 'N/A');
         if (file) formData.append('file', file);
@@ -77,123 +65,57 @@ const AchievementForm: React.FC<AchievementFormProps> = ({ id, onSuccess }) => {
 
             if (response.ok) {
                 onSuccess();
+                onClose(); // Close the form after successful save
             } else {
-                throw new Error('Failed to save achievement');
+                console.error('Failed to save achievement:', await response.text());
             }
         } catch (error) {
             console.error('Error saving achievement:', error);
-            setError('Failed to save achievement. Please try again.');
         }
+
         setLoading(false);
     };
 
-    const clearFile = () => {
-        setFile(null);
-    };
-
     return (
-        <Container maxWidth="sm">
-            <Paper elevation={3} sx={{ mt: 4, p: 4, borderRadius: 2 }}>
-                <Typography
-                    variant="h4"
-                    component="h1"
-                    gutterBottom
-                    sx={{
-                        textAlign: 'center',
-                        color: 'primary.main',
-                        fontWeight: 600,
-                        mb: 4
-                    }}
-                >
-                    {id ? 'Update Achievement' : 'Create Achievement'}
-                </Typography>
+        <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 500, mx: 'auto', p: 2, backgroundColor: '#fff', borderRadius: 2, boxShadow: 3 }}>
+            <Typography variant="h6" fontWeight="bold">{id ? 'Update Achievement' : 'Create Achievement'}</Typography>
+            {loading && <CircularProgress sx={{ display: 'block', mx: 'auto', my: 2 }} />}
 
-                {error && (
-                    <Alert severity="error" sx={{ mb: 3 }}>
-                        {error}
-                    </Alert>
-                )}
+            <TextField
+                label="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                fullWidth
+                margin="normal"
+            />
 
-                <Box
-                    component="form"
-                    onSubmit={handleSubmit}
-                    sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
-                >
-                    <TextField
-                        label="Achievement Title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        variant="outlined"
-                        fullWidth
-                        required
-                        disabled={loading}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
+            <textarea
+                placeholder="Description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                style={{
+                    width: '100%',
+                    height: '100px',
+                    padding: '10px',
+                    borderRadius: '5px',
+                    border: '1px solid #ccc',
+                    marginTop: '10px',
+                    fontSize: '16px',
+                    resize: 'vertical',
+                }}
+            />
 
-                    <TextField
-                        label="Achievement Description"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        variant="outlined"
-                        fullWidth
-                        required
-                        multiline
-                        rows={4}
-                        disabled={loading}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
+            <input type="file" onChange={handleFileChange} style={{ marginTop: '10px' }} />
 
-                    <Stack direction="row" spacing={2} alignItems="center">
-                        <Button
-                            component="label"
-                            variant="outlined"
-                            startIcon={<CloudUpload />}
-                            sx={{
-                                borderRadius: 2,
-                                height: 56,
-                                flexGrow: 1
-                            }}
-                            disabled={loading}
-                        >
-                            {file ? file.name : 'Upload File'}
-                            <input
-                                type="file"
-                                onChange={handleFileChange}
-                                hidden
-                                accept="image/*,.pdf,.doc,.docx"
-                            />
-                        </Button>
-                        {file && (
-                            <IconButton onClick={clearFile} disabled={loading}>
-                                <Close />
-                            </IconButton>
-                        )}
-                    </Stack>
-
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        size="large"
-                        disabled={loading}
-                        sx={{
-                            mt: 2,
-                            height: 56,
-                            borderRadius: 2,
-                            textTransform: 'none',
-                            fontSize: '1.1rem'
-                        }}
-                    >
-                        {loading ? (
-                            <CircularProgress size={24} sx={{ color: 'white' }} />
-                        ) : id ? (
-                            'Update Achievement'
-                        ) : (
-                            'Create Achievement'
-                        )}
-                    </Button>
-                </Box>
-            </Paper>
-        </Container>
+            <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+                <Button type="submit" variant="contained" color="primary" fullWidth>
+                    {id ? 'Update' : 'Create'}
+                </Button>
+                <Button variant="outlined" color="secondary" fullWidth onClick={onClose}>
+                    Close
+                </Button>
+            </Box>
+        </Box>
     );
 };
 
