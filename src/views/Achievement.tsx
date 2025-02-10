@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+
 import {
     Box,
     Grid,
@@ -12,30 +13,160 @@ import {
     IconButton,
     Container,
     Fade,
-    useTheme,
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
     alpha
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { styled, keyframes } from '@mui/material/styles';
+
 import AchievementForm from '@/components/acheivement/AchievementForm';
 
 const API_URL = process.env.NEXT_PUBLIC_APP_URL + '/achievements';
-const DUMMY_IMAGE = 'https://savviest-blog-assets.storage.googleapis.com/2020/02/achievements--1-.png';
+const DUMMY_IMAGE = 'https://via.placeholder.com/400';
 
-// Custom blue theme colors
-const blueTheme = {
-    primary: '#1976d2',
-    light: '#42a5f5',
-    dark: '#1565c0',
-    gradient: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-    hover: '#bbdefb'
-};
+// Animation keyframes for the moving border
+const borderAnimation = keyframes`
+    0% {
+        background-position: 0% 0%;
+    }
+    25% {
+        background-position: 100% 0%;
+    }
+    50% {
+        background-position: 100% 100%;
+    }
+    75% {
+        background-position: 0% 100%;
+    }
+    100% {
+        background-position: 0% 0%;
+    }
+`;
+
+// Styled Components
+const StyledCard = styled(Card)(({ theme }) => ({
+    width: '100%',
+    borderRadius: '16px',
+    transition: 'all 0.3s ease',
+    position: 'relative',
+    backgroundColor: '#fff',
+    maxWidth: '100%',
+    minHeight: '250px',
+    display: 'flex',
+    color: 'inherit',
+    overflow: 'hidden',
+    padding: '3px',
+    margin: '20px 0',
+    '&:hover': {
+        transform: 'translateY(-10px)',
+        '& .edit-actions': {
+            opacity: 1
+        }
+    },
+    '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        borderRadius: '16px',
+        padding: '3px',
+        background: 'linear-gradient(45deg, #0077ff, #00a8ff, #0077ff, #00a8ff)',
+        backgroundSize: '400% 400%',
+        animation: `${borderAnimation} 3s linear infinite`,
+        WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+        WebkitMaskComposite: 'xor',
+        maskComposite: 'exclude',
+    },
+    '& > *:not(:before)': {
+        backgroundColor: '#fff',
+        borderRadius: '13px',
+        boxShadow: `
+            inset 0 0 15px rgba(55, 84, 170, 0.1),
+            inset 0 0 20px rgba(255, 255, 255, 0.2),
+            0 0 20px rgba(0, 0, 0, 0.15)
+        `,
+    }
+}));
+
+const MediaContainer = styled(Box)(({ theme }) => ({
+    width: '40%',
+    minWidth: '300px',
+    position: 'relative',
+    overflow: 'hidden',
+    borderTopLeftRadius: '13px',
+    borderBottomLeftRadius: '13px',
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        boxShadow: 'inset 0 0 10px rgba(0,0,0,0.1)',
+        pointerEvents: 'none'
+    }
+}));
+
+const ContentContainer = styled(Box)(({ theme }) => ({
+    width: '60%',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    background: `linear-gradient(135deg, #fff 0%, #f8f9fa 100%)`,
+    borderTopRightRadius: '13px',
+    borderBottomRightRadius: '13px',
+    '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: '10px',
+        left: '-5px',
+        width: '10px',
+        height: '10px',
+        backgroundColor: '#1976d2',
+        borderRadius: '50%',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+    },
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        bottom: '10px',
+        left: '-5px',
+        width: '10px',
+        height: '10px',
+        backgroundColor: '#1976d2',
+        borderRadius: '50%',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+    }
+}));
+
+const StyledCardActions = styled(CardActions)(() => ({
+    justifyContent: 'flex-end',
+    padding: '16px',
+    opacity: 0,
+    transition: 'opacity 0.3s ease',
+    '&.edit-actions': {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: '0 13px 0 13px',
+        zIndex: 1
+    }
+}));
 
 const Achievement = () => {
-    const theme = useTheme();
     const [achievements, setAchievements] = useState([]);
     const [loading, setLoading] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedDescription, setSelectedDescription] = useState('');
 
     useEffect(() => {
         fetchAchievements();
@@ -43,310 +174,257 @@ const Achievement = () => {
 
     const fetchAchievements = async () => {
         setLoading(true);
+
         try {
             const response = await fetch(API_URL);
             const data = await response.json();
+
             setAchievements(data);
         } catch (error) {
             console.error('Error fetching achievements:', error);
         }
+
         setLoading(false);
     };
 
     const handleDelete = async (id) => {
-        if (confirm('Are you sure you want to delete this achievement?')) {
+        if (window.confirm('Are you sure you want to delete this achievement?')) {
             try {
-                const response = await fetch(`${API_URL}/delete/${id}`, { method: 'DELETE' });
-                if (response.ok) fetchAchievements();
+                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+
+                if (response.ok) {
+                    fetchAchievements();
+                }
             } catch (error) {
                 console.error('Error deleting achievement:', error);
             }
         }
     };
 
+    const truncateDescription = (text, maxLength = 150) => {
+        if (!text) return 'N/A';
+        if (text.length <= maxLength) return text;
+
+        return text.substring(0, maxLength).trim() + '...';
+    };
+
+    const handleReadMore = (description) => {
+        setSelectedDescription(description);
+        setModalOpen(true);
+    };
+
+    const renderMedia = (fileUrl) => {
+        const mediaStyle = {
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+        };
+
+        if (!fileUrl) return (
+            <img
+                src={DUMMY_IMAGE}
+                alt="Default Achievement"
+                style={mediaStyle}
+            />
+        );
+
+        if (fileUrl.match(/\.(jpeg|jpg|png|gif)$/)) {
+            return (
+                <>
+                    <img
+                        src={fileUrl}
+                        alt="Achievement"
+                        style={mediaStyle}
+                    />
+                    <a
+                        href={fileUrl}
+                        download
+                        style={{
+                            position: 'absolute',
+                            bottom: 10,
+                            left: 10,
+                            background: 'rgba(0,0,0,0.5)',
+                            color: 'white',
+                            padding: '5px 10px',
+                            borderRadius: '5px',
+                            textDecoration: 'none',
+                            zIndex: 1
+                        }}
+                    >
+                        Download
+                    </a>
+                </>
+            );
+        }
+
+        if (fileUrl.match(/\.(mp4|mov|avi|webm)$/)) {
+            return (
+                <video
+                    controls
+                    style={mediaStyle}
+                >
+                    <source src={fileUrl} type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+            );
+        }
+
+        if (fileUrl.match(/\.(pdf)$/)) {
+            return (
+                <>
+                    <iframe
+                        src={fileUrl}
+                        title="PDF Document"
+                        style={mediaStyle}
+                    />
+                    <a
+                        href={fileUrl}
+                        download
+                        style={{
+                            position: 'absolute',
+                            bottom: 10,
+                            left: 10,
+                            background: 'rgba(0,0,0,0.5)',
+                            color: 'white',
+                            padding: '5px 10px',
+                            borderRadius: '5px',
+                            textDecoration: 'none',
+                            zIndex: 1
+                        }}
+                    >
+                        Download
+                    </a>
+                </>
+            );
+        }
+
+        return (
+            <img
+                src={DUMMY_IMAGE}
+                alt="Default Achievement"
+                style={mediaStyle}
+            />
+        );
+    };
+
     return (
         <Container maxWidth="lg">
-            <Box>
-                <Typography
-                    variant="h3"
-                    fontWeight="bold"
-                    textAlign="center"
-                    mb={5}
-                    sx={{
-                        color: blueTheme.dark,
-                        position: 'relative',
-                        '&:after': {
-                            content: '""',
-                            position: 'absolute',
-                            bottom: -8,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: 60,
-                            height: 4,
-                            background: blueTheme.gradient,
-                            borderRadius: 2
-                        }
-                    }}
-                >
-                    Achievements
-                </Typography>
-
+            <Box sx={{ py: 4 }}>
                 {editId !== null && (
-                    <Box sx={{
-                        mb: 4,
-                        p: 3,
-                        backgroundColor: alpha(blueTheme.light, 0.1),
-                        borderRadius: 2
-                    }}>
+                    <Box sx={{ mb: 4, p: 3, backgroundColor: alpha('#42a5f5', 0.1), borderRadius: 2 }}>
                         <AchievementForm
                             id={editId}
                             onSuccess={() => {
                                 setEditId(null);
                                 fetchAchievements();
                             }}
+                            onClose={() => setEditId(null)}
                         />
                     </Box>
                 )}
 
                 {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                        <CircularProgress
-                            size={60}
-                            thickness={4}
-                            sx={{ color: blueTheme.primary }}
-                        />
+                        <CircularProgress size={60} thickness={4} sx={{ color: '#1976d2' }} />
                     </Box>
                 ) : (
                     <Fade in={!loading}>
-                        <Grid container spacing={4} justifyContent="center">
-                            {achievements.length > 0 ? (
-                                achievements.map((achievement) => (
-                                    <Grid item xs={12} sm={6} md={4} key={achievement._id}>
-                                        <Card
-                                            sx={{
-                                                height: '100%',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                transition: 'all 0.3s ease-in-out',
-                                                borderRadius: 2,
-                                                overflow: 'hidden',
-                                                border: `1px solid ${alpha(blueTheme.primary, 0.1)}`,
-                                                backgroundColor: '#fff',
-                                                '&:hover': {
-                                                    transform: 'translateY(-4px)',
-                                                    boxShadow: `0 8px 24px ${alpha(blueTheme.primary, 0.2)}`,
-                                                    borderColor: alpha(blueTheme.primary, 0.3),
-                                                    '& .media-container': {
-                                                        '&:after': {
-                                                            opacity: 1
-                                                        }
-                                                    }
-                                                }
-                                            }}
-                                        >
-                                            <Box
-                                                className="media-container"
-                                                sx={{
-                                                    position: 'relative',
-                                                    paddingTop: '56.25%',
-                                                    overflow: 'hidden',
-                                                    '&:after': {
-                                                        content: '""',
-                                                        position: 'absolute',
-                                                        top: 0,
-                                                        left: 0,
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        background: `linear-gradient(0deg, ${alpha(blueTheme.primary, 0.1)} 0%, transparent 100%)`,
-                                                        opacity: 0,
-                                                        transition: 'opacity 0.3s ease-in-out'
-                                                    }
-                                                }}
-                                            >
-                                                {achievement.fileUrl ? (
-                                                    achievement.fileUrl.match(/\.(jpeg|jpg|png|gif)$/) ? (
-                                                        <img
-                                                            src={achievement.fileUrl}
-                                                            alt={achievement.title || 'Achievement'}
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: 0,
-                                                                left: 0,
-                                                                width: '100%',
-                                                                height: '100%',
-                                                                objectFit: 'cover'
-                                                            }}
-                                                        />
-                                                    ) : achievement.fileUrl.match(/\.(mp4|mov|avi|webm)$/) ? (
-                                                        <video
-                                                            controls
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: 0,
-                                                                left: 0,
-                                                                width: '100%',
-                                                                height: '100%',
-                                                                objectFit: 'cover'
-                                                            }}
-                                                        >
-                                                            <source src={achievement.fileUrl} type="video/mp4" />
-                                                            Your browser does not support the video tag.
-                                                        </video>
-                                                    ) : (
-                                                        <img
-                                                            src={DUMMY_IMAGE}
-                                                            alt="Default Achievement"
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: 0,
-                                                                left: 0,
-                                                                width: '100%',
-                                                                height: '100%',
-                                                                objectFit: 'cover'
-                                                            }}
-                                                        />
-                                                    )
-                                                ) : (
-                                                    <img
-                                                        src={DUMMY_IMAGE}
-                                                        alt="Default Achievement"
-                                                        style={{
-                                                            position: 'absolute',
-                                                            top: 0,
-                                                            left: 0,
-                                                            width: '100%',
-                                                            height: '100%',
-                                                            objectFit: 'cover'
-                                                        }}
-                                                    />
-                                                )}
-                                            </Box>
+                        <Grid container spacing={3}>
+                            {achievements.map((achievement) => (
+                                <Grid item xs={12} key={achievement._id}>
+                                    <StyledCard>
+                                        <MediaContainer>
+                                            {renderMedia(achievement.fileUrl)}
+                                        </MediaContainer>
 
-                                            <CardContent sx={{
-                                                flexGrow: 1,
-                                                p: 3,
-                                                backgroundColor: '#fff'
-                                            }}>
+                                        <ContentContainer>
+                                            <StyledCardActions className="edit-actions">
+                                                <IconButton
+                                                    onClick={() => setEditId(achievement._id)}
+                                                    sx={{ color: '#1976d2' }}
+                                                >
+                                                    <EditIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    onClick={() => handleDelete(achievement._id)}
+                                                    sx={{ color: '#e53935' }}
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </StyledCardActions>
+
+                                            <CardContent sx={{ p: 3, height: '100%' }}>
                                                 <Typography
                                                     variant="h6"
-                                                    fontWeight="bold"
-                                                    gutterBottom
-                                                    sx={{ color: blueTheme.dark }}
+                                                    sx={{
+                                                        fontWeight: 600,
+                                                        color: '#1a237e',
+                                                        mb: 2
+                                                    }}
                                                 >
                                                     {achievement.title || 'N/A'}
                                                 </Typography>
                                                 <Typography
                                                     variant="body2"
                                                     sx={{
-                                                        color: alpha(blueTheme.dark, 0.7),
+                                                        color: '#424242',
+                                                        mb: 2,
                                                         lineHeight: 1.6
                                                     }}
                                                 >
-                                                    {achievement.description || 'N/A'}
+                                                    {truncateDescription(achievement.description)}
                                                 </Typography>
-                                            </CardContent>
 
-                                            <CardActions sx={{
-                                                justifyContent: 'flex-end',
-                                                p: 2,
-                                                borderTop: `1px solid ${alpha(blueTheme.primary, 0.1)}`,
-                                                backgroundColor: alpha(blueTheme.light, 0.02)
-                                            }}>
-                                                <IconButton
-                                                    onClick={() => setEditId(achievement._id || '')}
-                                                    sx={{
-                                                        color: blueTheme.primary,
-                                                        '&:hover': {
-                                                            backgroundColor: alpha(blueTheme.primary, 0.1)
-                                                        }
-                                                    }}
-                                                >
-                                                    <EditIcon />
-                                                </IconButton>
-                                                <IconButton
-                                                    onClick={() => handleDelete(achievement._id)}
-                                                    sx={{
-                                                        color: theme.palette.error.main,
-                                                        '&:hover': {
-                                                            backgroundColor: alpha(theme.palette.error.main, 0.1)
-                                                        }
-                                                    }}
-                                                >
-                                                    <DeleteIcon />
-                                                </IconButton>
-                                            </CardActions>
-                                        </Card>
-                                    </Grid>
-                                ))
-                            ) : (
-                                <Grid item xs={12} sm={6} md={4}>
-                                    <Card sx={{
-                                        height: '100%',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        borderRadius: 2,
-                                        border: `1px solid ${alpha(blueTheme.primary, 0.1)}`,
-                                        backgroundColor: '#fff'
-                                    }}>
-                                        <img
-                                            src={DUMMY_IMAGE}
-                                            alt="No Achievement Found"
-                                            style={{
-                                                width: '100%',
-                                                height: 200,
-                                                objectFit: 'cover'
-                                            }}
-                                        />
-                                        <CardContent sx={{
-                                            flexGrow: 1,
-                                            p: 3,
-                                            backgroundColor: '#fff'
-                                        }}>
-                                            <Typography
-                                                variant="h6"
-                                                fontWeight="bold"
-                                                gutterBottom
-                                                sx={{ color: blueTheme.dark }}
-                                            >
-                                                N/A
-                                            </Typography>
-                                            <Typography
-                                                variant="body2"
-                                                sx={{ color: alpha(blueTheme.dark, 0.7) }}
-                                            >
-                                                N/A
-                                            </Typography>
-                                        </CardContent>
-                                        <CardActions sx={{
-                                            justifyContent: 'flex-end',
-                                            p: 2,
-                                            borderTop: `1px solid ${alpha(blueTheme.primary, 0.1)}`,
-                                            backgroundColor: alpha(blueTheme.light, 0.02)
-                                        }}>
-                                            <IconButton
-                                                onClick={() => setEditId('')}
-                                                sx={{
-                                                    color: blueTheme.primary,
-                                                    '&:hover': {
-                                                        backgroundColor: alpha(blueTheme.primary, 0.1)
-                                                    }
-                                                }}
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                disabled
-                                                sx={{ color: theme.palette.error.main }}
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </CardActions>
-                                    </Card>
+                                                {achievement.description?.length > 150 && (
+                                                    <Button
+                                                        size="small"
+                                                        onClick={() => handleReadMore(achievement.description)}
+                                                        sx={{
+                                                            color: '#1976d2',
+                                                            textTransform: 'none',
+                                                            p: 0,
+                                                            mt: 'auto',
+                                                            '&:hover': {
+                                                                backgroundColor: 'transparent',
+                                                                textDecoration: 'underline'
+                                                            }
+                                                        }}
+                                                    >
+                                                        Read More
+                                                    </Button>
+                                                )}
+                                            </CardContent>
+                                        </ContentContainer>
+                                    </StyledCard>
                                 </Grid>
-                            )}
+                            ))}
                         </Grid>
                     </Fade>
                 )}
+
+                <Dialog
+                    open={modalOpen}
+                    onClose={() => setModalOpen(false)}
+                    maxWidth="sm"
+                    fullWidth
+                >
+                    <DialogTitle sx={{ color: '#1a237e', fontWeight: 'bold' }}>
+                        Description
+                    </DialogTitle>
+                    <DialogContent>
+                        <Typography variant="body1" sx={{ color: '#424242', mt: 1 }}>
+                            {selectedDescription}
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button
+                            onClick={() => setModalOpen(false)}
+                            sx={{ color: '#1976d2' }}
+                        >
+                            Close
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </Box>
         </Container>
     );
