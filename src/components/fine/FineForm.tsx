@@ -11,7 +11,8 @@ import {
   CardContent,
   CardHeader,
   Divider,
-  Typography
+  Typography,
+  CircularProgress
 } from '@mui/material';
 import {
   Event as EventIcon,
@@ -62,6 +63,8 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
   });
 
   const [employees, setEmployees] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -93,6 +96,7 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setLoading(true); // Start loading
 
     try {
       let token = null;
@@ -124,26 +128,26 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
       })
         .then(response => response.json())
         .then(data => {
-          if (data.message) {
-            toast[data.message.includes('success') ? 'success' : 'error'](data.message, {
-              position: 'top-center',
-            });
-          } else {
-            toast.error('Unexpected error occurred', {
-              position: 'top-center',
-            });
-          }
+          toast[data.message.includes('success') ? 'success' : 'error'](data.message, {
+            position: 'top-center',
+          });
 
           dispatch(fetchFines({ page: 1, month, year, limit: 10, keyword: '' }));
           onClose();
         })
         .catch((error) => {
           console.error('Error:', error);
-        });
+          toast.error('Unexpected error occurred', {
+            position: 'top-center',
+          });
+        })
+        .finally(() => setLoading(false)); // Stop loading after request completes
     } catch (error) {
       console.error('Error:', error);
+      setLoading(false); // Stop loading on error
     }
   };
+
 
   return (
     <Card
@@ -251,7 +255,8 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
               variant="contained"
               type="submit"
               fullWidth
-              startIcon={<SaveIcon />}
+              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+              disabled={loading} // Disable while loading
               sx={{
                 backgroundColor: '#ff902f',
                 '&:hover': {
@@ -259,8 +264,9 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
                 }
               }}
             >
-              {fine ? 'Update Fine' : 'Create Fine'}
+              {loading ? 'Processing Fine & Sending Email...' : fine ? 'Update Fine' : 'Create Fine'}
             </Button>
+
             <Button
               variant="outlined"
               fullWidth
