@@ -68,6 +68,7 @@ export const employeesCountResponse = async (): Promise<any> => {
 
 export const fetchMonthlyAttendanceSummary = async (month: number, year: number, page = 1, limit = 10, keyword = '', location = ''): Promise<any> => {
   const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
 
   try {
     const response = await fetch(
@@ -75,7 +76,7 @@ export const fetchMonthlyAttendanceSummary = async (month: number, year: number,
       {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token} ${company_id}`,
           'Content-Type': 'application/json',
         },
       }

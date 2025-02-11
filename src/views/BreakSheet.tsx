@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
-import { Button, Grid, Typography, Box, Paper, Card, CardContent, Stack, Autocomplete, TextField } from '@mui/material'
+import { Button, Grid, Typography, Box, Paper, Card, CardContent, Stack, Autocomplete, TextField, Alert, Snackbar } from '@mui/material'
 
 import { AccessTime, Coffee, Group, Timer } from '@mui/icons-material'
 
@@ -64,6 +64,7 @@ const BreakSheet: React.FC = () => {
 
     const [showTeamBreakSheets, setShowTeamBreakSheets] = useState(false)
     const [isLargeScreen, setIsLargeScreen] = useState(false)
+    const [showBreakReminder, setShowBreakReminder] = useState(false);
 
     const [selectedEmployeeWorkingHours, setSelectedEmployeeWorkingHours] = useState<string>('00h 00m 00s')
 
@@ -189,6 +190,22 @@ const BreakSheet: React.FC = () => {
             }
         }
     }, [])
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden && timerRunning) {
+                setShowBreakReminder(true);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleVisibilityChange);
+        };
+    }, [timerRunning]);
 
     // Check if there's a running break
     useEffect(() => {
@@ -349,6 +366,44 @@ const BreakSheet: React.FC = () => {
 
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: 'background.default' }}>
+            {/* Break Reminder Notification */}
+            <Snackbar
+                open={showBreakReminder}
+                autoHideDuration={null} // Keep it open until user dismisses it
+                onClose={() => setShowBreakReminder(false)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // Centered on the screen
+                sx={{
+                    "& .MuiSnackbarContent-root": {
+                        backgroundColor: "#d32f2f", // Highlighted red color
+                        color: "#fff",
+                        fontWeight: "bold",
+                        fontSize: "18px",
+                        textAlign: "center",
+                        padding: "16px",
+                        borderRadius: "8px",
+                        boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.3)",
+                    }
+                }}
+            >
+                <Alert
+                    severity="error"
+                    sx={{
+                        width: "100%",
+                        fontSize: "18px",
+                        fontWeight: "bold",
+                        textAlign: "center",
+                        backgroundColor: "#ffebee",
+                        color: "#d32f2f",
+                        border: "2px solid #d32f2f",
+                    }}
+                    onClose={() => setShowBreakReminder(false)}
+                >
+                    🚨 **Your break is still running!** ⏳ <br />
+                    Please end it before resuming work.
+                </Alert>
+            </Snackbar>
+
+
             {/* Row with two buttons */}
             <Stack direction='row' spacing={2} mb={2}>
                 <Button
