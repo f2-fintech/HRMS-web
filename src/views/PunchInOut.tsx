@@ -426,6 +426,11 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         >
                             Punch In
                         </Button>
+                        {punchState.startTime && (
+                            <Typography variant='body2' sx={{ color: 'white' }}>
+                                {punchState.startTime}
+                            </Typography>
+                        )}
                     </Box>
 
                     {/* Date Display - Moved Between Punch In and Punch Out */}
@@ -456,6 +461,11 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         >
                             Punch Out
                         </Button>
+                        {punchState.endTime && (
+                            <Typography variant='body2' sx={{ color: 'white' }}>
+                                {punchState.endTime}
+                            </Typography>
+                        )}
                     </Box>
                 </Box>
             </Box>

@@ -37,7 +37,7 @@ const ExceedOneHourBreak: React.FC<{ employee: Employee }> = ({ employee }) => {
                     }}
                 >
                     <Typography color='white' variant='body2'>
-                        Total Break: {totalBreakTime}
+                        Total: {totalBreakTime}
                     </Typography>
                 </Box>
             </CardContent>
