@@ -54,6 +54,9 @@ const BreakSheet: React.FC = () => {
     const [exceedBreakEmployees, setExceedBreakEmployees] = useState<Employee[]>([])
     const [showExceedBreaks, setShowExceedBreaks] = useState(false)
 
+    const [notCompleteShiftEmployees, setNotCompleteShiftEmployees] = useState<Employee[]>([])
+    const [showNotcompleteShift, setShowNotcompleteShift] = useState(false)
+
     const [openEditForm, setOpenEditForm] = useState(false)
     const [currentBreak, setCurrentBreak] = useState<Break | null>(null)
     const [specifyError, setSpecifyError] = useState<string>('')
@@ -97,6 +100,33 @@ const BreakSheet: React.FC = () => {
             console.error('Error fetching exceed break employees:', error)
         }
     }
+
+    const fetchEmpNotCompleteShift = async () => {
+        if (showNotcompleteShift) {
+            // If currently visible, hide the section
+            setShowNotcompleteShift(false)
+            return
+        }
+
+        try {
+            // Update the URL to include date and company_id
+            const url = `${process.env.NEXT_PUBLIC_APP_URL}/punch/working-less-than-8-hours?date=${selectedDate}&company_id=${companyId}`;
+
+            const response = await fetch(url);
+            const data = await response.json();
+            setNotCompleteShiftEmployees(data.employees);
+            setShowNotcompleteShift(true); // Show the shift completion list
+            setShowNotPunchedIn(false); // Hide missing punches & absent data
+        } catch (error) {
+            console.error('Error fetching not work on 8 hr break employees:', error);
+        }
+    }
+
+    useEffect(() => {
+        if (showNotcompleteShift) {
+            fetchEmpNotCompleteShift();
+        }
+    }, [selectedDate]); // Run when selectedDate changes
 
     useEffect(() => {
         if (showExceedBreaks) {
@@ -480,6 +510,23 @@ const BreakSheet: React.FC = () => {
                 >
                     {showExceedBreaks ? 'Collapse Long Breaks' : '📊 Monitor Long Breaks'}
                 </Button>}
+
+                {userRole === "1" && <Button
+                    variant='contained'
+                    onClick={fetchEmpNotCompleteShift}
+                    sx={{
+                        borderRadius: '999px',
+                        py: 1.5,
+                        px: 4.5,
+                        boxShadow: '#d32f2f 0 10px 20px -10px',
+                        background: 'yellow',
+                        color: 'black',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                    }}
+                >
+                    {showNotcompleteShift ? 'Collapse' : '📊 Monitor Shif Not Complete'}
+                </Button>}
             </Stack>
             {showExceedBreaks && (
                 <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -490,6 +537,18 @@ const BreakSheet: React.FC = () => {
                     ))}
                 </Grid>
             )}
+
+            {showNotcompleteShift && (
+                <Grid container spacing={2} sx={{ mt: 2 }}>
+                    {notCompleteShiftEmployees.map(employee => (
+                        <Grid item xs={12} sm={6} md={3} key={employee._id}>
+                            <ExceedOneHourBreak employee={employee} />
+                        </Grid>
+                    ))}
+                </Grid>
+            )}
+
+
 
             {/* Render the NotPunchedInToday component if toggled */}
             {showNotPunchedIn && <NotPunchedInToday selectedDate={selectedDate} />}
