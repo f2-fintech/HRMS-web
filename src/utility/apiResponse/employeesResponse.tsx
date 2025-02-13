@@ -95,3 +95,34 @@ export const fetchMonthlyAttendanceSummary = async (month: number, year: number,
   }
 };
 
+
+export const fetchTotalShiftTime = async (date: string): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/punch/total-shift-time?date=${date}&company_id=${company_id}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const shiftTimeDetails = await response.json();
+
+    return shiftTimeDetails;
+  } catch (error) {
+    console.error('Error fetching total shift time:', error);
+    throw error;
+  }
+};
+
+

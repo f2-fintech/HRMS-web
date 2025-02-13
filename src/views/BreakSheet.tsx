@@ -11,7 +11,7 @@ import type { Break } from '@/redux/features/breaksheets/breaksSlice'
 import { addBreak, fetchBreaksById, updateBreak, updateLatestBreak } from '@/redux/features/breaksheets/breaksSlice'
 import type { RootState, AppDispatch } from '@/redux/store'
 
-import { apiResponse } from '../utility/apiResponse/employeesResponse' // Adjust the path if needed
+import { apiResponse, fetchTotalShiftTime } from '../utility/apiResponse/employeesResponse' // Adjust the path if needed
 import { fetchTotalWorkingHours } from '@/redux/features/punches/punchesSlice'
 
 import PunchInOut from '@/views/PunchInOut'
@@ -69,6 +69,8 @@ const BreakSheet: React.FC = () => {
     const [isLargeScreen, setIsLargeScreen] = useState(false)
     const [showBreakReminder, setShowBreakReminder] = useState(false);
 
+    const [allEmployees, setAllEmployees] = useState<any[]>([])
+
     const [selectedEmployeeWorkingHours, setSelectedEmployeeWorkingHours] = useState<string>('00h 00m 00s')
 
     // Retrieve employee from localStorage (if available)
@@ -121,6 +123,8 @@ const BreakSheet: React.FC = () => {
             console.error('Error fetching not work on 8 hr break employees:', error);
         }
     }
+
+
 
     useEffect(() => {
         if (showNotcompleteShift) {
@@ -394,8 +398,72 @@ const BreakSheet: React.FC = () => {
         setShowNotPunchedOut(prev => !prev)
     }
 
+
+    useEffect(() => {
+        const fetchEmployees = async () => {
+
+
+            try {
+                const employeesData = await fetchTotalShiftTime(selectedDate)
+
+                setAllEmployees(employeesData.employees)
+            } catch (error: any) {
+                (error.message || 'Failed to fetch employee data')
+            } finally {
+            }
+        }
+
+        fetchEmployees()
+    }, [selectedDate])
+
+
+    const handleExportShiftTime = () => {
+        // Month names array
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
+        ]
+
+        // Get the selected month and year
+        const formattedMonth = monthNames[parseInt(selectedDate.split('-')[1], 10) - 1] // Convert month number to name
+        const formattedYear = selectedDate.split('-')[0]
+        const formattedDay = selectedDate.split('-')[2]; // Extract the day from selectedDate
+
+        // Create the file name with selected date (e.g., shift_summary_12_January_2025.csv)
+        const fileName = `shift_summary_${formattedDay}_${formattedMonth}_${formattedYear}.csv`;
+
+        // Prepare data for export with employee details (first_name, last_name, location, totalShiftTime)
+        const csvContent = [
+            ['Employee Name', 'Location', 'Total Shift Time'],
+            ...allEmployees.map(emp => [
+                `${emp.first_name} ${emp.last_name}`,
+                emp.location,
+                emp.totalShiftTime,  // Assuming you have totalShiftTime in the employee object
+            ])
+        ]
+            .map(e => e.join(',')) // Join each row by commas
+            .join('\n') // Join rows with newline characters
+
+        // Create a blob from the CSV content
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+
+        if (link.download !== undefined) {
+            // Create a download link
+            const url = URL.createObjectURL(blob)
+
+            link.setAttribute('href', url)
+            link.setAttribute('download', fileName) // Set the dynamic file name
+            link.style.visibility = 'hidden'
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+        }
+    }
+
+
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: 'background.default' }}>
+
             {/* Break Reminder Notification */}
             <Snackbar
                 open={showBreakReminder}
@@ -440,7 +508,7 @@ const BreakSheet: React.FC = () => {
                     variant='contained'
                     onClick={toggleNotPunchedInToday}
                     sx={{
-                        borderRadius: '999px',
+                        borderRadius: '10px',
                         py: 1.5,
                         px: 4.5,
                         boxShadow: '#5E5DF0 0 10px 20px -10px',
@@ -469,7 +537,7 @@ const BreakSheet: React.FC = () => {
                     variant='contained'
                     onClick={toggleNotPunchedOut}
                     sx={{
-                        borderRadius: '999px',
+                        borderRadius: '10px',
                         py: 1.5,
                         px: 4.5,
                         boxShadow: '#808080 0 10px 20px -10px',
@@ -498,13 +566,13 @@ const BreakSheet: React.FC = () => {
                     variant='contained'
                     onClick={fetchExceedBreakEmployees}
                     sx={{
-                        borderRadius: '999px',
-                        py: 1.5,
+                        borderRadius: '10px',
+                        // py: 0.5,
                         px: 4.5,
                         boxShadow: '#d32f2f 0 10px 20px -10px',
                         background: '#d32f2f',
                         color: '#FFFFFF',
-                        fontWeight: 700,
+                        fontWeight: 400,
                         cursor: 'pointer'
                     }}
                 >
@@ -515,7 +583,7 @@ const BreakSheet: React.FC = () => {
                     variant='contained'
                     onClick={fetchEmpNotCompleteShift}
                     sx={{
-                        borderRadius: '999px',
+                        borderRadius: '100',
                         py: 1.5,
                         px: 4.5,
                         boxShadow: '#d32f2f 0 10px 20px -10px',
@@ -527,6 +595,32 @@ const BreakSheet: React.FC = () => {
                 >
                     {showNotcompleteShift ? 'Collapse' : '📊 Monitor Shif Not Complete'}
                 </Button>}
+                <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button
+                        sx={{
+                            margin: '10px',
+                            padding: '15px 30px',
+                            textAlign: 'center',
+                            textTransform: 'uppercase',
+                            transition: '0.5s',
+                            backgroundSize: '200% auto',
+                            color: 'white',
+                            borderRadius: '10px',
+                            border: 0,
+                            fontWeight: 500,
+                            boxShadow: '0px 0px 14px -7px #F09819',
+
+                            cursor: 'pointer',
+
+                        }}
+                        variant='contained'
+                        color='primary'
+                        // startIcon={<DownloadIcon />}
+                        onClick={handleExportShiftTime}
+                    >
+                        Export Shift Time
+                    </Button>
+                </Grid>
             </Stack>
             {showExceedBreaks && (
                 <Grid container spacing={2} sx={{ mt: 2 }}>
