@@ -177,9 +177,10 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
                 Leaves
               </MenuItem>
-              <MenuItem href={`/teams`} icon={<GroupIcon />}>
+              <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
                 Teams
               </MenuItem>
+
               <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
                 Break Sheet
               </MenuItem>

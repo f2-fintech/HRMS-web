@@ -173,19 +173,50 @@ const Achievement = () => {
     }, []);
 
     const fetchAchievements = async () => {
-        setLoading(true);
+        setLoading(true); // Set loading state to true
 
         try {
-            const response = await fetch(API_URL);
+            // Retrieve token and company_id from localStorage
+            const token = localStorage.getItem('token');
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const companyId = userData?.company_id;
+
+            // If token or company_id are missing, return early
+            if (!token || !companyId) {
+                console.error('Missing token or company_id');
+                setLoading(false);
+                return;
+            }
+
+            // Set up the request headers with token and company_id
+            const headers = {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'company-id': companyId, // Include company_id in headers
+            };
+
+            // Fetch data from the API
+            const response = await fetch(API_URL, { headers });
+
+            // Check if the response is successful
+            if (!response.ok) {
+                throw new Error(`Error: ${response.statusText}`);
+            }
+
+            // Parse the response data
             const data = await response.json();
 
+            // Update state with fetched achievements
             setAchievements(data);
         } catch (error) {
+            // Log any errors that occur during the fetch
             console.error('Error fetching achievements:', error);
+        } finally {
+            // Set loading state to false after fetching is complete
+            setLoading(false);
         }
-
-        setLoading(false);
     };
+
 
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this achievement?')) {
@@ -330,7 +361,7 @@ const Achievement = () => {
                 ) : (
                     <Fade in={!loading}>
                         <Grid container spacing={3}>
-                            {achievements.map((achievement) => (
+                            {achievements?.map((achievement) => (
                                 <Grid item xs={12} key={achievement._id}>
                                     <StyledCard>
                                         <MediaContainer>
