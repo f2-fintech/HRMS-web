@@ -595,7 +595,7 @@ const BreakSheet: React.FC = () => {
                 >
                     {showNotcompleteShift ? 'Collapse' : '📊 Monitor Shif Not Complete'}
                 </Button>}
-                <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                {userRole === "1" && <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <Button
                         sx={{
                             margin: '10px',
@@ -620,7 +620,7 @@ const BreakSheet: React.FC = () => {
                     >
                         Export Shift Time
                     </Button>
-                </Grid>
+                </Grid>}
             </Stack>
             {showExceedBreaks && (
                 <Grid container spacing={2} sx={{ mt: 2 }}>

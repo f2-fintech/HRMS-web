@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import Link from 'next/link';
 
 import { useMediaQuery, useTheme, Button, Typography, Box, Grid, Card, Tooltip, Container, Paper, Stack, Divider } from '@mui/material'
 import Avatar from '@mui/material/Avatar'
@@ -378,16 +379,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 )}
 
                 {/* User Image */}
-                <Avatar
-                    alt={userData?.first_name || 'User'}
-                    src={userData?.image}
-                    sx={{
-                        width: 64,
-                        height: 64,
-                        border: '2px solid white',
-                        mb: 1
-                    }}
-                />
+                <Link href="/profile">
+                    <Avatar
+                        alt={userData?.first_name || 'User'}
+                        src={userData?.image}
+                        sx={{
+                            width: 64,
+                            height: 64,
+                            border: '2px solid white',
+                            mb: 1
+                        }}
+                    />
+                </Link>
 
                 {/* Display Current Day Instead of Punch In/Out Text */}
                 <Typography
