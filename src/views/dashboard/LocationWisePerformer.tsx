@@ -16,6 +16,8 @@ import type { AppDispatch, RootState } from '@/redux/store'
 
 import AwardForm from '@/components/performer/AwardForm'
 import { formatAmount } from '@/utility/formatAmount/formatAmount'
+import useRouterWithMount from '@/utility/useRouterWithMount'
+import { Tooltip } from '@mui/material'
 
 // Define interfaces for type safety
 interface Employee {
@@ -52,6 +54,8 @@ const LocationWisePerformer = () => {
   const [amount, setAmount] = useState<string>('')
   const [awardTitle, setAwardTitle] = useState('')
   const [user, setUser] = useState<User | null>(null)
+
+  const { navigateToProfile } = useRouterWithMount()
 
   const { capitalizeFirstLetter } = utility()
 
@@ -310,15 +314,19 @@ const LocationWisePerformer = () => {
                               overflow: 'hidden'
                             }}
                           >
-                            <img
-                              src={award.employee.image}
-                              alt={`${award.employee.first_name} ${award.employee.last_name}`}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover'
-                              }}
-                            />
+                            <Tooltip title="View Profile" arrow>
+                              <img
+                                src={award.employee.image}
+                                alt={`${award.employee.first_name} ${award.employee.last_name}`}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => navigateToProfile(award.employee?._id)}
+                              />
+                            </Tooltip>
                           </Box>
                         </motion.div>
                       )}

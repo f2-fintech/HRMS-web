@@ -14,7 +14,8 @@ import {
   ListItemText,
   Divider,
   Box,
-  Grid
+  Grid,
+  Tooltip
 } from '@mui/material'
 import CakeIcon from '@mui/icons-material/Cake'
 import PersonIcon from '@mui/icons-material/Person'
@@ -22,11 +23,16 @@ import PersonIcon from '@mui/icons-material/Person'
 import { fetchUpcomingBirthdays } from '@/redux/features/employees/employeesSlice'
 import type { AppDispatch, RootState } from '@/redux/store'
 import { utility } from '@/utility'
+import useRouterWithMount from '@/utility/useRouterWithMount'
+
+
 
 const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; loading: boolean }) => {
   const dispatch = useDispatch<AppDispatch>()
   const [userId, setUserId] = useState<string | undefined>()
   const { upcomingBirthdays, loadingBirthdays } = useSelector((state: RootState) => state.upcomingBirthdays)
+
+  const { navigateToProfile } = useRouterWithMount()
 
   const { capitalizeFirstLetter } = utility()
 
@@ -128,19 +134,22 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
           <Grid container spacing={2} justifyContent='center'>
             {todayBirthdays.map((row, index) => (
               <Grid item key={index} xs={4}>
-                <Avatar
-                  src={row._doc.image}
-                  alt={`${row._doc.first_name} ${row._doc.last_name}`}
-                  sx={{
-                    width: 85,
-                    height: 85,
-                    margin: 'auto',
-                    border: '2px solid #ddd',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
-                  }}
-                >
-                  {!row._doc.image && <PersonIcon />}
-                </Avatar>
+                <Tooltip title="View Profile" arrow>
+                  <Avatar
+                    src={row._doc.image}
+                    alt={`${row._doc.first_name} ${row._doc.last_name}`}
+                    sx={{
+                      width: 85,
+                      height: 85,
+                      margin: 'auto',
+                      border: '2px solid #ddd',
+                      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    }}
+                    onClick={() => navigateToProfile(row._doc?._id)}
+                  >
+                    {!row._doc.image && <PersonIcon />}
+                  </Avatar>
+                </Tooltip>
                 <Typography variant='h6' sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
                   {capitalizeFirstLetter(row._doc.first_name)} {capitalizeFirstLetter(row._doc.last_name)}
                 </Typography>
@@ -184,19 +193,22 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
           <Grid container spacing={2} justifyContent='center' sx={{ mt: 1 }}>
             {nextBirthdayEmployees.map((employee, index) => (
               <Grid item key={index} xs={4}>
-                <Avatar
-                  src={employee._doc.image}
-                  alt={`${employee._doc.first_name} ${employee._doc.last_name}`}
-                  sx={{
-                    width: 87,
-                    height: 87,
-                    margin: 'auto',
-                    border: '2px solid #ddd',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
-                  }}
-                >
-                  {!employee._doc.image && <PersonIcon />}
-                </Avatar>
+                <Tooltip title="View profile" arrow>
+                  <Avatar
+                    src={employee._doc.image}
+                    alt={`${employee._doc.first_name} ${employee._doc.last_name}`}
+                    sx={{
+                      width: 87,
+                      height: 87,
+                      margin: 'auto',
+                      border: '2px solid #ddd',
+                      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    }}
+                    onClick={() => navigateToProfile(employee._doc?._id)}
+                  >
+                    {!employee._doc.image && <PersonIcon />}
+                  </Avatar>
+                </Tooltip>
                 <Typography variant='h6' sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
                   {capitalizeFirstLetter(employee._doc.first_name)} {capitalizeFirstLetter(employee._doc.last_name)}
                 </Typography>
@@ -256,21 +268,24 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
                     }}
                   >
                     <ListItemAvatar>
-                      <Avatar
-                        src={row._doc.image}
-                        alt={`${row._doc.first_name} ${row._doc.last_name}`}
-                        sx={{
-                          width: 56,
-                          height: 56,
-                          border: '3px solid #ddd',
-                          transition: 'transform 0.3s ease',
-                          '&:hover': {
-                            transform: 'scale(1.1)'
-                          }
-                        }}
-                      >
-                        {!row._doc.image && <PersonIcon />}
-                      </Avatar>
+                      <Tooltip title="View Profile" arrow>
+                        <Avatar
+                          src={row._doc.image}
+                          alt={`${row._doc.first_name} ${row._doc.last_name}`}
+                          sx={{
+                            width: 56,
+                            height: 56,
+                            border: '3px solid #ddd',
+                            transition: 'transform 0.3s ease',
+                            '&:hover': {
+                              transform: 'scale(1.1)'
+                            }
+                          }}
+                          onClick={() => navigateToProfile(row._doc?._id)}
+                        >
+                          {!row._doc.image && <PersonIcon />}
+                        </Avatar>
+                      </Tooltip>
                     </ListItemAvatar>
                     <ListItemText
                       primary={

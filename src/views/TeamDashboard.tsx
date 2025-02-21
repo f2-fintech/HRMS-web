@@ -65,12 +65,6 @@ const TeamDashboard: React.FC = () => {
         { first_name: string; last_name: string; image: string }[]
     >([])
 
-    console.log('jajdka', teamsMemberMonthlyAttendence)
-
-    console.log('off yet today', offToday)
-
-    console.log('team id', teamId)
-
     const legendItems = [
         { status: 'Present', icon: <Check color='success' /> },
         { status: 'Absent', icon: <Close color='error' /> },
@@ -90,7 +84,6 @@ const TeamDashboard: React.FC = () => {
         // Get company_id from localStorage
         const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
         setCompanyId(userData?.company_id)
-        console.log('User Data:', userData)
 
         // Debug: Ensure `userData.id` exists
         if (!userData.id) {
@@ -109,12 +102,6 @@ const TeamDashboard: React.FC = () => {
                     return
                 }
 
-                console.log(
-                    'Making API Request to:',
-                    `${process.env.NEXT_PUBLIC_APP_URL}/teams/find-teams-by-employee?employee_id=${userData.id}`
-                )
-                console.log('Token:', token)
-
                 const response = await fetch(
                     `${process.env.NEXT_PUBLIC_APP_URL}/teams/find-teams-by-employee?employee_id=${userData.id}`,
                     {
@@ -126,12 +113,9 @@ const TeamDashboard: React.FC = () => {
                     }
                 )
 
-                // Debug: Log API Response
-                console.log('Response Received:', response)
-
                 if (response.ok) {
                     const data = await response.json()
-                    console.log('Fetched Team Data:', data)
+
                     if (data.length > 0) {
                         setTeamId(data[0])
                     } else {

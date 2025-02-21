@@ -7,17 +7,7 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useSelector, useDispatch } from 'react-redux'
 import PreviewIcon from '@mui/icons-material/Preview'
-import {
-  Box,
-  Grid,
-  Typography,
-  Button,
-  TextField,
-  Dialog,
-  DialogContent,
-  Alert,
-  DialogActions
-} from '@mui/material'
+import { Box, Grid, Typography, Button, TextField, Dialog, DialogContent, Alert, DialogActions } from '@mui/material'
 import type { GridColDef } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
 import AddIcon from '@mui/icons-material/Add'
@@ -78,11 +68,7 @@ export const getManagerNameById = (id: string, employees: EmployeeType[]) => {
   return manager ? `${manager.first_name} ${manager.last_name}` : ''
 }
 
-export const getEmployeeCountByIds = (
-  ids: string,
-  employees: EmployeeType[],
-  managerId?: string
-) => {
+export const getEmployeeCountByIds = (ids: string, employees: EmployeeType[], managerId?: string) => {
   if (!ids) return 0
   const idArray = ids.split(',')
   const validIds = idArray.filter(id => employees.some(emp => emp._id === id))
@@ -197,7 +183,6 @@ export default function TeamGrid() {
           }
         })
         .catch(error => {
-          console.log('Error', error)
           toast.error('Unexpected error occurred', { position: 'top-center' })
         })
         .finally(() => {
@@ -225,8 +210,7 @@ export default function TeamGrid() {
       field: 'employee_ids',
       headerName: 'No. of Employees',
       editable: true,
-      renderCell: params =>
-        getEmployeeCountByIds(params.value, employees, params.row.manager_id),
+      renderCell: params => getEmployeeCountByIds(params.value, employees, params.row.manager_id),
       flex: 1,
       headerAlign: 'center',
       align: 'center'
@@ -245,13 +229,7 @@ export default function TeamGrid() {
           flex: 1,
           headerAlign: 'center',
           renderCell: ({ row: { _id } }) => (
-            <Box
-              width='85%'
-              m='0 auto'
-              p='5px'
-              display='flex'
-              justifyContent='space-around'
-            >
+            <Box width='85%' m='0 auto' p='5px' display='flex' justifyContent='space-around'>
               <Button
                 color='info'
                 variant='contained'
@@ -280,12 +258,7 @@ export default function TeamGrid() {
       align: 'center',
       headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Button
-          color='primary'
-          variant='contained'
-          sx={{ minWidth: '50px' }}
-          onClick={() => handleViewDetails(row)}
-        >
+        <Button color='primary' variant='contained' sx={{ minWidth: '50px' }} onClick={() => handleViewDetails(row)}>
           <PreviewIcon />
         </Button>
       )
@@ -298,9 +271,7 @@ export default function TeamGrid() {
         {/* Alert Dialog for Delete Confirmation */}
         <Dialog open={openAlert} onClose={() => setOpenAlert(false)}>
           <DialogContent>
-            <Alert severity='warning'>
-              Are you sure you want to delete this team? This action cannot be undone.
-            </Alert>
+            <Alert severity='warning'>Are you sure you want to delete this team? This action cannot be undone.</Alert>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenAlert(false)} color='primary'>
@@ -379,6 +350,7 @@ export default function TeamGrid() {
           <Grid item xs={12} sm={6} md={12}>
             <DataGrid
               sx={{
+                height: 'calc(130vh - 200px)',
                 '& .mui-yrdy0g-MuiDataGrid-columnHeaderRow ': {
                   background: '#2c3ce3 !important',
                   color: 'white'

@@ -139,7 +139,6 @@ const Query = () => {
     }, [])
 
     const handleFormSubmit = async (formData: any) => {
-        console.log('formdata', formData)
         try {
             if (selectedQuery) {
                 await dispatch(updateQueryById({ id: selectedQuery._id, data: formData })).unwrap()
@@ -442,7 +441,7 @@ const Query = () => {
                     </Grid>
                 </Grid>
             </Box>
-            <Box sx={{ width: '100%', height: 600 }}>
+            <Box sx={{ width: '100%' }}>
                 <DataGrid
                     rows={rows}
                     columns={generateColumns}
@@ -459,7 +458,7 @@ const Query = () => {
                         return ''
                     }}
                     sx={{
-                        height: 600,
+                        height: 'calc(140vh - 200px)',
                         '& .super-app-theme--header': {
                             fontSize: 17,
                             fontWeight: 600,

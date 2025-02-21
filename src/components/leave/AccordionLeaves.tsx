@@ -13,7 +13,8 @@ import {
   AccordionSummary,
   AccordionDetails,
   IconButton,
-  DialogContent
+  DialogContent,
+  Tooltip
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ContrastIcon from '@mui/icons-material/Contrast';
@@ -22,6 +23,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import DialogTitle from '@mui/material/DialogTitle';
 import { format } from 'date-fns';
 import { DriveFileRenameOutlineOutlined } from '@mui/icons-material';
+import useRouterWithMount from '@/utility/useRouterWithMount';
 
 interface AccordionLeavesProps {
   params: any;
@@ -39,6 +41,8 @@ const AccordionLeaves: React.FC<AccordionLeavesProps> = ({
   BootstrapDialog
 }) => {
   const [openDialogs, setOpenDialogs] = useState<Record<string, boolean>>({});
+
+  const { navigateToProfile } = useRouterWithMount()
 
   const handleClickOpen = (leaveId: string) => {
     setOpenDialogs(prev => ({
@@ -70,10 +74,14 @@ const AccordionLeaves: React.FC<AccordionLeavesProps> = ({
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Box display="flex" alignItems="center" height="100%" width="100%" justifyContent="space-between">
           <Box display="flex" alignItems="center">
-            <Avatar
-              src={params.row.employee.image}
-              sx={{ marginLeft: 10, width: 30, height: 30 }}
-            />
+            <Tooltip title="View Profile" arrow>
+              <Avatar
+                src={params.row.employee.image || ''}
+
+                sx={{ marginLeft: 10, width: 30, height: 30, cursor: 'pointer' }}
+                onClick={() => navigateToProfile(params.row.employee._id)} // Navigate to the profile when clicked
+              />
+            </Tooltip>
             <Typography sx={{ fontSize: '1em', fontWeight: 'bold', textTransform: 'capitalize', marginLeft: 4 }}>
               {params.row.employee.first_name} {params.row.employee.last_name}
             </Typography>

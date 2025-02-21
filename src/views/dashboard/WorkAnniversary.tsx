@@ -15,7 +15,8 @@ import {
     Divider,
     Box,
     Grid,
-    Alert
+    Alert,
+    Tooltip
 } from '@mui/material'
 import WorkIcon from '@mui/icons-material/Work'
 import PersonIcon from '@mui/icons-material/Person'
@@ -27,6 +28,7 @@ import { fetchWorkAnniversaries } from '@/redux/features/employees/employeesSlic
 import type { AppDispatch, RootState } from '@/redux/store'
 import { utility } from '@/utility'
 import { fetchConfiguration } from '@/redux/features/configuration/configurationSlice'
+import useRouterWithMount from '@/utility/useRouterWithMount'
 
 const IconLegend = () => {
     return (
@@ -61,6 +63,8 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
     const dispatch = useDispatch<AppDispatch>()
     const { capitalizeFirstLetter } = utility()
     const [error, setError] = useState<string | null>(null)
+
+    const { navigateToProfile } = useRouterWithMount()
 
     const {
         workAnniversaries,
@@ -177,18 +181,22 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
                             return (
                                 <Grid item key={employee._id || index} xs={12} sm={6} md={4}>
                                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                        <Avatar
-                                            src={employee.image}
-                                            alt={`${employee.first_name} ${employee.last_name}`}
-                                            sx={{
-                                                width: 80,
-                                                height: 80,
-                                                border: '3px solid #64e0e2',
-                                                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
-                                            }}
-                                        >
-                                            {!employee.image && <PersonIcon />}
-                                        </Avatar>
+                                        <Tooltip title="View Profile" arrow>
+                                            <Avatar
+                                                src={employee.image}
+                                                alt={`${employee.first_name} ${employee.last_name}`}
+                                                sx={{
+                                                    width: 80,
+                                                    height: 80,
+                                                    border: '3px solid #64e0e2',
+                                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onClick={() => navigateToProfile(employee?._id)}
+                                            >
+                                                {!employee.image && <PersonIcon />}
+                                            </Avatar>
+                                        </Tooltip>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                             <Typography variant='h6' sx={{ color: 'white', textAlign: 'center' }}>
                                                 {capitalizeFirstLetter(employee.first_name)} {capitalizeFirstLetter(employee.last_name)}
@@ -245,18 +253,22 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
                                 return (
                                     <Grid item key={employee._id || index} xs={12} sm={6} md={4}>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                            <Avatar
-                                                src={employee.image}
-                                                alt={`${employee.first_name} ${employee.last_name}`}
-                                                sx={{
-                                                    width: 80,
-                                                    height: 80,
-                                                    border: '3px solid #64e0e2',
-                                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
-                                                }}
-                                            >
-                                                {!employee.image && <PersonIcon />}
-                                            </Avatar>
+                                            <Tooltip title="View Profile" arrow>
+                                                <Avatar
+                                                    src={employee.image}
+                                                    alt={`${employee.first_name} ${employee.last_name}`}
+                                                    sx={{
+                                                        width: 80,
+                                                        height: 80,
+                                                        border: '3px solid #64e0e2',
+                                                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => navigateToProfile(employee?._id)}
+                                                >
+                                                    {!employee.image && <PersonIcon />}
+                                                </Avatar>
+                                            </Tooltip>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                 <Typography variant='h6' sx={{ color: 'white', textAlign: 'center' }}>
                                                     {capitalizeFirstLetter(employee.first_name)} {capitalizeFirstLetter(employee.last_name)}
@@ -322,21 +334,25 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
                                             }}
                                         >
                                             <ListItemAvatar>
-                                                <Avatar
-                                                    src={employee.image}
-                                                    alt={`${employee.first_name} ${employee.last_name}`}
-                                                    sx={{
-                                                        width: 56,
-                                                        height: 56,
-                                                        border: '3px solid #ddd',
-                                                        transition: 'transform 0.3s ease',
-                                                        '&:hover': {
-                                                            transform: 'scale(1.1)'
-                                                        }
-                                                    }}
-                                                >
-                                                    {!employee.image && <PersonIcon />}
-                                                </Avatar>
+                                                <Tooltip title="View Profile" arrow>
+                                                    <Avatar
+                                                        src={employee.image}
+                                                        alt={`${employee.first_name} ${employee.last_name}`}
+                                                        sx={{
+                                                            width: 56,
+                                                            height: 56,
+                                                            border: '3px solid #ddd',
+                                                            transition: 'transform 0.3s ease',
+                                                            cursor: 'pointer',
+                                                            '&:hover': {
+                                                                transform: 'scale(1.1)'
+                                                            }
+                                                        }}
+                                                        onClick={() => navigateToProfile(employee?._id)}
+                                                    >
+                                                        {!employee.image && <PersonIcon />}
+                                                    </Avatar>
+                                                </Tooltip>
                                             </ListItemAvatar>
                                             <ListItemText
                                                 primary={

@@ -98,7 +98,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
   const handleCardClick = () => {
     setLoading(true);
     setTimeout(() => {
-      router.push(`/profile?id=${id}`);
+      router.push(`/profile/${id}`);
     }, 500);
   };
 
@@ -139,10 +139,10 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
               </Menu>
             </Box>
             <StyledAvatar alt={employee.first_name} src={employee?.image} />
-            <Typography variant='h5' component='div' align='center' sx={{ mt: 2, fontWeight: 'bold' }}>
+            <Typography variant='h5' component='div' align='center' sx={{ mt: 2, fontWeight: 'bold', color: 'black' }}>
               {capitalizeWords(employee.first_name)} {capitalizeWords(employee.last_name)}
             </Typography>
-            <Typography variant='subtitle1' color='text.secondary' align='center' sx={{ mt: 1 }}>
+            <Typography variant='subtitle1' color='black' align='center' sx={{ mt: 1 }}>
               {employee.designation}
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
@@ -159,7 +159,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
                 </EmailTypography>
               </Tooltip>
             </EmailContainer>
-            <Typography variant='subtitle1' color='text.secondary' align='center' sx={{ mt: 2 }}>
+            <Typography variant='subtitle1' color='text.secondary' align='center' sx={{ mt: 2, color: 'black' }}>
               {employee.code}
             </Typography>
           </CardContent>

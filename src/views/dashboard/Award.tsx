@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect } from 'react';
 
 import { motion } from 'framer-motion';
@@ -9,13 +11,16 @@ import {
   IconButton,
   Tooltip,
   Paper,
-  Avatar
+  Avatar,
+  Toolbar
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 import AwardForm from '../../components/performer/AwardForm';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 import { utility } from '@/utility';
+import { useRouter } from 'next/navigation';
+
 
 const Award = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -30,6 +35,14 @@ const Award = () => {
   const [userDesg, setUserDesg] = useState(null);
 
   const { capitalizeFirstLetter } = utility();
+
+  const [isMounted, setIsMounted] = useState(false);  // Track if the component is mounted
+  const router = useRouter();
+
+  useEffect(() => {
+    // Set isMounted to true once the component is mounted
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -154,6 +167,13 @@ const Award = () => {
     setIsEditMode(false);
   };
 
+  const handleProfileClick = (id: string) => {
+    if (isMounted && router) {
+      // Navigate to the profile page with the employee's ID
+      router.push(`/profile/${id}`);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -247,17 +267,21 @@ const Award = () => {
                         {capitalizeFirstLetter(awardData.employee.first_name)}{' '}
                         {capitalizeFirstLetter(awardData.employee.last_name)}
                       </span>{' '}
-                      <Avatar
-                        src={awardData.employee.image}
-                        alt={`${awardData.employee.first_name} ${awardData.employee.last_name}`}
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          marginLeft: '0.5rem',
-                          display: 'inline-block',
-                          verticalAlign: 'middle',
-                        }}
-                      />
+                      <Tooltip title="View Profile" arrow>
+                        <Avatar
+                          src={awardData.employee.image}
+                          alt={`${awardData.employee.first_name} ${awardData.employee.last_name}`}
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            marginLeft: '0.5rem',
+                            display: 'inline-block',
+                            verticalAlign: 'middle',
+                            cursor: 'pointer'  // Make it clear that the image is clickable
+                          }}
+                          onClick={() => handleProfileClick(awardData.employee._id)} // On image click, navigate to profile page
+                        />
+                      </Tooltip>
                     </>
                   ) : (
                     'No Award Data'

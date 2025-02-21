@@ -312,6 +312,7 @@ const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEm
               }}
             >
               <MenuItem value="Not Completed">Not Completed</MenuItem>
+              <MenuItem value="Completed">Completed</MenuItem>
             </TextField>
           </Grid>
 

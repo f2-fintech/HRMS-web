@@ -1,18 +1,9 @@
 /* eslint-disable padding-line-between-statements */
 'use client'
 
-// React Imports
-import { useEffect, useRef, useState } from 'react'
-import type { MouseEvent } from 'react'
+import { useEffect, useRef, useState, MouseEvent } from 'react'
+import { useDispatch } from 'react-redux'
 
-import { useDispatch } from 'react-redux';
-
-import Link from 'next/link'
-
-// Next Imports
-import { useRouter } from 'next/navigation'
-
-// MUI Imports
 import { styled } from '@mui/material/styles'
 import Badge from '@mui/material/Badge'
 import Avatar from '@mui/material/Avatar'
@@ -27,6 +18,9 @@ import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 
 import { utility } from '@/utility'
+import useRouterWithMount from '@/utility/useRouterWithMount'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 // Styled component for badge content
 const BadgeContentSpan = styled('span')({
@@ -42,13 +36,15 @@ const UserDropdown = () => {
   // States
   const [open, setOpen] = useState(false)
   const [userData, setUserData] = useState<any>(null)
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
 
   // Refs
   const anchorRef = useRef<HTMLDivElement>(null)
 
-  // Hooks
+  const { navigateToProfile } = useRouterWithMount()
   const router = useRouter()
+
+  // Hooks
   const { getRole } = utility()
 
   const handleDropdownOpen = () => {
@@ -56,18 +52,20 @@ const UserDropdown = () => {
   }
 
   const handleDropdownClose = (event?: MouseEvent<HTMLLIElement> | (MouseEvent | TouchEvent), url?: string) => {
-
     if (url) {
-      router.push(url)
+      // Use the custom hook to navigate to the profile page
+      navigateToProfile(url)
     }
 
     if (anchorRef.current && anchorRef.current.contains(event?.target as HTMLElement)) {
       return
     }
 
-    dispatch({ type: 'RESET' });
+    dispatch({ type: 'RESET' })
 
     localStorage.clear()
+
+    router.push('/login')
     setOpen(false)
   }
 
@@ -81,13 +79,12 @@ const UserDropdown = () => {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
-    console.log('User', user.role)
 
     const fetchUserData = async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/get/${user.id}`)
-        const data = await response.json();
 
+        const data = await response.json()
         setUserData(data)
       } catch (error) {
         console.error('Error fetching user data:', error)
@@ -145,17 +142,15 @@ const UserDropdown = () => {
                     </div>
                   </div>
                   <Divider className='mlb-1' />
-                  <Link href={'/profile'}>
-                    <MenuItem className='gap-3'>
-                      <i className='ri-user-3-line' />
-                      <Typography color='text.primary'>My Profile</Typography>
-                    </MenuItem>
-                  </Link>
+                  <MenuItem className='gap-3' onClick={() => navigateToProfile(userData._id)}>
+                    <i className='ri-user-3-line' />
+                    <Typography color='text.primary'>My Profile</Typography>
+                  </MenuItem>
                   {Number(userData.role_priority) <= 1 && (
                     <Link href={'/account-settings'}>
-                      <MenuItem className="gap-3">
-                        <i className="ri-settings-4-line" />
-                        <Typography color="text.primary">Setting</Typography>
+                      <MenuItem className='gap-3'>
+                        <i className='ri-settings-4-line' />
+                        <Typography color='text.primary'>Setting</Typography>
                       </MenuItem>
                     </Link>
                   )}

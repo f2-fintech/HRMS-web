@@ -3,7 +3,20 @@
 import React, { useEffect, useState, useRef } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
-import { Button, Grid, Typography, Box, Paper, Card, CardContent, Stack, Autocomplete, TextField, Alert, Snackbar } from '@mui/material'
+import {
+    Button,
+    Grid,
+    Typography,
+    Box,
+    Paper,
+    Card,
+    CardContent,
+    Stack,
+    Autocomplete,
+    TextField,
+    Alert,
+    Snackbar
+} from '@mui/material'
 
 import { AccessTime, Coffee, Group, Timer } from '@mui/icons-material'
 
@@ -67,7 +80,7 @@ const BreakSheet: React.FC = () => {
 
     const [showTeamBreakSheets, setShowTeamBreakSheets] = useState(false)
     const [isLargeScreen, setIsLargeScreen] = useState(false)
-    const [showBreakReminder, setShowBreakReminder] = useState(false);
+    const [showBreakReminder, setShowBreakReminder] = useState(false)
 
     const [allEmployees, setAllEmployees] = useState<any[]>([])
 
@@ -79,8 +92,6 @@ const BreakSheet: React.FC = () => {
     const userRole = employee?.role
     const userDesignation = employee?.desg
     const companyId = employee?.company_id
-
-    console.log('employee', employee)
 
     const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
 
@@ -112,32 +123,29 @@ const BreakSheet: React.FC = () => {
 
         try {
             // Update the URL to include date and company_id
-            const url = `${process.env.NEXT_PUBLIC_APP_URL}/punch/working-less-than-8-hours?date=${selectedDate}&company_id=${companyId}`;
+            const url = `${process.env.NEXT_PUBLIC_APP_URL}/punch/working-less-than-8-hours?date=${selectedDate}&company_id=${companyId}`
 
-            const response = await fetch(url);
-            const data = await response.json();
-            setNotCompleteShiftEmployees(data.employees);
-            setShowNotcompleteShift(true); // Show the shift completion list
-            setShowNotPunchedIn(false); // Hide missing punches & absent data
+            const response = await fetch(url)
+            const data = await response.json()
+            setNotCompleteShiftEmployees(data.employees)
+            setShowNotcompleteShift(true) // Show the shift completion list
+            setShowNotPunchedIn(false) // Hide missing punches & absent data
         } catch (error) {
-            console.error('Error fetching not work on 8 hr break employees:', error);
+            console.error('Error fetching not work on 8 hr break employees:', error)
         }
     }
 
-
-
     useEffect(() => {
         if (showNotcompleteShift) {
-            fetchEmpNotCompleteShift();
+            fetchEmpNotCompleteShift()
         }
-    }, [selectedDate]); // Run when selectedDate changes
+    }, [selectedDate]) // Run when selectedDate changes
 
     useEffect(() => {
         if (showExceedBreaks) {
-            fetchExceedBreakEmployees();
+            fetchExceedBreakEmployees()
         }
-    }, [selectedDate]); // Run when selectedDate changes
-
+    }, [selectedDate]) // Run when selectedDate changes
 
     // Check if the selected date is the current date
     useEffect(() => {
@@ -228,18 +236,18 @@ const BreakSheet: React.FC = () => {
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden && timerRunning) {
-                setShowBreakReminder(true);
+                setShowBreakReminder(true)
             }
-        };
+        }
 
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('focus', handleVisibilityChange);
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        window.addEventListener('focus', handleVisibilityChange)
 
         return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', handleVisibilityChange);
-        };
-    }, [timerRunning]);
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+            window.removeEventListener('focus', handleVisibilityChange)
+        }
+    }, [timerRunning])
 
     // Check if there's a running break
     useEffect(() => {
@@ -398,17 +406,14 @@ const BreakSheet: React.FC = () => {
         setShowNotPunchedOut(prev => !prev)
     }
 
-
     useEffect(() => {
         const fetchEmployees = async () => {
-
-
             try {
                 const employeesData = await fetchTotalShiftTime(selectedDate)
 
                 setAllEmployees(employeesData.employees)
             } catch (error: any) {
-                (error.message || 'Failed to fetch employee data')
+                error.message || 'Failed to fetch employee data'
             } finally {
             }
         }
@@ -416,20 +421,30 @@ const BreakSheet: React.FC = () => {
         fetchEmployees()
     }, [selectedDate])
 
-
     const handleExportShiftTime = () => {
         // Month names array
         const monthNames = [
-            'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'December'
         ]
 
         // Get the selected month and year
         const formattedMonth = monthNames[parseInt(selectedDate.split('-')[1], 10) - 1] // Convert month number to name
         const formattedYear = selectedDate.split('-')[0]
-        const formattedDay = selectedDate.split('-')[2]; // Extract the day from selectedDate
+        const formattedDay = selectedDate.split('-')[2] // Extract the day from selectedDate
 
         // Create the file name with selected date (e.g., shift_summary_12_January_2025.csv)
-        const fileName = `shift_summary_${formattedDay}_${formattedMonth}_${formattedYear}.csv`;
+        const fileName = `shift_summary_${formattedDay}_${formattedMonth}_${formattedYear}.csv`
 
         // Prepare data for export with employee details (first_name, last_name, location, totalShiftTime)
         const csvContent = [
@@ -437,7 +452,7 @@ const BreakSheet: React.FC = () => {
             ...allEmployees.map(emp => [
                 `${emp.first_name} ${emp.last_name}`,
                 emp.location,
-                emp.totalShiftTime,  // Assuming you have totalShiftTime in the employee object
+                emp.totalShiftTime // Assuming you have totalShiftTime in the employee object
             ])
         ]
             .map(e => e.join(',')) // Join each row by commas
@@ -460,10 +475,8 @@ const BreakSheet: React.FC = () => {
         }
     }
 
-
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: 'background.default' }}>
-
             {/* Break Reminder Notification */}
             <Snackbar
                 open={showBreakReminder}
@@ -471,28 +484,28 @@ const BreakSheet: React.FC = () => {
                 onClose={() => setShowBreakReminder(false)}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // Centered on the screen
                 sx={{
-                    "& .MuiSnackbarContent-root": {
-                        backgroundColor: "#d32f2f", // Highlighted red color
-                        color: "#fff",
-                        fontWeight: "bold",
-                        fontSize: "18px",
-                        textAlign: "center",
-                        padding: "16px",
-                        borderRadius: "8px",
-                        boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.3)",
+                    '& .MuiSnackbarContent-root': {
+                        backgroundColor: '#d32f2f', // Highlighted red color
+                        color: '#fff',
+                        fontWeight: 'bold',
+                        fontSize: '18px',
+                        textAlign: 'center',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.3)'
                     }
                 }}
             >
                 <Alert
-                    severity="error"
+                    severity='error'
                     sx={{
-                        width: "100%",
-                        fontSize: "18px",
-                        fontWeight: "bold",
-                        textAlign: "center",
-                        backgroundColor: "#ffebee",
-                        color: "#d32f2f",
-                        border: "2px solid #d32f2f",
+                        width: '100%',
+                        fontSize: '18px',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        backgroundColor: '#ffebee',
+                        color: '#d32f2f',
+                        border: '2px solid #d32f2f'
                     }}
                     onClose={() => setShowBreakReminder(false)}
                 >
@@ -500,7 +513,6 @@ const BreakSheet: React.FC = () => {
                     Please end it before resuming work.
                 </Alert>
             </Snackbar>
-
 
             {/* Row with two buttons */}
             <Stack direction='row' spacing={2} mb={2}>
@@ -562,65 +574,70 @@ const BreakSheet: React.FC = () => {
                     {showNotPunchedOut ? 'Hide' : '❌ Punched Out'}
                 </Button>
 
-                {userRole === "1" && <Button
-                    variant='contained'
-                    onClick={fetchExceedBreakEmployees}
-                    sx={{
-                        borderRadius: '10px',
-                        // py: 0.5,
-                        px: 4.5,
-                        boxShadow: '#d32f2f 0 10px 20px -10px',
-                        background: '#d32f2f',
-                        color: '#FFFFFF',
-                        fontWeight: 400,
-                        cursor: 'pointer'
-                    }}
-                >
-                    {showExceedBreaks ? 'Collapse Long Breaks' : '📊 Monitor Long Breaks'}
-                </Button>}
-
-                {userRole === "1" && <Button
-                    variant='contained'
-                    onClick={fetchEmpNotCompleteShift}
-                    sx={{
-                        borderRadius: '100',
-                        py: 1.5,
-                        px: 4.5,
-                        boxShadow: '#d32f2f 0 10px 20px -10px',
-                        background: 'yellow',
-                        color: 'black',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                    }}
-                >
-                    {showNotcompleteShift ? 'Collapse' : '📊 Monitor Shif Not Complete'}
-                </Button>}
-                {userRole === "1" && <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                {userRole === '1' && (
                     <Button
-                        sx={{
-                            margin: '10px',
-                            padding: '15px 30px',
-                            textAlign: 'center',
-                            textTransform: 'uppercase',
-                            transition: '0.5s',
-                            backgroundSize: '200% auto',
-                            color: 'white',
-                            borderRadius: '10px',
-                            border: 0,
-                            fontWeight: 500,
-                            boxShadow: '0px 0px 14px -7px #F09819',
-
-                            cursor: 'pointer',
-
-                        }}
                         variant='contained'
-                        color='primary'
-                        // startIcon={<DownloadIcon />}
-                        onClick={handleExportShiftTime}
+                        onClick={fetchExceedBreakEmployees}
+                        sx={{
+                            borderRadius: '10px',
+                            // py: 0.5,
+                            px: 4.5,
+                            boxShadow: '#d32f2f 0 10px 20px -10px',
+                            background: '#d32f2f',
+                            color: '#FFFFFF',
+                            fontWeight: 400,
+                            cursor: 'pointer'
+                        }}
                     >
-                        Export Shift Time
+                        {showExceedBreaks ? 'Collapse Long Breaks' : '📊 Monitor Long Breaks'}
                     </Button>
-                </Grid>}
+                )}
+
+                {userRole === '1' && (
+                    <Button
+                        variant='contained'
+                        onClick={fetchEmpNotCompleteShift}
+                        sx={{
+                            borderRadius: '100',
+                            py: 1.5,
+                            px: 4.5,
+                            boxShadow: '#d32f2f 0 10px 20px -10px',
+                            background: 'yellow',
+                            color: 'black',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {showNotcompleteShift ? 'Collapse' : '📊 Monitor Shif Not Complete'}
+                    </Button>
+                )}
+                {userRole === '1' && (
+                    <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button
+                            sx={{
+                                margin: '10px',
+                                padding: '15px 30px',
+                                textAlign: 'center',
+                                textTransform: 'uppercase',
+                                transition: '0.5s',
+                                backgroundSize: '200% auto',
+                                color: 'white',
+                                borderRadius: '10px',
+                                border: 0,
+                                fontWeight: 500,
+                                boxShadow: '0px 0px 14px -7px #F09819',
+
+                                cursor: 'pointer'
+                            }}
+                            variant='contained'
+                            color='primary'
+                            // startIcon={<DownloadIcon />}
+                            onClick={handleExportShiftTime}
+                        >
+                            Export Shift Time
+                        </Button>
+                    </Grid>
+                )}
             </Stack>
             {showExceedBreaks && (
                 <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -641,8 +658,6 @@ const BreakSheet: React.FC = () => {
                     ))}
                 </Grid>
             )}
-
-
 
             {/* Render the NotPunchedInToday component if toggled */}
             {showNotPunchedIn && <NotPunchedInToday selectedDate={selectedDate} />}
