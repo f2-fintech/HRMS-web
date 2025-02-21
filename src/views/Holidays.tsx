@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { debounce } from 'lodash';
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
 import {
   Button,
   Typography,
@@ -15,9 +15,13 @@ import {
   DialogContent,
   createTheme,
   ThemeProvider,
+  DialogActions,
+  DialogTitle,
 } from '@mui/material';
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { Alert, Snackbar } from '@mui/material';
 import { DriveFileRenameOutlineOutlined } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { ToastContainer, toast } from 'react-toastify';
@@ -82,6 +86,12 @@ export default function HolidayGrid() {
   const [limit, setLimit] = useState(10);
   const [isHalfDay, setIsHalfDay] = useState(false);
 
+  const [openDialog, setOpenDialog] = useState(false);
+  const [holidayToDelete, setHolidayToDelete] = useState<string | null>(null);
+  const [openAlert, setOpenAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'error' | 'success'>('success');
+
   const debouncedFetch = useCallback(
     debounce(() => {
       dispatch(fetchHolidays({ page, limit, keyword: selectedKeyword }));
@@ -126,6 +136,46 @@ export default function HolidayGrid() {
     setShowForm(true);
   };
 
+  const handleHolidayDeleteClick = (id: string) => {
+    setHolidayToDelete(id);
+    setOpenDialog(true);
+  };
+
+  // Function to handle deletion after confirmation
+  const handleConfirmDelete = async () => {
+    if (holidayToDelete) {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/holidays/delete/${holidayToDelete}`, { method: 'DELETE' });
+        const data = await response.json();
+
+        if (response.ok) {
+          setAlertMessage('Holiday deleted successfully');
+          setAlertSeverity('success');
+          debouncedFetch(); // Refetch data after successful deletion
+        } else {
+          setAlertMessage(data.message || 'Failed to delete holiday');
+          setAlertSeverity('error');
+        }
+
+        setOpenAlert(true);
+      } catch (error) {
+        setAlertMessage('An error occurred while deleting the holiday');
+        setAlertSeverity('error');
+        setOpenAlert(true);
+      }
+
+      setOpenDialog(false); // Close dialog after action
+    }
+  };
+
+  // Function to handle canceling the delete action
+  const handleCancelDelete = () => {
+    setOpenDialog(false);
+    setHolidayToDelete(null); // Reset the holiday ID
+  };
+
+
+
   const handleClose = () => {
     setShowForm(false);
   };
@@ -169,10 +219,10 @@ export default function HolidayGrid() {
       ? [
         {
           field: 'edit',
-          headerName: 'Edit',
+          headerName: 'Action',
           sortable: false,
           headerAlign: 'center',
-          flex: 0.5,
+          flex: 1,
           headerClassName: 'super-app-theme--header',
           renderCell: ({ row: { _id } }) => (
             <Box width="85%" m="0 auto" p="5px" display="flex" justifyContent="space-around">
@@ -189,6 +239,20 @@ export default function HolidayGrid() {
                 onClick={() => handleHolidayEditClick(_id)}
               >
                 <DriveFileRenameOutlineOutlined />
+              </Button>
+              <Button
+                color="error"
+                variant="contained"
+                sx={{
+                  minWidth: '50px',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                  }
+                }}
+                onClick={() => handleHolidayDeleteClick(_id)}
+              >
+                <DeleteIcon />
               </Button>
             </Box>
           ),
@@ -219,6 +283,36 @@ export default function HolidayGrid() {
             />
           </DialogContent>
         </Dialog>
+        <Dialog open={openDialog} onClose={handleCancelDelete}>
+          <DialogTitle>Confirm Deletion</DialogTitle>
+          <DialogContent>
+            <Alert severity="warning">Are you sure you want to delete this holiday?</Alert>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCancelDelete} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmDelete} color="error">
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar for alert */}
+        <Snackbar
+          open={openAlert}
+          autoHideDuration={6000}
+          onClose={() => setOpenAlert(false)}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right',
+          }}
+        >
+          <Alert onClose={() => setOpenAlert(false)} severity={alertSeverity} sx={{ width: '100%' }}>
+            {alertMessage}
+          </Alert>
+        </Snackbar>
+
         <Box
           display="flex"
           justifyContent="space-between"
@@ -246,8 +340,8 @@ export default function HolidayGrid() {
             <Typography
               variant="subtitle1"
               sx={{
-                color: 'text.secondary',
-                fontWeight: 500
+                color: 'black',
+                fontWeight: 'bolder',
               }}
             >
               Dashboard / Holiday List
@@ -314,6 +408,7 @@ export default function HolidayGrid() {
               '& .MuiDataGrid-row': {
                 '&:nth-of-type(odd)': {
                   backgroundColor: 'rgba(44, 60, 227, 0.05)',
+                  color: 'black'
                 },
                 '&:nth-of-type(even)': {
                   backgroundColor: 'white',

@@ -23,6 +23,7 @@ import {
 } from '@/redux/features/punches/punchesSlice'
 import type { RootState } from '@/redux/store'
 import Company from '@/app/(dashboard)/company/page'
+import useRouterWithMount from '@/utility/useRouterWithMount';
 
 interface PunchInOutProps {
     selectedDate: string
@@ -51,6 +52,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         isPunchOutDisabled: false,
         isPunchInDisabled: false
     })
+
+    const { navigateToProfile } = useRouterWithMount()
 
     const [timer, setTimer] = useState('00h 00m 00s')
     const [currentPunchIndex, setCurrentPunchIndex] = useState(0)
@@ -379,7 +382,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 )}
 
                 {/* User Image */}
-                <Link href="/profile">
+
+                <Tooltip title="View Profile" arrow>
                     <Avatar
                         alt={userData?.first_name || 'User'}
                         src={userData?.image}
@@ -387,10 +391,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             width: 64,
                             height: 64,
                             border: '2px solid white',
-                            mb: 1
+                            mb: 1,
+                            cursor: "pointer"
                         }}
+                        onClick={() => navigateToProfile(userData?._id)}
                     />
-                </Link>
+                </Tooltip>
 
                 {/* Display Current Day Instead of Punch In/Out Text */}
                 <Typography

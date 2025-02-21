@@ -48,7 +48,7 @@ interface AddTeamFormProps {
 }
 
 export default function AddTeamForm({ handleClose, team, debouncedFetch }: AddTeamFormProps) {
-    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+    const { company_id } = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user')) : {}
     const { teams } = useSelector((state: RootState) => state.teams)
     const { employees } = useSelector((state: RootState) => state.employees)
 
@@ -83,12 +83,10 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }: AddTe
                     company_id: selected.company_id
                 })
                 const selectedEmps: EmployeeType[] = []
-                selected.employee_ids
-                    ?.split(',')
-                    .forEach(id => {
-                        const emp = employees.find(e => e._id === id)
-                        if (emp) selectedEmps.push(emp)
-                    })
+                selected.employee_ids?.split(',').forEach(id => {
+                    const emp = employees.find(e => e._id === id)
+                    if (emp) selectedEmps.push(emp)
+                })
                 setSelectedEmployees(selectedEmps)
             }
         }
@@ -181,7 +179,6 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }: AddTe
                     debouncedFetch()
                 })
                 .catch(error => {
-                    console.log('Error', error)
                     toast.error('Unexpected error occurred', {
                         position: 'top-center'
                     })

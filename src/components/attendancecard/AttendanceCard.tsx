@@ -11,6 +11,7 @@ import {
     Button,
     Menu,
     MenuItem,
+    Tooltip,
 } from '@mui/material';
 import {
     CheckCircle as CheckCircleIcon,
@@ -23,6 +24,7 @@ import {
     Weekend as WeekendIcon,
     Assessment as AssessmentIcon
 } from '@mui/icons-material';
+import useRouterWithMount from '@/utility/useRouterWithMount';
 
 const AttendanceCard = ({
     employeeData,
@@ -50,6 +52,8 @@ const AttendanceCard = ({
     const month = selectedMonth || currentDate.getMonth() + 1;
     const year = selectedYear || currentDate.getFullYear();
 
+    const { navigateToProfile } = useRouterWithMount()
+
     // Helper function to get days in month
     const getDaysInMonth = (month, year) => {
         return new Date(year, month, 0).getDate();
@@ -71,14 +75,6 @@ const AttendanceCard = ({
     // Get actual number of days in the selected month
     const daysInMonth = getDaysInMonth(month, year);
 
-    const statusBoxStyle = {
-        p: 2,
-        borderRadius: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        minWidth: '120px'
-    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -148,14 +144,58 @@ const AttendanceCard = ({
             <CardContent>
                 {/* Employee Header with Status Button */}
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar
-                        src={employeeData.image || ''}
-                        sx={{ width: 56, height: 56, mr: 2 }}
-                    />
+                    <Tooltip title="View Profile" arrow>
+                        <Avatar
+                            src={employeeData.image || ''}
+                            sx={{ width: 56, height: 56, mr: 2, cursor: 'pointer' }} // Added cursor pointer
+                            onClick={() => navigateToProfile(employeeData?._id)} // Navigate to the profile when clicked
+                        />
+                    </Tooltip>
+
+
                     <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="h5" component="div">
                             {employeeData.name}
                         </Typography>
+                    </Box>
+
+                    <Box sx={{ ml: 3, display: 'flex', gap: 5 }}>
+                        <Tooltip title="Present">
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <CheckCircleIcon color="success" sx={{ mr: 0.5 }} />
+                                <Typography variant="body2">Present</Typography>
+                            </Box>
+                        </Tooltip>
+                        <Tooltip title="Absent">
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <CancelIcon color="error" sx={{ mr: 0.5 }} />
+                                <Typography variant="body2">Absent</Typography>
+                            </Box>
+                        </Tooltip>
+                        <Tooltip title="On Leave">
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <PauseCircleOutlineIcon sx={{ color: '#ef6c00', mr: 0.5 }} />
+                                <Typography variant="body2">On Leave</Typography>
+                            </Box>
+                        </Tooltip>
+                        <Tooltip title="On Field">
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <DirectionsRunIcon sx={{ color: '#4527a0', mr: 0.5 }} />
+                                <Typography variant="body2">On Field</Typography>
+                            </Box>
+                        </Tooltip>
+                        <Tooltip title="Work from Home">
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <HomeIcon sx={{ color: '#c2185b', mr: 0.5 }} />
+                                <Typography variant="body2">Wfh</Typography>
+                            </Box>
+                        </Tooltip>
+                        <Tooltip title="On Half">
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <ContrastIcon sx={{ color: '#1565c0', mr: 0.5 }} />
+                                <Typography variant="body2">Half</Typography>
+                            </Box>
+                        </Tooltip>
                     </Box>
                     <Button
                         variant="contained"
@@ -303,7 +343,7 @@ const AttendanceCard = ({
                                         }
                                     }}
                                 >
-                                    <Typography variant="caption" display="block">
+                                    <Typography variant="caption" display="block" sx={{ color: 'black' }}>
                                         {day}
                                     </Typography>
                                     {content}

@@ -95,7 +95,7 @@ const CustomNoRowsOverlay = () => {
     >
       <Box sx={{ mt: 1 }}>
         <Typography variant='h6' color='text.secondary'>
-          No data available
+          No row
         </Typography>
       </Box>
     </GridOverlay>
@@ -141,6 +141,7 @@ export default function LeavesGrid() {
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedKeyword(e.target.value)
   }, [])
+
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -616,7 +617,7 @@ export default function LeavesGrid() {
           </Grid>
         </Box>
         <DataGrid
-          autoHeight
+          // autoHeight
           loading={loading}
           getRowHeight={() => 'auto'}
           rows={userRole === '1' ? leaves : rows}
@@ -642,6 +643,7 @@ export default function LeavesGrid() {
             noResultsOverlay: CustomNoRowsOverlay
           }}
           sx={{
+            height: 'calc(135vh - 200px)',
             border: '0.5px solid #80808047',
             '& .super-app-theme--header': {
               backgroundColor: '#2c3ce3',

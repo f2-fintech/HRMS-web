@@ -245,10 +245,11 @@ const FineListingTable: React.FC<FineListingTableProps> = ({
     return (
         <Box sx={{ width: '100%' }}>
             <DataGrid
-                autoHeight
+                // autoHeight
                 loading={loading}
                 getRowHeight={() => 'auto'}
                 sx={{
+                    height: 'calc(140vh - 200px)',
                     '& .super-app-theme--header': {
                         fontSize: 17,
                         fontWeight: 600,

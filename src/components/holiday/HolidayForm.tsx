@@ -14,7 +14,7 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
   const [formData, setFormData] = useState({
     title: '',
     note: '',
-    start_date: '',
+    start_date: new Date().toISOString().split('T')[0],  // Sets today's date
     end_date: '',
     day: '',
     company_id: company_id

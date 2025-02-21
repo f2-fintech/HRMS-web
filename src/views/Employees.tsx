@@ -44,7 +44,6 @@ export default function EmployeeGrid() {
 
   useEffect(() => {
     if (isTokenExpired(token)) {
-      console.log('isTokenExpired(token)', isTokenExpired(token))
       localStorage.removeItem('token')
       router.push('/login')
     } else {
@@ -195,8 +194,8 @@ export default function EmployeeGrid() {
                 Add Employee
               </Button>
               <Button
-                variant="contained"
-                onClick={() => router.push("/deleted-emp")}
+                variant='contained'
+                onClick={() => router.push('/deleted-emp')}
                 sx={{
                   backgroundColor: '#ffebee',
                   borderRadius: '3rem',
@@ -206,15 +205,14 @@ export default function EmployeeGrid() {
                   '&:hover': {
                     backgroundColor: '#ffebee',
                     color: '#b71c1e',
-                    borderColor: '#b71c1c',
-                  },
+                    borderColor: '#b71c1c'
+                  }
                 }}
               >
                 Deleted Employees
               </Button>
             </Box>
           )}
-
         </Box>
         <Grid container spacing={6} alignItems='center' mb={2}>
           <Grid item xs={12} md={6}>
