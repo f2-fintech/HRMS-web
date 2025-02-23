@@ -333,7 +333,7 @@ const AttendanceCard = ({
                                         if (!isInFuture) {
                                             if (dayData) {
                                                 handleAttendanceEditClick(dayData._id);
-                                            } else if (!isSunday) {
+                                            } else {
                                                 handleAttendanceAddClick(
                                                     employeeData.employee_id,
                                                     employeeData.name,
