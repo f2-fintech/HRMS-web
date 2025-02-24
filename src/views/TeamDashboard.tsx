@@ -34,6 +34,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'
 import HomeIcon from '@mui/icons-material/Home'
 import WeekendIcon from '@mui/icons-material/Weekend'
+import BlockIcon from '@mui/icons-material/Block';
 import { CalendarToday, ChevronLeft, ChevronRight, Check, Close, Home, Coffee, AccessTime } from '@mui/icons-material'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker' // Import DatePicker component
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
@@ -72,7 +73,8 @@ const TeamDashboard: React.FC = () => {
         { status: 'On Half', icon: <AccessTimeIcon color='warning' /> },
         { status: 'On Wfh', icon: <HomeIcon color='secondary' /> },
         { status: 'On Field', icon: <DirectionsRunIcon color='primary' /> },
-        { status: 'Weekend (SA/SU)', icon: <WeekendIcon color='secondary' /> }
+        { status: 'Weekend (SA/SU)', icon: <WeekendIcon color='secondary' /> },
+        { status: 'No Attendance', icon: <BlockIcon color="disabled" /> }
     ]
 
     const handleViewEmployees = (employees: { first_name: string; last_name: string; image: string }[]) => {
@@ -216,7 +218,7 @@ const TeamDashboard: React.FC = () => {
             case 'On Field':
                 return <DirectionsRunIcon color='primary' /> // Blue for "On Field"
             default:
-                return <Typography>No Data</Typography>
+                return <BlockIcon color="disabled" />
         }
     }
 
@@ -468,7 +470,7 @@ const TeamDashboard: React.FC = () => {
                                                         dayAbbr === 'SA' || dayAbbr === 'SU' ? (
                                                             <WeekendIcon color='secondary' />
                                                         ) : (
-                                                            'No Data'
+                                                            <BlockIcon color="disabled" />
                                                         )}
                                                 </TableCell>
                                             )

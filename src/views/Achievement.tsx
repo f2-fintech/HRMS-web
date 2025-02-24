@@ -27,7 +27,7 @@ import { styled, keyframes } from '@mui/material/styles';
 import AchievementForm from '@/components/acheivement/AchievementForm';
 
 const API_URL = process.env.NEXT_PUBLIC_APP_URL + '/achievements';
-const DUMMY_IMAGE = 'https://via.placeholder.com/400';
+const DUMMY_IMAGE = 'https://img.freepik.com/premium-vector/figure-wooden-dummy-climb-up-wooden-stairs-concept-career-up-business-growth-up-success-life-management-achievement-concept-success_131476-99.jpg ';
 
 // Animation keyframes for the moving border
 const borderAnimation = keyframes`
@@ -176,27 +176,19 @@ const Achievement = () => {
         setLoading(true); // Set loading state to true
 
         try {
-            // Retrieve token and company_id from localStorage
-            const token = localStorage.getItem('token');
+            // Retrieve company_id from localStorage
             const userData = JSON.parse(localStorage.getItem('user') || '{}');
             const companyId = userData?.company_id;
 
-            // If token or company_id are missing, return early
-            if (!token || !companyId) {
-                console.error('Missing token or company_id');
+            // If company_id is missing, return early
+            if (!companyId) {
+                console.error('Missing company_id');
                 setLoading(false);
                 return;
             }
 
-            // Set up the request headers with token and company_id
-            const headers = {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'company-id': companyId, // Include company_id in headers
-            };
-
-            // Fetch data from the API
-            const response = await fetch(API_URL, { headers });
+            // Fetch data directly using the constructed URL
+            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/achievements/get-by/${companyId}`);
 
             // Check if the response is successful
             if (!response.ok) {
@@ -216,7 +208,6 @@ const Achievement = () => {
             setLoading(false);
         }
     };
-
 
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this achievement?')) {
