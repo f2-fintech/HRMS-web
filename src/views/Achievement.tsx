@@ -167,6 +167,12 @@ const Achievement = () => {
     const [editId, setEditId] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedDescription, setSelectedDescription] = useState('');
+    const [userData, setUserData] = useState(null);
+
+    useEffect(() => {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        setUserData(storedUser);
+    }, []);
 
     useEffect(() => {
         fetchAchievements();
@@ -360,7 +366,7 @@ const Achievement = () => {
                                         </MediaContainer>
 
                                         <ContentContainer>
-                                            <StyledCardActions className="edit-actions">
+                                            {userData && userData.role === '1' && <StyledCardActions className="edit-actions">
                                                 <IconButton
                                                     onClick={() => setEditId(achievement._id)}
                                                     sx={{ color: '#1976d2' }}
@@ -373,7 +379,7 @@ const Achievement = () => {
                                                 >
                                                     <DeleteIcon />
                                                 </IconButton>
-                                            </StyledCardActions>
+                                            </StyledCardActions>}
 
                                             <CardContent sx={{ p: 3, height: '100%' }}>
                                                 <Typography

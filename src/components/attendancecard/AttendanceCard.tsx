@@ -159,41 +159,47 @@ const AttendanceCard = ({
                         </Typography>
                     </Box>
 
-                    <Box sx={{ ml: 3, display: 'flex', gap: 5 }}>
-                        <Tooltip title="Present">
+                    <Box sx={{ ml: 3, display: 'flex', gap: 3 }}>
+                        <Tooltip title="Present" arrow>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <CheckCircleIcon color="success" sx={{ mr: 0.5 }} />
                                 <Typography variant="body2">Present</Typography>
                             </Box>
                         </Tooltip>
-                        <Tooltip title="Absent">
+                        <Tooltip title="Absent" arrow>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <CancelIcon color="error" sx={{ mr: 0.5 }} />
                                 <Typography variant="body2">Absent</Typography>
                             </Box>
                         </Tooltip>
-                        <Tooltip title="On Leave">
+                        <Tooltip title="On Leave" arrow>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <PauseCircleOutlineIcon sx={{ color: '#ef6c00', mr: 0.5 }} />
                                 <Typography variant="body2">On Leave</Typography>
                             </Box>
                         </Tooltip>
-                        <Tooltip title="On Field">
+                        <Tooltip title="On Field" arrow>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <DirectionsRunIcon sx={{ color: '#4527a0', mr: 0.5 }} />
                                 <Typography variant="body2">On Field</Typography>
                             </Box>
                         </Tooltip>
-                        <Tooltip title="Work from Home">
+                        <Tooltip title="Work from Home" arrow>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <HomeIcon sx={{ color: '#c2185b', mr: 0.5 }} />
                                 <Typography variant="body2">Wfh</Typography>
                             </Box>
                         </Tooltip>
-                        <Tooltip title="On Half">
+                        <Tooltip title="On Half" arrow>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <ContrastIcon sx={{ color: '#1565c0', mr: 0.5 }} />
                                 <Typography variant="body2">Half</Typography>
+                            </Box>
+                        </Tooltip>
+                        <Tooltip title="Weekend Off" arrow>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <WeekendIcon sx={{ color: '#1565c0', mr: 0.5 }} />
+                                <Typography variant="body2">Weekend</Typography>
                             </Box>
                         </Tooltip>
                     </Box>

@@ -242,7 +242,7 @@ const Profile = () => {
             }}
         >
             <StyledCard>
-                {user._id && (
+                {user.id && (
                     <IconButton sx={{ position: 'absolute', right: 20 }} color='primary' onClick={handleEditAvatar}>
                         <PhotoCameraIcon />
                     </IconButton>
