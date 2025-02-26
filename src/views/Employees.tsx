@@ -182,37 +182,36 @@ export default function EmployeeGrid() {
               Dashboard / Employee
             </Typography>
           </Box>
-          {Number(userRole) === 1 && (
-            <Box display='flex' alignItems='center'>
-              <Button
-                style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
-                variant='contained'
-                color='warning'
-                startIcon={<AddIcon />}
-                onClick={handleAddEmployeeClick}
-              >
-                Add Employee
-              </Button>
-              <Button
-                variant='contained'
-                onClick={() => router.push('/deleted-emp')}
-                sx={{
+          <Box display='flex' alignItems='center'>
+            {Number(userRole) <= 1 && <Button
+              style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
+              variant='contained'
+              color='warning'
+              startIcon={<AddIcon />}
+              onClick={handleAddEmployeeClick}
+            >
+              Add Employee
+            </Button>}
+            {Number(userRole) === 1 && <Button
+              variant='contained'
+              onClick={() => router.push('/deleted-emp')}
+              sx={{
+                backgroundColor: '#ffebee',
+                borderRadius: '3rem',
+                fontWeight: 'bold',
+                color: '#d32f2f',
+                borderColor: '#d32f2f',
+                '&:hover': {
                   backgroundColor: '#ffebee',
-                  borderRadius: '3rem',
-                  fontWeight: 'bold',
-                  color: '#d32f2f',
-                  borderColor: '#d32f2f',
-                  '&:hover': {
-                    backgroundColor: '#ffebee',
-                    color: '#b71c1e',
-                    borderColor: '#b71c1c'
-                  }
-                }}
-              >
-                Deleted Employees
-              </Button>
-            </Box>
-          )}
+                  color: '#b71c1e',
+                  borderColor: '#b71c1c'
+                }
+              }}
+            >
+              Deleted Employees
+            </Button>}
+          </Box>
+
         </Box>
         <Grid container spacing={6} alignItems='center' mb={2}>
           <Grid item xs={12} md={6}>
