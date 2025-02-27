@@ -15,38 +15,38 @@ import {
   TableRow,
   Box,
   Pagination,
-  useTheme
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 import type { AppDispatch, RootState } from "@/redux/store";
 import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
+import { useSettings } from '@/@core/hooks/useSettings';
 
 // ... other styled components remain the same ...
-const GradientCard = styled(Card)(() => ({
+
+const GradientCard = styled(Card)(({ theme }) => ({
   minHeight: '645px',
   display: 'flex',
   flexDirection: 'column',
-  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%) !important',
+  background: theme.palette.mode === 'dark' ? '#333' : 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
   borderRadius: '32px',
   boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
   backdropFilter: 'blur(10px)',
   border: '1px solid rgba(255, 255, 255, 0.18)',
 }));
 
-// Modified HeaderTypography to shift title right
-const HeaderTypography = styled(Typography)(() => ({
-  color: '#fff !important',
+const HeaderTypography = styled(Typography)(({ theme }) => ({
+  color: theme.palette.mode === 'dark' ? '#fff' : '#fff',
   fontWeight: 700,
-  textAlign: 'left',  // Changed from 'center' to 'left'
-  paddingLeft: '100px',  // Added padding to shift right
+  textAlign: 'left',
+  paddingLeft: '100px',
   textShadow: '2px 2px 4px rgba(0, 0, 0, 0.2)',
   position: 'relative',
   '&::after': {
     content: '""',
     position: 'absolute',
     bottom: -10,
-    left: '100px',  // Adjusted underline position to match text
+    left: '100px',
     width: '80px',
     height: '4px',
     background: '#fff',
@@ -54,7 +54,6 @@ const HeaderTypography = styled(Typography)(() => ({
   }
 }));
 
-// ... rest of the styled components ...
 const CardContentWithFlex = styled(CardContent)(({ theme }) => ({
   flex: 1,
   display: 'flex',
@@ -62,8 +61,8 @@ const CardContentWithFlex = styled(CardContent)(({ theme }) => ({
   padding: theme.spacing(2),
 }));
 
-const ContentCard = styled(Card)(() => ({
-  background: 'rgba(255, 255, 255, 0.9) !important',
+const ContentCard = styled(Card)(({ theme }) => ({
+  background: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.9)',
   borderRadius: '24px',
   margin: '16px',
   boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
@@ -79,7 +78,7 @@ const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
     height: '8px',
   },
   '&::-webkit-scrollbar-track': {
-    background: 'rgba(0, 0, 0, 0.1)',
+    background: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.1)' : '#f1f1f1',
     borderRadius: '4px',
   },
   '&::-webkit-scrollbar-thumb': {
@@ -88,9 +87,9 @@ const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   },
 }));
 
-const StyledTableCell = styled(TableCell)(() => ({
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 600,
-  color: 'rgba(0, 0, 0, 0.8) !important',
+  color: theme.palette.mode === 'dark' ? '#fff' : 'rgba(0, 0, 0, 0.8)',
   borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
   padding: '16px',
   background: 'transparent !important',
@@ -120,7 +119,7 @@ const StyledPagination = styled('div')(({ theme }) => ({
   }
 }));
 
-const StyledChip = styled(Chip)(() => ({
+const StyledChip = styled(Chip)(({ theme }) => ({
   fontWeight: 600,
   borderRadius: '16px',
   padding: '4px',
@@ -147,6 +146,8 @@ const HolidaysTable = () => {
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
   };
+
+  const { settings } = useSettings(); // Access dark/light mode settings
 
   return (
     <GradientCard>

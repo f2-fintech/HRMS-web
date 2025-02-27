@@ -24,6 +24,7 @@ import {
 import type { RootState } from '@/redux/store'
 import Company from '@/app/(dashboard)/company/page'
 import useRouterWithMount from '@/utility/useRouterWithMount';
+import { useSettings } from '@/@core/hooks/useSettings';
 
 interface PunchInOutProps {
     selectedDate: string
@@ -71,6 +72,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const loading = useSelector((state: RootState) => state.punches.loading)
     const error = useSelector((state: RootState) => state.punches.error)
     const [userData, setUserData] = useState(null)
+
+
+    const { settings } = useSettings()
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -356,7 +360,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     p: 3,
                     borderRadius: 4,
                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                    background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
+                    background: settings.mode === 'dark' ? '#333' : 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
                     maxWidth: 'auto',
                     mx: 'auto',
                     mt: 2

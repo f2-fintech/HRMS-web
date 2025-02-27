@@ -42,6 +42,7 @@ import { fetchPolicies } from '@/redux/features/policies/policiesSlice'
 import { utility } from '@/utility'
 
 import ConfirmDelete from '@/app/(dashboard)/policy/ConfirmDelete'
+import { useSettings } from '@/@core/hooks/useSettings'
 
 interface Policy {
   _id: string;
@@ -76,6 +77,8 @@ const PolicyGrid = () => {
   // State for the confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [policyToDelete, setPolicyToDelete] = useState<string | null>(null)
+
+  const { settings } = useSettings()
 
   const debouncedFetch = useCallback(
     debounce(() => {
@@ -195,7 +198,7 @@ const PolicyGrid = () => {
           },
           borderRadius: '16px',
           overflow: 'hidden',
-          backgroundColor: 'white',
+          backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
           boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
         }}
       >
@@ -212,7 +215,7 @@ const PolicyGrid = () => {
           </Typography>
         </Box>
 
-        <CardContent sx={{ flexGrow: 1, p: 3, backgroundColor: '#F9FAFB' }}>
+        <CardContent sx={{ flexGrow: 1, p: 3, backgroundColor: settings.mode === 'dark' ? '#444' : '#F9FAFB' }}>
           <Typography
             variant="body2"
             color="text.secondary"
@@ -224,7 +227,7 @@ const PolicyGrid = () => {
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               lineHeight: 1.6,
-              color: 'black',
+              color: settings.mode === 'dark' ? 'white' : 'black',
             }}
           >
             {policy.description}
@@ -245,7 +248,7 @@ const PolicyGrid = () => {
           )}
         </CardContent>
 
-        <CardActions sx={{ p: 2, pt: 0, justifyContent: 'space-between', backgroundColor: '#F1F5F9' }}>
+        <CardActions sx={{ p: 2, pt: 0, justifyContent: 'space-between', backgroundColor: settings.mode === 'dark' ? '#444' : '#F1F5F9' }}>
           <Stack direction="row" spacing={1}>
             <IconButton
               onClick={() => window.open(previewUrl, '_blank')}

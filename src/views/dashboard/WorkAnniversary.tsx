@@ -29,6 +29,7 @@ import type { AppDispatch, RootState } from '@/redux/store'
 import { utility } from '@/utility'
 import { fetchConfiguration } from '@/redux/features/configuration/configurationSlice'
 import useRouterWithMount from '@/utility/useRouterWithMount'
+import { useSettings } from '@/@core/hooks/useSettings'
 
 const IconLegend = () => {
     return (
@@ -65,6 +66,8 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
     const [error, setError] = useState<string | null>(null)
 
     const { navigateToProfile } = useRouterWithMount()
+
+    const { settings } = useSettings()  // Access dark/light mode settings
 
     const {
         workAnniversaries,
@@ -138,8 +141,7 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
                 margin: 'auto',
                 borderRadius: 3,
                 overflow: 'hidden',
-
-                background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)'
+                background: settings.mode === 'dark' ? '#333' : 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)'  // Background for dark/light mode
             }}
         >
             <Box sx={{ pt: 3, px: 2 }}>
@@ -293,21 +295,21 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
                     borderRadius: '20px',
                     overflow: 'hidden',
                     boxShadow: 3,
-                    backgroundColor: 'white',
-                    border: '1px solid #ddd'
+                    backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+                    border: settings.mode === 'dark' ? '1px solid #444' : '1px solid #ddd'
                 }}
             >
                 <CardHeader
                     title={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <WorkIcon color='primary' />
-                            <Typography variant='h6' sx={{ color: '#333', fontWeight: 'bold' }}>
+                            <Typography variant='h6' sx={{ color: settings.mode === 'dark' ? 'white' : '#333', fontWeight: 'bold' }}>
                                 Other Work Anniversaries
                             </Typography>
                         </Box>
                     }
                     sx={{
-                        backgroundColor: 'white',
+                        backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
                         borderBottom: '1px solid #ddd',
                         py: 2
                     }}
@@ -328,7 +330,7 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
                                                 py: 1.5,
                                                 px: 2,
                                                 '&:hover': {
-                                                    backgroundColor: '#f9f9f9',
+                                                    backgroundColor: settings.mode === 'dark' ? '#444' : '#f9f9f9',
                                                     transition: 'background-color 0.3s ease'
                                                 }
                                             }}
@@ -357,7 +359,7 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
                                             <ListItemText
                                                 primary={
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                        <Typography sx={{ color: '#333', fontWeight: 'bold' }} variant='subtitle1'>
+                                                        <Typography sx={{ color: settings.mode === 'dark' ? 'white' : '#333', fontWeight: 'bold' }} variant='subtitle1'>
                                                             {capitalizeFirstLetter(employee.first_name)} {capitalizeFirstLetter(employee.last_name)}
                                                         </Typography>
                                                         {getAnniversaryIcon(employee.joining_date)}
@@ -365,7 +367,7 @@ const WorkAnniversary = ({ companyDetails, loading }: { companyDetails: any; loa
                                                 }
                                                 secondary={
                                                     <Box>
-                                                        <Typography component='span' variant='body2' sx={{ color: '#666', display: 'block' }}>
+                                                        <Typography component='span' variant='body2' sx={{ color: settings.mode === 'dark' ? '#fff' : '#666', display: 'block' }}>
                                                             {joiningDate.format('D MMM YYYY')} • Completing {yearsCompleting}{' '}
                                                             {yearsCompleting === 1 ? 'year' : 'years'}
                                                         </Typography>

@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import {
     Card,
     CardContent,
@@ -27,6 +27,7 @@ import ProfileForm from '@/components/profileForm/ProfileForm'
 import CloseIcon from '@mui/icons-material/Close'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import { CircularProgressbar } from 'react-circular-progressbar'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import 'react-circular-progressbar/dist/styles.css'
 
@@ -88,6 +89,12 @@ const Profile = () => {
     const [saveloading, setSaveLoading] = useState(false)
     const [previewUrl, setPreviewUrl] = useState(null)
     const [checkVerify, setCheckVerify] = useState(false)
+
+    const router = useRouter();
+
+    const handleGoBack = () => {
+        router.back();  // Navigate back to the previous page
+    };
 
     // const searchParams = useSearchParams();
     const theme = useTheme()
@@ -242,6 +249,24 @@ const Profile = () => {
             }}
         >
             <StyledCard>
+
+                <Tooltip title="Go Back" arrow>
+                    <IconButton
+                        onClick={handleGoBack}  // Trigger back action
+                        sx={{
+                            position: 'absolute',
+                            left: 20,
+                            top: 20,
+                            zIndex: 1,  // Ensure it's above other content
+                            backgroundColor: theme.palette.background.paper,
+                            '&:hover': {
+                                backgroundColor: theme.palette.action.hover
+                            }
+                        }}
+                    >
+                        <ArrowBackIcon />  {/* Replace with a back arrow icon if desired */}
+                    </IconButton>
+                </Tooltip>
                 {user.id && (
                     <IconButton sx={{ position: 'absolute', right: 20 }} color='primary' onClick={handleEditAvatar}>
                         <PhotoCameraIcon />
@@ -333,7 +358,7 @@ const Profile = () => {
                                 Code: {userData?.code}
                             </Typography>
                             <Typography variant='h6' component='div' sx={{ fontWeight: 500, mb: 1, mt: 1 }}>
-                                {userData?.location}
+                                {userData?.location?.toUpperCase()}
                             </Typography>
                             <Typography variant='h6' color='text.secondary' sx={{ mb: 2, fontWeight: 500 }}>
                                 {userData?.designation}

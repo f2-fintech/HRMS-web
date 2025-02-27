@@ -17,6 +17,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { fetchTeams } from '@/redux/features/teams/teamsSlice'
 import { fetchEmployees } from '@/redux/features/employees/employeesSlice'
 import type { RootState, AppDispatch } from '@/redux/store'
+import { useSettings } from '@/@core/hooks/useSettings'
 
 // Dynamically import the form and details dialog for code-splitting
 const AddTeamForm = dynamic(() => import('../components/teams/AddTeamForm'), {
@@ -100,6 +101,8 @@ export default function TeamGrid() {
   const [userRole, setUserRole] = useState<string>('')
   const [openAlert, setOpenAlert] = useState(false)
   const [teamToDelete, setTeamToDelete] = useState<string | null>(null)
+
+  const { settings } = useSettings();
 
   // Debounced fetch
   const debouncedFetch = useCallback(
@@ -306,11 +309,11 @@ export default function TeamGrid() {
         {/* Header */}
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
           <Box>
-            <Typography style={{ fontSize: '2em', color: 'black' }} variant='h5' gutterBottom>
+            <Typography style={{ fontSize: '2em', color: settings.mode === 'dark' ? 'white' : '#2c3ce3', }} variant='h5' gutterBottom>
               Team
             </Typography>
             <Typography
-              style={{ color: '#212529bf', fontSize: '1em', fontWeight: 'bold' }}
+              style={{ color: settings.mode === 'dark' ? 'white' : '#2c3ce3', fontSize: '1em', fontWeight: 'bold' }}
               variant='subtitle1'
               gutterBottom
             >

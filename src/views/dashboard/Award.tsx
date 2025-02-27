@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-
 import { motion } from 'framer-motion';
 import {
   Box,
@@ -11,8 +10,7 @@ import {
   IconButton,
   Tooltip,
   Paper,
-  Avatar,
-  Toolbar
+  Avatar
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
@@ -20,7 +18,7 @@ import AwardForm from '../../components/performer/AwardForm';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 import { utility } from '@/utility';
 import { useRouter } from 'next/navigation';
-
+import { useSettings } from '@core/hooks/useSettings';  // Importing useSettings hook for dark/light mode
 
 const Award = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -38,15 +36,14 @@ const Award = () => {
 
   const [isMounted, setIsMounted] = useState(false);  // Track if the component is mounted
   const router = useRouter();
+  const { settings } = useSettings();  // Accessing settings for dark/light mode
 
   useEffect(() => {
-    // Set isMounted to true once the component is mounted
-    setIsMounted(true);
+    setIsMounted(true);  // Set isMounted to true once the component is mounted
   }, []);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-
     setUserId(user.id);
     setUserDesg(user.designation);
     setUserRole(user.role);
@@ -62,15 +59,13 @@ const Award = () => {
         const employeesData = await apiResponse();
         setEmployees(employeesData)
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards/get`,
-          {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token} ${company_id}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        )
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/awards/get`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token} ${company_id}`,
+            'Content-Type': 'application/json',
+          },
+        })
 
         if (!response.ok) {
           throw new Error('Failed to fetch award');
@@ -80,7 +75,6 @@ const Award = () => {
 
         if (Array.isArray(awardData) && awardData.length > 0) {
           const award = awardData[0];
-
           award.employee = employeesData.find(emp => emp._id === award.employee._id) || award.employee;
           setAwardData(award);
           setAwardTitle(award.awardTitle || 'Best seller of the month');
@@ -130,13 +124,11 @@ const Award = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-
         throw new Error(errorData.message || 'Failed to save award');
       }
 
       const newAward = await response.json();
       const updatedEmployee = employees.find(emp => emp._id === newAward.employee);
-
       setAwardData({
         ...newAward,
         employee: updatedEmployee || newAward.employee
@@ -169,22 +161,12 @@ const Award = () => {
 
   const handleProfileClick = (id: string) => {
     if (isMounted && router) {
-      // Navigate to the profile page with the employee's ID
       router.push(`/profile/${id}`);
     }
   };
 
   return (
-    <Box
-      sx={{
-        // height: '1%',
-        // display: 'flex',
-        // alignItems: 'center',
-        // justifyContent: 'center',
-        // backgroundColor: 'red',
-        // marginRight: '4rem'
-      }}
-    >
+    <Box>
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -200,11 +182,8 @@ const Award = () => {
             justifyContent: 'space-between',
             borderRadius: '15px',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-            background: '#1a237e',
+            background: settings.mode === 'dark' ? '#333' : '#1a237e',  // Dark or light background
             transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            // overflow: 'hidden',
-            // position: 'relative',
-            padding: '0px !important',
             '&:hover': {
               transform: 'translateY(-5px)',
             }
@@ -218,27 +197,18 @@ const Award = () => {
               flexDirection: 'column',
               justifyContent: 'space-between',
               padding: '2rem',
-              backgroundColor: '#ffffff',
+              backgroundColor: settings.mode === 'dark' ? '#444' : '#ffffff', // Light/Dark mode for inner card
               margin: '0px 5px 0px 5px',
               borderTopLeftRadius: '80px',
               borderBottomRightRadius: '80px',
               borderBottomLeftRadius: '-10px',
-              '&:before': {
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '0.5rem',
-                // background: 'linear-gradient(90deg, #FFC107 0%, #FF9800 100%)'
-              }
             }}
           >
             <Box>
               <Paper
                 elevation={0}
                 sx={{
-                  background: 'rgba(25, 118, 210, 0.05)',
+                  background: settings.mode === 'dark' ? '#424242' : 'rgba(25, 118, 210, 0.05)',  // Dark/Light mode Paper background
                   padding: '1.5rem',
                   borderRadius: '1rem',
                   marginBottom: '1.5rem',
@@ -248,7 +218,7 @@ const Award = () => {
                 <Typography
                   variant="h4"
                   sx={{
-                    color: '#1a237e',
+                    color: settings.mode === 'dark' ? 'white' : '#1a237e', // Text color for dark/light mode
                     fontWeight: 700,
                     marginBottom: '0.5rem',
                     letterSpacing: '-0.03125rem',
@@ -277,7 +247,7 @@ const Award = () => {
                             marginLeft: '0.5rem',
                             display: 'inline-block',
                             verticalAlign: 'middle',
-                            cursor: 'pointer'  // Make it clear that the image is clickable
+                            cursor: 'pointer'
                           }}
                           onClick={() => handleProfileClick(awardData.employee._id)} // On image click, navigate to profile page
                         />
@@ -292,7 +262,7 @@ const Award = () => {
                   <Typography
                     variant='subtitle1'
                     sx={{
-                      color: '#5c6bc0',
+                      color: settings.mode === 'dark' ? '#fff' : '#5c6bc0', // Designation text color
                       fontWeight: 500,
                       letterSpacing: '0.03125rem'
                     }}
@@ -306,7 +276,7 @@ const Award = () => {
                 <Typography
                   variant='h6'
                   sx={{
-                    color: '#3949ab',
+                    color: settings.mode === 'dark' ? '#fff' : '#3949ab',  // Award Title color
                     fontWeight: 600,
                     marginBottom: '1rem',
                     letterSpacing: '0.03125rem'
@@ -318,7 +288,7 @@ const Award = () => {
                 <Paper
                   elevation={0}
                   sx={{
-                    background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
+                    background: settings.mode === 'dark' ? 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)' : 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
                     padding: '1rem 1.5rem',
                     borderRadius: '0.75rem',
                     display: 'inline-block'
@@ -375,12 +345,9 @@ const Award = () => {
                     position: 'absolute',
                     top: '0.2rem',
                     right: '0.2rem',
-
-                    // backgroundColor: 'rgba(25, 118, 210, 0.1)',
-
                   }}
                 >
-                  <MoreVertIcon sx={{ color: '#1a237e' }} />
+                  <MoreVertIcon sx={{ color: settings.mode === 'dark' ? 'white' : '#1a237e' }} />
                 </IconButton>
               </Tooltip>
             )}

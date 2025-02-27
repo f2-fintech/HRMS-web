@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useCallback, useEffect, useState } from 'react';
-
 import { debounce } from 'lodash';
 import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
 import {
@@ -31,48 +30,7 @@ import type { AppDispatch, RootState } from '@/redux/store';
 import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
 import 'react-toastify/dist/ReactToastify.css';
 import AddHolidayForm from '@/components/holiday/HolidayForm';
-
-// Custom Theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#2c3ce3',
-    },
-    background: {
-      default: '#f4f6f9',
-    },
-  },
-  typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          transition: 'all 0.3s ease',
-          '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 6px 8px rgba(0,0,0,0.15)',
-          },
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: '12px',
-            backgroundColor: 'white',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-          },
-        },
-      },
-    },
-  },
-});
+import { useSettings } from '@/@core/hooks/useSettings'; // Import useSettings
 
 export default function HolidayGrid() {
   const dispatch: AppDispatch = useDispatch();
@@ -91,6 +49,8 @@ export default function HolidayGrid() {
   const [openAlert, setOpenAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<'error' | 'success'>('success');
+
+  const { settings } = useSettings();  // Get current theme mode (dark/light)
 
   const debouncedFetch = useCallback(
     debounce(() => {
@@ -173,8 +133,6 @@ export default function HolidayGrid() {
     setOpenDialog(false);
     setHolidayToDelete(null); // Reset the holiday ID
   };
-
-
 
   const handleClose = () => {
     setShowForm(false);
@@ -262,9 +220,48 @@ export default function HolidayGrid() {
   ];
 
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={createTheme({
+      palette: {
+        primary: {
+          main: '#2c3ce3',
+        },
+        background: {
+          default: settings.mode === 'dark' ? '#121212' : '#f4f6f9',  // Dynamic background color based on mode
+        },
+      },
+      typography: {
+        fontFamily: 'Roboto, Arial, sans-serif',
+      },
+      components: {
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              borderRadius: '12px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 6px 8px rgba(0,0,0,0.15)',
+              },
+            },
+          },
+        },
+        MuiTextField: {
+          styleOverrides: {
+            root: {
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '12px',
+                backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              },
+            },
+          },
+        },
+      },
+    })}>
       <Box sx={{
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: settings.mode === 'dark' ? '#121212' : '#f4f6f9',  // Adjust background for dark mode
         minHeight: '100vh',
         padding: 3
       }}>
@@ -320,7 +317,7 @@ export default function HolidayGrid() {
           mb={3}
           sx={{
             padding: 2,
-            backgroundColor: 'white',
+            backgroundColor: settings.mode === 'dark' ? '#333' : 'white',  // Adjust based on mode
             borderRadius: '16px',
             boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
           }}
@@ -330,7 +327,7 @@ export default function HolidayGrid() {
               variant="h4"
               gutterBottom
               sx={{
-                color: theme.palette.primary.main,
+                color: settings.mode === 'dark' ? 'white' : '#2c3ce3',  // Color adjustment for dark mode
                 fontWeight: 700,
                 marginBottom: 1
               }}
@@ -340,7 +337,7 @@ export default function HolidayGrid() {
             <Typography
               variant="subtitle1"
               sx={{
-                color: 'black',
+                color: settings.mode === 'dark' ? 'white' : '#64e0e2',  // Color adjustment for dark mode
                 fontWeight: 'bolder',
               }}
             >
@@ -386,7 +383,7 @@ export default function HolidayGrid() {
           sx={{
             height: 600,
             width: '100%',
-            backgroundColor: 'white',
+            backgroundColor: settings.mode === 'dark' ? '#333' : 'white', // Adjust background color for dark mode
             borderRadius: '16px',
             boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
             overflow: 'hidden'
@@ -397,26 +394,30 @@ export default function HolidayGrid() {
               '& .super-app-theme--header': {
                 fontSize: 16,
                 fontWeight: 700,
-                backgroundColor: theme.palette.primary.main,
+                backgroundColor: settings.mode === 'dark' ? '#444' : '#2c3ce3',  // Adjust background color for dark mode
                 color: 'white',
                 textTransform: 'uppercase',
               },
               '& .MuiDataGrid-cell': {
                 fontSize: 14,
                 fontWeight: 500,
+                backgroundColor: settings.mode === 'dark' ? '#333' : 'white',  // Adjust background color for dark mode
               },
               '& .MuiDataGrid-row': {
                 '&:nth-of-type(odd)': {
-                  backgroundColor: 'rgba(44, 60, 227, 0.05)',
-                  color: 'black'
+                  backgroundColor: settings.mode === 'dark' ? '#444' : 'rgba(44, 60, 227, 0.05)',  // Adjust background for odd rows in dark mode
+                  color: settings.mode === 'dark' ? 'white' : 'black', // Adjust text color for odd rows
                 },
                 '&:nth-of-type(even)': {
-                  backgroundColor: 'white',
+                  backgroundColor: settings.mode === 'dark' ? '#333' : 'white', // Adjust background for even rows in dark mode
+                  color: settings.mode === 'dark' ? 'white' : 'black', // Adjust text color for even rows
                 },
                 '&:hover': {
-                  backgroundColor: 'rgba(44, 60, 227, 0.1)',
+                  backgroundColor: settings.mode === 'dark' ? '#555' : 'rgba(44, 60, 227, 0.1)', // Adjust hover background color
+                  color: 'black',  // Ensuring hover text is always black
                 },
               },
+
             }}
             components={{
               Toolbar: GridToolbar,

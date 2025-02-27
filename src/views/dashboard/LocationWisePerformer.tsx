@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react'
+'use client'
+
+import React, { useEffect, useState } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
 import Card from '@mui/material/Card'
@@ -18,6 +20,7 @@ import AwardForm from '@/components/performer/AwardForm'
 import { formatAmount } from '@/utility/formatAmount/formatAmount'
 import useRouterWithMount from '@/utility/useRouterWithMount'
 import { Tooltip } from '@mui/material'
+import { useSettings } from '@core/hooks/useSettings'  // Import useSettings for dark/light mode
 
 // Define interfaces for type safety
 interface Employee {
@@ -58,6 +61,8 @@ const LocationWisePerformer = () => {
   const { navigateToProfile } = useRouterWithMount()
 
   const { capitalizeFirstLetter } = utility()
+
+  const { settings } = useSettings()  // Access settings for dark/light mode
 
   const getStatusStyles = (status: string | undefined) => {
     if (!status) {
@@ -214,8 +219,8 @@ const LocationWisePerformer = () => {
                       boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
                       transition: 'all 0.3s ease',
                       position: 'relative',
-                      bgcolor: 'white',
-                      color: 'inherit',
+                      bgcolor: settings.mode === 'dark' ? '#333' : 'white',  // Background color depending on the mode
+                      color: settings.mode === 'dark' ? '#fff' : 'inherit',  // Text color depending on the mode
                       overflow: 'hidden',
                       '&:hover': {
                         transform: 'translateY(-10px)',
@@ -242,12 +247,12 @@ const LocationWisePerformer = () => {
                             backgroundColor: 'transparent',
                             boxShadow: 'none',
                             '&:hover': {
-                              backgroundColor: 'rgba(255, 255, 255, 1)',
-                              boxShadow: '0px 2px 8px rgba(0,0,0,0.2)'
+                              backgroundColor: settings.mode === 'dark' ? '#444' : '#ffffff',  // Button background color
+                              boxShadow: settings.mode === 'dark' ? '0px 2px 8px rgba(0,0,0,0.2)' : '0px 2px 8px rgba(0,0,0,0.2)'
                             }
                           }}
                         >
-                          <MoreVertIcon sx={{ color: '#FFFFFF' }} />
+                          <MoreVertIcon sx={{ color: settings.mode === 'dark' ? '#fff' : '#333' }} />
                         </IconButton>
                       )}
 
@@ -353,8 +358,8 @@ const LocationWisePerformer = () => {
                               gap: 1,
                               // fontFamily: "'Pacifico', cursive",
                               fontSize: '1.5rem',
-                              color: 'black',
-                              textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)'
+                              color: settings.mode === 'dark' ? '#fff' : 'black',  // Adjust text color based on mode
+                              textShadow: settings.mode === 'dark' ? '1px 1px 2px rgba(0, 0, 0, 0.2)' : 'none'
                             }}
                           >
                             {typeof award.employee !== 'string' && award.employee ? (
@@ -412,9 +417,10 @@ const LocationWisePerformer = () => {
 
                       {/* Disbursed Amount Section */}
                       <Box sx={{ mt: 4 }}>
+
                         <Typography
                           sx={{
-                            color: '#64748B',
+                            color: settings.mode === 'dark' ? '#ddd' : '#64748B',
                             fontWeight: 500,
                             mb: 1
                           }}
@@ -431,7 +437,7 @@ const LocationWisePerformer = () => {
                           <Typography
                             variant='h4'
                             sx={{
-                              color: '#1a237e',
+                              color: settings.mode === 'dark' ? '#fff' : '#1a237e',
                               fontWeight: 700
                             }}
                           >
@@ -508,7 +514,7 @@ const LocationWisePerformer = () => {
                           </Box>
                           <Typography
                             sx={{
-                              color: '#64748B',
+                              color: settings.mode === 'dark' ? '#ddd' : '#64748B',
                               fontSize: '0.875rem'
                             }}
                           >

@@ -22,37 +22,37 @@ import { styled } from '@mui/material/styles'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { utility } from '@/utility'
+import { useSettings } from '@core/hooks/useSettings'  // Importing useSettings hook for mode control
 
-const StyledCard = styled(Card)(({ theme }) => ({
+const StyledCard = styled(Card)(({ theme, mode }) => ({
   position: 'relative',
   height: 'auto',
-  backgroundColor: 'white',
-  // minHeight: '320px',
+  backgroundColor: mode === 'dark' ? '#333' : 'white',  // Apply dark mode or light mode background
   padding: '3px',
   borderRadius: theme.spacing(4),
   boxShadow: '0 8px 32px rgba(26, 35, 126, 0.15)',
   transition: 'all 0.3s ease',
-  // background: 'linear-gradient(50deg,rgb(223, 169, 7) 0%,rgb(12, 21, 75) 100%)',
   '&:hover': {
     transform: 'translateY(-5px)',
     boxShadow: '0 12px 40px rgba(26, 35, 126, 0.25)'
   }
 }))
 
-const CardInner = styled(Box)(({ theme }) => ({
+const CardInner = styled(Box)(({ theme, mode }) => ({
   borderRadius: 'inherit',
   width: '100%',
   padding: theme.spacing(3),
   display: 'flex',
   flexDirection: 'column',
-  // background: 'linear-gradient(90deg,rgb(226, 217, 191) 0%,rgb(111, 112, 117) 100%)',
+  backgroundColor: mode === 'dark' ? '#444' : '#fff',  // Set background color of inner card
+  color: mode === 'dark' ? 'white' : 'black',  // Set text color for dark or light mode
   '@media (max-width: 600px)': {
     padding: theme.spacing(2)
   }
 }))
 
-const QuoteCard = styled(Paper)(({ theme }) => ({
-  backgroundColor: 'rgb(25 118 210 / 5%)',
+const QuoteCard = styled(Paper)(({ theme, mode }) => ({
+  backgroundColor: mode === 'dark' ? '#424242' : 'rgb(25 118 210 / 5%)', // Set quote card background
   borderRadius: theme.spacing(1),
   padding: theme.spacing(3),
   border: '1px solid rgba(0,0,0,0.06)',
@@ -66,11 +66,10 @@ const QuoteCard = styled(Paper)(({ theme }) => ({
   }
 }))
 
-const WeatherCard = styled(Paper)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
+const WeatherCard = styled(Paper)(({ theme, mode }) => ({
+  background: mode === 'dark' ? '#424242' : 'rgb(25 118 210 / 5%)',
   borderRadius: theme.spacing(2),
   padding: theme.spacing(3),
-  // border: '1px solid rgba(219, 28, 28, 0.06)',
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'space-between',
@@ -82,14 +81,14 @@ const WeatherCard = styled(Paper)(({ theme }) => ({
   }
 }))
 
-const StyledModal = styled(Box)(({ theme }) => ({
+const StyledModal = styled(Box)(({ theme, mode }) => ({
   position: 'absolute',
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
   width: '90%',
   maxWidth: '400px',
-  backgroundColor: '#ffffff',
+  backgroundColor: mode === 'dark' ? '#333' : '#fff',
   borderRadius: theme.spacing(2),
   boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
   padding: theme.spacing(4),
@@ -100,15 +99,15 @@ const StyledModal = styled(Box)(({ theme }) => ({
   }
 }))
 
-const StyledButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
+const StyledButton = styled(Button)(({ theme, mode }) => ({
+  background: mode === 'dark' ? 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)' : 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
   borderRadius: theme.spacing(1),
   color: 'white',
   textTransform: 'none',
   padding: '12px 24px',
   transition: 'all 0.3s ease',
   '&:hover': {
-    background: 'linear-gradient(135deg, #3949ab 0%, #1a237e 100%)',
+    background: mode === 'dark' ? 'linear-gradient(135deg, #3949ab 0%, #1a237e 100%)' : 'linear-gradient(135deg, #3949ab 0%, #1a237e 100%)',
     boxShadow: '0 4px 12px rgba(26, 35, 126, 0.25)'
   }
 }))
@@ -123,6 +122,8 @@ const Welcome = () => {
   const [loadingWeather, setLoadingWeather] = useState(true)
   const [isEditMode, setIsEditMode] = useState(false)
   const [userRole, setUserRole] = useState<string>('')
+
+  const { settings } = useSettings()  // Access the settings to determine mode (dark/light)
   const { capitalizeFirstLetter } = utility()
 
   useEffect(() => {
@@ -278,15 +279,15 @@ const Welcome = () => {
   return (
     <>
       <ToastContainer />
-      <StyledCard>
-        <CardInner>
+      <StyledCard mode={settings.mode}>
+        <CardInner mode={settings.mode}>
           <Box display='flex' justifyContent='space-between' alignItems='center' mb={3}>
             <Typography
               mb={0}
               variant='h4'
               sx={{
                 fontWeight: 700,
-                color: '#1a237e',
+                color: settings.mode === 'dark' ? '#ffffff' : '#1a237e',
                 '@media (max-width: 600px)': { fontSize: '1.75rem' }
               }}
             >
@@ -297,22 +298,21 @@ const Welcome = () => {
                 <IconButton
                   onClick={handleOpen}
                   sx={{
-                    // backgroundColor: '#f1f5f9',
                     borderRadius: '12px',
                     '&:hover': { backgroundColor: '#e2e8f0' }
                   }}
                 >
-                  <MoreVertIcon sx={{ color: '#E55286' }} />
+                  <MoreVertIcon sx={{ color: settings.mode === 'dark' ? 'white' : '#E55286' }} />
                 </IconButton>
               </Tooltip>
             )}
           </Box>
-          <QuoteCard elevation={2}>
+          <QuoteCard mode={settings.mode}>
             <Box display='flex' gap={2} mb={2}>
               <FormatQuoteIcon
                 sx={{
                   fontSize: 40,
-                  color: '#4ECDC4',
+                  color: settings.mode === 'dark' ? '#4ECDC4' : '#4ECDC4',
                   opacity: 0.7
                 }}
               />
@@ -320,7 +320,7 @@ const Welcome = () => {
                 variant='body1'
                 sx={{
                   fontStyle: 'italic',
-                  color: '#334155',
+                  color: settings.mode === 'dark' ? '#ffffff' : '#334155',
                   flex: 1,
                   lineHeight: 1.6,
                   '@media (max-width: 600px)': { fontSize: '0.95rem' }
@@ -334,7 +334,7 @@ const Welcome = () => {
               sx={{
                 textAlign: 'right',
                 fontWeight: 600,
-                color: '#475569',
+                color: settings.mode === 'dark' ? '#ffffff' : '#475569',
                 mt: 2,
                 '@media (max-width: 600px)': { fontSize: '0.85rem' }
               }}
@@ -342,9 +342,9 @@ const Welcome = () => {
               {latestQuote ? `- ${latestQuote.author}` : 'No author'}
             </Typography>
           </QuoteCard>
-          <WeatherCard elevation={0} sx={{ backgroundColor: 'background.paper', color: 'text.primary' }}>
+          <WeatherCard mode={settings.mode} elevation={0}>
             <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
-              <Typography variant='h6' sx={{ fontWeight: 600, color: 'white' }}>
+              <Typography variant='h6' sx={{ fontWeight: 600, color: settings.mode === 'dark' ? 'white' : '#333' }}>
                 Current Weather
               </Typography>
               <WbSunnyIcon sx={{ fontSize: 28, color: '#FFCB4A' }} />
@@ -355,10 +355,10 @@ const Welcome = () => {
               </Typography>
             ) : weather ? (
               <Box>
-                <Typography color='#FFEB3B' variant='body1'>
+                <Typography style={{ color: settings.mode === 'dark' ? 'yellow' : 'blue' }} variant='body1'>
                   Temperature: {weather.temperature}°C
                 </Typography>
-                <Typography variant='body2' color='#FFFFFF'>
+                <Typography variant='body2' style={{ color: settings.mode === 'dark' ? 'white' : '#333' }}>
                   Condition: {weather.weathercode === 0 ? 'Clear Sky' : 'Cloudy'}
                 </Typography>
               </Box>
@@ -371,7 +371,7 @@ const Welcome = () => {
         </CardInner>
       </StyledCard>
       <Modal open={open} onClose={handleClose} aria-labelledby='quote-modal'>
-        <StyledModal>
+        <StyledModal mode={settings.mode}>
           <Box display='flex' justifyContent='space-between' alignItems='center' mb={3}>
             <Typography variant='h6' sx={{ fontWeight: 600, color: '#FF6B6B' }}>
               {isEditMode ? 'Edit Quote' : 'Submit a Quote'}
