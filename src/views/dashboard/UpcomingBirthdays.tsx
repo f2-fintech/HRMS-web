@@ -24,6 +24,7 @@ import { fetchUpcomingBirthdays } from '@/redux/features/employees/employeesSlic
 import type { AppDispatch, RootState } from '@/redux/store'
 import { utility } from '@/utility'
 import useRouterWithMount from '@/utility/useRouterWithMount'
+import { useSettings } from '@/@core/hooks/useSettings'
 
 
 
@@ -35,6 +36,9 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
   const { navigateToProfile } = useRouterWithMount()
 
   const { capitalizeFirstLetter } = utility()
+
+
+  const { settings } = useSettings()
 
   useEffect(() => {
     if (!loadingBirthdays) {
@@ -98,7 +102,7 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
         margin: 'auto',
         borderRadius: 3,
         overflow: 'hidden',
-        background: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)'
+        background: settings.mode === 'dark' ? '#333' : 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)'  // Background for dark/light mode
       }}
     >
       {/* Today's Birthdays Section */}
@@ -108,7 +112,7 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
             variant='h3'
             sx={{
               fontSize: '2rem',
-              color: '#64e0e2',
+              color: settings.mode === 'dark' ? '#64e0e2' : '#64e0e2',
               fontWeight: 800,
               letterSpacing: 2
             }}
@@ -118,14 +122,14 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
           <Typography
             variant='h6'
             sx={{
-              color: 'rgb(255, 246, 218)', // Default text color
+              color: settings.mode === 'dark' ? 'rgb(255, 246, 218)' : 'rgb(255, 246, 218)',
               fontWeight: 'bold',
               marginTop: 2,
               marginBottom: 2
             }}
           >
             🌟 Cheers to you on your special day! Warm wishes from your{' '}
-            <span style={{ color: 'yellow', fontWeight: 'bold' }}>
+            <span style={{ color: settings.mode === 'dark' ? 'yellow' : 'yellow', fontWeight: 'bold' }}>
               {loading ? '...' : companyDetails?.name || 'Your Company'}
             </span>{' '}
             family. 🌟
@@ -142,18 +146,18 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
                       width: 85,
                       height: 85,
                       margin: 'auto',
-                      border: '2px solid #ddd',
-                      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                      border: `2px solid ${settings.mode === 'dark' ? '#ddd' : '#ddd'}`,
+                      boxShadow: settings.mode === 'dark' ? '0 4px 8px rgba(0, 0, 0, 0.2)' : '0 4px 8px rgba(0, 0, 0, 0.2)'
                     }}
                     onClick={() => navigateToProfile(row._doc?._id)}
                   >
                     {!row._doc.image && <PersonIcon />}
                   </Avatar>
                 </Tooltip>
-                <Typography variant='h6' sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
+                <Typography variant='h6' sx={{ color: settings.mode === 'dark' ? 'white' : 'white', mt: 1, textAlign: 'center' }}>
                   {capitalizeFirstLetter(row._doc.first_name)} {capitalizeFirstLetter(row._doc.last_name)}
                 </Typography>
-                <Typography variant='h6' sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
+                <Typography variant='h6' sx={{ color: settings.mode === 'dark' ? 'white' : 'white', mt: 1, textAlign: 'center' }}>
                   {row._doc.designation}
                 </Typography>
               </Grid>
@@ -170,7 +174,7 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
             sx={{
               margin: '10px',
               fontSize: '2rem',
-              color: '#64e0e2',
+              color: settings.mode === 'dark' ? '#64e0e2' : '#64e0e2',
               fontWeight: 800,
               letterSpacing: 2
             }}
@@ -201,15 +205,15 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
                       width: 87,
                       height: 87,
                       margin: 'auto',
-                      border: '2px solid #ddd',
-                      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                      border: `2px solid ${settings.mode === 'dark' ? '#ddd' : '#ddd'}`,
+                      boxShadow: settings.mode === 'dark' ? '0 4px 8px rgba(0, 0, 0, 0.2)' : '0 4px 8px rgba(0, 0, 0, 0.2)'
                     }}
                     onClick={() => navigateToProfile(employee._doc?._id)}
                   >
                     {!employee._doc.image && <PersonIcon />}
                   </Avatar>
                 </Tooltip>
-                <Typography variant='h6' sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
+                <Typography variant='h6' sx={{ color: settings.mode === 'dark' ? 'white' : 'white', mt: 1, textAlign: 'center' }}>
                   {capitalizeFirstLetter(employee._doc.first_name)} {capitalizeFirstLetter(employee._doc.last_name)}
                 </Typography>
                 <Typography variant='body2' sx={{ color: '#64e0e2', textAlign: 'center', mt: 2 }}>
@@ -227,21 +231,21 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
           borderRadius: '20px',
           overflow: 'hidden',
           boxShadow: 3,
-          backgroundColor: 'white',
-          border: '1px solid #ddd'
+          backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+          border: settings.mode === 'dark' ? '1px solid #444' : '1px solid #ddd'
         }}
       >
         <CardHeader
           title={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <CakeIcon color='primary' />
-              <Typography variant='h5' sx={{ color: '#333', fontWeight: 'bold' }}>
+              <Typography variant='h5' sx={{ color: settings.mode === 'dark' ? 'white' : '#333', fontWeight: 'bold' }}>
                 Other Upcoming Birthday's
               </Typography>
             </Box>
           }
           sx={{
-            backgroundColor: 'white',
+            backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
             borderBottom: '1px solid #ddd',
             py: 2
           }}
@@ -262,7 +266,7 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
                       py: 1.5,
                       px: 2,
                       '&:hover': {
-                        backgroundColor: '#f9f9f9',
+                        backgroundColor: settings.mode === 'dark' ? '#444' : '#f9f9f9',
                         transition: 'background-color 0.3s ease'
                       }
                     }}
@@ -289,13 +293,13 @@ const UpcomingBirthdays = ({ companyDetails, loading }: { companyDetails: any; l
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Typography sx={{ color: '#333', fontWeight: 'bold' }} variant='subtitle1'>
+                        <Typography sx={{ color: settings.mode === 'dark' ? 'white' : '#333', fontWeight: 'bold' }} variant='subtitle1'>
                           {capitalizeFirstLetter(row._doc.first_name)} {capitalizeFirstLetter(row._doc.last_name)}
                         </Typography>
                       }
                       secondary={
                         <Box>
-                          <Typography component='span' variant='body2' sx={{ color: '#666', display: 'block' }}>
+                          <Typography component='span' variant='body2' sx={{ color: settings.mode === 'dark' ? '#fff' : '#666', display: 'block' }}>
                             {dayjs(row._doc.dob).format('D MMM')}
                           </Typography>
                           <Typography component='span' variant='body2' sx={{ color: '#2196F3' }}>

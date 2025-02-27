@@ -1,20 +1,6 @@
-'use client'
-
 import React from 'react'
-import {
-    Box,
-    Typography,
-    Button,
-    Card,
-    CardHeader,
-    CardContent,
-    Avatar,
-    Grid,
-    Dialog,
-    DialogContent
-} from '@mui/material'
-
-import type { EmployeeType, TeamType } from './TeamGrid' // or a separate type definition file
+import { Box, Typography, Button, Card, CardHeader, CardContent, Avatar, Grid, Dialog, DialogContent } from '@mui/material'
+import { useSettings } from '@/@core/hooks/useSettings' // Import useSettings
 
 interface TeamDetailsDialogProps {
     viewDetails: TeamType | null
@@ -31,6 +17,7 @@ export default function TeamDetailsDialog({
     onClose,
     getEmployeeCountByIds
 }: TeamDetailsDialogProps) {
+    const { settings } = useSettings() // Accessing the settings for theme mode
     const manager = employees.find(emp => emp._id === viewDetails?.manager_id)
 
     return (
@@ -46,7 +33,8 @@ export default function TeamDetailsDialog({
                     margin: { xs: 0, sm: 2 },
                     height: { xs: '100%', sm: 'auto' },
                     maxHeight: { xs: '100%', sm: 'calc(100% - 64px)' },
-                    borderRadius: { xs: 0, sm: '20px' }
+                    borderRadius: { xs: 0, sm: '20px' },
+                    backgroundColor: settings.mode === 'dark' ? '#333' : '#fff'  // Adjust background color for dark mode
                 }
             }}
         >
@@ -54,13 +42,14 @@ export default function TeamDetailsDialog({
                 sx={{
                     padding: { xs: 2, sm: 3 },
                     overflow: 'auto',
-                    height: { xs: '100vh', sm: 'auto' }
+                    height: { xs: '100vh', sm: 'auto' },
+                    color: settings.mode === 'dark' ? 'white' : 'black' // Adjust text color for dark mode
                 }}
             >
                 {/* Header */}
                 <Box
                     sx={{
-                        backgroundColor: '#7b1fa2',
+                        backgroundColor: settings.mode === 'dark' ? '#555' : '#7b1fa2', // Adjust header background color for dark mode
                         padding: '10px',
                         color: 'white',
                         position: 'relative',
@@ -108,7 +97,8 @@ export default function TeamDetailsDialog({
                             overflow: 'hidden',
                             transition: 'all 0.3s ease',
                             height: '100%',
-                            '&:hover': { transform: 'translateY(-5px)', boxShadow: 6 }
+                            '&:hover': { transform: 'translateY(-5px)', boxShadow: 6 },
+                            backgroundColor: settings.mode === 'dark' ? '#444' : 'white' // Adjust background color for manager card
                         }}
                     >
                         <CardHeader title='Team Manager' sx={{ backgroundColor: '#7b1fa2', color: 'white' }} />
@@ -145,6 +135,7 @@ export default function TeamDetailsDialog({
                             '&:hover': { transform: 'translateY(-5px)', boxShadow: 6 },
                             height: '285px',
                             position: 'relative',
+                            backgroundColor: settings.mode === 'dark' ? '#444' : 'white', // Adjust background color for employee card
                             '&::-webkit-scrollbar': {
                                 width: '12px',
                                 background: 'transparent'
@@ -195,10 +186,10 @@ export default function TeamDetailsDialog({
                                                     textAlign: 'center',
                                                     padding: '10px',
                                                     borderRadius: '10px',
-                                                    backgroundColor: '#f3e5f5',
+                                                    backgroundColor: settings.mode === 'dark' ? '#555' : '#f3e5f5', // Adjust background for employee item
                                                     transition: 'all 0.3s ease',
                                                     height: '100%',
-                                                    '&:hover': { backgroundColor: '#e1bee7', transform: 'scale(1.05)' }
+                                                    '&:hover': { backgroundColor: settings.mode === 'dark' ? '#666' : '#e1bee7', transform: 'scale(1.05)' }
                                                 }}
                                             >
                                                 <Avatar
@@ -228,7 +219,7 @@ export default function TeamDetailsDialog({
                 {/* Footer */}
                 <Box
                     sx={{
-                        backgroundColor: '#ede7f6',
+                        backgroundColor: settings.mode === 'dark' ? '#333' : '#ede7f6', // Adjust footer background for dark mode
                         padding: '20px',
                         display: 'flex',
                         justifyContent: 'space-between',

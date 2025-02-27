@@ -25,6 +25,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import { styled, keyframes } from '@mui/material/styles';
 
 import AchievementForm from '@/components/acheivement/AchievementForm';
+import { useSettings } from '@/@core/hooks/useSettings'; // Import the useSettings hook
 
 const API_URL = process.env.NEXT_PUBLIC_APP_URL + '/achievements';
 const DUMMY_IMAGE = 'https://img.freepik.com/premium-vector/figure-wooden-dummy-climb-up-wooden-stairs-concept-career-up-business-growth-up-success-life-management-achievement-concept-success_131476-99.jpg ';
@@ -54,7 +55,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
     borderRadius: '16px',
     transition: 'all 0.3s ease',
     position: 'relative',
-    backgroundColor: '#fff',
+    backgroundColor: theme.palette.background.paper, // Dynamically adjust based on theme
     maxWidth: '100%',
     minHeight: '250px',
     display: 'flex',
@@ -85,7 +86,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
         maskComposite: 'exclude',
     },
     '& > *:not(:before)': {
-        backgroundColor: '#fff',
+        backgroundColor: theme.palette.background.paper, // Dynamically adjust background based on theme
         borderRadius: '13px',
         boxShadow: `
             inset 0 0 15px rgba(55, 84, 170, 0.1),
@@ -119,7 +120,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
     display: 'flex',
     flexDirection: 'column',
     position: 'relative',
-    background: `linear-gradient(135deg, #fff 0%, #f8f9fa 100%)`,
+    background: theme.palette.background.default, // Adjust background color based on the theme
     borderTopRightRadius: '13px',
     borderBottomRightRadius: '13px',
     '&::before': {
@@ -129,7 +130,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
         left: '-5px',
         width: '10px',
         height: '10px',
-        backgroundColor: '#1976d2',
+        backgroundColor: theme.palette.primary.main, // Adjust based on theme
         borderRadius: '50%',
         boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
     },
@@ -140,7 +141,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
         left: '-5px',
         width: '10px',
         height: '10px',
-        backgroundColor: '#1976d2',
+        backgroundColor: theme.palette.primary.main, // Adjust based on theme
         borderRadius: '50%',
         boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
     }
@@ -162,6 +163,7 @@ const StyledCardActions = styled(CardActions)(() => ({
 }));
 
 const Achievement = () => {
+    const { settings } = useSettings(); // Access dark/light mode settings
     const [achievements, setAchievements] = useState([]);
     const [loading, setLoading] = useState(false);
     const [editId, setEditId] = useState(null);
@@ -207,10 +209,8 @@ const Achievement = () => {
             // Update state with fetched achievements
             setAchievements(data);
         } catch (error) {
-            // Log any errors that occur during the fetch
             console.error('Error fetching achievements:', error);
         } finally {
-            // Set loading state to false after fetching is complete
             setLoading(false);
         }
     };
@@ -381,12 +381,12 @@ const Achievement = () => {
                                                 </IconButton>
                                             </StyledCardActions>}
 
-                                            <CardContent sx={{ p: 3, height: '100%' }}>
+                                            <CardContent sx={{ p: 3 }}>
                                                 <Typography
                                                     variant="h6"
                                                     sx={{
                                                         fontWeight: 600,
-                                                        color: '#1a237e',
+                                                        color: settings.mode === 'dark' ? '#fff' : '#1a237e', // Adjust for dark mode
                                                         mb: 2
                                                     }}
                                                 >
@@ -395,7 +395,7 @@ const Achievement = () => {
                                                 <Typography
                                                     variant="body2"
                                                     sx={{
-                                                        color: '#424242',
+                                                        color: settings.mode === 'dark' ? '#ccc' : '#424242',
                                                         mb: 2,
                                                         lineHeight: 1.6
                                                     }}
@@ -408,7 +408,7 @@ const Achievement = () => {
                                                         size="small"
                                                         onClick={() => handleReadMore(achievement.description)}
                                                         sx={{
-                                                            color: '#1976d2',
+                                                            color: settings.mode === 'dark' ? '#42a5f5' : '#1976d2', // Adjust for dark mode
                                                             textTransform: 'none',
                                                             p: 0,
                                                             mt: 'auto',
@@ -436,11 +436,11 @@ const Achievement = () => {
                     maxWidth="sm"
                     fullWidth
                 >
-                    <DialogTitle sx={{ color: '#1a237e', fontWeight: 'bold' }}>
+                    <DialogTitle sx={{ color: settings.mode === 'dark' ? 'white' : '#333', fontWeight: 'bold' }}>
                         Description
                     </DialogTitle>
                     <DialogContent>
-                        <Typography variant="body1" sx={{ color: '#424242', mt: 1 }}>
+                        <Typography variant="body1" sx={{ color: settings.mode === 'dark' ? 'white' : '#333', mt: 1 }}>
                             {selectedDescription}
                         </Typography>
                     </DialogContent>

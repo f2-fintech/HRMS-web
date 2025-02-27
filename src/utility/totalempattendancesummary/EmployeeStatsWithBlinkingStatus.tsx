@@ -337,7 +337,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
               {Array.from(new Set(selectedEmployees.map(employee => employee.employee._id)))
                 .map(id => selectedEmployees.find(employee => employee.employee._id === id))
                 .map(employee => (
-                  <li key={employee.employee._id} className='flex items-center py-4 px-2 hover:bg-gray-50'>
+                  <li key={employee.employee._id} className='flex items-center py-4 px-2'>
                     <div className='h-10 w-10 rounded-full overflow-hidden bg-gray-200'>
                       <img
                         src={employee.employee.image || '/api/placeholder/40/40'}
@@ -349,10 +349,10 @@ const EmployeeAttendanceStatus: React.FC = () => {
                     <div className='ml-4 flex-1'>
                       <div className='flex items-center justify-between'>
                         <div>
-                          <span className='font-medium text-gray-900'>
+                          <span className='font-medium text-white-900'>
                             {employee.employee.first_name} {employee.employee.last_name}
                           </span>
-                          <span className='ml-2 text-sm text-gray-500'>{employee.employee.code}</span>
+                          <span className='ml-2 text-sm text-white-500'>{employee.employee.code}</span>
                         </div>
                       </div>
                     </div>

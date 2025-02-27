@@ -516,16 +516,24 @@ export default function AttendanceGrid() {
                       value={dayjs(new Date(year, month - 1))} // Bind current month and year
                       onChange={newDate => {
                         if (newDate) {
-                          setMonth(newDate.month() + 1) // Update month state
-                          setYear(newDate.year()) // Update year state
+                          setMonth(newDate.month() + 1); // Update month state
+                          setYear(newDate.year()); // Update year state
                         }
                       }}
                       sx={{
-                        width: '100%'
+                        width: '100%',  // Ensure it takes full width of its container
+                        maxWidth: '200px',  // Limit maximum width
+                        marginLeft: {
+                          xs: '0px',    // On small screens, no margin
+                          sm: '10px',   // Slight margin on small screens
+                          md: '290px',   // On large screens, shift it 50px to the right
+                        },
+                        marginRight: 'auto', // Center-align for larger screens
                       }}
                     />
                   </LocalizationProvider>
                 </Grid>
+
                 <Grid item xs={12} sm={6} md={2}>
                   <Button
                     fullWidth

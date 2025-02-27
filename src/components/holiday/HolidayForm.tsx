@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-
 import { Box, Grid, TextField, Typography, IconButton, Button } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { toast } from 'react-toastify'; // Assuming you're using react-toastify for notifications
-
+import { toast } from 'react-toastify';
 import { utility } from '@/utility';
+import { useSettings } from '@/@core/hooks/useSettings';
 
 const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFetch }) => {
+
+  const { settings } = useSettings();  // Get current theme mode (dark/light)
   const { capitalizeInput } = utility();
 
   const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
@@ -122,8 +123,6 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
 
       return differenceInDays > 0 ? differenceInDays : 0;
     }
-
-
     return 0;
   };
 
@@ -159,9 +158,9 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
   };
 
   return (
-    <Box sx={{ flexGrow: 1, padding: 2 }}>
+    <Box>
       <Box display='flex' justifyContent='space-between' alignItems='center'>
-        <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
+        <Typography style={{ fontSize: '2em', color: settings.mode === 'dark' ? '#fff' : '#000' }} variant='h5' gutterBottom>
           {holiday ? 'Edit Holiday' : 'Add Holiday'}
         </Typography>
         <IconButton onClick={handleClose}>
@@ -180,6 +179,15 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
             error={!!errors.title}
             helperText={errors.title}
             FormHelperTextProps={{ style: { color: 'red' } }}
+            sx={{
+              backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              '& input': {
+                color: settings.mode === 'dark' ? '#fff' : '#000',
+              },
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              },
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -195,6 +203,15 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
             error={!!errors.start_date}
             helperText={errors.start_date}
             FormHelperTextProps={{ style: { color: 'red' } }}
+            sx={{
+              backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              '& input': {
+                color: settings.mode === 'dark' ? '#fff' : '#000',
+              },
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              },
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -210,6 +227,15 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
             error={!!errors.end_date}
             helperText={errors.end_date}
             FormHelperTextProps={{ style: { color: 'red' } }}
+            sx={{
+              backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              '& input': {
+                color: settings.mode === 'dark' ? '#fff' : '#000',
+              },
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              },
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -224,6 +250,15 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
             required
             error={!!errors.day}
             helperText={errors.day}
+            sx={{
+              backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              '& input': {
+                color: settings.mode === 'dark' ? '#fff' : '#000',
+              },
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              },
+            }}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -240,12 +275,19 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
 
               handleChange({ target: { name, value: capitalizedValue } });
             }}
-
-
             required
             error={!!errors.note}
             helperText={errors.note}
             FormHelperTextProps={{ style: { color: 'red' } }}
+            sx={{
+              backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              '& input': {
+                color: settings.mode === 'dark' ? '#fff' : '#000',
+              },
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
+              },
+            }}
           />
         </Grid>
         <Grid item xs={12}>
