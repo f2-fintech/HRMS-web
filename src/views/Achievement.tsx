@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-
 import {
     Box,
     Grid,
@@ -18,35 +17,29 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    alpha
+    alpha,
+    useTheme,
+    useMediaQuery
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import InfoIcon from '@mui/icons-material/Info';
+import DownloadIcon from '@mui/icons-material/Download';
 import { styled, keyframes } from '@mui/material/styles';
 
 import AchievementForm from '@/components/acheivement/AchievementForm';
-import { useSettings } from '@/@core/hooks/useSettings'; // Import the useSettings hook
+import { useSettings } from '@/@core/hooks/useSettings';
 
 const API_URL = process.env.NEXT_PUBLIC_APP_URL + '/achievements';
-const DUMMY_IMAGE = 'https://img.freepik.com/premium-vector/figure-wooden-dummy-climb-up-wooden-stairs-concept-career-up-business-growth-up-success-life-management-achievement-concept-success_131476-99.jpg ';
+const DUMMY_IMAGE = 'https://img.freepik.com/premium-vector/figure-wooden-dummy-climb-up-wooden-stairs-concept-career-up-business-growth-up-success-life-management-achievement-concept-success_131476-99.jpg';
 
 // Animation keyframes for the moving border
 const borderAnimation = keyframes`
-    0% {
-        background-position: 0% 0%;
-    }
-    25% {
-        background-position: 100% 0%;
-    }
-    50% {
-        background-position: 100% 100%;
-    }
-    75% {
-        background-position: 0% 100%;
-    }
-    100% {
-        background-position: 0% 0%;
-    }
+    0% { background-position: 0% 0%; }
+    25% { background-position: 100% 0%; }
+    50% { background-position: 100% 100%; }
+    75% { background-position: 0% 100%; }
+    100% { background-position: 0% 0%; }
 `;
 
 // Styled Components
@@ -55,16 +48,21 @@ const StyledCard = styled(Card)(({ theme }) => ({
     borderRadius: '16px',
     transition: 'all 0.3s ease',
     position: 'relative',
-    backgroundColor: theme.palette.background.paper, // Dynamically adjust based on theme
+    backgroundColor: theme.palette.background.paper,
     maxWidth: '100%',
     minHeight: '250px',
     display: 'flex',
+    flexDirection: 'row',
     color: 'inherit',
     overflow: 'hidden',
     padding: '3px',
     margin: '20px 0',
+    [theme.breakpoints.down('md')]: {
+        flexDirection: 'column',
+    },
     '&:hover': {
         transform: 'translateY(-10px)',
+        boxShadow: theme.shadows[10],
         '& .edit-actions': {
             opacity: 1
         }
@@ -86,23 +84,31 @@ const StyledCard = styled(Card)(({ theme }) => ({
         maskComposite: 'exclude',
     },
     '& > *:not(:before)': {
-        backgroundColor: theme.palette.background.paper, // Dynamically adjust background based on theme
+        backgroundColor: theme.palette.background.paper,
         borderRadius: '13px',
         boxShadow: `
-            inset 0 0 15px rgba(55, 84, 170, 0.1),
-            inset 0 0 20px rgba(255, 255, 255, 0.2),
-            0 0 20px rgba(0, 0, 0, 0.15)
+            inset 0 0 15px ${alpha(theme.palette.primary.main, 0.1)},
+            inset 0 0 20px ${alpha(theme.palette.common.white, 0.2)},
+            0 0 20px ${alpha(theme.palette.common.black, 0.15)}
         `,
     }
 }));
 
 const MediaContainer = styled(Box)(({ theme }) => ({
     width: '40%',
-    minWidth: '300px',
+    minWidth: '250px',
+    height: '250px',
     position: 'relative',
     overflow: 'hidden',
     borderTopLeftRadius: '13px',
     borderBottomLeftRadius: '13px',
+    [theme.breakpoints.down('md')]: {
+        width: '100%',
+        minWidth: '100%',
+        borderTopLeftRadius: '13px',
+        borderTopRightRadius: '13px',
+        borderBottomLeftRadius: '0',
+    },
     '&::after': {
         content: '""',
         position: 'absolute',
@@ -120,9 +126,15 @@ const ContentContainer = styled(Box)(({ theme }) => ({
     display: 'flex',
     flexDirection: 'column',
     position: 'relative',
-    background: theme.palette.background.default, // Adjust background color based on the theme
+    background: theme.palette.background.default,
     borderTopRightRadius: '13px',
     borderBottomRightRadius: '13px',
+    [theme.breakpoints.down('md')]: {
+        width: '100%',
+        borderTopRightRadius: '0',
+        borderBottomLeftRadius: '13px',
+        borderBottomRightRadius: '13px',
+    },
     '&::before': {
         content: '""',
         position: 'absolute',
@@ -130,9 +142,12 @@ const ContentContainer = styled(Box)(({ theme }) => ({
         left: '-5px',
         width: '10px',
         height: '10px',
-        backgroundColor: theme.palette.primary.main, // Adjust based on theme
+        backgroundColor: theme.palette.primary.main,
         borderRadius: '50%',
-        boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+        [theme.breakpoints.down('md')]: {
+            display: 'none'
+        },
     },
     '&::after': {
         content: '""',
@@ -141,13 +156,16 @@ const ContentContainer = styled(Box)(({ theme }) => ({
         left: '-5px',
         width: '10px',
         height: '10px',
-        backgroundColor: theme.palette.primary.main, // Adjust based on theme
+        backgroundColor: theme.palette.primary.main,
         borderRadius: '50%',
-        boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+        [theme.breakpoints.down('md')]: {
+            display: 'none'
+        },
     }
 }));
 
-const StyledCardActions = styled(CardActions)(() => ({
+const StyledCardActions = styled(CardActions)(({ theme }) => ({
     justifyContent: 'flex-end',
     padding: '16px',
     opacity: 0,
@@ -156,14 +174,32 @@ const StyledCardActions = styled(CardActions)(() => ({
         position: 'absolute',
         top: 0,
         right: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: alpha(theme.palette.background.paper, 0.9),
         borderRadius: '0 13px 0 13px',
         zIndex: 1
     }
 }));
 
+const DownloadButton = styled(Button)(({ theme }) => ({
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    background: alpha(theme.palette.common.black, 0.6),
+    color: theme.palette.common.white,
+    padding: '6px 12px',
+    borderRadius: '5px',
+    textDecoration: 'none',
+    zIndex: 1,
+    transition: 'all 0.2s ease',
+    '&:hover': {
+        background: alpha(theme.palette.common.black, 0.8),
+    }
+}));
+
 const Achievement = () => {
-    const { settings } = useSettings(); // Access dark/light mode settings
+    const { settings } = useSettings();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [achievements, setAchievements] = useState([]);
     const [loading, setLoading] = useState(false);
     const [editId, setEditId] = useState(null);
@@ -181,32 +217,25 @@ const Achievement = () => {
     }, []);
 
     const fetchAchievements = async () => {
-        setLoading(true); // Set loading state to true
+        setLoading(true);
 
         try {
-            // Retrieve company_id from localStorage
             const userData = JSON.parse(localStorage.getItem('user') || '{}');
             const companyId = userData?.company_id;
 
-            // If company_id is missing, return early
             if (!companyId) {
                 console.error('Missing company_id');
                 setLoading(false);
                 return;
             }
 
-            // Fetch data directly using the constructed URL
             const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/achievements/get-by/${companyId}`);
 
-            // Check if the response is successful
             if (!response.ok) {
                 throw new Error(`Error: ${response.statusText}`);
             }
 
-            // Parse the response data
             const data = await response.json();
-
-            // Update state with fetched achievements
             setAchievements(data);
         } catch (error) {
             console.error('Error fetching achievements:', error);
@@ -264,23 +293,16 @@ const Achievement = () => {
                         alt="Achievement"
                         style={mediaStyle}
                     />
-                    <a
+                    <DownloadButton
+                        variant="contained"
+                        startIcon={<DownloadIcon />}
+                        size="small"
+                        component="a"
                         href={fileUrl}
                         download
-                        style={{
-                            position: 'absolute',
-                            bottom: 10,
-                            left: 10,
-                            background: 'rgba(0,0,0,0.5)',
-                            color: 'white',
-                            padding: '5px 10px',
-                            borderRadius: '5px',
-                            textDecoration: 'none',
-                            zIndex: 1
-                        }}
                     >
                         Download
-                    </a>
+                    </DownloadButton>
                 </>
             );
         }
@@ -305,23 +327,16 @@ const Achievement = () => {
                         title="PDF Document"
                         style={mediaStyle}
                     />
-                    <a
+                    <DownloadButton
+                        variant="contained"
+                        startIcon={<DownloadIcon />}
+                        size="small"
+                        component="a"
                         href={fileUrl}
                         download
-                        style={{
-                            position: 'absolute',
-                            bottom: 10,
-                            left: 10,
-                            background: 'rgba(0,0,0,0.5)',
-                            color: 'white',
-                            padding: '5px 10px',
-                            borderRadius: '5px',
-                            textDecoration: 'none',
-                            zIndex: 1
-                        }}
                     >
                         Download
-                    </a>
+                    </DownloadButton>
                 </>
             );
         }
@@ -339,7 +354,15 @@ const Achievement = () => {
         <Container maxWidth="lg">
             <Box sx={{ py: 4 }}>
                 {editId !== null && (
-                    <Box sx={{ mb: 4, p: 3, backgroundColor: alpha('#42a5f5', 0.1), borderRadius: 2 }}>
+                    <Box
+                        sx={{
+                            mb: 4,
+                            p: 3,
+                            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                            borderRadius: 2,
+                            boxShadow: theme.shadows[2]
+                        }}
+                    >
                         <AchievementForm
                             id={editId}
                             onSuccess={() => {
@@ -352,80 +375,124 @@ const Achievement = () => {
                 )}
 
                 {loading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                        <CircularProgress size={60} thickness={4} sx={{ color: '#1976d2' }} />
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+                        <CircularProgress
+                            size={60}
+                            thickness={4}
+                            sx={{
+                                color: theme.palette.primary.main,
+                                '& .MuiCircularProgress-circle': {
+                                    strokeLinecap: 'round',
+                                }
+                            }}
+                        />
                     </Box>
                 ) : (
-                    <Fade in={!loading}>
+                    <Fade in={!loading} timeout={500}>
                         <Grid container spacing={3}>
-                            {achievements?.map((achievement) => (
-                                <Grid item xs={12} key={achievement._id}>
-                                    <StyledCard>
-                                        <MediaContainer>
-                                            {renderMedia(achievement.fileUrl)}
-                                        </MediaContainer>
+                            {achievements?.length === 0 ? (
+                                <Grid item xs={12}>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            textAlign: 'center',
+                                            height: '30vh',
+                                            p: 4,
+                                            backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                                            borderRadius: 2
+                                        }}
+                                    >
+                                        <InfoIcon sx={{ fontSize: 64, color: theme.palette.text.secondary, mb: 2 }} />
+                                        <Typography variant="h6" color="textSecondary">
+                                            No achievements found
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                            ) : (
+                                achievements?.map((achievement) => (
+                                    <Grid item xs={12} key={achievement._id}>
+                                        <StyledCard elevation={3}>
+                                            <MediaContainer>
+                                                {renderMedia(achievement.fileUrl)}
+                                            </MediaContainer>
 
-                                        <ContentContainer>
-                                            {userData && userData.role === '1' && <StyledCardActions className="edit-actions">
-                                                <IconButton
-                                                    onClick={() => setEditId(achievement._id)}
-                                                    sx={{ color: '#1976d2' }}
-                                                >
-                                                    <EditIcon />
-                                                </IconButton>
-                                                <IconButton
-                                                    onClick={() => handleDelete(achievement._id)}
-                                                    sx={{ color: '#e53935' }}
-                                                >
-                                                    <DeleteIcon />
-                                                </IconButton>
-                                            </StyledCardActions>}
+                                            <ContentContainer>
+                                                {userData && userData.role === '1' && (
+                                                    <StyledCardActions className="edit-actions">
+                                                        <IconButton
+                                                            onClick={() => setEditId(achievement._id)}
+                                                            color="primary"
+                                                            size="small"
+                                                            sx={{
+                                                                mr: 1,
+                                                                backgroundColor: alpha(theme.palette.background.paper, 0.8)
+                                                            }}
+                                                        >
+                                                            <EditIcon />
+                                                        </IconButton>
+                                                        <IconButton
+                                                            onClick={() => handleDelete(achievement._id)}
+                                                            color="error"
+                                                            size="small"
+                                                            sx={{
+                                                                backgroundColor: alpha(theme.palette.background.paper, 0.8)
+                                                            }}
+                                                        >
+                                                            <DeleteIcon />
+                                                        </IconButton>
+                                                    </StyledCardActions>
+                                                )}
 
-                                            <CardContent sx={{ p: 3 }}>
-                                                <Typography
-                                                    variant="h6"
-                                                    sx={{
-                                                        fontWeight: 600,
-                                                        color: settings.mode === 'dark' ? '#fff' : '#1a237e', // Adjust for dark mode
-                                                        mb: 2
-                                                    }}
-                                                >
-                                                    {achievement.title || 'N/A'}
-                                                </Typography>
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: settings.mode === 'dark' ? '#ccc' : '#424242',
-                                                        mb: 2,
-                                                        lineHeight: 1.6
-                                                    }}
-                                                >
-                                                    {truncateDescription(achievement.description)}
-                                                </Typography>
-
-                                                {achievement.description?.length > 150 && (
-                                                    <Button
-                                                        size="small"
-                                                        onClick={() => handleReadMore(achievement.description)}
+                                                <CardContent sx={{ p: isMobile ? 2 : 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                                    <Typography
+                                                        variant="h6"
                                                         sx={{
-                                                            color: settings.mode === 'dark' ? '#42a5f5' : '#1976d2', // Adjust for dark mode
-                                                            textTransform: 'none',
-                                                            p: 0,
-                                                            mt: 'auto',
-                                                            '&:hover': {
-                                                                backgroundColor: 'transparent',
-                                                                textDecoration: 'underline'
-                                                            }
+                                                            fontWeight: 600,
+                                                            color: settings.mode === 'dark' ? theme.palette.common.white : theme.palette.primary.dark,
+                                                            mb: 2,
+                                                            fontSize: { xs: '1rem', sm: '1.25rem' }
                                                         }}
                                                     >
-                                                        Read More
-                                                    </Button>
-                                                )}
-                                            </CardContent>
-                                        </ContentContainer>
-                                    </StyledCard>
-                                </Grid>
-                            ))}
+                                                        {achievement.title || 'N/A'}
+                                                    </Typography>
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            color: settings.mode === 'dark' ? theme.palette.text.secondary : theme.palette.text.primary,
+                                                            mb: 2,
+                                                            lineHeight: 1.6,
+                                                            flexGrow: 1
+                                                        }}
+                                                    >
+                                                        {truncateDescription(achievement.description)}
+                                                    </Typography>
+
+                                                    {achievement.description?.length > 150 && (
+                                                        <Button
+                                                            size="small"
+                                                            onClick={() => handleReadMore(achievement.description)}
+                                                            startIcon={<InfoIcon fontSize="small" />}
+                                                            sx={{
+                                                                color: settings.mode === 'dark' ? theme.palette.primary.light : theme.palette.primary.main,
+                                                                textTransform: 'none',
+                                                                alignSelf: 'flex-start',
+                                                                '&:hover': {
+                                                                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                                                                }
+                                                            }}
+                                                        >
+                                                            Read More
+                                                        </Button>
+                                                    )}
+                                                </CardContent>
+                                            </ContentContainer>
+                                        </StyledCard>
+                                    </Grid>
+                                ))
+                            )}
                         </Grid>
                     </Fade>
                 )}
@@ -433,21 +500,43 @@ const Achievement = () => {
                 <Dialog
                     open={modalOpen}
                     onClose={() => setModalOpen(false)}
-                    maxWidth="sm"
+                    maxWidth="md"
                     fullWidth
+                    PaperProps={{
+                        sx: {
+                            borderRadius: 2,
+                            bgcolor: theme.palette.background.paper,
+                            boxShadow: theme.shadows[10]
+                        }
+                    }}
                 >
-                    <DialogTitle sx={{ color: settings.mode === 'dark' ? 'white' : '#333', fontWeight: 'bold' }}>
+                    <DialogTitle
+                        sx={{
+                            color: settings.mode === 'dark' ? theme.palette.common.white : theme.palette.text.primary,
+                            fontWeight: 'bold',
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                            p: 3
+                        }}
+                    >
                         Description
                     </DialogTitle>
-                    <DialogContent>
-                        <Typography variant="body1" sx={{ color: settings.mode === 'dark' ? 'white' : '#333', mt: 1 }}>
+                    <DialogContent sx={{ p: 3, mt: 1 }}>
+                        <Typography
+                            variant="body1"
+                            sx={{
+                                color: settings.mode === 'dark' ? theme.palette.common.white : theme.palette.text.primary,
+                                lineHeight: 1.6
+                            }}
+                        >
                             {selectedDescription}
                         </Typography>
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions sx={{ p: 2, px: 3 }}>
                         <Button
                             onClick={() => setModalOpen(false)}
-                            sx={{ color: '#1976d2' }}
+                            variant="contained"
+                            color="primary"
+                            sx={{ px: 4 }}
                         >
                             Close
                         </Button>

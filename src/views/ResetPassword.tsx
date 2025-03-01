@@ -99,7 +99,7 @@ const ResetPassword = ({ mode }: { mode: Mode }) => {
 
                     }}
                 >
-                    <Logo />
+                    {/* <Logo /> */}
 
                     <Paper
                         elevation={3}
