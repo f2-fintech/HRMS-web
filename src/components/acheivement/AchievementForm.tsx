@@ -57,6 +57,15 @@ const AchievementForm: React.FC<AchievementFormProps> = ({ id, onSuccess, onClos
         formData.append('description', description || 'N/A')
         if (file) formData.append('file', file)
 
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const companyId = user.company_id;
+        console.log('cidd kdajk', companyId);
+
+        if (companyId) {
+            formData.append('company_id', companyId)
+        }
+
+
         try {
             const method = id ? 'PUT' : 'POST'
             const url = id ? `${API_URL}/${id}` : API_URL
