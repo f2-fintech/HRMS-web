@@ -267,7 +267,7 @@ const Profile = () => {
                         <ArrowBackIcon />  {/* Replace with a back arrow icon if desired */}
                     </IconButton>
                 </Tooltip>
-                {user.id && (
+                {user.id === userData?._id && (
                     <IconButton sx={{ position: 'absolute', right: 20 }} color='primary' onClick={handleEditAvatar}>
                         <PhotoCameraIcon />
                     </IconButton>
@@ -393,7 +393,7 @@ const Profile = () => {
                                     <Typography variant='body1' sx={{ mb: 3, lineHeight: 1.6 }}>
                                         {bio || 'No bio available'}
                                     </Typography>
-                                    {user._id && (
+                                    {user.id === userData?._id && (
                                         <IconButton onClick={toggleEditBio} sx={{ ml: 2 }}>
                                             <Edit />
                                         </IconButton>
