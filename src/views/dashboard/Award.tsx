@@ -50,7 +50,7 @@ const Award = () => {
 
     const fetchEmployeesAndAwards = async () => {
       let token: string | null = null;
-      const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+      const company_id = user?.company_id || '';
 
       if (typeof window !== "undefined") {
         token = localStorage?.getItem("token");
