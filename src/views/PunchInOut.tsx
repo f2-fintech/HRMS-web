@@ -2,19 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link';
-
-import { useMediaQuery, useTheme, Button, Typography, Box, Grid, Card, Tooltip, Container, Paper, Stack, Divider } from '@mui/material'
-import Avatar from '@mui/material/Avatar'
-import {
-    AccessTime as AccessTimeIcon,
-    Timer as TimerIcon,
-    PlayArrow as PlayArrowIcon,
-    Stop as StopIcon
-} from '@mui/icons-material'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
-
 import {
     addPunch,
     fetchTotalWorkingHours,
@@ -22,7 +12,6 @@ import {
     updatePunch
 } from '@/redux/features/punches/punchesSlice'
 import type { RootState } from '@/redux/store'
-import Company from '@/app/(dashboard)/company/page'
 import useRouterWithMount from '@/utility/useRouterWithMount';
 import { useSettings } from '@/@core/hooks/useSettings';
 
@@ -40,8 +29,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 }) => {
     const user = typeof window !== 'undefined' ? localStorage?.getItem('user') : null
     const { company_id } = user ? JSON.parse(user) : {}
-    const theme = useTheme()
-    const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'))
     const dispatch = useDispatch()
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -63,6 +50,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [startTimestamp, setStartTimestamp] = useState<number | null>(null)
     const [currentTime, setCurrentTime] = useState(new Date())
     const [logoUrl, setLogoUrl] = useState('/images/logos/fintech.png');
+    const [isSmallScreen, setIsSmallScreen] = useState(false)
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id
     const userRole = employee?.role
@@ -72,7 +60,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const loading = useSelector((state: RootState) => state.punches.loading)
     const error = useSelector((state: RootState) => state.punches.error)
     const [userData, setUserData] = useState(null)
-
 
     const { settings } = useSettings()
 
@@ -97,12 +84,14 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             fetchUserData()
         }
     }, [])
+
     const currentDate = new Date().toISOString().split('T')[0]
     const isCurrentDate = selectedDate === currentDate
 
     useEffect(() => {
         const handleResize = () => {
             setIsLargeScreen(window.innerWidth >= 1024)
+            setIsSmallScreen(window.innerWidth < 640)
         }
 
         handleResize()
@@ -119,7 +108,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         return () => clearInterval(timerInterval)
     }, [])
 
-    //to get clock logo from account-settings
+    // To get clock logo from account-settings
     useEffect(() => {
         const getConfiguration = async () => {
             try {
@@ -130,12 +119,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 }
             } catch (error) {
                 console.error('Error fetching configuration:', error);
-
             }
         };
 
         getConfiguration();
     }, []);
+
     useEffect(() => {
         if (employeeId && selectedDate) {
             dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
@@ -320,16 +309,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     if (loading) {
-        return <div>Loading...</div>
+        return <div className="flex justify-center items-center h-48">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
     }
 
     if (error) {
-        return <div>Error: {error}</div>
+        return <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">Error: {error}</div>
     }
 
     const currentPunch = punch.length > 0 ? punch[currentPunchIndex] : null
 
-    //dashboard punchin_out
+    // Dashboard minimal view for punch in/out
     if (isMinimalView) {
         const isButtonEnabledOnPhone =
             userDesg === 'Co-Founder & MD' || userDesg === 'Founder & CEO' || userDesg === 'Full Stack Developer';
@@ -345,485 +336,272 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             if (punchInTime <= referenceTime10_15AM && punchInTime >= referenceTime9AM) {
                 punchMessage = '✅ Great job! Being on time shows commitment and professionalism. Keep up the good work!';
             } else if (punchInTime > referenceTime10_15AM) {
-                punchMessage = '⏰ Punctuality is not just about being on time; it’s about respecting your work, your team, and your commitments.';
+                punchMessage = `⏰ Punctuality is not just about being on time; it's about respecting your work, your team, and your commitments.`;
             }
         }
 
         return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 2,
-                    p: 3,
-                    borderRadius: 4,
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                    background: settings.mode === 'dark' ? '#333' : 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
-                    maxWidth: 'auto',
-                    mx: 'auto',
-                    mt: 2
-                }}
-            >
-                {/* Punch Message - Now Appears at the Top */}
+            <div className={`flex flex-col items-center justify-center gap-4 p-6 rounded-xl shadow-lg mt-4 mx-auto ${settings.mode === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-r from-indigo-900 to-blue-700'}`}>
+                {/* Punch Message */}
                 {punchMessage && (
-                    <Typography
-                        variant="body1"
-                        sx={{
-                            textAlign: 'center',
-                            fontWeight: 'bold',
-                            color: 'yellow',
-                            background: 'rgba(0, 0, 0, 0.2)',
-                            p: 1.5,
-                            borderRadius: 2,
-                            width: '100%',
-                            mb: 2
-                        }}
-                    >
+                    <div className="text-center font-bold text-yellow-300 bg-black/20 p-3 rounded-lg w-full mb-4">
                         {punchMessage}
-                    </Typography>
+                    </div>
                 )}
 
                 {/* User Image */}
-
-                <Tooltip title="View Profile" arrow>
-                    <Avatar
+                <div className="relative group cursor-pointer" onClick={() => navigateToProfile(userData?._id)}>
+                    <img
                         alt={userData?.first_name || 'User'}
-                        src={userData?.image}
-                        sx={{
-                            width: 64,
-                            height: 64,
-                            border: '2px solid white',
-                            mb: 1,
-                            cursor: "pointer"
-                        }}
-                        onClick={() => navigateToProfile(userData?._id)}
+                        src={userData?.image || '/images/avatars/default.png'}
+                        className="w-16 h-16 rounded-full border-2 border-white mb-2 transition-transform group-hover:scale-110"
                     />
-                </Tooltip>
+                    <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 bg-blue-500 text-white text-xs py-0.5 px-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        View Profile
+                    </div>
+                </div>
 
-                {/* Display Current Day Instead of Punch In/Out Text */}
-                <Typography
-                    variant='h5'
-                    sx={{
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        mb: 3,
-                        color: 'white'
-                    }}
-                >
+                {/* Current Day */}
+                <h2 className="font-bold text-center mb-6 text-white text-xl">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
-                </Typography>
+                </h2>
 
-                <Box
-                    sx={{
-                        display: 'flex',
-                        justifyContent: 'space-around',
-                        alignItems: 'center',
-                        width: '100%',
-                        gap: 2
-                    }}
-                >
+                <div className="flex justify-around items-center w-full gap-4">
                     {/* Punch In Section */}
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Button
-                            variant='contained'
-                            color='success'
+                    <div className="text-center">
+                        <button
                             onClick={handlePunchIn}
-                            disabled={
-                                (!isButtonEnabledOnPhone && isSmallScreen) ||
-                                punchState.isPunchInDisabled ||
-                                disablePunch
-                            }
-                            sx={{ mb: 1 }}
+                            disabled={(!isButtonEnabledOnPhone && isSmallScreen) || punchState.isPunchInDisabled || disablePunch}
+                            className={`mb-2 px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${(!isButtonEnabledOnPhone && isSmallScreen) || punchState.isPunchInDisabled || disablePunch
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-green-500 hover:bg-green-600 text-white'
+                                }`}
                         >
                             Punch In
-                        </Button>
+                        </button>
                         {punchState.startTime && (
-                            <Typography variant='body2' sx={{ color: 'white' }}>
+                            <div className="text-sm text-white">
                                 {punchState.startTime}
-                            </Typography>
+                            </div>
                         )}
-                    </Box>
+                    </div>
 
-                    {/* Date Display - Moved Between Punch In and Punch Out */}
-                    <Typography
-                        variant='body2'
-                        sx={{
-                            color: 'white',
-                            fontWeight: 'bold',
-                            fontSize: '0.9rem',
-                            textAlign: 'center'
-                        }}
-                    >
+                    {/* Date Display */}
+                    <div className="text-white font-bold text-sm text-center">
                         {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </Typography>
+                    </div>
 
                     {/* Punch Out Section */}
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Button
-                            variant='contained'
-                            color='error'
+                    <div className="text-center">
+                        <button
                             onClick={handlePunchOut}
-                            disabled={
-                                (!isButtonEnabledOnPhone && isSmallScreen) ||
-                                punchState.isPunchOutDisabled ||
-                                disablePunch
-                            }
-                            sx={{ mb: 1 }}
+                            disabled={(!isButtonEnabledOnPhone && isSmallScreen) || punchState.isPunchOutDisabled || disablePunch}
+                            className={`mb-2 px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${(!isButtonEnabledOnPhone && isSmallScreen) || punchState.isPunchOutDisabled || disablePunch
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-red-500 hover:bg-red-600 text-white'
+                                }`}
                         >
                             Punch Out
-                        </Button>
+                        </button>
                         {punchState.endTime && (
-                            <Typography variant='body2' sx={{ color: 'white' }}>
+                            <div className="text-sm text-white">
                                 {punchState.endTime}
-                            </Typography>
+                            </div>
                         )}
-                    </Box>
-                </Box>
-            </Box>
-
-
-
+                    </div>
+                </div>
+            </div>
         );
     }
 
-
     return (
-        <Container maxWidth='lg' sx={{ py: 4 }}>
-            <Card
-                elevation={4}
-                sx={{
-                    borderRadius: 3,
-                    overflow: 'hidden',
-                    backgroundColor: '#f4f6f7'
-                }}
-            >
-                <Grid container>
+        <div className="max-w-6xl mx-auto py-4">
+            <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2">
                     {/* Time and Current Date Section */}
-                    <Grid
-                        item
-                        xs={12}
-                        md={6}
-                        sx={{
-                            backgroundColor: '#dfe6e9',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            p: 3
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                position: 'relative',
-                                width: 120,
-                                height: 120,
-                                borderRadius: '50%',
-                                border: '1px solid #66785F',
-                                backgroundColor: '#fff'
-                            }}
-                        >
+                    <div className="bg-gray-100 flex flex-col items-center justify-center p-8">
+                        <div className="relative w-32 h-32 rounded-full border border-gray-300 bg-white shadow-md">
                             {/* Hour Hand */}
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    width: '4px',
-                                    height: '25px', // Adjusted height to fit inside the clock box
-                                    backgroundColor: 'black',
-                                    top: '50%',
-                                    left: '50%',
-                                    transformOrigin: 'bottom',
-                                    transform: `rotate(${(currentDateTime.getHours() % 12) * 30 + currentDateTime.getMinutes() / 2}deg)`,
-                                    transition: 'transform 0.1s ease-in-out',
-                                    marginLeft: '-2px', // Centering the hand properly
-                                    marginTop: '-25px' // Adjusted to keep the hand inside the clock face
-                                }}
-                            />
+                            <div
+                                className="absolute w-1 h-10 bg-black top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
+                                style={{ transform: `translateY(-100%) rotate(${(currentDateTime.getHours() % 12) * 30 + currentDateTime.getMinutes() / 2}deg)` }}
+                            ></div>
+
                             {/* Minute Hand */}
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    width: '2px',
-                                    height: '40px', // Adjusted height to fit inside the clock box
-                                    backgroundColor: 'black',
-                                    top: '50%',
-                                    left: '50%',
-                                    transformOrigin: 'bottom',
-                                    transform: `rotate(${currentDateTime.getMinutes() * 6}deg)`,
-                                    transition: 'transform 0.1s ease-in-out',
-                                    marginLeft: '-1px', // Centering the hand properly
-                                    marginTop: '-40px' // Adjusted to keep the hand inside the clock face
-                                }}
-                            />
+                            <div
+                                className="absolute w-0.5 h-14 bg-black top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
+                                style={{ transform: `translateY(-100%) rotate(${currentDateTime.getMinutes() * 6}deg)` }}
+                            ></div>
+
                             {/* Second Hand */}
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    width: '1px',
-                                    height: '50px', // Adjusted height to fit inside the clock box
-                                    backgroundColor: 'red',
-                                    top: '50%',
-                                    left: '50%',
-                                    transformOrigin: 'bottom',
-                                    transform: `rotate(${currentDateTime.getSeconds() * 6}deg)`,
-                                    transition: 'transform 0.1s ease-in-out',
-                                    marginLeft: '-0.5px', // Centering the hand properly
-                                    marginTop: '-50px' // Adjusted to keep the hand inside the clock face
-                                }}
-                            />
+                            <div
+                                className="absolute w-0.5 h-16 bg-red-500 top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
+                                style={{ transform: `translateY(-100%) rotate(${currentDateTime.getSeconds() * 6}deg)` }}
+                            ></div>
 
                             {/* Company logo inside Clock */}
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    top: '39%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -30%)',
-                                    width: '65px',
-                                    height: '65px',
-                                    overflow: 'hidden',
-                                    opacity: '0.6',
-                                    borderRadius: '50%',
-                                    backgroundColor: 'transparent'
-                                }}
-                            >
+                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full overflow-hidden opacity-60">
                                 <img
                                     src={logoUrl}
-                                    alt='Company Logo'
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover'
-                                    }}
+                                    alt="Company Logo"
+                                    className="w-full h-full object-cover"
                                 />
-                            </Box>
-                            {/* Clock Numbers (1 to 12) */}
+                            </div>
+
+                            {/* Clock Numbers */}
                             {Array.from({ length: 12 }).map((_, index) => {
                                 const angle = (index + 1) * 30
-                                const x = 50 + 35 * Math.cos((angle - 90) * (Math.PI / 180))
-                                const y = 50 + 35 * Math.sin((angle - 90) * (Math.PI / 180))
+                                const x = 50 + 38 * Math.cos((angle - 90) * (Math.PI / 180))
+                                const y = 50 + 38 * Math.sin((angle - 90) * (Math.PI / 180))
 
                                 return (
-                                    <Typography
+                                    <div
                                         key={index}
-                                        variant='body1'
-                                        sx={{
-                                            position: 'absolute',
+                                        className="absolute font-bold text-sm"
+                                        style={{
                                             top: `${y}%`,
                                             left: `${x}%`,
-                                            color: 'black',
-                                            transform: 'translate(-50%, -50%)',
-                                            fontSize: 14,
-                                            fontWeight: 'bold'
+                                            transform: 'translate(-50%, -50%)'
                                         }}
                                     >
                                         {index + 1}
-                                    </Typography>
+                                    </div>
                                 )
                             })}
-                        </Box>
+                        </div>
 
-                        <Typography
-                            variant='h6'
-                            sx={{
-                                mt: 2,
-                                color: 'black'
-                            }}
-                        >
+                        <h3 className="mt-4 text-xl font-semibold text-gray-800">
                             {currentDateTime.toLocaleDateString('en-US', { weekday: 'long' })}
-                        </Typography>
-                        <Typography
-                            variant='h6'
-                            sx={{
-                                mt: 1,
-                                color: 'black'
-                            }}
-                        >
+                        </h3>
+                        <h3 className="mt-2 text-xl font-semibold text-gray-800">
                             {currentDateTime.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </Typography>
-                    </Grid>
-
-                    {/* <Divider orientation="vertical" flexItem /> */}
+                        </h3>
+                    </div>
 
                     {/* Punch In/Out and Timer Section */}
-                    <Grid
-                        item
-                        xs={12}
-                        md={6}
-                        sx={{
-                            backgroundColor: '#e8f4f8',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            p: 3
-                        }}
-                    >
-                        <TimerIcon sx={{ fontSize: 48, mb: 2, color: 'black' }} />
-                        <Typography variant='h5' sx={{ mb: 2, color: 'gray' }}>
-                            Daily Check In/Out
-                        </Typography>
+                    <div className="bg-blue-50 flex flex-col items-center justify-center p-8">
+                        <div className="text-blue-600 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-xl font-semibold text-gray-600 mb-4">Daily Check In/Out</h2>
 
                         {punchState.isPunchIn && (
-                            <Typography variant='h4' sx={{ color: 'primary.main', mb: 2 }}>
+                            <div className="text-3xl font-bold text-blue-600 mb-4">
                                 {timer}
-                            </Typography>
+                            </div>
                         )}
 
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                            <Tooltip
+                        <div className="flex gap-4">
+                            <button
+                                onClick={handlePunchIn}
+                                disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || !isLargeScreen}
+                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchInDisabled || disablePunch || !isCurrentDate || !isLargeScreen
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-green-500 hover:bg-green-600 text-white'
+                                    }`}
                                 title={
                                     disablePunch
-                                        ? `Managers can't punch in for team members.`
+                                        ? "Managers can't punch in for team members."
                                         : !isCurrentDate
-                                            ? 'Punch-In available for today only.'
+                                            ? "Punch-In available for today only."
                                             : ''
                                 }
                             >
-                                <Button
-                                    variant='contained'
-                                    color='success'
-                                    startIcon={<PlayArrowIcon />}
-                                    onClick={handlePunchIn}
-                                    disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || !isLargeScreen}
-                                >
-                                    Punch In
-                                </Button>
-                            </Tooltip>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                </svg>
+                                Punch In
+                            </button>
 
-                            <Tooltip title={disablePunch ? `Managers can't punch out for team members.` : ''}>
-                                <Button
-                                    variant='contained'
-                                    color='error'
-                                    startIcon={<StopIcon />}
-                                    onClick={handlePunchOut}
-                                    disabled={punchState.isPunchOutDisabled || disablePunch || !isLargeScreen}
-                                >
-                                    Punch Out
-                                </Button>
-                            </Tooltip>
-                        </Box>
-                    </Grid>
-
-                    {/* <Divider orientation="vertical" flexItem /> */}
+                            <button
+                                onClick={handlePunchOut}
+                                disabled={punchState.isPunchOutDisabled || disablePunch || !isLargeScreen}
+                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchOutDisabled || disablePunch || !isLargeScreen
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-red-500 hover:bg-red-600 text-white'
+                                    }`}
+                                title={disablePunch ? "Managers can't punch out for team members." : ''}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                                </svg>
+                                Punch Out
+                            </button>
+                        </div>
+                    </div>
 
                     {/* Punch Records and Total Working Hours Section */}
-                    <Grid
-                        item
-                        xs={12}
-                        md={12}
-                        sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            p: 3
-                        }}
-                    >
-                        <Typography
-                            variant='h5'
-                            sx={{
-                                mb: 3,
-                                color: 'black'
-                            }}
-                        >
+                    <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 border-t border-gray-200">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-6">
                             Attendance Logs
-                        </Typography>
+                        </h2>
 
-                        <Grid container spacing={2} sx={{ textAlign: 'center', mb: 2 }}>
-                            <Grid item xs={4}>
-                                <Typography
-                                    variant='subtitle1'
-                                    fontWeight='bold'
-                                    sx={{
-                                        color: 'black'
-                                    }}
-                                >
+                        <div className="grid grid-cols-3 gap-4 w-full mb-6 text-center">
+                            <div className="flex flex-col">
+                                <h4 className="font-semibold text-gray-700 mb-2">
                                     Punch In
-                                </Typography>
-                                <Typography
-                                    color='text.secondary'
-                                    sx={{
-                                        color: 'black'
-                                    }}
-                                >
+                                </h4>
+                                <div className="text-gray-600">
                                     {currentPunch?.punchIn || '-'}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                                <Typography
-                                    variant='subtitle1'
-                                    fontWeight='bold'
-                                    sx={{
-                                        color: 'black'
-                                    }}
-                                >
+                                </div>
+                            </div>
+                            <div className="flex flex-col">
+                                <h4 className="font-semibold text-gray-700 mb-2">
                                     Punch Out
-                                </Typography>
-                                <Typography
-                                    color='text.secondary'
-                                    sx={{
-                                        color: 'black'
-                                    }}
-                                >
+                                </h4>
+                                <div className="text-gray-600">
                                     {currentPunch?.punchOut || '-'}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                                <Typography
-                                    variant='subtitle1'
-                                    fontWeight='bold'
-                                    sx={{
-                                        color: 'black'
-                                    }}
-                                >
+                                </div>
+                            </div>
+                            <div className="flex flex-col">
+                                <h4 className="font-semibold text-gray-700 mb-2">
                                     Total Time
-                                </Typography>
-                                <Typography
-                                    color='text.secondary'
-                                    sx={{
-                                        color: 'black'
-                                    }}
-                                >
+                                </h4>
+                                <div className="text-gray-600">
                                     {currentPunch?.totalTime || '-'}
-                                </Typography>
-                            </Grid>
-                        </Grid>
+                                </div>
+                            </div>
+                        </div>
 
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                            <Button variant='outlined' disabled={currentPunchIndex === 0} onClick={handlePreviousPunch}>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={handlePreviousPunch}
+                                disabled={currentPunchIndex === 0}
+                                className={`px-4 py-2 rounded-lg border transition-colors duration-300 ${currentPunchIndex === 0
+                                    ? 'border-gray-300 text-gray-400 cursor-not-allowed'
+                                    : 'border-blue-500 text-blue-500 hover:bg-blue-50'
+                                    }`}
+                            >
                                 Previous
-                            </Button>
-                            <Button variant='outlined' disabled={currentPunchIndex === punch.length - 1} onClick={handleNextPunch}>
+                            </button>
+                            <button
+                                onClick={handleNextPunch}
+                                disabled={currentPunchIndex === punch.length - 1}
+                                className={`px-4 py-2 rounded-lg border transition-colors duration-300 ${currentPunchIndex === punch.length - 1
+                                    ? 'border-gray-300 text-gray-400 cursor-not-allowed'
+                                    : 'border-blue-500 text-blue-500 hover:bg-blue-50'
+                                    }`}
+                            >
                                 Next
-                            </Button>
-                        </Box>
-                    </Grid>
-                </Grid>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Total Working Hours Footer */}
-                <Box
-                    sx={{
-                        backgroundColor: '#D4BEE4',
-                        p: 2,
-                        textAlign: 'center'
-                    }}
-                >
-                    <Typography
-                        variant='h6'
-                        sx={{
-                            color: 'black'
-                        }}
-                    >
+                <div className="bg-[#1a237e]  p-6 text-center">
+                    <h3 className="text-gray-200 text-lg font-semibold mb-2">
                         Total Working Hours of {selectedDate}
-                    </Typography>
-                    <Typography variant='h4' color='primary'>
+                    </h3>
+                    <div className="text-2xl font-bold text-blue-400">
                         {`${totalWorkingHours?.hours || 0}h ${totalWorkingHours?.minutes || 0}m ${totalWorkingHours?.seconds || 0}s`}
-                    </Typography>
-                </Box>
-            </Card>
-        </Container>
+                    </div>
+                </div>
+            </div>
+        </div>
     )
 }
 

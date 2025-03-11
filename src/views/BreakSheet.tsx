@@ -15,10 +15,12 @@ import {
     Autocomplete,
     TextField,
     Alert,
-    Snackbar
+    Snackbar,
+    Tabs,
+    Tab
 } from '@mui/material'
 
-import { AccessTime, Coffee, Group, Timer } from '@mui/icons-material'
+import { AccessTime, Coffee, Group, RestaurantMenu, Timer } from '@mui/icons-material'
 
 import type { Break } from '@/redux/features/breaksheets/breaksSlice'
 import { addBreak, fetchBreaksById, updateBreak, updateLatestBreak } from '@/redux/features/breaksheets/breaksSlice'
@@ -42,6 +44,7 @@ import DateSelection from '@/components/breaksheet/DateSelection'
 import { formatTime, convertToMilliseconds, getTimestampFromTime } from '@/utility/timeUtils'
 import NotPunchedOutPage from './NotPunchedOutPage'
 import ExceedOneHourBreak from '@/components/attendance/ExceedOneHourBreak'
+import Link from 'next/link'
 
 const BreakSheet: React.FC = () => {
     const dispatch: AppDispatch = useDispatch()
@@ -83,6 +86,7 @@ const BreakSheet: React.FC = () => {
     const [showBreakReminder, setShowBreakReminder] = useState(false)
 
     const [allEmployees, setAllEmployees] = useState<any[]>([])
+    const [activeTab, setActiveTab] = useState(0)
 
     const [selectedEmployeeWorkingHours, setSelectedEmployeeWorkingHours] = useState<string>('00h 00m 00s')
 
@@ -94,6 +98,10 @@ const BreakSheet: React.FC = () => {
     const companyId = employee?.company_id
 
     const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
+
+    const handleTabChange = (index: number) => {
+        setActiveTab(index)
+    }
 
     const fetchExceedBreakEmployees = async () => {
         if (showExceedBreaks) {
@@ -515,130 +523,60 @@ const BreakSheet: React.FC = () => {
             </Snackbar>
 
             {/* Row with two buttons */}
-            <Stack direction='row' spacing={2} mb={2}>
-                <Button
-                    variant='contained'
+            <div className="flex flex-wrap gap-3 mb-4">
+                {/* Missing Punches & Absent Button */}
+                <button
                     onClick={toggleNotPunchedInToday}
-                    sx={{
-                        borderRadius: '10px',
-                        py: 1.5,
-                        px: 4.5,
-                        boxShadow: '#5E5DF0 0 10px 20px -10px',
-                        background: '#5E5DF0',
-                        color: '#FFFFFF',
-                        fontFamily:
-                            'Inter, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", EmojiSymbols, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif',
-                        fontSize: '16px',
-                        fontWeight: 700,
-                        lineHeight: '24px',
-                        opacity: 1,
-                        outline: '0 solid transparent',
-                        userSelect: 'none',
-                        '-webkit-user-select': 'none',
-                        touchAction: 'manipulation',
-                        width: 'fit-content',
-                        wordBreak: 'break-word',
-                        border: 0,
-                        cursor: 'pointer'
-                    }}
+                    className="px-5 py-2.5 font-medium text-white rounded-md bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 focus:outline-none shadow-sm transition-colors duration-200"
                 >
                     {showNotPunchedIn ? 'Hide' : 'Missing Punches & Absent'}
-                </Button>
+                </button>
 
-                <Button
-                    variant='contained'
+                {/* Punched Out Button */}
+                <button
                     onClick={toggleNotPunchedOut}
-                    sx={{
-                        borderRadius: '10px',
-                        py: 1.5,
-                        px: 4.5,
-                        boxShadow: '#808080 0 10px 20px -10px',
-                        background: '#808080',
-                        color: '#FFFFFF',
-                        fontFamily:
-                            'Inter, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", EmojiSymbols, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif',
-                        fontSize: '16px',
-                        fontWeight: 700,
-                        lineHeight: '24px',
-                        opacity: 1,
-                        outline: '0 solid transparent',
-                        userSelect: 'none',
-                        '-webkit-user-select': 'none',
-                        touchAction: 'manipulation',
-                        width: 'fit-content',
-                        wordBreak: 'break-word',
-                        border: 0,
-                        cursor: 'pointer'
-                    }}
+                    className="px-5 py-2.5 font-medium text-white rounded-md bg-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-slate-300 focus:outline-none shadow-sm transition-colors duration-200"
                 >
                     {showNotPunchedOut ? 'Hide' : '❌ Punched Out'}
-                </Button>
+                </button>
 
+                {/* Admin Buttons - Only shown if userRole is '1' */}
                 {userRole === '1' && (
-                    <Button
-                        variant='contained'
-                        onClick={fetchExceedBreakEmployees}
-                        sx={{
-                            borderRadius: '10px',
-                            // py: 0.5,
-                            px: 4.5,
-                            boxShadow: '#d32f2f 0 10px 20px -10px',
-                            background: '#d32f2f',
-                            color: '#FFFFFF',
-                            fontWeight: 400,
-                            cursor: 'pointer'
-                        }}
-                    >
-                        {showExceedBreaks ? 'Collapse Long Breaks' : '📊 Monitor Long Breaks'}
-                    </Button>
-                )}
+                    <>
+                        {/* Monitor Long Breaks Button */}
+                        <button
+                            onClick={fetchExceedBreakEmployees}
+                            className="px-5 py-2.5 font-medium text-white rounded-md bg-rose-600 hover:bg-rose-700 focus:ring-2 focus:ring-rose-300 focus:outline-none shadow-sm transition-colors duration-200"
+                        >
+                            {showExceedBreaks ? 'Collapse Long Breaks' : '📊 Monitor Long Breaks'}
+                        </button>
 
-                {userRole === '1' && (
-                    <Button
-                        variant='contained'
-                        onClick={fetchEmpNotCompleteShift}
-                        sx={{
-                            borderRadius: '100',
-                            py: 1.5,
-                            px: 4.5,
-                            boxShadow: '#d32f2f 0 10px 20px -10px',
-                            background: 'yellow',
-                            color: 'black',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                        }}
-                    >
-                        {showNotcompleteShift ? 'Collapse' : '📊 Monitor Shif Not Complete'}
-                    </Button>
-                )}
-                {userRole === '1' && (
-                    <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <Button
-                            sx={{
-                                margin: '10px',
-                                padding: '15px 30px',
-                                textAlign: 'center',
-                                textTransform: 'uppercase',
-                                transition: '0.5s',
-                                backgroundSize: '200% auto',
-                                color: 'white',
-                                borderRadius: '10px',
-                                border: 0,
-                                fontWeight: 500,
-                                boxShadow: '0px 0px 14px -7px #F09819',
+                        {/* Monitor Shift Not Complete Button */}
+                        <button
+                            onClick={fetchEmpNotCompleteShift}
+                            className="px-5 py-2.5 font-medium text-slate-800 rounded-md bg-amber-400 hover:bg-amber-500 focus:ring-2 focus:ring-amber-300 focus:outline-none shadow-sm transition-colors duration-200"
+                        >
+                            {showNotcompleteShift ? 'Collapse' : '📊 Monitor Shift Not Complete'}
+                        </button>
 
-                                cursor: 'pointer'
-                            }}
-                            variant='contained'
-                            color='primary'
-                            // startIcon={<DownloadIcon />}
+                        {/* Export Shift Time Button */}
+                        <button
                             onClick={handleExportShiftTime}
+                            className="px-5 py-2.5 font-medium text-white rounded-md bg-emerald-600 hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-300 focus:outline-none shadow-sm transition-colors duration-200 ml-auto"
                         >
                             Export Shift Time
-                        </Button>
-                    </Grid>
+                        </button>
+
+                        {/* Monthly Employee Punches Link */}
+                        <a
+                            href="/monthly-punches"
+                            className="px-5 py-2.5 font-medium text-blue-700 bg-white rounded-md border border-blue-700 hover:bg-blue-50 focus:ring-2 focus:ring-blue-300 focus:outline-none shadow-sm transition-colors duration-200"
+                        >
+                            Monthly Employee Punches
+                        </a>
+                    </>
                 )}
-            </Stack>
+            </div>
             {showExceedBreaks && (
                 <Grid container spacing={2} sx={{ mt: 2 }}>
                     {exceedBreakEmployees.map(employee => (
@@ -666,148 +604,156 @@ const BreakSheet: React.FC = () => {
             {showNotPunchedOut && <NotPunchedOutPage selectedDate={selectedDate} />}
 
             {/* Punch In / Out Component */}
-            <PunchInOut
-                selectedDate={selectedDate}
-                selectedEmployeeId={selectedEmployeeId}
-                disablePunch={showTeamBreakSheets}
-            />
-            <Paper
-                elevation={3}
-                sx={{
-                    p: 3,
-                    borderRadius: 2,
-                    backgroundColor: 'background.paper',
-                    mb: 4
-                }}
-            >
-                <Grid container spacing={3}>
-                    {/* BreakSheet Title */}
-                    <Grid item xs={12} display='flex' alignItems='center' gap={2}>
-                        <Timer sx={{ fontSize: 40, color: 'primary.main' }} />
-                        <Typography variant='h4' fontWeight='bold' color='primary.main'>
-                            Break Sheet
-                        </Typography>
-                    </Grid>
+            <div className="flex rounded-t-lg overflow-hidden shadow-md">
+                <button
+                    onClick={() => handleTabChange(0)}
+                    className={`flex items-center justify-center w-1/2 py-4 px-6 font-medium text-sm transition-all duration-200 ${activeTab === 0
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                >
+                    <AccessTime className="mr-2" fontSize="small" />
+                    <span>Punch In/Out</span>
+                </button>
+                <button
+                    onClick={() => handleTabChange(1)}
+                    className={`flex items-center justify-center w-1/2 py-4 px-6 font-medium text-sm transition-all duration-200 ${activeTab === 1
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                >
+                    <RestaurantMenu className="mr-2" fontSize="small" />
+                    <span>Break Sheet</span>
+                </button>
+            </div>
+
+            {activeTab === 0 && (
+                <PunchInOut
+                    selectedDate={selectedDate}
+                    selectedEmployeeId={selectedEmployeeId}
+                    disablePunch={showTeamBreakSheets}
+                />
+            )}
+
+            {activeTab === 1 && (
+                <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
+                    <div className="flex items-center gap-4 mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h1 className="text-2xl font-bold text-blue-600">Break Sheet</h1>
+                    </div>
 
                     {/* Button for Manager to View Team Break Sheets */}
                     {userRole === '2' && (
-                        <Grid item xs={12}>
-                            <Button
-                                variant='contained'
-                                startIcon={<Group />}
+                        <div className="mb-6">
+                            <button
                                 onClick={handleTeamsBreakSheetClick}
-                                sx={{
-                                    borderRadius: 2,
-                                    py: 1.5,
-                                    boxShadow: 2,
-                                    background: theme =>
-                                        `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`
-                                }}
+                                className="flex items-center px-4 py-3 font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 transition-all shadow-md"
                             >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
                                 {showTeamBreakSheets ? 'Hide Team Break Sheets' : 'View Team Break Sheets'}
-                            </Button>
-                        </Grid>
+                            </button>
+                        </div>
                     )}
 
                     {/* Team BreakSheets Display */}
                     {showTeamBreakSheets && (
-                        <Grid item xs={12}>
+                        <div className="mb-6">
                             <TeamBreakSheets managerId={employeeId} onEmployeeClick={handleEmployeeClick} />
-                        </Grid>
+                        </div>
                     )}
 
                     {/* Employee Selection (Admin only) */}
                     {Number(userRole) <= 1 && (
-                        <Grid item xs={12} md={6}>
-                            <Card variant='outlined' sx={{ borderRadius: 2 }}>
-                                <CardContent>
-                                    <Stack direction='row' alignItems='center' spacing={2} mb={2}>
-                                        <Typography variant='h6'>Employee Selection</Typography>
-                                    </Stack>
-                                    {/* React Autocomplete for Search */}
-                                    <Autocomplete
-                                        options={employees} // List of employees
-                                        getOptionLabel={option => `${option.first_name} ${option.last_name}`} // How each option is displayed
-                                        renderInput={params => <TextField {...params} label='Search Employee' variant='outlined' />} // Input field with Material-UI TextField
-                                        value={selectedEmployeeId ? employees.find(emp => emp._id === selectedEmployeeId) : null}
-                                        onChange={(event, newValue) => {
-                                            setSelectedEmployeeId(newValue ? newValue._id : '')
-                                        }} // Handle selection
-                                        isOptionEqualToValue={(option, value) => option._id === value._id} // Avoid warnings
-                                    />
-                                </CardContent>
-                            </Card>
-                        </Grid>
+                        <div className="mb-6">
+                            <div className="border border-gray-200 rounded-lg p-4">
+                                <div className="flex items-center mb-4">
+                                    <h2 className="text-lg font-semibold">Employee Selection</h2>
+                                </div>
+                                {/* React Autocomplete for Search */}
+                                <Autocomplete
+                                    options={employees}
+                                    getOptionLabel={option => `${option.first_name} ${option.last_name}`}
+                                    renderInput={params => <TextField {...params} label='Search Employee' variant='outlined' />}
+                                    value={selectedEmployeeId ? employees.find(emp => emp._id === selectedEmployeeId) : null}
+                                    onChange={(event, newValue) => {
+                                        setSelectedEmployeeId(newValue ? newValue._id : '')
+                                    }}
+                                    isOptionEqualToValue={(option, value) => option._id === value._id}
+                                />
+                            </div>
+                        </div>
                     )}
 
                     {/* Time Summary and Date Selection */}
-                    <Grid item xs={12}>
-                        <Card variant='outlined' sx={{ borderRadius: 2, mb: 3 }}>
-                            <CardContent>
-                                <Stack spacing={3}>
-                                    {/* Time Summary (skipped if userDesignation === 'Assistant Manager Hr') */}
-                                    <TimeSummary
-                                        totalOnFieldDuration={totalOnFieldDuration}
-                                        totalDurationForDate={totalDurationForDate}
-                                        breakProgress={breakProgress}
-                                        userDesignation={userDesignation}
-                                    />
+                    <div className="mb-6">
+                        <div className="border border-gray-200 rounded-lg p-5">
+                            <div className="space-y-6">
+                                {/* Time Summary */}
+                                <TimeSummary
+                                    totalOnFieldDuration={totalOnFieldDuration}
+                                    totalDurationForDate={totalDurationForDate}
+                                    breakProgress={breakProgress}
+                                    userDesignation={userDesignation}
+                                />
 
-                                    {/* Date Selection */}
-                                    <DateSelection selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
-                                </Stack>
-                            </CardContent>
-                        </Card>
-                    </Grid>
+                                {/* Date Selection */}
+                                <DateSelection selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+                            </div>
+                        </div>
+                    </div>
 
-                    {/* Break Controls (only if large screen and not Assistant Manager Hr) */}
+                    {/* Break Controls */}
                     {isLargeScreen && userDesignation !== 'Assistant Manager Hr' && (
-                        <Grid item xs={12}>
-                            <Card variant='outlined' sx={{ borderRadius: 2, mb: 3 }}>
-                                <CardContent>
-                                    <Stack direction='row' alignItems='center' spacing={2} mb={3}>
-                                        <Coffee color='primary' />
-                                        <Typography variant='h6'>Break Controls</Typography>
-                                    </Stack>
+                        <div className="mb-6">
+                            <div className="border border-gray-200 rounded-lg p-5">
+                                <div className="flex items-center mb-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                    </svg>
+                                    <h2 className="text-lg font-semibold">Break Controls</h2>
+                                </div>
 
-                                    <BreakControls
-                                        breakType={breakType}
-                                        setBreakType={setBreakType}
-                                        otherBreakType={otherBreakType}
-                                        setOtherBreakType={setOtherBreakType}
-                                        specifyError={specifyError}
-                                        setSpecifyError={setSpecifyError}
-                                        breakOptions={breakOptions}
-                                        isCurrentDate={isCurrentDate}
-                                        timerRunning={timerRunning}
-                                        handleStartTime={handleStartTime}
-                                        handleEndTime={handleEndTime}
-                                        startTime={startTime}
-                                        duration={duration}
-                                        userRole={userRole}
-                                        selectedEmployeeId={selectedEmployeeId}
-                                        employeeId={employeeId}
-                                    />
-                                </CardContent>
-                            </Card>
-                        </Grid>
+                                <BreakControls
+                                    breakType={breakType}
+                                    setBreakType={setBreakType}
+                                    otherBreakType={otherBreakType}
+                                    setOtherBreakType={setOtherBreakType}
+                                    specifyError={specifyError}
+                                    setSpecifyError={setSpecifyError}
+                                    breakOptions={breakOptions}
+                                    isCurrentDate={isCurrentDate}
+                                    timerRunning={timerRunning}
+                                    handleStartTime={handleStartTime}
+                                    handleEndTime={handleEndTime}
+                                    startTime={startTime}
+                                    duration={duration}
+                                    userRole={userRole}
+                                    selectedEmployeeId={selectedEmployeeId}
+                                    employeeId={employeeId}
+                                />
+                            </div>
+                        </div>
                     )}
 
                     {/* Break List */}
-                    <Grid item xs={12}>
-                        <Card variant='outlined' sx={{ borderRadius: 2 }}>
-                            <CardContent>
-                                <Stack direction='row' alignItems='center' spacing={2} mb={3}>
-                                    <AccessTime color='primary' />
-                                    <Typography variant='h6'>Breaks Taken on {selectedDate}</Typography>
-                                </Stack>
+                    <div>
+                        <div className="border border-gray-200 rounded-lg p-5">
+                            <div className="flex items-center mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <h2 className="text-lg font-semibold">Breaks Taken on {selectedDate}</h2>
+                            </div>
 
-                                <BreakList filteredBreaks={filteredBreaks} userRole={userRole} handleEditClick={handleEditClick} />
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                </Grid>
-            </Paper>
+                            <BreakList filteredBreaks={filteredBreaks} userRole={userRole} handleEditClick={handleEditClick} />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Edit Break Form Dialog */}
             {currentBreak && (

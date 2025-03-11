@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Button, Grid, MenuItem, TextField, Stack } from '@mui/material';
+import React from 'react';
 import { Timer } from '@mui/icons-material';
 
 interface BreakControlsProps {
@@ -41,123 +40,121 @@ const BreakControls: React.FC<BreakControlsProps> = ({
     selectedEmployeeId,
     employeeId,
 }) => {
+    const isDisabled = !isCurrentDate || (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2');
+
     return (
-        <Grid container spacing={3}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Break Type Selection */}
-            <Grid item xs={12} md={6}>
-                <TextField
-                    select
-                    label='Choose Break Type'
-                    value={breakType}
-                    onChange={e => setBreakType(e.target.value)}
-                    fullWidth
-                    variant='outlined'
-                    disabled={
-                        !isCurrentDate ||
-                        (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2')
-                    }
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                >
-                    {breakOptions.map(option => (
-                        <MenuItem key={option} value={option}>
-                            {option}
-                        </MenuItem>
-                    ))}
-                </TextField>
-            </Grid>
+            <div className="col-span-1">
+                <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Choose Break Type
+                    </label>
+                    <select
+                        value={breakType}
+                        onChange={e => setBreakType(e.target.value)}
+                        disabled={isDisabled}
+                        className={`w-full py-3 px-4 border ${isDisabled ? 'bg-gray-100 border-gray-300' : 'border-gray-300'} 
+                                   rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                                   appearance-none text-gray-700`}
+                    >
+                        {breakOptions.map(option => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none mt-6">
+                        <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
 
             {/* Other (Specify) Break Type Input */}
             {breakType === 'Other' && (
-                <Grid item xs={12} md={6}>
-                    <TextField
-                        label='Please specify'
+                <div className="col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Please specify
+                    </label>
+                    <input
+                        type="text"
                         value={otherBreakType}
                         onChange={e => {
                             setOtherBreakType(e.target.value);
                             setSpecifyError('');
                         }}
-                        fullWidth
-                        variant='outlined'
-                        error={!!specifyError}
-                        helperText={specifyError}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        className={`w-full py-3 px-4 border ${specifyError ? 'border-red-500' : 'border-gray-300'} 
+                                  rounded-lg shadow-sm focus:outline-none focus:ring-2 
+                                  ${specifyError ? 'focus:ring-red-500 focus:border-red-500' : 'focus:ring-indigo-500 focus:border-indigo-500'}`}
                     />
-                </Grid>
+                    {specifyError && (
+                        <p className="mt-1 text-sm text-red-600">{specifyError}</p>
+                    )}
+                </div>
             )}
 
             {/* Start Break Button */}
-            <Grid item xs={12} md={6}>
-                <Button
-                    variant='contained'
-                    startIcon={<Timer />}
+            <div className="col-span-1">
+                <button
                     onClick={handleStartTime}
-                    disabled={
-                        !isCurrentDate ||
-                        timerRunning ||
-                        (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2')
-                    }
-                    fullWidth
-                    sx={{
-                        py: 1.5,
-                        borderRadius: 2,
-                        boxShadow: 2,
-                        background: timerRunning
-                            ? 'linear-gradient(45deg, #FFB74D 30%, #FF9800 90%)'
-                            : 'linear-gradient(45deg, #4CAF50 30%, #81C784 90%)'
-                    }}
+                    disabled={isDisabled || timerRunning}
+                    className={`w-full py-3 px-4 rounded-lg flex items-center justify-center shadow-md transition-all duration-300
+                                ${timerRunning
+                            ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
+                            : isDisabled
+                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white h-[100%]'
+                        }`}
                 >
-                    {timerRunning ? 'Break Running...' : 'Start Break'}
-                </Button>
-            </Grid>
+                    <Timer className="mr-2" />
+                    <span className="font-medium">{timerRunning ? 'Break Running...' : 'Start Break'}</span>
+                </button>
+            </div>
 
             {/* Break Start Time Display */}
-            <Grid item xs={12} md={6}>
-                <TextField
-                    label='Break Start'
+            <div className="col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Break Start
+                </label>
+                <input
+                    type="text"
                     value={startTime}
                     disabled
-                    fullWidth
-                    variant='outlined'
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    className="w-full py-3 px-4 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
                 />
-            </Grid>
+            </div>
 
             {/* Duration Display */}
-            <Grid item xs={12} md={6}>
-                <TextField
-                    label='Duration'
+            <div className="col-span-1 hidden sm:block">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Duration
+                </label>
+                <input
+                    type="text"
                     value={duration}
                     disabled
-                    fullWidth
-                    variant='outlined'
-                    sx={{
-                        display: { xs: 'none', sm: 'block' },
-                        '& .MuiOutlinedInput-root': { borderRadius: 2 }
-                    }}
+                    className="w-full py-3 px-4 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
                 />
-            </Grid>
+            </div>
 
             {/* End Break Button */}
-            <Grid item xs={12} md={6}>
-                <Button
-                    variant='contained'
-                    color='secondary'
-                    startIcon={<Timer />}
+            <div className="col-span-1 hidden sm:block">
+                <button
                     onClick={handleEndTime}
                     disabled={!isCurrentDate || !timerRunning}
-                    fullWidth
-                    sx={{
-                        display: { xs: 'none', sm: 'block' },
-                        py: 1.5,
-                        borderRadius: 2,
-                        boxShadow: 2,
-                        background: 'linear-gradient(45deg, #F44336 30%, #EF5350 90%)'
-                    }}
+                    className={`w-full py-3 px-4 rounded-lg flex items-center justify-center shadow-md transition-all duration-300
+                              ${!isCurrentDate || !timerRunning
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white'
+                        }`}
                 >
-                    End Break
-                </Button>
-            </Grid>
-        </Grid>
+                    <Timer className="mr-2" />
+                    <span className="font-medium">End Break</span>
+                </button>
+            </div>
+        </div>
     );
 };
 
