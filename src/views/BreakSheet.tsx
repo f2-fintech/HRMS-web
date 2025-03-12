@@ -97,7 +97,7 @@ const BreakSheet: React.FC = () => {
     const userDesignation = employee?.desg
     const companyId = employee?.company_id
 
-    const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
+    const breakOptions = ['select break type', 'Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
 
     const handleTabChange = (index: number) => {
         setActiveTab(index)
