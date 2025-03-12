@@ -52,7 +52,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [logoUrl, setLogoUrl] = useState('/images/logos/fintech.png');
     const [isSmallScreen, setIsSmallScreen] = useState(false)
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
-    const employeeId = selectedEmployeeId || employee?.id
+    const employeeId = selectedEmployeeId ?? employee?.id
     const userRole = employee?.role
     const userDesg = employee?.designation
     const totalWorkingHours = useSelector((state: RootState) => state.punches.totalWorkingHours)
@@ -286,7 +286,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 })
             }
         }
-    }, [punch]) // Listen for changes in the Redux state
+    }, [punch, employeeId]) // Listen for changes in the Redux state
 
     useEffect(() => {
         return () => {

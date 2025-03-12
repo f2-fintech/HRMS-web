@@ -25,7 +25,8 @@ import {
     Refresh,
     Download,
     NoAccounts,
-    ArrowBack
+    ArrowBack,
+    Clear
 } from '@mui/icons-material';
 import axios from 'axios';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
@@ -81,21 +82,16 @@ const PunchesPage: React.FC = () => {
     }, []);
 
     // Fetch punches for the selected employee and month
-    const handleFetchPunches = async () => {
-        if (!selectedEmployee) {
-            setError("Please select an employee first");
-            return;
-        }
-
+    const fetchPunches = async (employeeId: string, selectedMonth: string) => {
         try {
             setLoading(true);
             setError(null);
             const response = await axios.get<Punch[]>(
-                `${process.env.NEXT_PUBLIC_APP_URL}/punch/employee/${selectedEmployee._id}/${month}`
+                `${process.env.NEXT_PUBLIC_APP_URL}/punch/employee/${employeeId}/${selectedMonth}`
             );
             setPunches(response.data);
             if (response.data.length === 0) {
-                setError(`No punch records found for ${selectedEmployee.first_name} ${selectedEmployee.last_name} in ${formatMonthDisplay(month)}`);
+                setError(`No punch records found for ${selectedEmployee?.first_name} ${selectedEmployee?.last_name} in ${formatMonthDisplay(selectedMonth)}`);
             }
         } catch (error) {
             console.error('Error fetching punches:', error);
@@ -103,6 +99,43 @@ const PunchesPage: React.FC = () => {
             setPunches([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Auto-fetch punches when employee or month changes
+    useEffect(() => {
+        if (selectedEmployee && month) {
+            fetchPunches(selectedEmployee._id, month);
+        }
+    }, [selectedEmployee, month]);
+
+    // Handle employee selection change
+    const handleEmployeeChange = (event: any, newValue: Employee | null) => {
+        setSelectedEmployee(newValue);
+
+        // Clear punches data when employee selection is cleared
+        if (!newValue) {
+            setPunches([]);
+            setError(null);
+        }
+    };
+
+    // Handle month change
+    const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setMonth(e.target.value);
+    };
+
+    // Handle clearing the selected employee
+    const handleClearEmployee = () => {
+        setSelectedEmployee(null);
+        setPunches([]);
+        setError(null);
+    };
+
+    // Manual refresh button handler
+    const handleRefresh = () => {
+        if (selectedEmployee && month) {
+            fetchPunches(selectedEmployee._id, month);
         }
     };
 
@@ -187,39 +220,63 @@ const PunchesPage: React.FC = () => {
             )}
 
             <Box className="flex flex-col md:flex-row items-start gap-4 mb-6">
-                <Autocomplete
-                    options={employees}
-                    getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
-                    value={selectedEmployee}
-                    onChange={(event, newValue) => {
-                        setSelectedEmployee(newValue);
-                    }}
-                    className="w-full md:w-2/5"
-                    renderInput={(params) => (
+                {selectedEmployee ? (
+                    <div className="w-full md:w-2/5 relative">
                         <TextField
-                            {...params}
-                            label="Select Employee"
+                            label="Selected Employee"
                             variant="outlined"
                             fullWidth
-                            required
+                            value={`${selectedEmployee.first_name} ${selectedEmployee.last_name}`}
                             InputProps={{
-                                ...params.InputProps,
+                                readOnly: true,
                                 startAdornment: (
                                     <InputAdornment position="start">
                                         <Person color="primary" />
                                     </InputAdornment>
                                 ),
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton onClick={handleClearEmployee} size="small">
+                                            <Clear />
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
                             }}
                         />
-                    )}
-                />
+                    </div>
+                ) : (
+                    <Autocomplete
+                        options={employees}
+                        getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                        value={selectedEmployee}
+                        onChange={handleEmployeeChange}
+                        className="w-full md:w-2/5"
+                        renderInput={(params) => (
+                            <TextField
+                                {...params}
+                                label="Select Employee"
+                                variant="outlined"
+                                fullWidth
+                                required
+                                InputProps={{
+                                    ...params.InputProps,
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Person color="primary" />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                            />
+                        )}
+                    />
+                )}
 
                 <TextField
                     label="Month"
                     type="month"
                     variant="outlined"
                     value={month}
-                    onChange={(e) => setMonth(e.target.value)}
+                    onChange={handleMonthChange}
                     className="w-full md:w-1/4"
                     InputProps={{
                         startAdornment: (
@@ -230,30 +287,28 @@ const PunchesPage: React.FC = () => {
                     }}
                 />
 
-                <Button
-                    variant="contained"
-                    onClick={handleFetchPunches}
-                    className="w-full md:w-auto h-14"
-                    disabled={loading || !selectedEmployee}
-                    startIcon={loading ? <CircularProgress size={20} /> : <Search />}
-                    color="primary"
-                >
-                    {loading ? 'Loading...' : 'Fetch Punches'}
-                </Button>
-
                 <Tooltip title="Refresh Data">
                     <IconButton
                         color="primary"
-                        onClick={handleFetchPunches}
+                        onClick={handleRefresh}
                         disabled={loading || !selectedEmployee}
                         className="ml-auto"
                     >
-                        <Refresh />
+                        {loading ? <CircularProgress size={20} /> : <Refresh />}
                     </IconButton>
                 </Tooltip>
             </Box>
 
-            {selectedEmployee && punches.length > 0 && (
+            {loading && (
+                <Box className="text-center py-4">
+                    <CircularProgress size={40} />
+                    <Typography variant="body2" className="mt-2 text-gray-600">
+                        Loading punch data...
+                    </Typography>
+                </Box>
+            )}
+
+            {selectedEmployee && punches.length > 0 && !loading && (
                 <Box className="bg-blue-50 p-4 rounded-lg mb-6 flex flex-col md:flex-row justify-between items-center">
                     <Typography variant="h6" className="font-medium text-blue-800 flex items-center">
                         <Person className="mr-2" />
@@ -274,16 +329,10 @@ const PunchesPage: React.FC = () => {
                         color="success"
                         className="font-medium"
                     />
-
-                    {/* <Tooltip title="Export Data">
-                        <IconButton color="primary">
-                            <Download />
-                        </IconButton>
-                    </Tooltip> */}
                 </Box>
             )}
 
-            {punches.length > 0 ? (
+            {punches.length > 0 && !loading ? (
                 <div className="overflow-x-auto bg-gray-50 rounded-lg border border-gray-200">
                     <table className="min-w-full border-collapse">
                         <thead className="bg-gray-100">
