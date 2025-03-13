@@ -52,7 +52,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [logoUrl, setLogoUrl] = useState('/images/logos/fintech.png');
     const [isSmallScreen, setIsSmallScreen] = useState(false)
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
-    const employeeId = selectedEmployeeId ?? employee?.id
+    const employeeId = selectedEmployeeId || employee?.id;
     const userRole = employee?.role
     const userDesg = employee?.designation
     const totalWorkingHours = useSelector((state: RootState) => state.punches.totalWorkingHours)
@@ -125,6 +125,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         getConfiguration();
     }, []);
 
+    // Update the useEffect hook that handles punch data fetching and timer setup
     useEffect(() => {
         if (employeeId && selectedDate) {
             dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
@@ -132,6 +133,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 .then(punchData => {
                     if (punchData.length > 0) {
                         const latestPunch = punchData[punchData.length - 1]
+
+                        // Stop any existing timer first
+                        stopPunchTimer()
 
                         if (!latestPunch.punchOut) {
                             const punchInTimestamp = new Date(`${selectedDate} ${latestPunch.punchIn}`).getTime()
@@ -144,7 +148,14 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 isPunchOutDisabled: false
                             })
                             setStartTimestamp(punchInTimestamp)
-                            startPunchInTimer(punchInTimestamp)
+
+                            // Only start the timer if this is the current user's data or if viewing today's data
+                            if (!selectedEmployeeId || isCurrentDate) {
+                                startPunchInTimer(punchInTimestamp)
+                            } else {
+                                // For other employees on non-current dates, just display their total time
+                                setTimer(latestPunch.totalTime || '00h 00m 00s')
+                            }
                         } else {
                             setPunchState({
                                 ...punchState,
@@ -154,14 +165,35 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 isPunchInDisabled: false,
                                 isPunchOutDisabled: true
                             })
-                            stopPunchTimer()
                         }
+                    } else {
+                        // Reset states if no punch data found
+                        setPunchState({
+                            isPunchIn: false,
+                            startTime: '',
+                            endTime: '',
+                            totalTime: '00h 00m 00s',
+                            isPunchInDisabled: false,
+                            isPunchOutDisabled: true
+                        })
+                        setTimer('00h 00m 00s')
+                        setStartTimestamp(null)
                     }
                 })
 
             dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
         }
-    }, [dispatch, employeeId, selectedDate])
+    }, [dispatch, employeeId, selectedDate, isCurrentDate])
+
+    useEffect(() => {
+        // Clean up any existing timer when employeeId changes
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current)
+                intervalRef.current = null
+            }
+        }
+    }, [employeeId])
 
     const startPunchInTimer = (timestamp: number) => {
         intervalRef.current = setInterval(() => {
