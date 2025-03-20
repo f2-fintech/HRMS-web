@@ -16,82 +16,134 @@ import {
   ThemeProvider,
   DialogActions,
   DialogTitle,
+  Tabs,
+  Tab,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Alert, Snackbar } from '@mui/material';
 import { DriveFileRenameOutlineOutlined } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { ToastContainer, toast } from 'react-toastify';
-import { format } from 'date-fns'
+import { format } from 'date-fns';
 
 import type { AppDispatch, RootState } from '@/redux/store';
-import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
+// Assume you have two thunk actions:
+// - fetchUpcomingHolidays for upcoming holidays
+// - fetchPastHolidays for past holidays (from your provided function)
+import { fetchHolidays, fetchPastHolidays } from '@/redux/features/holidays/holidaysSlice';
 import 'react-toastify/dist/ReactToastify.css';
 import AddHolidayForm from '@/components/holiday/HolidayForm';
-import { useSettings } from '@/@core/hooks/useSettings'; // Import useSettings
+import { useSettings } from '@/@core/hooks/useSettings';
 
 export default function HolidayGrid() {
   const dispatch: AppDispatch = useDispatch();
-  const { holidays, loading, error, filteredHoliday, total } = useSelector((state: RootState) => state.holidays);
+  const {
+    holidays, total, filteredHoliday,
+    pastHolidays, pastTotal, filteredPastHoliday,
+    loading, error
+  } = useSelector((state: RootState) => state.holidays);
+
+  // Tab state: "upcoming" or "past"
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+
+  // Shared states for dialog, user info, etc.
   const [showForm, setShowForm] = useState(false);
   const [selectedHoliday, setSelectedHoliday] = useState(null);
   const [userRole, setUserRole] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
-  const [selectedKeyword, setSelectedKeyword] = useState('');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [isHalfDay, setIsHalfDay] = useState(false);
-
   const [openDialog, setOpenDialog] = useState(false);
   const [holidayToDelete, setHolidayToDelete] = useState<string | null>(null);
   const [openAlert, setOpenAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<'error' | 'success'>('success');
+  const { settings } = useSettings();
 
-  const { settings } = useSettings();  // Get current theme mode (dark/light)
+  // Pagination and search states for upcoming holidays
+  const [upPage, setUpPage] = useState(1);
+  const [upLimit, setUpLimit] = useState(10);
+  const [upKeyword, setUpKeyword] = useState('');
 
-  const debouncedFetch = useCallback(
+  // Pagination and search states for past holidays
+  const [pastPage, setPastPage] = useState(1);
+  const [pastLimit, setPastLimit] = useState(10);
+  const [pastKeyword, setPastKeyword] = useState('');
+
+  // Debounced fetch for upcoming holidays
+  const debouncedFetchUpcoming = useCallback(
     debounce(() => {
-      dispatch(fetchHolidays({ page, limit, keyword: selectedKeyword }));
+      dispatch(fetchHolidays({ page: upPage, limit: upLimit, keyword: upKeyword }));
     }, 300),
-    [page, limit, selectedKeyword]
+    [upPage, upLimit, upKeyword]
   );
 
+  // Debounced fetch for past holidays
+  const debouncedFetchPast = useCallback(
+    debounce(() => {
+      dispatch(fetchPastHolidays({ page: pastPage, limit: pastLimit, keyword: pastKeyword }));
+    }, 300),
+    [pastPage, pastLimit, pastKeyword]
+  );
+
+  // Fetch data when active tab or related states change
   useEffect(() => {
-    debouncedFetch();
+    if (activeTab === 'upcoming') {
+      debouncedFetchUpcoming();
+    } else {
+      debouncedFetchPast();
+    }
+    return () => {
+      if (activeTab === 'upcoming') {
+        debouncedFetchUpcoming.cancel();
+      } else {
+        debouncedFetchPast.cancel();
+      }
+    };
+  }, [activeTab, upPage, upLimit, upKeyword, pastPage, pastLimit, pastKeyword, debouncedFetchUpcoming, debouncedFetchPast]);
 
-    return debouncedFetch.cancel;
-  }, [page, limit, selectedKeyword, debouncedFetch]);
-
-  const handleInputChange = (e) => {
-    setSelectedKeyword(e.target.value);
+  // Handle tab change
+  const handleTabChange = (event: React.SyntheticEvent, newValue: 'upcoming' | 'past') => {
+    setActiveTab(newValue);
   };
 
-  const handlePageChange = (newPage: number, newPageSize: number) => {
-    setPage(newPage + 1);
-    setLimit(newPageSize);
+  // Input change handlers for search fields
+  const handleUpSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUpKeyword(e.target.value);
   };
 
-  const handlePaginationModelChange = (params: { page: number; pageSize: number }) => {
-    handlePageChange(params.page, params.pageSize);
-    debouncedFetch();
+  const handlePastSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPastKeyword(e.target.value);
   };
 
+  // Pagination handlers for upcoming and past separately
+  const handleUpPaginationChange = (params: { page: number; pageSize: number }) => {
+    setUpPage(params.page + 1);
+    setUpLimit(params.pageSize);
+    debouncedFetchUpcoming();
+  };
+
+  const handlePastPaginationChange = (params: { page: number; pageSize: number }) => {
+    setPastPage(params.page + 1);
+    setPastLimit(params.pageSize);
+    debouncedFetchPast();
+  };
+
+  // Load user role from localStorage
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || '{}');
-
     setUserRole(user.role);
     setUserId(user.id);
   }, []);
 
+  // Other handlers for add, edit, delete remain unchanged
   const handleHolidayAddClick = () => {
     setSelectedHoliday(null);
     setShowForm(true);
   };
 
-  const handleHolidayEditClick = (id) => {
+  const handleHolidayEditClick = (id: string) => {
     setSelectedHoliday(id);
     setShowForm(true);
   };
@@ -101,7 +153,6 @@ export default function HolidayGrid() {
     setOpenDialog(true);
   };
 
-  // Function to handle deletion after confirmation
   const handleConfirmDelete = async () => {
     if (holidayToDelete) {
       try {
@@ -111,33 +162,32 @@ export default function HolidayGrid() {
         if (response.ok) {
           setAlertMessage('Holiday deleted successfully');
           setAlertSeverity('success');
-          debouncedFetch(); // Refetch data after successful deletion
+          // Re-fetch data based on the active tab
+          activeTab === 'upcoming' ? debouncedFetchUpcoming() : debouncedFetchPast();
         } else {
           setAlertMessage(data.message || 'Failed to delete holiday');
           setAlertSeverity('error');
         }
-
         setOpenAlert(true);
       } catch (error) {
         setAlertMessage('An error occurred while deleting the holiday');
         setAlertSeverity('error');
         setOpenAlert(true);
       }
-
-      setOpenDialog(false); // Close dialog after action
+      setOpenDialog(false);
     }
   };
 
-  // Function to handle canceling the delete action
   const handleCancelDelete = () => {
     setOpenDialog(false);
-    setHolidayToDelete(null); // Reset the holiday ID
+    setHolidayToDelete(null);
   };
 
-  const handleClose = () => {
+  const handleCloseForm = () => {
     setShowForm(false);
   };
 
+  // Columns for the DataGrid remain similar for both tabs.
   const columns: GridColDef[] = [
     { field: 'day', headerName: 'Day', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 0.5 },
     { field: 'title', headerName: 'Title', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1 },
@@ -150,7 +200,6 @@ export default function HolidayGrid() {
       flex: 1,
       renderCell: (params) => {
         const dateValue = params.value ? new Date(params.value) : null;
-
         return dateValue && !isNaN(dateValue.getTime())
           ? format(dateValue, 'dd-MMM-yyyy').toUpperCase()
           : 'Invalid Date';
@@ -165,13 +214,11 @@ export default function HolidayGrid() {
       flex: 1,
       renderCell: (params) => {
         const dateValue = params.value ? new Date(params.value) : null;
-
         return dateValue && !isNaN(dateValue.getTime())
           ? format(dateValue, 'dd-MMM-yyyy').toUpperCase()
           : 'Invalid Date';
       },
     },
-
     { field: 'note', headerName: 'Note', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1.5 },
     ...(userRole === '1'
       ? [
@@ -187,28 +234,24 @@ export default function HolidayGrid() {
               <Button
                 color="info"
                 variant="contained"
+                onClick={() => handleHolidayEditClick(_id)}
                 sx={{
                   minWidth: '50px',
                   transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'scale(1.05)',
-                  }
+                  '&:hover': { transform: 'scale(1.05)' },
                 }}
-                onClick={() => handleHolidayEditClick(_id)}
               >
                 <DriveFileRenameOutlineOutlined />
               </Button>
               <Button
                 color="error"
                 variant="contained"
+                onClick={() => handleHolidayDeleteClick(_id)}
                 sx={{
                   minWidth: '50px',
                   transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'scale(1.05)',
-                  }
+                  '&:hover': { transform: 'scale(1.05)' },
                 }}
-                onClick={() => handleHolidayDeleteClick(_id)}
               >
                 <DeleteIcon />
               </Button>
@@ -222,16 +265,10 @@ export default function HolidayGrid() {
   return (
     <ThemeProvider theme={createTheme({
       palette: {
-        primary: {
-          main: '#2c3ce3',
-        },
-        background: {
-          default: settings.mode === 'dark' ? '#121212' : '#f4f6f9',  // Dynamic background color based on mode
-        },
+        primary: { main: '#2c3ce3' },
+        background: { default: settings.mode === 'dark' ? '#121212' : '#f4f6f9' },
       },
-      typography: {
-        fontFamily: 'Roboto, Arial, sans-serif',
-      },
+      typography: { fontFamily: 'Roboto, Arial, sans-serif' },
       components: {
         MuiButton: {
           styleOverrides: {
@@ -240,10 +277,7 @@ export default function HolidayGrid() {
               borderRadius: '12px',
               boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
               transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 6px 8px rgba(0,0,0,0.15)',
-              },
+              '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 8px rgba(0,0,0,0.15)' },
             },
           },
         },
@@ -260,115 +294,94 @@ export default function HolidayGrid() {
         },
       },
     })}>
-      <Box sx={{
-        backgroundColor: settings.mode === 'dark' ? '#121212' : '#f4f6f9',  // Adjust background for dark mode
-        minHeight: '100vh',
-        padding: 3
-      }}>
+      <Box sx={{ backgroundColor: settings.mode === 'dark' ? '#121212' : '#f4f6f9', minHeight: '100vh', padding: 3 }}>
         <ToastContainer />
-        <Dialog open={showForm} onClose={handleClose} fullWidth maxWidth="md">
-          <DialogContent sx={{
-            borderRadius: '16px',
-            boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
-          }}>
+
+        {/* Form Dialog */}
+        <Dialog open={showForm} onClose={handleCloseForm} fullWidth maxWidth="md">
+          <DialogContent>
             <AddHolidayForm
               holiday={selectedHoliday}
-              handleClose={handleClose}
-              holidays={holidays}
-              debouncedFetch={debouncedFetch}
+              handleClose={handleCloseForm}
+              // Passing appropriate holiday data based on active tab if needed
+              holidays={activeTab === 'upcoming' ? holidays : pastHolidays}
+              debouncedFetch={activeTab === 'upcoming' ? debouncedFetchUpcoming : debouncedFetchPast}
               isHalfDay={undefined}
             />
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
         <Dialog open={openDialog} onClose={handleCancelDelete}>
           <DialogTitle>Confirm Deletion</DialogTitle>
           <DialogContent>
             <Alert severity="warning">Are you sure you want to delete this holiday?</Alert>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCancelDelete} color="primary">
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmDelete} color="error">
-              Delete
-            </Button>
+            <Button onClick={handleCancelDelete} color="primary">Cancel</Button>
+            <Button onClick={handleConfirmDelete} color="error">Delete</Button>
           </DialogActions>
         </Dialog>
 
-        {/* Snackbar for alert */}
+        {/* Snackbar for alerts */}
         <Snackbar
           open={openAlert}
           autoHideDuration={6000}
           onClose={() => setOpenAlert(false)}
-          anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'right',
-          }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
           <Alert onClose={() => setOpenAlert(false)} severity={alertSeverity} sx={{ width: '100%' }}>
             {alertMessage}
           </Alert>
         </Snackbar>
 
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={3}
-          sx={{
-            padding: 2,
-            backgroundColor: settings.mode === 'dark' ? '#333' : 'white',  // Adjust based on mode
-            borderRadius: '16px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
-          }}
-        >
+        {/* Header */}
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{
+          padding: 2,
+          backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
+        }}>
           <Box>
-            <Typography
-              variant="h4"
-              gutterBottom
-              sx={{
-                color: settings.mode === 'dark' ? 'white' : '#2c3ce3',  // Color adjustment for dark mode
-                fontWeight: 700,
-                marginBottom: 1
-              }}
-            >
+            <Typography variant="h4" gutterBottom sx={{
+              color: settings.mode === 'dark' ? 'white' : '#2c3ce3',
+              fontWeight: 700,
+              marginBottom: 1
+            }}>
               Holiday Management
             </Typography>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                color: settings.mode === 'dark' ? 'white' : '#64e0e2',  // Color adjustment for dark mode
-                fontWeight: 'bolder',
-              }}
-            >
-              Dashboard / Holiday List
+            <Typography variant="subtitle1" sx={{
+              color: settings.mode === 'dark' ? 'white' : '#64e0e2',
+              fontWeight: 'bolder',
+            }}>
+              Dashboard / {activeTab === 'upcoming' ? 'Upcoming Holidays' : 'Past Holidays'}
             </Typography>
           </Box>
-          {userRole === '1' && (
-            <Box display="flex" alignItems="center">
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleHolidayAddClick}
-                sx={{
-                  padding: '10px 20px',
-                  fontSize: '1rem',
-                }}
-              >
-                Add New Holiday
-              </Button>
-            </Box>
+          {userRole === '1' && activeTab === 'upcoming' && (
+            <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleHolidayAddClick} sx={{
+              padding: '10px 20px',
+              fontSize: '1rem',
+            }}>
+              Add New Holiday
+            </Button>
           )}
         </Box>
+
+        {/* Tabs for Upcoming vs Past Holidays */}
+        <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 2 }}>
+          <Tab label="Upcoming Holidays" value="upcoming" />
+          <Tab label="Past Holidays" value="past" />
+        </Tabs>
+
+        {/* Search Bar */}
         <Grid container spacing={3} alignItems="center" mb={3}>
           <Grid item xs={12} md={8}>
             <TextField
               fullWidth
-              label="Search Holidays"
+              label={activeTab === 'upcoming' ? "Search Upcoming Holidays" : "Search Past Holidays"}
               variant="outlined"
-              value={selectedKeyword}
-              onChange={handleInputChange}
+              value={activeTab === 'upcoming' ? upKeyword : pastKeyword}
+              onChange={activeTab === 'upcoming' ? handleUpSearchChange : handlePastSearchChange}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -379,59 +392,99 @@ export default function HolidayGrid() {
             />
           </Grid>
         </Grid>
-        <Box
-          sx={{
-            height: 600,
-            width: '100%',
-            backgroundColor: settings.mode === 'dark' ? '#333' : 'white', // Adjust background color for dark mode
-            borderRadius: '16px',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
-            overflow: 'hidden'
-          }}
-        >
-          <DataGrid
-            sx={{
-              '& .super-app-theme--header': {
-                fontSize: 16,
-                fontWeight: 700,
-                backgroundColor: settings.mode === 'dark' ? '#444' : '#2c3ce3',  // Adjust background color for dark mode
-                color: 'white',
-                textTransform: 'uppercase',
-              },
-              '& .MuiDataGrid-cell': {
-                fontSize: 14,
-                fontWeight: 500,
-                backgroundColor: settings.mode === 'dark' ? '#333' : 'white',  // Adjust background color for dark mode
-              },
-              '& .MuiDataGrid-row': {
-                '&:nth-of-type(odd)': {
-                  backgroundColor: settings.mode === 'dark' ? '#444' : 'rgba(44, 60, 227, 0.05)',  // Adjust background for odd rows in dark mode
-                  color: settings.mode === 'dark' ? 'white' : 'black', // Adjust text color for odd rows
-                },
-                '&:nth-of-type(even)': {
-                  backgroundColor: settings.mode === 'dark' ? '#333' : 'white', // Adjust background for even rows in dark mode
-                  color: settings.mode === 'dark' ? 'white' : 'black', // Adjust text color for even rows
-                },
-                '&:hover': {
-                  backgroundColor: settings.mode === 'dark' ? '#555' : 'rgba(44, 60, 227, 0.1)', // Adjust hover background color
-                  color: 'black',  // Ensuring hover text is always black
-                },
-              },
 
-            }}
-            components={{
-              Toolbar: GridToolbar,
-            }}
-            rows={filteredHoliday.length > 0 ? filteredHoliday : holidays}
-            columns={columns}
-            getRowId={(row) => row._id}
-            paginationMode="server"
-            rowCount={total}
-            onPaginationModelChange={handlePaginationModelChange}
-            pageSizeOptions={[10, 20, 30]}
-            paginationModel={{ page: page - 1, pageSize: limit }}
-            disableRowSelectionOnClick
-          />
+        {/* Data Grid */}
+        <Box sx={{
+          height: 600,
+          width: '100%',
+          backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+          borderRadius: '16px',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+          overflow: 'hidden'
+        }}>
+          {activeTab === 'upcoming' ? (
+            <DataGrid
+              sx={{
+                '& .super-app-theme--header': {
+                  fontSize: 16,
+                  fontWeight: 700,
+                  backgroundColor: settings.mode === 'dark' ? '#444' : '#2c3ce3',
+                  color: 'white',
+                  textTransform: 'uppercase',
+                },
+                '& .MuiDataGrid-cell': {
+                  fontSize: 14,
+                  fontWeight: 500,
+                  backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+                },
+                '& .MuiDataGrid-row': {
+                  '&:nth-of-type(odd)': {
+                    backgroundColor: settings.mode === 'dark' ? '#444' : 'rgba(44, 60, 227, 0.05)',
+                    color: settings.mode === 'dark' ? 'white' : 'black',
+                  },
+                  '&:nth-of-type(even)': {
+                    backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+                    color: settings.mode === 'dark' ? 'white' : 'black',
+                  },
+                  '&:hover': {
+                    backgroundColor: settings.mode === 'dark' ? '#555' : 'rgba(44, 60, 227, 0.1)',
+                    color: 'black',
+                  },
+                },
+              }}
+              components={{ Toolbar: GridToolbar }}
+              rows={filteredHoliday.length > 0 ? filteredHoliday : holidays}
+              columns={columns}
+              getRowId={(row) => row._id}
+              paginationMode="server"
+              rowCount={total}
+              onPaginationModelChange={handleUpPaginationChange}
+              pageSizeOptions={[10, 20, 30]}
+              paginationModel={{ page: upPage - 1, pageSize: upLimit }}
+              disableRowSelectionOnClick
+            />
+          ) : (
+            <DataGrid
+              sx={{
+                '& .super-app-theme--header': {
+                  fontSize: 16,
+                  fontWeight: 700,
+                  backgroundColor: settings.mode === 'dark' ? '#444' : '#2c3ce3',
+                  color: 'white',
+                  textTransform: 'uppercase',
+                },
+                '& .MuiDataGrid-cell': {
+                  fontSize: 14,
+                  fontWeight: 500,
+                  backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+                },
+                '& .MuiDataGrid-row': {
+                  '&:nth-of-type(odd)': {
+                    backgroundColor: settings.mode === 'dark' ? '#444' : 'rgba(44, 60, 227, 0.05)',
+                    color: settings.mode === 'dark' ? 'white' : 'black',
+                  },
+                  '&:nth-of-type(even)': {
+                    backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+                    color: settings.mode === 'dark' ? 'white' : 'black',
+                  },
+                  '&:hover': {
+                    backgroundColor: settings.mode === 'dark' ? '#555' : 'rgba(44, 60, 227, 0.1)',
+                    color: 'black',
+                  },
+                },
+              }}
+              components={{ Toolbar: GridToolbar }}
+              rows={filteredPastHoliday.length > 0 ? filteredPastHoliday : pastHolidays}
+              columns={columns}
+              getRowId={(row) => row._id}
+              paginationMode="server"
+              rowCount={pastTotal}
+              onPaginationModelChange={handlePastPaginationChange}
+              pageSizeOptions={[10, 20, 30]}
+              paginationModel={{ page: pastPage - 1, pageSize: pastLimit }}
+              disableRowSelectionOnClick
+            />
+          )}
         </Box>
       </Box>
     </ThemeProvider>

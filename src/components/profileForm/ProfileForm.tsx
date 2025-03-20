@@ -13,6 +13,7 @@ import {
   Dialog,
   IconButton
 } from '@mui/material'
+import { Delete } from '@mui/icons-material';
 import { styled } from '@mui/system'
 import { Autocomplete } from '@mui/material'
 import { Close } from '@mui/icons-material'
@@ -746,6 +747,20 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
                     }}
                     onClick={() => handleClickOpen(formData.bankDetails.panCardImage, 'PAN Card')}
                   />
+                  <IconButton
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        bankDetails: {
+                          ...prev.bankDetails,
+                          panCardImage: null // Clear the image
+                        }
+                      }));
+                    }}
+                    sx={{ marginLeft: '8px' }}
+                  >
+                    <Delete />
+                  </IconButton>
                 </Box>
               )}
             </section>
@@ -778,6 +793,20 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
                       }}
                       onClick={() => handleClickOpen(formData.addressDetails.aadhaarFrontImage, 'Aadhaar Front')}
                     />
+                    <IconButton
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          addressDetails: {
+                            ...prev.addressDetails,
+                            aadhaarFrontImage: null // Clear the image
+                          }
+                        }));
+                      }}
+                      sx={{ marginLeft: '8px' }}
+                    >
+                      <Delete />
+                    </IconButton>
                   </Box>
                 )}
                 {formData.addressDetails.aadhaarBackImage && (
@@ -800,6 +829,20 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
                       }}
                       onClick={() => handleClickOpen(formData.addressDetails.aadhaarBackImage, 'Aadhaar Back')}
                     />
+                    <IconButton
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          addressDetails: {
+                            ...prev.addressDetails,
+                            aadhaarBackImage: null // Clear the image
+                          }
+                        }));
+                      }}
+                      sx={{ marginLeft: '8px' }}
+                    >
+                      <Delete />
+                    </IconButton>
                   </Box>
                 )}
               </div>
