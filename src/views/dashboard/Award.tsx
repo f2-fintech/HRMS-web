@@ -26,6 +26,8 @@ const Award = () => {
   const [employeeName, setEmployeeName] = useState(null);
   const [amount, setAmount] = useState('');
   const [awardTitle, setAwardTitle] = useState('');
+  const [approved, setApproved] = useState('');
+  const [total, setTotal] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
   const [awardData, setAwardData] = useState(null);
   const [userRole, setUserRole] = useState("");
@@ -118,6 +120,8 @@ const Award = () => {
           employee: employeeName?._id,
           amount,
           awardTitle,
+          approved,
+          total,
           company_id
         })
       });
@@ -149,6 +153,8 @@ const Award = () => {
       setEmployeeName(awardData.employee);
       setAmount(awardData.amount?.toString());
       setAwardTitle(awardData.awardTitle || 'Best seller of the month');
+      setApproved(awardData.approved?.toString() || '');
+      setTotal(awardData.total?.toString() || '');
     }
 
     setIsFormOpen(true);
@@ -306,6 +312,18 @@ const Award = () => {
                   </Typography>
                 </Paper>
               </Box>
+
+              {/* Approved and Total fields visible here */}
+              {awardData?.approved && (
+                <Typography variant='h6' sx={{ color: '#5c6bc0', marginTop: '1rem' }}>
+                  Approved: ₹{awardData.approved}
+                </Typography>
+              )}
+              {awardData?.total && (
+                <Typography variant='h6' sx={{ color: '#5c6bc0', marginTop: '1rem' }}>
+                  Total: ₹{awardData.total}
+                </Typography>
+              )}
             </Box>
 
             <Box
@@ -364,6 +382,10 @@ const Award = () => {
           setAmount={setAmount}
           awardTitle={awardTitle}
           setAwardTitle={setAwardTitle}
+          approved={approved}
+          setApproved={setApproved}
+          total={total}
+          setTotal={setTotal}
           isEditMode={isEditMode}
           onSubmit={handleFormSubmit}
           onClose={handleCloseForm}

@@ -58,12 +58,16 @@ interface AwardFormProps {
   selectedEmployee: any | null
   amount: string
   awardTitle: string
+  approved: string
+  total: string
   isEditMode: boolean
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   onClose: () => void
   setSelectedEmployee: (employee: any) => void
   setAmount: (amount: string) => void
   setAwardTitle: (title: string) => void
+  setApproved: (approved: string) => void
+  setTotal: (total: string) => void
 }
 
 const AwardForm: React.FC<AwardFormProps> = ({
@@ -71,12 +75,16 @@ const AwardForm: React.FC<AwardFormProps> = ({
   selectedEmployee,
   amount,
   awardTitle,
+  approved,
+  total,
   isEditMode,
   onSubmit,
   onClose,
   setSelectedEmployee,
   setAmount,
-  setAwardTitle
+  setAwardTitle,
+  setApproved,
+  setTotal
 }) => {
   return (
     <ThemeProvider theme={theme}>
@@ -152,7 +160,7 @@ const AwardForm: React.FC<AwardFormProps> = ({
               />
 
               <TextField
-                label='Description'
+                label='Disbursal'
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 fullWidth
@@ -171,6 +179,26 @@ const AwardForm: React.FC<AwardFormProps> = ({
                 }}
               />
 
+              <TextField
+                label='Approved'
+                value={approved}
+                onChange={e => setApproved(e.target.value)}
+                fullWidth
+                margin='normal'
+                variant='outlined'
+                sx={{ mb: 2 }}
+              />
+
+              <TextField
+                label='Total'
+                value={total}
+                onChange={e => setTotal(e.target.value)}
+                fullWidth
+                margin='normal'
+                variant='outlined'
+                sx={{ mb: 2 }}
+              />
+
               <Box mt={2} display='flex' justifyContent='space-between'>
                 <Button type='submit' variant='contained' color='primary' startIcon={<SaveIcon />}>
                   {isEditMode ? 'Update' : 'Add'}
@@ -187,4 +215,4 @@ const AwardForm: React.FC<AwardFormProps> = ({
   )
 }
 
-export default AwardForm
+export default AwardForm;

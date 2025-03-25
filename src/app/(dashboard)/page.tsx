@@ -35,6 +35,7 @@ import {
   Typography
 } from '@mui/material'
 import { fetchPreferences, updatePreferences } from '@/redux/features/dashboardPreferences/dashboardPreferencesSlice'
+import SixMonthAward from '@/views/dashboard/sixmonthaward'
 
 const DashboardAnalytics = () => {
   const [userRole, setUserRole] = useState<string>('')
@@ -68,6 +69,7 @@ const DashboardAnalytics = () => {
   const dashboardCards = [
     { key: 'Award', component: <Award /> },
     { key: 'Transactions', component: <Transactions /> },
+    { key: 'sixmonthaward', component: <SixMonthAward /> },
     {
       key: 'UpcomingBirthdays',
       component: <UpcomingBirthdays companyDetails={companyDetails} loading={companyLoading} />
@@ -191,10 +193,9 @@ const DashboardAnalytics = () => {
               <Award />
             </Grid>
           )}
-
-          {!hiddenCards.includes('Achievement') && (
+          {!hiddenCards.includes('sixmonthaward') && (
             <Grid item xs={12} md={6}>
-              <Achievement />
+              <SixMonthAward />
             </Grid>
           )}
 
@@ -211,16 +212,17 @@ const DashboardAnalytics = () => {
             </Grid>
           )}
 
+          {!hiddenCards.includes('Achievement') && (
+            <Grid item xs={12} md={6}>
+              <Achievement />
+              <TotalHolidays />
+            </Grid>
+          )}
+
           {/* Location Wise Performer and Total Holidays */}
           {!hiddenCards.includes('LocationWisePerformer') && (
             <Grid item xs={12} md={6}>
               <LocationWisePerformer />
-            </Grid>
-          )}
-
-          {!hiddenCards.includes('TotalHolidays') && (
-            <Grid item xs={12} md={6}>
-              <TotalHolidays />
             </Grid>
           )}
 

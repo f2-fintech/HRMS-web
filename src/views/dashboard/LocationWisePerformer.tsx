@@ -56,6 +56,8 @@ const LocationWisePerformer = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [amount, setAmount] = useState<string>('')
   const [awardTitle, setAwardTitle] = useState('')
+  const [approved, setApproved] = useState('');
+  const [total, setTotal] = useState('');
   const [user, setUser] = useState<User | null>(null)
 
   const { navigateToProfile } = useRouterWithMount()
@@ -134,6 +136,8 @@ const LocationWisePerformer = () => {
       setSelectedEmployee(null)
       setAmount('')
       setAwardTitle('')
+      setApproved('')
+      setTotal('')
     }
   }
 
@@ -157,7 +161,9 @@ const LocationWisePerformer = () => {
         body: JSON.stringify({
           employee: selectedEmployee ? selectedEmployee._id : '',
           amount: amount,
-          awardTitle: awardTitle
+          awardTitle: awardTitle,
+          approved: approved,
+          total: total
         })
       })
 
@@ -445,6 +451,18 @@ const LocationWisePerformer = () => {
                           </Typography>
                         </Box>
 
+                        {award?.approved && (
+                          <Typography variant='h6' sx={{ color: '#5c6bc0', marginTop: '1rem' }}>
+                            Approved: ₹{award.approved}
+                          </Typography>
+                        )}
+
+                        {award?.total && (
+                          <Typography variant='h6' sx={{ color: '#5c6bc0', marginTop: '1rem' }}>
+                            Total: ₹{award.total}
+                          </Typography>
+                        )}
+
                         {/* Progress bar */}
                         <Box
                           sx={{
@@ -539,6 +557,10 @@ const LocationWisePerformer = () => {
           amount={amount}
           awardTitle={awardTitle}
           setAwardTitle={setAwardTitle}
+          approved={approved}
+          setApproved={setApproved}
+          total={total}
+          setTotal={setTotal}
           isEditMode={isEditMode}
           onSubmit={handleFormSubmit}
           onClose={handleCloseForm}

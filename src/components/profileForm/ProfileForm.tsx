@@ -708,20 +708,20 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
     {
       label: logedUser.id === profileId ? 'Preview & Submit' : 'Preview',
       content: (
-        <div className='bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto'>
-          <h4 className='text-center mb-6 text-2xl font-bold text-gray-800'>Preview</h4>
+        <div className='p-6 rounded-lg shadow-lg max-w-2xl mx-auto'>
+          <h4 className='text-center mb-6 text-2xl font-bold'>Preview</h4>
 
           <div className='space-y-6'>
             <section>
               <SectionTitle iconClass='ri-user-3-line' title='Skills' />
-              <p className='text-gray-700'>{formData.skills.join(', ') || 'No skills added'}</p>
+              <p >{formData.skills.join(', ') || 'No skills added'}</p>
             </section>
 
             <hr className='border-t border-gray-200' />
 
             <section>
               <SectionTitle iconClass='ri-bank-card-line' title='Bank Details' />
-              <div className='grid grid-cols-2 gap-2 text-gray-700'>
+              <div className='grid grid-cols-2 gap-2'>
                 <p>Bank Name: {formData.bankDetails.bankName || 'N/A'}</p>
                 <p>Account Number: {formData.bankDetails.accountNumber || 'N/A'}</p>
                 <p>IFSC Code: {formData.bankDetails.ifscCode || 'N/A'}</p>
@@ -769,9 +769,9 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
 
             <section>
               <SectionTitle iconClass='ri-map-pin-2-line' title='Address Details' />
-              <p className='text-gray-700'>Permanent Address: {formData.addressDetails.permanentAddress || 'N/A'}</p>
-              <p className='text-gray-700'>Current Address: {formData.addressDetails.currentAddress || 'N/A'}</p>
-              <p className='text-gray-700'>Aadhaar Card Number: {formData.addressDetails.aadhaarCardNumber || 'N/A'}</p>
+              <p >Permanent Address: {formData.addressDetails.permanentAddress || 'N/A'}</p>
+              <p >Current Address: {formData.addressDetails.currentAddress || 'N/A'}</p>
+              <p >Aadhaar Card Number: {formData.addressDetails.aadhaarCardNumber || 'N/A'}</p>
               <div className='flex space-x-4 mt-2'>
                 {formData.addressDetails.aadhaarFrontImage && (
                   <Box sx={{ mt: 2, pl: 2 }}>
@@ -852,7 +852,7 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
 
             <section>
               <SectionTitle iconClass='ri-book-open-line' title='Academics' />
-              <div className='grid grid-cols-2 gap-2 text-gray-700'>
+              <div className='grid grid-cols-2 gap-2'>
                 {formData.academics.map(aca => {
                   return (
                     <>
@@ -877,12 +877,12 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
               {formData.pastExperience.length > 0 ? (
                 <div className='space-y-4'>
                   {formData.pastExperience.map((exp, index) => (
-                    <div key={index} className='bg-gray-50 p-3 rounded-md'>
+                    <div key={index} className='p-3 rounded-md'>
                       <p>
                         <b>Company Name: </b>
                         {exp.companyName || 'N/A'}
                       </p>
-                      <p className='text-sm text-gray-600'>
+                      <p className='text-sm'>
                         {exp.fromYear || 'N/A'} - {exp.toYear || 'N/A'}
                       </p>
                       <p>
@@ -905,7 +905,7 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
                   ))}
                 </div>
               ) : (
-                <p className='text-gray-700'>No past experience added</p>
+                <p >No past experience added</p>
               )}
             </section>
           </div>
