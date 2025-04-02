@@ -41,7 +41,6 @@ const BreakControls: React.FC<BreakControlsProps> = ({
     employeeId,
 }) => {
     const isDisabled = !isCurrentDate || (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2');
-
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Break Type Selection */}
@@ -99,11 +98,11 @@ const BreakControls: React.FC<BreakControlsProps> = ({
             <div className="col-span-1">
                 <button
                     onClick={handleStartTime}
-                    disabled={isDisabled || timerRunning}
+                    disabled={isDisabled || timerRunning || breakType === 'Select break type' || breakType === ''}
                     className={`w-full py-3 px-4 rounded-lg flex items-center justify-center shadow-md transition-all duration-300
                                 ${timerRunning
                             ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
-                            : isDisabled
+                            : (isDisabled || breakType === 'Select break type' || breakType === '')
                                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                 : 'bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white h-[100%]'
                         }`}
