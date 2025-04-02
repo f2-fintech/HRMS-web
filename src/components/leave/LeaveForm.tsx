@@ -99,7 +99,7 @@ const AddLeavesForm = ({
           setIsHalfDay(true)
         }
       }
-    } else if (userRole !== '1') {
+    } else if (userRole) {
       setFormData(prevState => ({
         ...prevState,
         employee: userId
@@ -305,18 +305,21 @@ const AddLeavesForm = ({
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label='Start Date'
-              name='start_date'
+              label="Start Date"
+              name="start_date"
               value={formData.start_date}
-              type='date'
+              type="date"
               onChange={handleChange}
               InputLabelProps={{ shrink: true }}
               required
               error={!!errors.start_date}
               helperText={errors.start_date}
-              variant='outlined'
+              variant="outlined"
               InputProps={{
-                startAdornment: <CalendarIcon color='action' />
+                startAdornment: <CalendarIcon color="action" />
+              }}
+              inputProps={{
+                min: new Date().toISOString().split("T")[0] // Restricts past dates
               }}
             />
           </Grid>
@@ -325,15 +328,18 @@ const AddLeavesForm = ({
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label='End Date'
-                name='end_date'
-                type='date'
+                label="End Date"
+                name="end_date"
+                type="date"
                 value={formData.end_date}
                 onChange={handleChange}
                 InputLabelProps={{ shrink: true }}
-                variant='outlined'
+                variant="outlined"
                 InputProps={{
-                  startAdornment: <CalendarIcon color='action' />
+                  startAdornment: <CalendarIcon color="action" />
+                }}
+                inputProps={{
+                  min: formData.start_date || new Date().toISOString().split("T")[0] // Ensures end date is not before start date
                 }}
               />
             </Grid>

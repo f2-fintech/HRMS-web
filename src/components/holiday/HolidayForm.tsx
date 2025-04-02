@@ -193,10 +193,10 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label='From'
-            name='start_date'
+            label="From"
+            name="start_date"
             value={formData.start_date}
-            type='date'
+            type="date"
             onChange={handleChange}
             InputLabelProps={{ shrink: true }}
             required
@@ -212,14 +212,18 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
                 backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
               },
             }}
+            inputProps={{
+              min: new Date().toISOString().split("T")[0] // Prevents selecting past dates
+            }}
           />
         </Grid>
+
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label='to'
-            name='end_date'
-            type='date'
+            label="To"
+            name="end_date"
+            type="date"
             value={formData.end_date}
             onChange={handleChange}
             InputLabelProps={{ shrink: true }}
@@ -235,6 +239,9 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
               '& .MuiOutlinedInput-root': {
                 backgroundColor: settings.mode === 'dark' ? '#444' : '#fff',
               },
+            }}
+            inputProps={{
+              min: formData.start_date || new Date().toISOString().split("T")[0] // Ensures end date is not before start date
             }}
           />
         </Grid>

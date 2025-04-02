@@ -568,11 +568,9 @@ export default function LeavesGrid() {
               </Typography>
             </Box>
 
-            {Number(userRole) >= 2 && (
-              <StyledButton variant='contained' color='primary' startIcon={<AddIcon />} onClick={handleLeaveAddClick}>
-                Apply Leave
-              </StyledButton>
-            )}
+            <StyledButton variant='contained' color='primary' startIcon={<AddIcon />} onClick={handleLeaveAddClick}>
+              Apply Leave
+            </StyledButton>
           </Box>
 
           {/* Enhanced search and date picker section */}

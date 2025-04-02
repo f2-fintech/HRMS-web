@@ -14,7 +14,7 @@ interface EditBreakFormProps {
     breakToEdit: Break | null
 }
 
-const breakOptions = ['Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'Other'];
+const breakOptions = ['select break type', 'Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other'];
 
 const EditBreakForm: React.FC<EditBreakFormProps> = ({ open, onClose, onSubmit, breakToEdit }) => {
     const [formValues, setFormValues] = useState({
