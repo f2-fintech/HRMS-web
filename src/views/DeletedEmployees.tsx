@@ -112,8 +112,9 @@ export default function DeletedEmployeeGrid() {
             });
 
             if (response.ok) {
+                dispatch(resetEmployees());
                 dispatch(deleteEmployees({ page: 1, limit: 12, search: '', designation: '' }));
-                toast.success('Employee deleted successfully.');
+                toast.success('Employee restored successfully.');
             } else {
                 const errorResult = await response.json();
                 toast.error(`Failed to delete employee: ${errorResult.message}`);
