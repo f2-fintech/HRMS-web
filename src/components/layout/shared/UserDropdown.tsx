@@ -154,6 +154,14 @@ const UserDropdown = () => {
                       </MenuItem>
                     </Link>
                   )}
+                  {Number(userData.role_priority) === 1 && (
+                    <Link href={'/employee-docs'}>
+                      <MenuItem className='gap-3'>
+                        <i className='ri-file-text-line' />
+                        <Typography color='text.primary'>Employee Documents</Typography>
+                      </MenuItem>
+                    </Link>
+                  )}
 
                   <div className='flex items-center plb-2 pli-4'>
                     <Button

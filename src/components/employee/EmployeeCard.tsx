@@ -20,6 +20,7 @@ import PermIdentityIcon from '@mui/icons-material/PermIdentity'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EmailIcon from '@mui/icons-material/Email'
+import RestoreIcon from '@mui/icons-material/Restore';
 import Loader from '../loader/loader'
 import { useSettings } from '@core/hooks/useSettings' // Importing useSettings hook
 import 'react-toastify/dist/ReactToastify.css'
@@ -72,7 +73,7 @@ const EmailTypography = styled(Typography)(({ theme, mode }) => ({
   }
 }))
 
-const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, capitalizeWords }) => {
+const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, capitalizeWords, deletedEmployee }) => {
   const [anchorEl, setAnchorEl] = useState(null)
   const [userRole, setUserRole] = useState('')
   const [loading, setLoading] = useState(false)
@@ -111,7 +112,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
   const handleCardClick = () => {
     setLoading(true)
     setTimeout(() => {
-      router.push(`/profile/${id}`)
+      router.push(`/profile/${deletedEmployee ? employee._id : id}`)
     }, 500)
   }
 
@@ -121,7 +122,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
   }
 
   return (
-    <StyledCard mode={settings.mode} onClick={handleCardClick}>
+    <StyledCard mode={settings.mode} onClick={deletedEmployee ? (() => { null }) : handleCardClick}>
       {loading ? (
         <Box display='flex' justifyContent='center' alignItems='center' height='100%'>
           <Loader />
@@ -135,16 +136,18 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
               {userRole === '1' && (
                 <>
-                  <MenuItem
-                    onClick={e => {
-                      e.stopPropagation()
-                      handleMenuClose()
-                      handleEditEmployeeClick(id)
-                    }}
-                  >
-                    <EditIcon fontSize='small' style={{ marginRight: 8 }} />
-                    Edit
-                  </MenuItem>
+                  {!deletedEmployee &&
+                    <MenuItem
+                      onClick={e => {
+                        e.stopPropagation()
+                        handleMenuClose()
+                        handleEditEmployeeClick(deletedEmployee ? employee._id : id)
+                      }}
+                    >
+                      <EditIcon fontSize='small' style={{ marginRight: 8 }} />
+                      Edit
+                    </MenuItem>
+                  }
                   <MenuItem
                     onClick={e => {
                       e.stopPropagation()
@@ -152,21 +155,24 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
                       handleDelete(id)
                     }}
                   >
-                    <DeleteIcon fontSize='small' style={{ marginRight: 8 }} />
-                    Delete
+                    {deletedEmployee ? <RestoreIcon fontSize='small' style={{ marginRight: 8 }} /> : <DeleteIcon fontSize='small' style={{ marginRight: 8 }} />}
+                    {deletedEmployee ? "Restore" : "Delete"}
                   </MenuItem>
                 </>
               )}
-              <MenuItem
-                onClick={e => {
-                  e.stopPropagation()
-                  handleMenuClose()
-                  handleCardClick()
-                }}
-              >
-                <PermIdentityIcon fontSize='small' style={{ marginRight: 8 }} />
-                Profile
-              </MenuItem>
+              {!deletedEmployee &&
+                <MenuItem
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleMenuClose()
+                    handleCardClick()
+                  }}
+                >
+                  <PermIdentityIcon fontSize='small' style={{ marginRight: 8 }} />
+                  Profile
+                </MenuItem>
+              }
+
             </Menu>
           </Box>
           <StyledAvatar alt={employee.first_name} src={employee?.image} mode={settings.mode} />

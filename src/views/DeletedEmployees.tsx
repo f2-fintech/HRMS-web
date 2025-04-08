@@ -99,12 +99,12 @@ export default function DeletedEmployeeGrid() {
     };
 
     const handleDelete = async (id: string) => {
-        const confirmDelete = confirm('Are you sure you want to delete this employee?');
+        const confirmDelete = confirm('Are you sure you want to restore this employee?');
         if (!confirmDelete) return;
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/delete/${id}`, {
-                method: 'DELETE',
+            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/restore/${id}`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: 'Bearer',
@@ -229,6 +229,7 @@ export default function DeletedEmployeeGrid() {
                                     capitalizeWords={capitalizeWords}
                                     handleEditEmployeeClick={() => handleEditEmployeeClick(employee)}
                                     handleDelete={handleDelete}
+                                    deletedEmployee={true}
                                 />
                             </Grid>
                         ))

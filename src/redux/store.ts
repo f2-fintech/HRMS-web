@@ -25,6 +25,8 @@ import sittingArrangmentReducer from '@/redux/features/sittingArrangment/seating
 import companiesReducer from '@/redux/features/company/companyslice'
 import configurationReducer from './features/configuration/configurationSlice'
 import dashboardPreferencesReducer from './features/dashboardPreferences/dashboardPreferencesSlice'
+import profilesReducer from './features/profileEmployeee/profilesSlice';
+
 
 
 // const store = configureStore({
@@ -72,6 +74,7 @@ const appReducer = combineReducers({
   companies: companiesReducer,
   configuration: configurationReducer,
   dashboardPreferences: dashboardPreferencesReducer,
+  profiles: profilesReducer,
 })
 
 // Root reducer with RESET functionality
