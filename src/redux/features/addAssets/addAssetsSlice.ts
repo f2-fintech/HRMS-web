@@ -1,5 +1,6 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { utility } from "@/utility";
 
 interface addAsset {
   _id: string
@@ -37,12 +38,25 @@ export const fetchAddAssets = createAsyncThunk<
 >(
   "add-assets/fetchAddAssets",
   async ({ page = 1, limit = 10, keyword = "" }) => {
+    const { isTokenExpired } = utility();
     let token: string | null = null;
     const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
 
     if (typeof window !== "undefined") {
       token = localStorage?.getItem("token");
     }
+
+    if (!token || isTokenExpired(token)) {
+      // Clean up localStorage if needed
+      if (token) {
+        localStorage.removeItem('token');
+      }
+
+      // Redirect to login with page refresh
+      window.location.href = '/login';
+      return { error: token ? "Token expired" : "No token found" };
+    }
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL}/add-assets/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(
         keyword

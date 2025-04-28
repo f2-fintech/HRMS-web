@@ -3,6 +3,7 @@
 // features/teams/teamsSlice.ts
 
 import { RootState } from '@/redux/store';
+import { utility } from '@/utility';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 interface Employee {
@@ -70,7 +71,20 @@ const initialState: TeamsState = {
 
 // Thunk for fetching teams
 export const fetchTeams = createAsyncThunk('teams/fetchTeams', async ({ page, limit, keyword }: { page: number; limit: number; keyword: string }) => {
+  const { isTokenExpired } = utility();
   const token = typeof window !== "undefined" ? localStorage.getItem('token') : "";
+
+  if (!token || isTokenExpired(token)) {
+    // Clean up localStorage if needed
+    if (token) {
+      localStorage.removeItem('token');
+    }
+
+    // Redirect to login with page refresh
+    window.location.href = '/login';
+    return { error: token ? "Token expired" : "No token found" };
+  }
+
   const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
   const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/teams/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`,
     {

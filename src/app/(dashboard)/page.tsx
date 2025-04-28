@@ -59,10 +59,10 @@ const DashboardAnalytics = () => {
 
   useEffect(() => {
     if (!companyDetails) {
-      dispatch(fetchConfiguration())
+      dispatch(fetchConfiguration());
     }
     if (companyId) {
-      dispatch(fetchPreferences({ companyId }))
+      dispatch(fetchPreferences({ companyId }));
     }
   }, [dispatch, companyDetails, companyId])
 

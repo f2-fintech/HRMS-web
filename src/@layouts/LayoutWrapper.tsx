@@ -12,8 +12,8 @@ interface JwtPayload {
 }
 
 const LayoutWrapper = ({ verticalLayout }: { verticalLayout: ReactElement }) => {
-  const router = useRouter()
-  const [token, setToken] = useState<string | null>(null)
+  const router = useRouter();
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     const storedToken = localStorage?.getItem('token');
@@ -24,6 +24,7 @@ const LayoutWrapper = ({ verticalLayout }: { verticalLayout: ReactElement }) => 
       // Check if the token is expired
       if (decodedToken.exp * 1000 < Date.now()) {
         localStorage.removeItem('token');
+        window.location.reload();
         router.push('/login');
       } else {
         setToken(storedToken);

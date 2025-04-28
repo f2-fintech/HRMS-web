@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../../store';
+import { utility } from '@/utility';
 
 interface Query {
     _id: string;
@@ -44,8 +45,20 @@ const initialState: QueryState = {
 export const fetchAllQueries = createAsyncThunk(
     'queries/fetchAllQueries',
     async ({ page = 1, limit = 10, keyword = '', month, year }: { page?: number; limit?: number; keyword?: string; month?: string; year?: string }) => {
+        const { isTokenExpired } = utility();
         const token = localStorage.getItem('token') || '';
         const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+        if (!token || isTokenExpired(token)) {
+            // Clean up localStorage if needed
+            if (token) {
+                localStorage.removeItem('token');
+            }
+
+            // Redirect to login with page refresh
+            window.location.href = '/login';
+            return { error: token ? "Token expired" : "No token found" };
+        }
 
         const queryParams = new URLSearchParams({
             page: page,

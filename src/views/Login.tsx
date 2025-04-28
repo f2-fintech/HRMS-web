@@ -134,7 +134,7 @@ const Login = ({ mode }: { mode: Mode }) => {
         position: 'top-center'
       })
 
-      router.push('/')
+      window.location.href = '/';
     } catch (error: any) {
       toast.error(error.message, {
         position: 'top-center'

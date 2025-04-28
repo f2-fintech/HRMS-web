@@ -172,7 +172,7 @@ const HolidaysTable = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {holidays.map((row, index) => (
+                {holidays?.map((row, index) => (
                   <StyledTableRow key={index}>
                     <StyledTableCell>{row.day}</StyledTableCell>
                     <StyledTableCell>{row.start_date}</StyledTableCell>

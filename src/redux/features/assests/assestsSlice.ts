@@ -2,6 +2,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import type { RootState } from "@/redux/store";
+import { utility } from "@/utility";
 
 
 interface Assest {
@@ -42,11 +43,23 @@ export const fetchAssests = createAsyncThunk<{
 }, { page?: number; limit?: number; keyword?: string }, { state: RootState }>(
   'leaves/fetchAssests',
   async ({ page, limit, keyword }: { page: number; limit: number; keyword: string }) => {
+    const { isTokenExpired } = utility();
     let token: string | null = null;
     const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
     const company_id = user?.company_id;
     if (typeof window !== "undefined") {
       token = localStorage?.getItem('token');
+    }
+
+    if (!token || isTokenExpired(token)) {
+      // Clean up localStorage if needed
+      if (token) {
+        localStorage.removeItem('token');
+      }
+
+      // Redirect to login with page refresh
+      window.location.href = '/login';
+      return { error: token ? "Token expired" : "No token found" };
     }
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/assests/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`, {

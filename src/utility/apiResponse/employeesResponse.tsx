@@ -1,13 +1,40 @@
 
-
+import { utility } from "..";
 
 export const apiResponse = async (): Promise<any> => {
   const page = 1;
   const limit = 0;
   const keyword = '';
+  const { isTokenExpired } = utility();
 
-  const token = localStorage?.getItem("token") || '{}';
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+  // Check if we're in a browser environment
+  if (typeof window === "undefined") {
+    return { error: "Not in browser environment" };
+  }
+
+  const token = localStorage.getItem("token");
+
+  // If token doesn't exist or is expired, redirect to login with page refresh
+  if (!token || isTokenExpired(token)) {
+    // Clean up localStorage if needed
+    if (token) {
+      localStorage.removeItem('token');
+    }
+
+    // Redirect to login with page refresh
+    window.location.href = '/login';
+    return { error: token ? "Token expired" : "No token found" };
+  }
+
+  // Get user data
+  const userData = localStorage.getItem('user');
+  if (!userData) {
+    // Redirect to login with page refresh
+    window.location.href = '/login';
+    return { error: "User data not found" };
+  }
+
+  const { company_id } = JSON.parse(userData);
 
   try {
     const response = await fetch(
@@ -26,8 +53,6 @@ export const apiResponse = async (): Promise<any> => {
     }
 
     const employees = await response.json();
-
-
     return employees;
   } catch (error) {
     console.error('Error fetching employees:', error);

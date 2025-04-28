@@ -2,6 +2,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 import type { RootState } from '@/redux/store';
+import { utility } from '@/utility';
 
 interface Fine {
   _id: string;
@@ -39,10 +40,22 @@ export const fetchFines = createAsyncThunk<{
 }, { page?: number; limit?: number; keyword?: string; month?: string; year?: string }, { state: RootState }>(
   'fines/fetchFines',
   async ({ page, limit, keyword, month, year }: { page: number; limit: number; keyword: string; month: string; year: string; }) => {
+    const { isTokenExpired } = utility();
     let token: string | null = null;
     const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
     if (typeof window !== "undefined") {
       token = localStorage?.getItem('token');
+    }
+
+    if (!token || isTokenExpired(token)) {
+      // Clean up localStorage if needed
+      if (token) {
+        localStorage.removeItem('token');
+      }
+
+      // Redirect to login with page refresh
+      window.location.href = '/login';
+      return { error: token ? "Token expired" : "No token found" };
     }
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/fines/getAll?page=${page}&limit=${limit}&month=${month}&year=${year}&keyword=${encodeURIComponent(keyword)}`, {

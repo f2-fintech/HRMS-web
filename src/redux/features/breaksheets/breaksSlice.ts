@@ -1,3 +1,4 @@
+import { utility } from '@/utility'
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || ''
@@ -14,9 +15,21 @@ export interface Break {
 }
 
 export const fetchBreaksById = createAsyncThunk('breaks/fetchBreaksById', async (employeeId: string | null) => {
+    const { isTokenExpired } = utility();
     const token = localStorage.getItem('token');
     const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
     const url = employeeId ? `${BASE_URL}/breaksheet/employee?employeeId=${employeeId}` : `${BASE_URL}/breaksheet/employee`;
+
+    if (!token || isTokenExpired(token)) {
+        // Clean up localStorage if needed
+        if (token) {
+            localStorage.removeItem('token');
+        }
+
+        // Redirect to login with page refresh
+        window.location.href = '/login';
+        return { error: token ? "Token expired" : "No token found" };
+    }
 
     const response = await fetch(url, {
         method: 'GET',
@@ -34,8 +47,20 @@ export const fetchBreaksById = createAsyncThunk('breaks/fetchBreaksById', async 
 });
 
 export const addBreak = createAsyncThunk('breaks/addBreak', async (breakData: Break) => {
+    const { isTokenExpired } = utility();
     const token = localStorage.getItem('token');
     const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+    if (!token || isTokenExpired(token)) {
+        // Clean up localStorage if needed
+        if (token) {
+            localStorage.removeItem('token');
+        }
+
+        // Redirect to login with page refresh
+        window.location.href = '/login';
+        return { error: token ? "Token expired" : "No token found" };
+    }
 
     const response = await fetch(`${BASE_URL}/breaksheet/create`, {
         method: 'POST',
@@ -56,8 +81,21 @@ export const addBreak = createAsyncThunk('breaks/addBreak', async (breakData: Br
 export const updateBreak = createAsyncThunk(
     'breaks/updateBreak',
     async ({ id, updatedBreak }: { id: string; updatedBreak: Break }) => {
+        const { isTokenExpired } = utility();
         const token = localStorage.getItem('token');
         const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+        if (!token || isTokenExpired(token)) {
+            // Clean up localStorage if needed
+            if (token) {
+                localStorage.removeItem('token');
+            }
+
+            // Redirect to login with page refresh
+            window.location.href = '/login';
+            return { error: token ? "Token expired" : "No token found" };
+        }
+
         const response = await fetch(`${BASE_URL}/breaksheet/update/${id}`, {
             method: 'PUT',
             headers: {
@@ -78,8 +116,21 @@ export const updateBreak = createAsyncThunk(
 export const updateLatestBreak = createAsyncThunk(
     'break/updateBreak',
     async ({ employeeId, breakData }: { employeeId: string; breakData: { endTime: string; duration: string } }) => {
+        const { isTokenExpired } = utility();
         const token = localStorage.getItem('token');
         const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+        if (!token || isTokenExpired(token)) {
+            // Clean up localStorage if needed
+            if (token) {
+                localStorage.removeItem('token');
+            }
+
+            // Redirect to login with page refresh
+            window.location.href = '/login';
+            return { error: token ? "Token expired" : "No token found" };
+        }
+
         const response = await fetch(`${BASE_URL}/breaksheet/update-latest/break/${employeeId}`, {
             method: 'PUT',
             headers: {

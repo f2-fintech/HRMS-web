@@ -1,3 +1,4 @@
+import { utility } from '@/utility'
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || ''
@@ -44,9 +45,21 @@ export const fetchTotalWorkingHours = createAsyncThunk(
 export const fetchPunchByEmployeeAndDate = createAsyncThunk(
     'punch/fetchPunchByEmployeeAndDate',
     async ({ employeeId, date }: { employeeId: string | null; date: string }) => {
+        const { isTokenExpired } = utility()
         const token = localStorage.getItem('token');
         const { company_id }: any = localStorage.getItem('user') || {};
         const url = `${BASE_URL}/punch/employee/${employeeId}?date=${date}`
+
+        if (!token || isTokenExpired(token)) {
+            // Clean up localStorage if needed
+            if (token) {
+                localStorage.removeItem('token');
+            }
+
+            // Redirect to login with page refresh
+            window.location.href = '/login';
+            return { error: token ? "Token expired" : "No token found" };
+        }
 
         const response = await fetch(url, {
             method: 'GET',

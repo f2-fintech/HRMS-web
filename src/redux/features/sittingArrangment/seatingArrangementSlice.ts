@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '@/redux/store'
+import { utility } from '@/utility'
 
 interface SeatingArrangement {
     _id: string
@@ -36,8 +37,19 @@ export const fetchSeatingArrangements = createAsyncThunk<
     { page?: number; limit?: number; keyword?: string },
     { state: RootState }
 >('seatingArrangement/fetchSeatingArrangements', async ({ page = 1, limit = 10, keyword = '' }) => {
+    const { isTokenExpired } = utility();
     const token = localStorage?.getItem('token');
     const user = localStorage?.getItem('user'); // Retrieve the user object from localStorage
+    if (!token || isTokenExpired(token)) {
+        // Clean up localStorage if needed
+        if (token) {
+            localStorage.removeItem('token');
+        }
+
+        // Redirect to login with page refresh
+        window.location.href = '/login';
+        return { error: token ? "Token expired" : "No token found" };
+    }
 
     if (!user) {
         throw new Error('User information is missing');
@@ -84,7 +96,20 @@ export const fetchSeatingByEmployeeId = createAsyncThunk<
     { employeeId: string; page?: number; limit?: number },
     { state: RootState }
 >('seatingArrangement/fetchSeatingByEmployeeId', async ({ employeeId, page = 1, limit = 10 }) => {
+    const { isTokenExpired } = utility();
     const token = localStorage.getItem('token') || ''
+
+    if (!token || isTokenExpired(token)) {
+        // Clean up localStorage if needed
+        if (token) {
+            localStorage.removeItem('token');
+        }
+
+        // Redirect to login with page refresh
+        window.location.href = '/login';
+        return { error: token ? "Token expired" : "No token found" };
+    }
+
     const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/by-employee/${employeeId}?page=${page}&limit=${limit}`,
         {
