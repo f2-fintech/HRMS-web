@@ -122,7 +122,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
   }
 
   return (
-    <StyledCard mode={settings.mode} onClick={deletedEmployee ? (() => { null }) : handleCardClick}>
+    <StyledCard mode={settings.mode}>
       {loading ? (
         <Box display='flex' justifyContent='center' alignItems='center' height='100%'>
           <Loader />
@@ -175,7 +175,9 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
 
             </Menu>
           </Box>
-          <StyledAvatar alt={employee.first_name} src={employee?.image} mode={settings.mode} />
+          <Tooltip title="View Profile" arrow>
+            <StyledAvatar alt={employee.first_name} src={employee?.image} mode={settings.mode} onClick={() => handleCardClick()} />
+          </Tooltip>
           <Typography
             variant='h5'
             component='div'
