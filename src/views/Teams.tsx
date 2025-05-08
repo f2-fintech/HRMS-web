@@ -12,17 +12,18 @@ import type { GridColDef } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { DriveFileRenameOutlineOutlined } from '@mui/icons-material'
+import { DriveFileRenameOutlineOutlined, Search, People, Code, Person } from '@mui/icons-material'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { fetchTeams } from '@/redux/features/teams/teamsSlice'
 import { fetchEmployees } from '@/redux/features/employees/employeesSlice'
 import type { RootState, AppDispatch } from '@/redux/store'
 import { useSettings } from '@/@core/hooks/useSettings'
 
-// Dynamically import the form and details dialog for code-splitting
+// Dynamically import components with loading states
 const AddTeamForm = dynamic(() => import('../components/teams/AddTeamForm'), {
   ssr: false
 })
+
 const TeamDetailsDialog = dynamic(() => import('../components/teams/TeamDetailsDialog'), {
   ssr: false
 })
@@ -44,53 +45,11 @@ export interface TeamType {
   code: string
 }
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2'
-    },
-    secondary: {
-      main: '#7b1fa2'
-    }
-  },
-  typography: {
-    h4: {
-      fontWeight: 700
-    },
-    h6: {
-      fontWeight: 600
-    }
-  }
-})
-
-// Utility Functions
-export const getManagerNameById = (id: string, employees: EmployeeType[]) => {
-  const manager = employees.find(employee => employee._id === id)
-  return manager ? `${manager.first_name} ${manager.last_name}` : ''
-}
-
-export const getEmployeeCountByIds = (ids: string, employees: EmployeeType[], managerId?: string) => {
-  if (!ids) return 0
-  const idArray = ids.split(',')
-  const validIds = idArray.filter(id => employees.some(emp => emp._id === id))
-  const isManagerIncluded = managerId && employees.some(emp => emp._id === managerId)
-  return validIds.length + (isManagerIncluded ? 1 : 0)
-}
-
-export const getEmployeeNamesByIds = (ids: string, employees: EmployeeType[]) => {
-  if (!ids) return ''
-  const idArray = ids.split(',')
-  const names = idArray.map(id => {
-    const employee = employees.find(emp => emp._id === id)
-    return employee ? `${employee.first_name} ${employee.last_name}` : ''
-  })
-  return names.join(', ')
-}
-
 export default function TeamGrid() {
   const dispatch: AppDispatch = useDispatch()
   const { teams, total, loading, error } = useSelector((state: RootState) => state.teams)
   const { employees } = useSelector((state: RootState) => state.employees)
+  const { settings } = useSettings()
 
   const [showForm, setShowForm] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
@@ -102,14 +61,86 @@ export default function TeamGrid() {
   const [openAlert, setOpenAlert] = useState(false)
   const [teamToDelete, setTeamToDelete] = useState<string | null>(null)
 
-  const { settings } = useSettings();
+  // Check for mobile views
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Enhanced theme with responsive design
+  const theme = createTheme({
+    palette: {
+      mode: settings.mode === 'dark' ? 'dark' : 'light',
+      primary: {
+        main: '#2c3ce3'
+      },
+      secondary: {
+        main: '#ff902f'
+      },
+      error: {
+        main: '#f44336'
+      },
+      background: {
+        default: settings.mode === 'dark' ? '#121212' : '#f7f9fc',
+        paper: settings.mode === 'dark' ? '#1e1e1e' : '#ffffff',
+      },
+      text: {
+        primary: settings.mode === 'dark' ? '#ffffff' : '#333333',
+      }
+    },
+    typography: {
+      fontFamily: "'Inter', 'Roboto', 'Arial', sans-serif",
+      h4: {
+        fontWeight: 700
+      },
+      h5: {
+        fontWeight: 600
+      },
+      h6: {
+        fontWeight: 600
+      }
+    },
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: '8px',
+            textTransform: 'none',
+            fontWeight: 600
+          }
+        }
+      },
+      MuiDataGrid: {
+        styleOverrides: {
+          root: {
+            border: 'none',
+            '& .MuiDataGrid-columnHeader': {
+              backgroundColor: '#2c3ce3',
+              color: '#ffffff'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  // Check if on mobile device
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    handleResize() // Set initial value
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
 
   // Debounced fetch
   const debouncedFetch = useCallback(
     debounce(() => {
       dispatch(fetchTeams({ page, limit, keyword: selectedKeyword }))
     }, 300),
-    [page, limit, selectedKeyword]
+    [page, limit, selectedKeyword, dispatch]
   )
 
   useEffect(() => {
@@ -134,17 +165,14 @@ export default function TeamGrid() {
 
   const handlePaginationModelChange = (params: { page: number; pageSize: number }) => {
     handlePageChange(params.page, params.pageSize)
-    debouncedFetch()
   }
 
   useEffect(() => {
-    if (teams.length === 0) {
-      dispatch(fetchTeams({ page, limit, keyword: selectedKeyword }))
-    }
+    dispatch(fetchTeams({ page, limit, keyword: selectedKeyword }))
     if (employees.length === 0) {
       dispatch(fetchEmployees({ page: 1, limit: 0, search: '', designation: '' }))
     }
-  }, [dispatch, teams.length, employees.length, page, limit, selectedKeyword])
+  }, [dispatch, page, limit, selectedKeyword, employees.length])
 
   const handleAddTeamClick = () => {
     setSelectedTeam(null)
@@ -195,59 +223,131 @@ export default function TeamGrid() {
     }
   }
 
+  // Utility Functions
+  const getManagerNameById = (id: string, employees: EmployeeType[]) => {
+    const manager = employees.find(employee => employee._id === id)
+    return manager ? `${manager.first_name} ${manager.last_name}` : ''
+  }
+
+  const getEmployeeCountByIds = (ids: string, employees: EmployeeType[], managerId?: string) => {
+    if (!ids) return 0
+    const idArray = ids.split(',')
+    const validIds = idArray.filter(id => employees.some(emp => emp._id === id))
+    const isManagerIncluded = managerId && employees.some(emp => emp._id === managerId)
+    return validIds.length + (isManagerIncluded ? 1 : 0)
+  }
+
+  const getEmployeeNamesByIds = (ids: string, employees: EmployeeType[]) => {
+    if (!ids) return ''
+    const idArray = ids.split(',')
+    const names = idArray.map(id => {
+      const employee = employees.find(emp => emp._id === id)
+      return employee ? `${employee.first_name} ${employee.last_name}` : ''
+    })
+    return names.join(', ')
+  }
+
+  // Responsive columns based on screen size
   const columns: GridColDef[] = [
     {
       field: 'name',
       headerName: 'Team Name',
-      editable: true,
-      flex: 1
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body1" fontWeight={500}>
+            {params.value}
+          </Typography>
+        </Box>
+      )
     },
     {
       field: 'manager_id',
-      headerName: 'Manager Name',
-      editable: true,
-      renderCell: params => getManagerNameById(params.value, employees),
-      flex: 1
+      headerName: 'Manager',
+      flex: 1,
+      minWidth: 160,
+      renderCell: params => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Person fontSize="small" sx={{ color: theme.palette.primary.main }} />
+          <Typography variant="body2">
+            {getManagerNameById(params.value, employees)}
+          </Typography>
+        </Box>
+      )
     },
     {
       field: 'employee_ids',
-      headerName: 'No. of Employees',
-      editable: true,
-      renderCell: params => getEmployeeCountByIds(params.value, employees, params.row.manager_id),
-      flex: 1,
+      headerName: 'Members',
+      flex: 0.7,
+      minWidth: 100,
       headerAlign: 'center',
-      align: 'center'
+      align: 'center',
+      renderCell: params => {
+        const count = getEmployeeCountByIds(params.value, employees, params.row.manager_id);
+        return (
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(66, 66, 255, 0.1)' : 'rgba(44, 60, 227, 0.08)',
+            borderRadius: '16px',
+            px: 2,
+            py: 0.5
+          }}>
+            <People fontSize="small" />
+            <Typography variant="body2">{count}</Typography>
+          </Box>
+        );
+      }
     },
     {
       field: 'code',
       headerName: 'Code',
-      editable: true
+      minWidth: 100,
+      flex: 0.6,
+      renderCell: (params) => (
+        <Box sx={{
+          fontFamily: 'monospace',
+          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+          borderRadius: '4px',
+          px: 1,
+          py: 0.5
+        }}>
+          {params.value}
+        </Box>
+      )
     },
     ...(userRole === '1'
       ? [
         {
-          field: 'edit',
-          headerName: 'Edit',
+          field: 'actions',
+          headerName: 'Actions',
           sortable: false,
-          flex: 1,
+          flex: 0.8,
+          minWidth: 120,
+          align: 'center',
           headerAlign: 'center',
           renderCell: ({ row: { _id } }) => (
-            <Box width='85%' m='0 auto' p='5px' display='flex' justifyContent='space-around'>
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', alignItems: 'center' }}>
               <Button
-                color='info'
-                variant='contained'
-                sx={{ minWidth: '50px' }}
+                color="info"
+                variant="contained"
+                size="small"
+                sx={{ minWidth: '40px' }}
                 onClick={() => handleEditTeamClick(_id)}
               >
-                <DriveFileRenameOutlineOutlined />
+                <DriveFileRenameOutlineOutlined fontSize="small" />
               </Button>
               <Button
-                color='error'
-                variant='contained'
-                sx={{ minWidth: '50px' }}
+                color="error"
+                variant="contained"
+                size="small"
+                sx={{ minWidth: '40px' }}
                 onClick={() => confirmDeleteTeam(_id)}
               >
-                <DeleteIcon />
+                <DeleteIcon fontSize="small" />
               </Button>
             </Box>
           )
@@ -258,15 +358,23 @@ export default function TeamGrid() {
       field: 'view',
       headerName: 'View',
       sortable: false,
+      flex: 0.5,
+      minWidth: 80,
       align: 'center',
       headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Button color='primary' variant='contained' sx={{ minWidth: '50px' }} onClick={() => handleViewDetails(row)}>
-          <PreviewIcon />
+        <Button
+          color="primary"
+          variant="contained"
+          size="small"
+          sx={{ minWidth: '40px' }}
+          onClick={() => handleViewDetails(row)}
+        >
+          <PreviewIcon fontSize="small" />
         </Button>
       )
     }
-  ]
+  ];
 
   return (
     <ThemeProvider theme={theme}>
@@ -349,28 +457,26 @@ export default function TeamGrid() {
         </Grid>
 
         {/* Data Grid */}
-        <Grid container spacing={6}>
-          <Grid item xs={12} sm={6} md={12}>
-            <DataGrid
-              sx={{
-                height: 'calc(130vh - 200px)',
-                '& .mui-yrdy0g-MuiDataGrid-columnHeaderRow ': {
-                  background: '#2c3ce3 !important',
-                  color: 'white'
-                }
-              }}
-              rows={teams}
-              columns={columns}
-              getRowId={row => row._id}
-              paginationMode='server'
-              rowCount={total}
-              pageSizeOptions={[10, 20, 30]}
-              onPaginationModelChange={handlePaginationModelChange}
-              paginationModel={{ page: page - 1, pageSize: limit }}
-              checkboxSelection
-              disableRowSelectionOnClick
-            />
-          </Grid>
+        <Grid item xs={12} sm={12} md={12}>
+          <DataGrid
+            sx={{
+              height: 'calc(130vh - 200px)',
+              '& .mui-yrdy0g-MuiDataGrid-columnHeaderRow ': {
+                background: '#2c3ce3 !important',
+                color: 'white'
+              }
+            }}
+            rows={teams}
+            columns={columns}
+            getRowId={row => row._id}
+            paginationMode='server'
+            rowCount={total}
+            pageSizeOptions={[10, 20, 30]}
+            onPaginationModelChange={handlePaginationModelChange}
+            paginationModel={{ page: page - 1, pageSize: limit }}
+            checkboxSelection
+            disableRowSelectionOnClick
+          />
         </Grid>
       </Box>
     </ThemeProvider>

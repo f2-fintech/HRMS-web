@@ -72,7 +72,6 @@ const BreakSheet: React.FC = () => {
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
     const [showTeamBreakSheets, setShowTeamBreakSheets] = useState(false)
-    const [isLargeScreen, setIsLargeScreen] = useState(false)
     const [showBreakReminder, setShowBreakReminder] = useState(false)
 
     const [allEmployees, setAllEmployees] = useState<any[]>([])
@@ -146,18 +145,6 @@ const BreakSheet: React.FC = () => {
 
         setIsCurrentDate(selectedDate === today)
     }, [selectedDate])
-
-    // Handle screen resizing
-    useEffect(() => {
-        const handleResize = () => {
-            setIsLargeScreen(window.innerWidth >= 1024)
-        }
-
-        handleResize()
-        window.addEventListener('resize', handleResize)
-
-        return () => window.removeEventListener('resize', handleResize)
-    }, [])
 
     // If user is Admin or Manager, fetch employees
     useEffect(() => {
@@ -666,7 +653,7 @@ const BreakSheet: React.FC = () => {
                 </div>
 
                 {/* Break Controls */}
-                {isLargeScreen && userDesignation !== 'Assistant Manager Hr' && (
+                {userDesignation !== 'Assistant Manager Hr' && (
                     <div className="mb-6">
                         <div className="border border-gray-200 rounded-lg p-5">
                             <div className="flex items-center mb-4">

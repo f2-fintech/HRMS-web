@@ -26,7 +26,7 @@ const themeConfig: Config = {
   templateName: '',
   settingsCookieName: 'F2-Fintech',
   mode: 'light', // 'light', 'dark'
-  layoutPadding: 24, // Common padding for header, content, footer layout components (in px)
+  layoutPadding: 10, // Common padding for header, content, footer layout components (in px)
   compactContentWidth: 1440, // in px
   disableRipple: false // true, false
 }

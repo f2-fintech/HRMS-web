@@ -20,6 +20,10 @@ import {
   Tab,
   Alert,
   Snackbar,
+  useMediaQuery,
+  useTheme,
+  Paper,
+  Container,
 } from '@mui/material';
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from '@mui/icons-material/Add';
@@ -30,9 +34,6 @@ import { ToastContainer, toast } from 'react-toastify';
 import { format } from 'date-fns';
 
 import type { AppDispatch, RootState } from '@/redux/store';
-// Assume you have two thunk actions:
-// - fetchUpcomingHolidays for upcoming holidays
-// - fetchPastHolidays for past holidays (from your provided function)
 import { fetchHolidays, fetchPastHolidays } from '@/redux/features/holidays/holidaysSlice';
 import 'react-toastify/dist/ReactToastify.css';
 import AddHolidayForm from '@/components/holiday/HolidayForm';
@@ -45,6 +46,11 @@ export default function HolidayGrid() {
     pastHolidays, pastTotal, filteredPastHoliday,
     loading, error
   } = useSelector((state: RootState) => state.holidays);
+
+  // Theme and responsive breakpoints
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   // Tab state: "upcoming" or "past"
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
@@ -187,123 +193,220 @@ export default function HolidayGrid() {
     setShowForm(false);
   };
 
-  // Columns for the DataGrid remain similar for both tabs.
-  const columns: GridColDef[] = [
-    { field: 'day', headerName: 'Day', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 0.5 },
-    { field: 'title', headerName: 'Title', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1 },
-    {
-      field: 'start_date',
-      headerName: 'Opening Date',
-      headerClassName: 'super-app-theme--header',
-      headerAlign: 'center',
-      align: 'center',
-      flex: 1,
-      renderCell: (params) => {
-        const dateValue = params.value ? new Date(params.value) : null;
-        return dateValue && !isNaN(dateValue.getTime())
-          ? format(dateValue, 'dd-MMM-yyyy').toUpperCase()
-          : 'Invalid Date';
+  // Responsive columns configuration
+  const getColumns = (): GridColDef[] => {
+    const baseColumns: GridColDef[] = [
+      {
+        field: 'day',
+        headerName: 'Day',
+        headerClassName: 'super-app-theme--header',
+        headerAlign: 'center',
+        align: 'center',
+        flex: isMobile ? 0.7 : 0.5,
+        minWidth: 80,
       },
-    },
-    {
-      field: 'end_date',
-      headerName: 'Closing Date',
-      headerClassName: 'super-app-theme--header',
-      headerAlign: 'center',
-      align: 'center',
-      flex: 1,
-      renderCell: (params) => {
-        const dateValue = params.value ? new Date(params.value) : null;
-        return dateValue && !isNaN(dateValue.getTime())
-          ? format(dateValue, 'dd-MMM-yyyy').toUpperCase()
-          : 'Invalid Date';
+      {
+        field: 'title',
+        headerName: 'Title',
+        headerClassName: 'super-app-theme--header',
+        headerAlign: 'center',
+        align: 'center',
+        flex: isMobile ? 1.2 : 1,
+        minWidth: 120,
       },
-    },
-    { field: 'note', headerName: 'Note', headerClassName: 'super-app-theme--header', headerAlign: 'center', align: 'center', flex: 1.5 },
-    ...(userRole === '1'
-      ? [
+    ];
+
+    // Add date columns if not on mobile or based on screen size
+    if (true) {
+      baseColumns.push(
         {
-          field: 'edit',
-          headerName: 'Action',
-          sortable: false,
-          headerAlign: 'center',
-          flex: 1,
+          field: 'start_date',
+          headerName: 'From',
           headerClassName: 'super-app-theme--header',
-          renderCell: ({ row: { _id } }) => (
-            <Box width="85%" m="0 auto" p="5px" display="flex" justifyContent="space-around">
-              <Button
-                color="info"
-                variant="contained"
-                onClick={() => handleHolidayEditClick(_id)}
-                sx={{
-                  minWidth: '50px',
-                  transition: 'all 0.3s ease',
-                  '&:hover': { transform: 'scale(1.05)' },
-                }}
-              >
-                <DriveFileRenameOutlineOutlined />
-              </Button>
-              <Button
-                color="error"
-                variant="contained"
-                onClick={() => handleHolidayDeleteClick(_id)}
-                sx={{
-                  minWidth: '50px',
-                  transition: 'all 0.3s ease',
-                  '&:hover': { transform: 'scale(1.05)' },
-                }}
-              >
-                <DeleteIcon />
-              </Button>
-            </Box>
-          ),
+          headerAlign: 'center',
+          align: 'center',
+          flex: 1,
+          minWidth: 110,
+          renderCell: (params) => {
+            const dateValue = params.value ? new Date(params.value) : null;
+            return dateValue && !isNaN(dateValue.getTime())
+              ? format(dateValue, isMobile ? 'dd-MMM' : 'dd-MMM-yyyy').toUpperCase()
+              : 'Invalid Date';
+          },
         },
-      ]
-      : []),
-  ];
+        {
+          field: 'end_date',
+          headerName: 'To',
+          headerClassName: 'super-app-theme--header',
+          headerAlign: 'center',
+          align: 'center',
+          flex: 1,
+          minWidth: 110,
+          renderCell: (params) => {
+            const dateValue = params.value ? new Date(params.value) : null;
+            return dateValue && !isNaN(dateValue.getTime())
+              ? format(dateValue, isMobile ? 'dd-MMM' : 'dd-MMM-yyyy').toUpperCase()
+              : 'Invalid Date';
+          },
+        }
+      );
+    }
+
+    // Add note column if space allows
+    if (true) {
+      baseColumns.push({
+        field: 'note',
+        headerName: 'Note',
+        headerClassName: 'super-app-theme--header',
+        headerAlign: 'center',
+        align: 'center',
+        flex: isMobile ? 1 : 1.5,
+        minWidth: 100,
+      });
+    }
+
+    // Add action column if user has permission
+    if (userRole === '1') {
+      baseColumns.push({
+        field: 'edit',
+        headerName: 'Action',
+        sortable: false,
+        headerAlign: 'center',
+        flex: isMobile ? 0.8 : 1,
+        minWidth: 120,
+        headerClassName: 'super-app-theme--header',
+        renderCell: ({ row: { _id } }) => (
+          <Box width={isMobile ? "100%" : "85%"} m="0 auto" p={isMobile ? "2px" : "5px"} display="flex" justifyContent="space-around">
+            <Button
+              color="info"
+              variant="contained"
+              onClick={() => handleHolidayEditClick(_id)}
+              sx={{
+                minWidth: isMobile ? '40px' : '50px',
+                padding: isMobile ? '4px 8px' : '6px 16px',
+                transition: 'all 0.3s ease',
+                '&:hover': { transform: 'scale(1.05)' },
+              }}
+            >
+              <DriveFileRenameOutlineOutlined fontSize={isMobile ? "small" : "medium"} />
+            </Button>
+            <Button
+              color="error"
+              variant="contained"
+              onClick={() => handleHolidayDeleteClick(_id)}
+              sx={{
+                minWidth: isMobile ? '40px' : '50px',
+                padding: isMobile ? '4px 8px' : '6px 16px',
+                marginLeft: 1,
+                transition: 'all 0.3s ease',
+                '&:hover': { transform: 'scale(1.05)' },
+              }}
+            >
+              <DeleteIcon fontSize={isMobile ? "small" : "medium"} />
+            </Button>
+          </Box>
+        ),
+      });
+    }
+
+    return baseColumns;
+  };
+
+  // Get responsive theme based on settings and device
+  const responsiveTheme = createTheme({
+    palette: {
+      mode: settings.mode === 'dark' ? 'dark' : 'light',
+      primary: { main: '#2c3ce3' },
+      background: { default: settings.mode === 'dark' ? '#121212' : '#f4f6f9' },
+    },
+    typography: {
+      fontFamily: 'Roboto, Arial, sans-serif',
+      h4: {
+        fontSize: isMobile ? '1.4rem' : '2rem',
+      },
+      subtitle1: {
+        fontSize: isMobile ? '0.85rem' : '1rem',
+      },
+      button: {
+        fontSize: isMobile ? '0.8rem' : '1rem',
+      }
+    },
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            textTransform: 'none',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            transition: 'all 0.3s ease',
+            '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 8px rgba(0,0,0,0.15)' },
+          },
+        },
+      },
+      MuiTextField: {
+        styleOverrides: {
+          root: {
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '12px',
+              backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            },
+          },
+        },
+      },
+      MuiDataGrid: {
+        styleOverrides: {
+          root: {
+            fontSize: isMobile ? '0.75rem' : '0.875rem',
+          },
+          columnHeaders: {
+            fontSize: isMobile ? '0.8rem' : '1rem',
+          },
+        },
+      },
+      MuiTab: {
+        styleOverrides: {
+          root: {
+            fontSize: isMobile ? '0.8rem' : '0.9rem',
+            minWidth: isMobile ? 'auto' : '90px',
+            padding: isMobile ? '6px 8px' : '12px 16px',
+          },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            width: isMobile ? '90%' : '80%',
+            maxWidth: isMobile ? '100%' : '1200px',
+            margin: isMobile ? '10px' : 'auto',
+          },
+        },
+      },
+    },
+  });
 
   return (
-    <ThemeProvider theme={createTheme({
-      palette: {
-        primary: { main: '#2c3ce3' },
-        background: { default: settings.mode === 'dark' ? '#121212' : '#f4f6f9' },
-      },
-      typography: { fontFamily: 'Roboto, Arial, sans-serif' },
-      components: {
-        MuiButton: {
-          styleOverrides: {
-            root: {
-              textTransform: 'none',
-              borderRadius: '12px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              transition: 'all 0.3s ease',
-              '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 8px rgba(0,0,0,0.15)' },
-            },
-          },
-        },
-        MuiTextField: {
-          styleOverrides: {
-            root: {
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-              },
-            },
-          },
-        },
-      },
-    })}>
-      <Box sx={{ backgroundColor: settings.mode === 'dark' ? '#121212' : '#f4f6f9', minHeight: '100vh', padding: 3 }}>
+    <ThemeProvider theme={responsiveTheme}>
+      <Container maxWidth={false} disableGutters sx={{
+        backgroundColor: settings.mode === 'dark' ? '#121212' : '#f4f6f9',
+        minHeight: '100vh',
+        padding: isMobile ? 1 : 3,
+        overflowX: 'hidden'
+      }}>
         <ToastContainer />
 
         {/* Form Dialog */}
-        <Dialog open={showForm} onClose={handleCloseForm} fullWidth maxWidth="md">
+        <Dialog
+          open={showForm}
+          onClose={handleCloseForm}
+          fullWidth
+          maxWidth="md"
+          fullScreen={isMobile}
+        >
           <DialogContent>
             <AddHolidayForm
               holiday={selectedHoliday}
               handleClose={handleCloseForm}
-              // Passing appropriate holiday data based on active tab if needed
               holidays={activeTab === 'upcoming' ? holidays : pastHolidays}
               debouncedFetch={activeTab === 'upcoming' ? debouncedFetchUpcoming : debouncedFetchPast}
               isHalfDay={undefined}
@@ -312,7 +415,12 @@ export default function HolidayGrid() {
         </Dialog>
 
         {/* Delete Confirmation Dialog */}
-        <Dialog open={openDialog} onClose={handleCancelDelete}>
+        <Dialog
+          open={openDialog}
+          onClose={handleCancelDelete}
+          fullWidth
+          maxWidth="xs"
+        >
           <DialogTitle>Confirm Deletion</DialogTitle>
           <DialogContent>
             <Alert severity="warning">Are you sure you want to delete this holiday?</Alert>
@@ -328,7 +436,7 @@ export default function HolidayGrid() {
           open={openAlert}
           autoHideDuration={6000}
           onClose={() => setOpenAlert(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: isMobile ? 'center' : 'right' }}
         >
           <Alert onClose={() => setOpenAlert(false)} severity={alertSeverity} sx={{ width: '100%' }}>
             {alertMessage}
@@ -336,11 +444,17 @@ export default function HolidayGrid() {
         </Snackbar>
 
         {/* Header */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{
-          padding: 2,
+        <Paper elevation={2} sx={{
+          padding: isMobile ? 1.5 : 2,
           backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
           borderRadius: '16px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
+          boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+          marginBottom: 3,
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: 'space-between',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          gap: isMobile ? 2 : 0
         }}>
           <Box>
             <Typography variant="h4" gutterBottom sx={{
@@ -359,43 +473,73 @@ export default function HolidayGrid() {
           </Box>
           {userRole === '1' && activeTab === 'upcoming' && (
             <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleHolidayAddClick} sx={{
-              padding: '10px 20px',
-              fontSize: '1rem',
+              padding: isMobile ? '8px 12px' : '10px 20px',
+              fontSize: isMobile ? '0.85rem' : '1rem',
+              alignSelf: isMobile ? 'stretch' : 'auto',
             }}>
               Add New Holiday
             </Button>
           )}
-        </Box>
+        </Paper>
 
         {/* Tabs for Upcoming vs Past Holidays */}
-        <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 2 }}>
-          <Tab label="Upcoming Holidays" value="upcoming" />
-          <Tab label="Past Holidays" value="past" />
-        </Tabs>
+        <Paper elevation={1} sx={{
+          marginBottom: 2,
+          backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+          borderRadius: '16px',
+          overflow: 'hidden'
+        }}>
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            variant={isMobile ? "fullWidth" : "standard"}
+            sx={{
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#2c3ce3',
+                height: 3
+              },
+              '& .MuiTab-root.Mui-selected': {
+                color: settings.mode === 'dark' ? 'white' : '#2c3ce3',
+                fontWeight: 'bold'
+              }
+            }}
+          >
+            <Tab label="Upcoming Holidays" value="upcoming" />
+            <Tab label="Past Holidays" value="past" />
+          </Tabs>
+        </Paper>
 
         {/* Search Bar */}
-        <Grid container spacing={3} alignItems="center" mb={3}>
-          <Grid item xs={12} md={8}>
-            <TextField
-              fullWidth
-              label={activeTab === 'upcoming' ? "Search Upcoming Holidays" : "Search Past Holidays"}
-              variant="outlined"
-              value={activeTab === 'upcoming' ? upKeyword : pastKeyword}
-              onChange={activeTab === 'upcoming' ? handleUpSearchChange : handlePastSearchChange}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
+        <Paper elevation={1} sx={{
+          marginBottom: 3,
+          padding: isMobile ? 2 : 3,
+          backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+          borderRadius: '16px',
+        }}>
+          <Grid container spacing={isMobile ? 2 : 3} alignItems="center">
+            <Grid item xs={12} md={8}>
+              <TextField
+                fullWidth
+                label={activeTab === 'upcoming' ? "Search Upcoming Holidays" : "Search Past Holidays"}
+                variant="outlined"
+                size={isMobile ? "small" : "medium"}
+                value={activeTab === 'upcoming' ? upKeyword : pastKeyword}
+                onChange={activeTab === 'upcoming' ? handleUpSearchChange : handlePastSearchChange}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
           </Grid>
-        </Grid>
+        </Paper>
 
         {/* Data Grid */}
-        <Box sx={{
-          height: 600,
+        <Paper elevation={3} sx={{
+          height: isMobile ? 400 : 600,
           width: '100%',
           backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
           borderRadius: '16px',
@@ -406,16 +550,17 @@ export default function HolidayGrid() {
             <DataGrid
               sx={{
                 '& .super-app-theme--header': {
-                  fontSize: 16,
+                  fontSize: isMobile ? 14 : 16,
                   fontWeight: 700,
                   backgroundColor: settings.mode === 'dark' ? '#444' : '#2c3ce3',
                   color: 'white',
                   textTransform: 'uppercase',
                 },
                 '& .MuiDataGrid-cell': {
-                  fontSize: 14,
+                  fontSize: isMobile ? 12 : 14,
                   fontWeight: 500,
                   backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+                  padding: isMobile ? '8px 4px' : '16px 8px',
                 },
                 '& .MuiDataGrid-row': {
                   '&:nth-of-type(odd)': {
@@ -431,32 +576,48 @@ export default function HolidayGrid() {
                     color: 'black',
                   },
                 },
+                '& .MuiDataGrid-columnHeaders': {
+                  fontSize: isMobile ? 14 : 16,
+                },
+                '& .MuiDataGrid-footerContainer': {
+                  fontSize: isMobile ? 12 : 14,
+                }
               }}
-              components={{ Toolbar: GridToolbar }}
+              components={{
+                Toolbar: isMobile ? undefined : GridToolbar
+              }}
               rows={filteredHoliday.length > 0 ? filteredHoliday : holidays}
-              columns={columns}
+              columns={getColumns()}
               getRowId={(row) => row._id}
               paginationMode="server"
               rowCount={total}
               onPaginationModelChange={handleUpPaginationChange}
-              pageSizeOptions={[10, 20, 30]}
+              pageSizeOptions={[5, 10, 20, 30]}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: isMobile ? 5 : 10 },
+                },
+              }}
               paginationModel={{ page: upPage - 1, pageSize: upLimit }}
               disableRowSelectionOnClick
+              autoHeight={false}
+              disableColumnMenu={isMobile}
             />
           ) : (
             <DataGrid
               sx={{
                 '& .super-app-theme--header': {
-                  fontSize: 16,
+                  fontSize: isMobile ? 14 : 16,
                   fontWeight: 700,
                   backgroundColor: settings.mode === 'dark' ? '#444' : '#2c3ce3',
                   color: 'white',
                   textTransform: 'uppercase',
                 },
                 '& .MuiDataGrid-cell': {
-                  fontSize: 14,
+                  fontSize: isMobile ? 12 : 14,
                   fontWeight: 500,
                   backgroundColor: settings.mode === 'dark' ? '#333' : 'white',
+                  padding: isMobile ? '8px 4px' : '16px 8px',
                 },
                 '& .MuiDataGrid-row': {
                   '&:nth-of-type(odd)': {
@@ -472,21 +633,36 @@ export default function HolidayGrid() {
                     color: 'black',
                   },
                 },
+                '& .MuiDataGrid-columnHeaders': {
+                  fontSize: isMobile ? 14 : 16,
+                },
+                '& .MuiDataGrid-footerContainer': {
+                  fontSize: isMobile ? 12 : 14,
+                }
               }}
-              components={{ Toolbar: GridToolbar }}
+              components={{
+                Toolbar: isMobile ? undefined : GridToolbar
+              }}
               rows={filteredPastHoliday.length > 0 ? filteredPastHoliday : pastHolidays}
-              columns={columns}
+              columns={getColumns()}
               getRowId={(row) => row._id}
               paginationMode="server"
               rowCount={pastTotal}
               onPaginationModelChange={handlePastPaginationChange}
-              pageSizeOptions={[10, 20, 30]}
+              pageSizeOptions={[5, 10, 20, 30]}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: isMobile ? 5 : 10 },
+                },
+              }}
               paginationModel={{ page: pastPage - 1, pageSize: pastLimit }}
               disableRowSelectionOnClick
+              autoHeight={false}
+              disableColumnMenu={isMobile}
             />
           )}
-        </Box>
-      </Box>
+        </Paper>
+      </Container>
     </ThemeProvider>
   );
 }

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { debounce } from 'lodash'
-import { DataGrid, GridToolbar } from '@mui/x-data-grid'
+import { DataGrid, GridToolbar, GridToolbarContainer, GridToolbarExport, GridToolbarFilterButton } from '@mui/x-data-grid'
 import {
   Button,
   Typography,
@@ -16,7 +16,8 @@ import {
   Select,
   InputLabel,
   MenuItem,
-  DialogContent
+  DialogContent,
+  InputAdornment
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
@@ -292,7 +293,7 @@ const Designation = () => {
       field: 'lineNo',
       headerName: '#',
       headerClassName: 'super-app-theme--header',
-      flex: 0,
+      width: 60,
       editable: false,
       renderCell: (params: { api: { getAllRowIds: () => string | any[] }; id: any }) =>
         params.api.getAllRowIds().indexOf(params.id) + 1
@@ -304,7 +305,13 @@ const Designation = () => {
       flex: 2,
       headerAlign: 'center',
       align: 'center',
-      sortable: false
+      sortable: true,
+      minWidth: 120,
+      renderCell: (params) => (
+        <div className="cell-content title-cell">
+          {params.value}
+        </div>
+      )
     },
     {
       field: 'description',
@@ -313,42 +320,57 @@ const Designation = () => {
       flex: 2,
       headerAlign: 'center',
       align: 'center',
-      sortable: false
+      sortable: true,
+      minWidth: 120,
+      renderCell: (params) => (
+        <div className="cell-content description-cell">
+          {params.value}
+        </div>
+      )
     },
     {
       field: 'grade',
       headerName: 'Grade',
       headerClassName: 'super-app-theme--header',
-      flex: 2,
+      flex: 1,
       headerAlign: 'center',
       align: 'center',
-      sortable: false
+      sortable: true,
+      minWidth: 120,
+      renderCell: (params) => (
+        <div className="cell-content grade-cell">
+          {params.value}
+        </div>
+      )
     },
     ...(userRole === '1'
       ? [
         {
-          field: 'edit',
-          headerName: 'Edit',
+          field: 'actions',
+          headerName: 'Actions',
           sortable: false,
           headerAlign: 'center',
-          width: 160,
+          align: 'center',
+          width: 120,
           headerClassName: 'super-app-theme--header',
           renderCell: ({ row: { _id } }) => (
-            <Box width='85%' m='0 auto' p='5px' display='flex' justifyContent='space-around'>
+            <div className="action-buttons">
               <Button
-                color='info'
-                variant='contained'
-                sx={{ minWidth: '50px', backgroundColor: '#2c3ce3' }}
+                color="primary"
+                variant="contained"
+                size="small"
+                startIcon={<DriveFileRenameOutlineOutlined />}
                 onClick={() => handleDesignationEditClick(_id)}
+                className="edit-button"
               >
-                <DriveFileRenameOutlineOutlined />
+                Edit
               </Button>
-            </Box>
+            </div>
           )
         }
       ]
       : [])
-  ]
+  ];
 
   return (
     <Box>
@@ -397,45 +419,102 @@ const Designation = () => {
       <Box sx={{ width: '100%' }}>
         <DataGrid
           sx={{
-            height: 'calc(130vh - 200px)',
+            height: 'calc(100vh - 180px)',
+            border: 'none',
+            borderRadius: 2,
+            backgroundColor: 'white',
             '& .super-app-theme--header': {
-              fontSize: 17,
+              fontSize: '0.9rem',
               fontWeight: 600,
-              alignItems: 'center'
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
             },
-            '& .mui-yrdy0g-MuiDataGrid-columnHeaderRow ': {
-              background: '#2c3ce3 !important',
-              color: 'white'
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: '#1976d2',
+              color: 'white',
+              borderRadius: '8px 8px 0 0',
             },
             '& .MuiDataGrid-cell': {
-              fontSize: '10',
-              align: 'center'
+              fontSize: '0.85rem',
+              padding: '12px 16px',
+              '&:focus': {
+                outline: 'none',
+              },
+              '&:focus-within': {
+                outline: 'none',
+              },
             },
             '& .MuiDataGrid-row': {
               '&:nth-of-type(odd)': {
-                backgroundColor: 'rgb(46 38 61 / 12%)'
+                backgroundColor: 'rgba(25, 118, 210, 0.04)',
               },
-              '&:nth-of-type(even)': {
-                backgroundColor: '#fffff'
+              '&:hover': {
+                backgroundColor: 'rgba(25, 118, 210, 0.1)',
               },
-              fontWeight: '600',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }
-          }}
-          components={{
-            Toolbar: GridToolbar
+              transition: 'background-color 0.2s',
+            },
+            '& .MuiDataGrid-footerContainer': {
+              borderTop: 'none',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '0 0 8px 8px',
+            },
+            '& .cell-content': {
+              width: '100%',
+              padding: '8px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+            '& .action-buttons': {
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '8px',
+              width: '100%',
+            },
+            '& .edit-button': {
+              minWidth: 'auto',
+              borderRadius: '4px',
+              textTransform: 'none',
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+              },
+            },
+            '& .custom-toolbar': {
+              padding: '16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid rgba(224, 224, 224, 1)',
+              '& .toolbar-actions': {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              },
+              '& .search-container': {
+                width: '240px',
+              },
+            },
           }}
           rows={filteredDesignation.length > 0 ? filteredDesignation : designations}
           columns={columns}
           getRowId={row => row._id}
-          paginationMode='server'
+          paginationMode="server"
           rowCount={total}
           onPaginationModelChange={handlePaginationModelChange}
-          pageSizeOptions={[10, 20, 30]}
+          pageSizeOptions={[10, 20, 30, 50]}
           paginationModel={{ page: page - 1, pageSize: limit }}
           checkboxSelection
           disableRowSelectionOnClick
+          density="comfortable"
+          initialState={{
+            pagination: {
+              paginationModel: { page: page - 1, pageSize: limit },
+            },
+          }}
+          loading={loading}
+          autoHeight
         />
       </Box>
     </Box>
