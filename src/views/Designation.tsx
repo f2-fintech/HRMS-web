@@ -422,7 +422,6 @@ const Designation = () => {
             height: 'calc(100vh - 180px)',
             border: 'none',
             borderRadius: 2,
-            backgroundColor: 'white',
             '& .super-app-theme--header': {
               fontSize: '0.9rem',
               fontWeight: 600,
@@ -431,7 +430,6 @@ const Designation = () => {
             },
             '& .MuiDataGrid-columnHeaders': {
               backgroundColor: '#1976d2',
-              color: 'white',
               borderRadius: '8px 8px 0 0',
             },
             '& .MuiDataGrid-cell': {
@@ -445,9 +443,6 @@ const Designation = () => {
               },
             },
             '& .MuiDataGrid-row': {
-              '&:nth-of-type(odd)': {
-                backgroundColor: 'rgba(25, 118, 210, 0.04)',
-              },
               '&:hover': {
                 backgroundColor: 'rgba(25, 118, 210, 0.1)',
               },

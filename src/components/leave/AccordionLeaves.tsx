@@ -599,11 +599,6 @@ const AccordionLeaves: React.FC<AccordionLeavesProps> = ({
               }}>
                 {params.row.employee.first_name} {params.row.employee.last_name}
               </Typography>
-              {!isMobile && (
-                <Typography variant="caption" color="text.secondary">
-                  Employee ID: {params.row.employee._id.substring(0, 8)}...
-                </Typography>
-              )}
             </Box>
           </Box>
           <Box display="flex" alignItems="center">
@@ -612,7 +607,7 @@ const AccordionLeaves: React.FC<AccordionLeavesProps> = ({
               size="small"
               sx={{
                 backgroundColor: theme.palette.primary.light,
-                color: theme.palette.primary.dark,
+                color: "white",
                 fontWeight: 'medium',
                 borderRadius: '16px'
               }}

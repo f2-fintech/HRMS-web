@@ -615,7 +615,7 @@ export default function LeavesGrid() {
           </Grid>
         </Box>
         <DataGrid
-          // autoHeight
+          autoHeight
           loading={loading}
           getRowHeight={() => 'auto'}
           rows={userRole === '1' ? leaves : rows}
@@ -641,7 +641,7 @@ export default function LeavesGrid() {
             noResultsOverlay: CustomNoRowsOverlay
           }}
           sx={{
-            height: 'calc(135vh - 200px)',
+            // height: 'auto',
             border: '0.5px solid #80808047',
             '& .super-app-theme--header': {
               backgroundColor: '#2c3ce3',
