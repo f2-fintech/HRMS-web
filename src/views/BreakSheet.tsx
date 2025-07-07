@@ -495,21 +495,29 @@ const BreakSheet: React.FC = () => {
             </Snackbar>
 
             {/* Row with two buttons */}
-            <div className="flex flex-wrap gap-3 mb-4">
+            <div className="flex flex-wrap gap-4 mb-6">
                 {/* Missing Punches & Absent Button */}
                 <button
                     onClick={toggleNotPunchedInToday}
-                    className="px-5 py-2.5 font-medium text-white rounded-md bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 focus:outline-none shadow-sm transition-colors duration-200"
+                    className="group relative px-6 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                 >
-                    {showNotPunchedIn ? 'Hide' : 'Missing Punches & Absent'}
+                    <span className="relative z-10 flex items-center gap-2">
+                        <span className="text-lg">🔍</span>
+                        {showNotPunchedIn ? 'Hide' : 'Missing Punches & Absent'}
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                 </button>
 
                 {/* Punched Out Button */}
                 <button
                     onClick={toggleNotPunchedOut}
-                    className="px-5 py-2.5 font-medium text-white rounded-md bg-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-slate-300 focus:outline-none shadow-sm transition-colors duration-200"
+                    className="group relative px-6 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 focus:ring-4 focus:ring-slate-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                 >
-                    {showNotPunchedOut ? 'Hide' : '❌ Punched Out'}
+                    <span className="relative z-10 flex items-center gap-2">
+                        <span className="text-lg">❌</span>
+                        {showNotPunchedOut ? 'Hide' : 'Punched Out'}
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-400 to-slate-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                 </button>
 
                 {/* Admin Buttons - Only shown if userRole is '1' */}
@@ -518,33 +526,61 @@ const BreakSheet: React.FC = () => {
                         {/* Monitor Long Breaks Button */}
                         <button
                             onClick={fetchExceedBreakEmployees}
-                            className="px-5 py-2.5 font-medium text-white rounded-md bg-rose-600 hover:bg-rose-700 focus:ring-2 focus:ring-rose-300 focus:outline-none shadow-sm transition-colors duration-200"
+                            className="group relative px-6 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 focus:ring-4 focus:ring-rose-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                         >
-                            {showExceedBreaks ? 'Collapse Long Breaks' : '📊 Monitor Long Breaks'}
+                            <span className="relative z-10 flex items-center gap-2">
+                                <span className="text-lg">📊</span>
+                                {showExceedBreaks ? 'Collapse Long Breaks' : 'Monitor Long Breaks'}
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-rose-400 to-rose-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                         </button>
 
                         {/* Monitor Shift Not Complete Button */}
                         <button
                             onClick={fetchEmpNotCompleteShift}
-                            className="px-5 py-2.5 font-medium text-slate-800 rounded-md bg-amber-400 hover:bg-amber-500 focus:ring-2 focus:ring-amber-300 focus:outline-none shadow-sm transition-colors duration-200"
+                            className="group relative px-6 py-3 font-semibold text-slate-800 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 focus:ring-4 focus:ring-amber-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                         >
-                            {showNotcompleteShift ? 'Collapse' : '📊 Monitor Shift Not Complete'}
+                            <span className="relative z-10 flex items-center gap-2">
+                                <span className="text-lg">⚠️</span>
+                                {showNotcompleteShift ? 'Collapse' : 'Monitor Shift Not Complete'}
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-amber-300 to-amber-400 rounded-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
                         </button>
 
                         {/* Export Shift Time Button */}
                         <button
                             onClick={handleExportShiftTime}
-                            className="px-5 py-2.5 font-medium text-white rounded-md bg-emerald-600 hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-300 focus:outline-none shadow-sm transition-colors duration-200 ml-auto"
+                            className="group relative px-6 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 focus:ring-4 focus:ring-emerald-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                         >
-                            Export Shift Time
+                            <span className="relative z-10 flex items-center gap-2">
+                                <span className="text-lg">📤</span>
+                                Export Shift Time
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                         </button>
 
                         {/* Monthly Employee Punches Link */}
                         <a
                             href="/monthly-punches"
-                            className="px-5 py-2.5 font-medium text-blue-700 bg-white rounded-md border border-blue-700 hover:bg-blue-50 focus:ring-2 focus:ring-blue-300 focus:outline-none shadow-sm transition-colors duration-200"
+                            className="group relative px-6 py-3 font-semibold text-blue-700 bg-white rounded-xl border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50 focus:ring-4 focus:ring-blue-100 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                         >
-                            Monthly Employee Punches
+                            <span className="relative z-10 flex items-center gap-2">
+                                <span className="text-lg">📅</span>
+                                Monthly Employee Punches
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+                        </a>
+
+                        {/* Today's Employees Punches Link */}
+                        <a
+                            href="/date-wise-status"
+                            className="group relative px-6 py-3 font-semibold text-indigo-700 bg-white rounded-xl border-2 border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50 focus:ring-4 focus:ring-indigo-100 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
+                        >
+                            <span className="relative z-10 flex items-center gap-2">
+                                <span className="text-lg">📊</span>
+                                Today's Employees Punches
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
                         </a>
                     </>
                 )}
