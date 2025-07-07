@@ -78,7 +78,7 @@ const DateWisePunches = () => {
             try {
                 setLoading(true);
                 const data: Employee[] = await apiResponse();
-                console.log("employeedata>>>", data);
+                // console.log("employeedata>>>", data);
                 setEmployees(data);
             } catch (error) {
                 console.error('Failed to fetch employees', error);
@@ -127,7 +127,7 @@ const DateWisePunches = () => {
         fetchData();
     }, [selectedDate, employees]); // Include employees in dependency array
 
-    console.log("employees", employees);
+    // console.log("employees", employees);
 
     const getLateEmployees = () => {
         return punches.filter(punch => {
@@ -140,7 +140,7 @@ const DateWisePunches = () => {
 
     const getAbsentEmployees = () => {
         const presentEmployeeIds = punches.map(punch => punch.employee);
-        console.log("presentEmployeeIds>>", presentEmployeeIds);
+        // console.log("presentEmployeeIds>>", presentEmployeeIds);
         return employees.filter(emp => !presentEmployeeIds.includes(emp._id));
     };
 
@@ -214,7 +214,7 @@ const DateWisePunches = () => {
     const absentEmployees = getAbsentEmployees();
     const halfDayEmployees = getHalfDayEmployees();
 
-    console.log("lateEmployees>>>", lateEmployees, absentEmployees, halfDayEmployees);
+    // console.log("lateEmployees>>>", lateEmployees, absentEmployees, halfDayEmployees);
 
     if (loading) {
         return (
