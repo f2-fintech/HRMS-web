@@ -40,7 +40,8 @@ const DateWisePunches = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [punches, setPunches] = useState<PunchWithEmployee[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'late' | 'absent' | 'half'>('late');
+    const [activeTab, setActiveTab] = useState<'late' | 'absent' | 'half' | 'onhalf'>('late');
+    const [onHalfEmployees, setOnHalfEmployees] = useState<Employee[]>([]);
     const { isTokenExpired } = utility();
 
     // Check if we're in a browser environment
@@ -71,6 +72,25 @@ const DateWisePunches = () => {
     }
 
     const { company_id } = JSON.parse(userData);
+
+    useEffect(() => {
+        const fetchOnHalfEmployees = async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/on-half/${selectedDate}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token} ${company_id}`,
+                        'Content-Type': 'application/json'
+                    },
+                });
+                const data = await response.json();
+                setOnHalfEmployees(data);
+            } catch (error) {
+                console.error("Failed to fetch on-half employees:", error);
+            }
+        };
+
+        fetchOnHalfEmployees();
+    }, [selectedDate]);
 
     // Fix 1: Remove employees from dependency array to prevent infinite loop
     useEffect(() => {
@@ -148,7 +168,7 @@ const DateWisePunches = () => {
         return punches.filter(punch => {
             if (punch.totalTime === "00h 00m 00s") return false;
             const totalHours = parseInt(punch.totalTime.split('h')[0]);
-            return totalHours < 8; // Less than 8 hours
+            return totalHours < 9; // Less than 8 hours
         });
     };
 
@@ -170,14 +190,14 @@ const DateWisePunches = () => {
                     </div>
                     <div>
                         <h3 className="font-semibold text-gray-800">{employee?.first_name} {employee?.last_name}</h3>
-                        <p className="text-sm text-gray-600">{employee?._id}</p>
+                        {/* <p className="text-sm text-gray-600">{employee?._id}</p> */}
                     </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-sm font-medium ${type === 'late' ? 'bg-red-100 text-red-800' :
                     type === 'absent' ? 'bg-gray-100 text-gray-800' :
                         'bg-yellow-100 text-yellow-800'
                     }`}>
-                    {type === 'late' ? 'Late Entry' : type === 'absent' ? 'Absent' : 'Half Day'}
+                    {type === 'late' ? 'Late Entry' : type === 'absent' ? 'Absent' : 'Incomplete 9h'}
                 </div>
             </div>
 
@@ -214,7 +234,7 @@ const DateWisePunches = () => {
     const absentEmployees = getAbsentEmployees();
     const halfDayEmployees = getHalfDayEmployees();
 
-    // console.log("lateEmployees>>>", lateEmployees, absentEmployees, halfDayEmployees);
+    // console.log("onHalfEmployees>>>", onHalfEmployees);
 
     if (loading) {
         return (
@@ -276,7 +296,7 @@ const DateWisePunches = () => {
                     <div className="bg-white rounded-lg shadow-md p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-600">Half Day</p>
+                                <p className="text-sm font-medium text-gray-600">Incomplete 9h</p>
                                 <p className="text-3xl font-bold text-yellow-600">{halfDayEmployees.length}</p>
                             </div>
                             <Timer className="h-12 w-12 text-yellow-500" />
@@ -313,7 +333,16 @@ const DateWisePunches = () => {
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
-                                Half Day ({halfDayEmployees.length})
+                                Incomplete 9h ({halfDayEmployees.length})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('onhalf')}
+                                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'onhalf'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                            >
+                                Marked Half-Day
                             </button>
                         </nav>
                     </div>
@@ -380,6 +409,26 @@ const DateWisePunches = () => {
                                     <div className="text-center py-12">
                                         <Timer className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                                         <p className="text-gray-600">No half-day employees found for this date.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {activeTab === 'onhalf' && (
+                            <div className="space-y-4">
+                                {onHalfEmployees.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {onHalfEmployees.map((employee) => (
+                                            <EmployeeCard
+                                                key={employee._id}
+                                                employee={employee}
+                                                type="half"
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <Timer className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                        <p className="text-gray-600">No employees marked 'On Half' for this date.</p>
                                     </div>
                                 )}
                             </div>
