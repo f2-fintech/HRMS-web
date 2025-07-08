@@ -6,7 +6,8 @@ import {
     Warning as AlertCircle,
     CheckCircle as UserCheck,
     Cancel as UserX,
-    Timer as Timer
+    Timer as Timer,
+    Check
 } from '@mui/icons-material';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 import { utility } from '@/utility';
@@ -167,8 +168,23 @@ const DateWisePunches = () => {
     const getHalfDayEmployees = () => {
         return punches.filter(punch => {
             if (punch.totalTime === "00h 00m 00s") return false;
+
             const totalHours = parseInt(punch.totalTime.split('h')[0]);
-            return totalHours < 9; // Less than 8 hours
+
+            // Exclude employees who are marked as 'On Half'
+            const isOnHalf = onHalfEmployees.some(emp => emp._id === punch.employee);
+
+            return totalHours < 9 && !isOnHalf; // Only include if <9h and not on-half
+        });
+    };
+
+    const getOnHalfPunches = () => {
+        return onHalfEmployees.map((employee) => {
+            const punch = punches.find(p => p.employee === employee._id);
+            return {
+                employee,
+                punch
+            };
         });
     };
 
@@ -180,7 +196,7 @@ const DateWisePunches = () => {
         return `${displayHour}:${minutes} ${ampm}`;
     };
 
-    const EmployeeCard = ({ employee, punch, type }: { employee: Employee, punch?: PunchWithEmployee, type: 'late' | 'absent' | 'half' }) => (
+    const EmployeeCard = ({ employee, punch, type }: { employee: Employee, punch?: PunchWithEmployee, type: 'late' | 'absent' | 'half' | 'onhalf' }) => (
         <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
@@ -194,10 +210,10 @@ const DateWisePunches = () => {
                     </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-sm font-medium ${type === 'late' ? 'bg-red-100 text-red-800' :
-                    type === 'absent' ? 'bg-gray-100 text-gray-800' :
-                        'bg-yellow-100 text-yellow-800'
+                    type === 'absent' ? 'bg-gray-100 text-gray-800' : type === 'half' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-orange-100 text-orange-800'
                     }`}>
-                    {type === 'late' ? 'Late Entry' : type === 'absent' ? 'Absent' : 'Incomplete 9h'}
+                    {type === 'late' ? 'Late Entry' : type === 'absent' ? 'Absent' : type === 'onhalf' ? 'On Half' : 'Incomplete 9h'}
                 </div>
             </div>
 
@@ -274,7 +290,7 @@ const DateWisePunches = () => {
 
             {/* Stats Cards */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div className="bg-white rounded-lg shadow-md p-6">
                         <div className="flex items-center justify-between">
                             <div>
@@ -300,6 +316,15 @@ const DateWisePunches = () => {
                                 <p className="text-3xl font-bold text-yellow-600">{halfDayEmployees.length}</p>
                             </div>
                             <Timer className="h-12 w-12 text-yellow-500" />
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Half-Day Marked</p>
+                                <p className="text-3xl font-bold text-green-600">{onHalfEmployees.length}</p>
+                            </div>
+                            <Check className="h-12 w-12 text-green-500" />
                         </div>
                     </div>
                 </div>
@@ -342,7 +367,7 @@ const DateWisePunches = () => {
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
-                                Marked Half-Day
+                                Marked Half-Day ({onHalfEmployees.length})
                             </button>
                         </nav>
                     </div>
@@ -417,22 +442,24 @@ const DateWisePunches = () => {
                             <div className="space-y-4">
                                 {onHalfEmployees.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {onHalfEmployees.map((employee) => (
+                                        {getOnHalfPunches().map(({ employee, punch }) => (
                                             <EmployeeCard
                                                 key={employee._id}
                                                 employee={employee}
-                                                type="half"
+                                                punch={punch} // may be undefined, handled in component
+                                                type="onhalf"
                                             />
                                         ))}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12">
                                         <Timer className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                        <p className="text-gray-600">No employees marked 'On Half' for this date.</p>
+                                        <p className="text-gray-600">No employees marked as half-day for this date.</p>
                                     </div>
                                 )}
                             </div>
                         )}
+
                     </div>
                 </div>
             </div>
