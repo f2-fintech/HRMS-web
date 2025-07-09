@@ -161,8 +161,12 @@ const DateWisePunches = () => {
 
     const getAbsentEmployees = () => {
         const presentEmployeeIds = punches.map(punch => punch.employee);
-        // console.log("presentEmployeeIds>>", presentEmployeeIds);
-        return employees.filter(emp => !presentEmployeeIds.includes(emp._id));
+        const onHalfEmployeeIds = onHalfEmployees.map(emp => emp._id);
+
+        return employees.filter(emp =>
+            !presentEmployeeIds.includes(emp._id) &&
+            !onHalfEmployeeIds.includes(emp._id)
+        );
     };
 
     const getHalfDayEmployees = () => {
