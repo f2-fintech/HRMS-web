@@ -38,6 +38,7 @@ import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import AccordionLeaves from '@/components/leave/AccordionLeaves'
 import useDebounce from '@/utility/debounce/useDebounce'
+import { utility } from '@/utility'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'bold',
@@ -169,6 +170,25 @@ export default function LeavesGrid() {
   }, [])
 
   const handleLeavedelete = async (id: string) => {
+    const { isTokenExpired } = utility();
+    let token: string | null = null;
+    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+
+    if (typeof window !== "undefined") {
+      token = localStorage?.getItem('token');
+    }
+
+    if (!token || isTokenExpired(token)) {
+      // Clean up localStorage if needed
+      if (token) {
+        localStorage.removeItem('token');
+      }
+
+      // Redirect to login with page refresh
+      window.location.href = '/login';
+      return { error: token ? "Token expired" : "No token found" };
+    }
+
     const confirmDelete = confirm('Are you sure you want to delete this leave?')
     if (!confirmDelete) return
 
@@ -176,8 +196,8 @@ export default function LeavesGrid() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/leaves/delete/${id}`, {
         method: 'DELETE',
         headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
           'Content-Type': 'application/json',
-          Authorization: 'Bearer' // Add actual token logic if required
         }
       })
 
