@@ -26,6 +26,7 @@ import companiesReducer from '@/redux/features/company/companyslice'
 import configurationReducer from './features/configuration/configurationSlice'
 import dashboardPreferencesReducer from './features/dashboardPreferences/dashboardPreferencesSlice'
 import profilesReducer from './features/profileEmployeee/profilesSlice';
+import performanceReducer from './features/performances/performanceSlice';
 
 
 
@@ -75,6 +76,7 @@ const appReducer = combineReducers({
   configuration: configurationReducer,
   dashboardPreferences: dashboardPreferencesReducer,
   profiles: profilesReducer,
+  performances: performanceReducer,
 })
 
 // Root reducer with RESET functionality

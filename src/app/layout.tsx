@@ -10,8 +10,8 @@ import '@/app/globals.css'
 
 import ReduxProvider from '@/redux/provider';
 
-// Generated Icon CSS Imports
-import '@assets/iconify-icons/generated-icons.css'
+import '@/assets/iconify-icons/bundle-icons-css.ts'
+
 
 
 export const metadata = {

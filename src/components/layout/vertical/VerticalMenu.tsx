@@ -27,7 +27,9 @@ import FreeBreakfastIcon from '@mui/icons-material/FreeBreakfast'
 import ProductionQuantityLimitsIcon from '@mui/icons-material/ProductionQuantityLimits'
 import SchoolIcon from '@mui/icons-material/School'
 import GavelIcon from '@mui/icons-material/Gavel'
+
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
 import useVerticalNav from '@menu/hooks/useVerticalNav'
@@ -186,6 +188,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               </MenuItem>
               <MenuItem href={`/fine`} icon={<GavelIcon />}>
                 Fine
+              </MenuItem>
+               <MenuItem href={`/performance`} icon={<AssessmentIcon />}>
+                Performance
               </MenuItem>
               <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
                 Query
