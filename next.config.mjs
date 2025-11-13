@@ -11,6 +11,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true, // This will ignore ESLint errors during build
   },
+  swcMinify: false,
 }
 
 export default nextConfig
