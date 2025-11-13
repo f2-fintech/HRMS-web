@@ -17,6 +17,8 @@ import { deleteEmployee } from '@/redux/features/employees/employeesSlice'
 import 'react-toastify/dist/ReactToastify.css'
 import { RootState } from '@/redux/store'
 import useDebounce from '@/utility/debounce/useDebounce'
+import AttendanceSummary from '@/utility/attendancesummry/AttendanceSummary'
+import EmployeeStatsWithBlinkingStatus from '@/utility/totalempattendancesummary/EmployeeStatsWithBlinkingStatus'
 
 const { isTokenExpired } = utility()
 
@@ -24,7 +26,7 @@ export default function EmployeeGrid() {
   const dispatch = useDispatch()
   const { employees, hasMore, loading, error } = useSelector((state: RootState) => state.employees)
   const { designations } = useSelector((state: RootState) => state.designations)
-
+  const [viewAttendanceData, setViewAttendanceData] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [userRole, setUserRole] = useState('')
   const [selectedEmployee, setSelectedEmployee] = useState(null)
@@ -87,6 +89,11 @@ export default function EmployeeGrid() {
   const handleEditEmployeeClick = id => {
     setSelectedEmployee(id)
     setShowForm(true)
+  }
+
+  const handleClose = () => {
+    setShowForm(false)
+    setViewAttendanceData(null)
   }
 
   const handleDelete = async id => {
@@ -157,6 +164,8 @@ export default function EmployeeGrid() {
       dispatch(resetEmployees())
     }
   }
+
+  console.log("role>>>", userRole)
 
   return (
     <>
