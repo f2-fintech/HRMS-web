@@ -52,7 +52,7 @@ import MyTeamPerformanceDialog from './MyTeamPerformanceDialog';
 
  
   const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5500',
+    baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500',
   });
 
  
