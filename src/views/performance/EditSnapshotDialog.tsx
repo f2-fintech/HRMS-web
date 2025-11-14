@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+
 import axios from 'axios';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -13,26 +14,34 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 /* ------------ local helpers + axios ------------ */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5500',
 });
+
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token') || '';
+
     const companyId =
       localStorage.getItem('company_id') ||
       JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
       '';
+
     if (!config.headers) config.headers = {};
     if (token) config.headers.Authorization = `Bearer ${token}`;
     if (companyId) config.headers['x-company-id'] = companyId;
   }
+
+
   return config;
 });
 
 const asNum = (v: any) => {
   const n = Number(v ?? 0);
+
+
   return Number.isFinite(n) ? n : 0;
 };
+
 const asStr = (v: any) => (v ?? '').toString();
 
 /* ------------ Props ------------ */
@@ -64,6 +73,7 @@ export default function EditSnapshotDialog({
     expectedApprovals: 0,
     expectedDisbursal: 0,
   });
+
   const [empEvening, setEmpEvening] = useState({
     phoneConnectsDone: 0,
     physicalMeetDone: 0,
@@ -85,6 +95,7 @@ export default function EditSnapshotDialog({
     mtd_approvalLacs: 0,
     mtd_disbursalLacs: 0,
   });
+
   const [mgrEvening, setMgrEvening] = useState({
     teamLoginsDone: 0,
     teamApprovalDoneAmount: 0,
@@ -102,6 +113,7 @@ export default function EditSnapshotDialog({
     if (!doc) return;
     const raw = doc.__raw ? doc.__raw : doc;
     const r: 'employee' | 'manager' = raw?.role;
+
     setRecordId(raw?._id || '');
     setRole(r);
     setDateISO(raw?.date ? dayjs(raw.date).format('YYYY-MM-DD') : '');
@@ -163,6 +175,7 @@ export default function EditSnapshotDialog({
       expectedDisbursal: asNum(empMorning.expectedDisbursal),
     });
   };
+
   const saveEmployeeEvening = async () => {
     await api.post('/performance/re/evening', {
       id: recordId,
@@ -174,6 +187,7 @@ export default function EditSnapshotDialog({
       disbursalDone: asNum(empEvening.disbursalDone),
     });
   };
+
   const saveManagerMorning = async () => {
     await api.post('/performance/manager/morning', {
       id: recordId,
@@ -194,6 +208,7 @@ export default function EditSnapshotDialog({
       },
     });
   };
+
   const saveManagerEvening = async () => {
     await api.post('/performance/manager/evening', {
       id: recordId,
@@ -206,6 +221,7 @@ export default function EditSnapshotDialog({
       overallSentiment: asStr(mgrEvening.overallSentiment),
     });
   };
+
   const saveAdminComment = async () => {
     if (!canAdminComment || !adminComment.trim()) return;
     await api.post('/performance/admin/comment', {
@@ -218,6 +234,7 @@ export default function EditSnapshotDialog({
   const saveAll = async () => {
     try {
       setSaving(true);
+
       if (role === 'employee') {
         await saveEmployeeMorning();
         await saveEmployeeEvening();
@@ -225,6 +242,7 @@ export default function EditSnapshotDialog({
         await saveManagerMorning();
         await saveManagerEvening();
       }
+
       await saveAdminComment();
       onSaved();
       onClose();
