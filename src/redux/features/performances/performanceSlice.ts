@@ -37,13 +37,15 @@ export interface PerformancePayload {
 }
 
 /** ===== RE / Manager Types ===== */
-export interface ReRecord { _id: string; date: string; company_id: string; employee_id: string;
+export interface ReRecord {
+  _id: string; date: string; company_id: string; employee_id: string;
   phoneConnects?: number; physicalMeet?: number; expectedLogins?: number; expectedApprovals?: number; expectedDisbursal?: number;
   phoneConnectsDone?: number; physicalMeetDone?: number; loginsDone?: number; approvalsDone?: number; disbursalDone?: number;
   followUps?: Array<{ name?: string; phone?: string; remarks?: string; followUpOn?: string }>;
 }
 
-export interface ManagerRecord { _id: string; date: string; company_id: string; manager_id: string;
+export interface ManagerRecord {
+  _id: string; date: string; company_id: string; manager_id: string;
   morning?: any; evening?: any;
 }
 
@@ -107,11 +109,11 @@ export const fetchAdminTaskList = createAsyncThunk<PerformanceItem[], { company_
         employee_id: d?.adminTask?.employee_id?._id || d?.adminTask?.employee_id,
         employee: d?.adminTask?.employee_id && d?.adminTask?.employee_id._id
           ? {
-              _id: d?.adminTask?.employee_id?._id,
-              first_name: d?.adminTask?.employee_id?.first_name,
-              last_name: d?.adminTask?.employee_id?.last_name,
-              image: d?.adminTask?.employee_id?.image,
-            }
+            _id: d?.adminTask?.employee_id?._id,
+            first_name: d?.adminTask?.employee_id?.first_name,
+            last_name: d?.adminTask?.employee_id?.last_name,
+            image: d?.adminTask?.employee_id?.image,
+          }
           : undefined,
         company_id: d.company_id,
       }));

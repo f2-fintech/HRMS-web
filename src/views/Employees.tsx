@@ -17,6 +17,8 @@ import { deleteEmployee } from '@/redux/features/employees/employeesSlice'
 import 'react-toastify/dist/ReactToastify.css'
 import { RootState } from '@/redux/store'
 import useDebounce from '@/utility/debounce/useDebounce'
+import AttendanceSummary from '@/utility/attendancesummry/AttendanceSummary'
+import EmployeeStatsWithBlinkingStatus from '@/utility/totalempattendancesummary/EmployeeStatsWithBlinkingStatus'
 
 const { isTokenExpired } = utility()
 
@@ -24,7 +26,7 @@ export default function EmployeeGrid() {
   const dispatch = useDispatch()
   const { employees, hasMore, loading, error } = useSelector((state: RootState) => state.employees)
   const { designations } = useSelector((state: RootState) => state.designations)
-
+  const [viewAttendanceData, setViewAttendanceData] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [userRole, setUserRole] = useState('')
   const [selectedEmployee, setSelectedEmployee] = useState(null)
@@ -89,6 +91,11 @@ export default function EmployeeGrid() {
     setShowForm(true)
   }
 
+  const handleClose = () => {
+    setShowForm(false)
+    setViewAttendanceData(null)
+  }
+
   const handleDelete = async id => {
     const confirmDelete = confirm('Are you sure you want to delete this employee?')
     if (!confirmDelete) return
@@ -115,9 +122,7 @@ export default function EmployeeGrid() {
     }
   }
 
-  const handleClose = () => {
-    setShowForm(false)
-  }
+
 
   const debouncedSearchName = useDebounce(searchName, 500)
   const debouncedDesignation = useDebounce(selectedDesignation, 500)
@@ -157,6 +162,8 @@ export default function EmployeeGrid() {
       dispatch(resetEmployees())
     }
   }
+
+  console.log("role>>>", userRole)
 
   return (
     <>

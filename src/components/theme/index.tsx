@@ -11,10 +11,9 @@ import {
   lighten,
   darken
 } from '@mui/material/styles'
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter'
 import CssBaseline from '@mui/material/CssBaseline'
-import type {} from '@mui/material/themeCssVarsAugmentation' //! Do not remove this import otherwise you will get type errors while making a production build
-import type {} from '@mui/lab/themeAugmentation' //! Do not remove this import otherwise you will get type errors while making a production build
+import type { } from '@mui/material/themeCssVarsAugmentation' //! Do not remove this import otherwise you will get type errors while making a production build
+import type { } from '@mui/lab/themeAugmentation' //! Do not remove this import otherwise you will get type errors while making a production build
 
 // Type Imports
 import type { ChildrenType, Direction } from '@core/types'
@@ -76,19 +75,17 @@ const ThemeProvider = (props: Props) => {
   }, [settings.mode])
 
   return (
-    <AppRouterCacheProvider options={{ prepend: true }}>
-      <CssVarsProvider
-        theme={theme}
-        defaultMode={settings.mode}
-        modeStorageKey={`${themeConfig.templateName.toLowerCase().split(' ').join('-')}-mui-template-mode`}
-      >
-        <>
-          <ModeChanger />
-          <CssBaseline />
-          {children}
-        </>
-      </CssVarsProvider>
-    </AppRouterCacheProvider>
+    <CssVarsProvider
+      theme={theme}
+      defaultMode={settings.mode}
+      modeStorageKey={`${themeConfig.templateName.toLowerCase().split(' ').join('-')}-mui-template-mode`}
+    >
+      <>
+        <ModeChanger />
+        <CssBaseline />
+        {children}
+      </>
+    </CssVarsProvider>
   )
 }
 

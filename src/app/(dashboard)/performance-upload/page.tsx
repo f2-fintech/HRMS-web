@@ -48,7 +48,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 /* ---------------- AXIOS ---------------- */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500',
+  baseURL: process.env.NEXT_PUBLIC_APP_URL,
 });
 
 api.interceptors.request.use((config) => {

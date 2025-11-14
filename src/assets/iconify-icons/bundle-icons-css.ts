@@ -96,22 +96,25 @@ const sources: BundleScriptConfig = {
 }
 
 // File to save bundle to
-const target = join(__dirname, 'generated-icons.css')
+const outputDir = join(__dirname, 'generated');
 
 /**
  * Do stuff!
  */
-
-;(async function () {
+; (async function () {
   // Create directory for output if missing
-  const dir = dirname(target)
-
   try {
-    await fs.mkdir(dir, {
+    await fs.mkdir(outputDir, {
       recursive: true
     })
   } catch (err) {
     //
+  }
+
+  // Clean up the output directory
+  const files = await fs.readdir(outputDir);
+  for (const file of files) {
+    await fs.unlink(join(outputDir, file));
   }
 
   const allIcons: IconifyJSON[] = []
@@ -145,6 +148,7 @@ const target = join(__dirname, 'generated-icons.css')
       // Load icon set
       const filename = typeof item === 'string' ? item : item.filename
       const content = JSON.parse(await fs.readFile(filename, 'utf8')) as IconifyJSON
+      const prefix = content.prefix;
 
       // Filter icons
       if (typeof item !== 'string' && item.icons?.length) {
@@ -152,11 +156,14 @@ const target = join(__dirname, 'generated-icons.css')
 
         if (!filteredContent) throw new Error(`Cannot find required icons in ${filename}`)
 
-        // Collect filtered icons
-        allIcons.push(filteredContent)
+        // Generate CSS for the filtered icons
+        const cssContent = getIconsCSS(filteredContent, Object.keys(filteredContent.icons), { iconSelector: '.{prefix}-{name}' });
+        await fs.writeFile(join(outputDir, `${prefix}.css`), cssContent, 'utf8');
+
       } else {
-        // Collect all icons from the JSON file
-        allIcons.push(content)
+        // Generate CSS for all icons in the JSON file
+        const cssContent = getIconsCSS(content, Object.keys(content.icons), { iconSelector: '.{prefix}-{name}' });
+        await fs.writeFile(join(outputDir, `${prefix}.css`), cssContent, 'utf8');
       }
     }
   }
@@ -217,20 +224,18 @@ const target = join(__dirname, 'generated-icons.css')
         iconSet.fromSVG(name, svg)
       })
 
-      // Collect the SVG icon
-      allIcons.push(iconSet.export())
+      // Generate CSS from the SVG icons
+      const cssContent = getIconsCSS(iconSet.export(), Object.keys(iconSet.export().icons), { iconSelector: '.{prefix}-{name}' });
+      await fs.writeFile(join(outputDir, `${source.prefix}.css`), cssContent, 'utf8');
     }
   }
 
-  // Generate CSS from collected icons
-  const cssContent = allIcons
-    .map(iconSet => getIconsCSS(iconSet, Object.keys(iconSet.icons), { iconSelector: '.{prefix}-{name}' }))
-    .join('\n')
+  // Create an index.ts file to import all generated CSS files
+  const generatedFiles = await fs.readdir(outputDir);
+  const indexContent = generatedFiles.map(file => `import './${file}';`).join('\n');
+  await fs.writeFile(join(outputDir, 'index.ts'), indexContent, 'utf8');
 
-  // Save the CSS to a file
-  await fs.writeFile(target, cssContent, 'utf8')
-
-  console.log(`Saved CSS to ${target}!`)
+  console.log(`Saved CSS to ${outputDir}!`)
 })().catch(err => {
   console.error(err)
 })

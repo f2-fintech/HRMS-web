@@ -24,30 +24,30 @@ const todayISO = () => new Date().toISOString().split('T')[0];
 
 // Amount helpers (Lakhs/Cr → ₹)
 const lakh = (x: number) => Math.round(x * 100000);
-const cr   = (x: number) => Math.round(x * 10000000);
+const cr = (x: number) => Math.round(x * 10000000);
 const fmtINR = (n: number) => n.toLocaleString('en-IN');
 
 // Discrete amount options (value in ₹)
 const AMOUNT_CHOICES = [
-  { label: '0',      value: 0 },
-  { label: '0.5 L',  value: lakh(0.5) },
-  { label: '1 L',    value: lakh(1) },
-  { label: '2 L',    value: lakh(2) },
-  { label: '3 L',    value: lakh(3) },
-  { label: '5 L',    value: lakh(5) },
-  { label: '10 L',   value: lakh(10) },
-  { label: '25 L',   value: lakh(25) },
-  { label: '50 L',   value: lakh(50) },
-  { label: '75 L',   value: lakh(75) },
-  { label: '1 Cr',   value: cr(1) },
-  { label: '2 Cr',   value: cr(2) },
+  { label: '0', value: 0 },
+  { label: '0.5 L', value: lakh(0.5) },
+  { label: '1 L', value: lakh(1) },
+  { label: '2 L', value: lakh(2) },
+  { label: '3 L', value: lakh(3) },
+  { label: '5 L', value: lakh(5) },
+  { label: '10 L', value: lakh(10) },
+  { label: '25 L', value: lakh(25) },
+  { label: '50 L', value: lakh(50) },
+  { label: '75 L', value: lakh(75) },
+  { label: '1 Cr', value: cr(1) },
+  { label: '2 Cr', value: cr(2) },
 ];
 
 // Count options 0..50
 const COUNT_CHOICES = Array.from({ length: 51 }, (_, i) => i);
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500',
+  baseURL: process.env.NEXT_PUBLIC_APP_URL,
 });
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
@@ -98,7 +98,7 @@ export default function REDailySnapshotForm({
   const [savingEvening, setSavingEvening] = useState(false);
 
   // Snackbar (TOP) — plain message (no Alert box)
-  const [snack, setSnack] = useState<{open: boolean; msg: string}>({
+  const [snack, setSnack] = useState<{ open: boolean; msg: string }>({
     open: false, msg: ''
   });
   const notify = (msg: string) => setSnack({ open: true, msg });
@@ -220,14 +220,14 @@ export default function REDailySnapshotForm({
   const progressRows = useMemo(() => {
     const mPhone = numberOrNull(morning.phoneConnects);
     const ePhone = numberOrNull(evening.phoneConnected);
-    const mMeet  = numberOrNull(morning.physicalMeet);
-    const eMeet  = numberOrNull(evening.physicalMet);
-    const mLog   = numberOrNull(morning.expectedLogins);
-    const eLog   = numberOrNull(evening.todaysLogin);
-    const mAppr  = numberOrNull(morning.expectedApprovals);
-    const eAppr  = numberOrNull(evening.todaysApproval);
-    const mDisb  = numberOrNull(morning.expectedDisbursal);
-    const eDisb  = numberOrNull(evening.todaysDisbursal);
+    const mMeet = numberOrNull(morning.physicalMeet);
+    const eMeet = numberOrNull(evening.physicalMet);
+    const mLog = numberOrNull(morning.expectedLogins);
+    const eLog = numberOrNull(evening.todaysLogin);
+    const mAppr = numberOrNull(morning.expectedApprovals);
+    const eAppr = numberOrNull(evening.todaysApproval);
+    const mDisb = numberOrNull(morning.expectedDisbursal);
+    const eDisb = numberOrNull(evening.todaysDisbursal);
 
     const make = (label: string, planned: number | null, done: number | null) => {
       if (planned === null || done === null) return null;
@@ -242,7 +242,7 @@ export default function REDailySnapshotForm({
       make('Logins', mLog, eLog),
       make('Approvals (₹)', mAppr, eAppr),
       make('Disbursals (₹)', mDisb, eDisb),
-    ].filter(Boolean) as Array<{label: string; planned: number; done: number; delta: number; achieved: boolean;}>;
+    ].filter(Boolean) as Array<{ label: string; planned: number; done: number; delta: number; achieved: boolean; }>;
   }, [morning, evening]);
 
   if (!isOpen) return null;

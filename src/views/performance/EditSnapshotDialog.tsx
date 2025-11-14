@@ -14,7 +14,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 /* ------------ local helpers + axios ------------ */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5500',
 });
 
 api.interceptors.request.use((config) => {

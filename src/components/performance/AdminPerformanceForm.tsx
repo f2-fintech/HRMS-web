@@ -15,7 +15,7 @@ import {
 import { toast } from 'react-toastify';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '@/redux/store';
-import { createPerformance, updatePerformance } from '@/redux/features/performances/performanceSlice';
+import { createAdminTask as createPerformance, updateAdminTask as updatePerformance } from '@/redux/features/performances/performanceSlice';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 import dayjs from 'dayjs';
 
@@ -26,6 +26,7 @@ interface AdminPerformanceFormProps {
   performanceId?: string | null;
   prefillDate?: string;
   performances?: any[];
+  onSaved?: () => void;
 }
 
 const AdminPerformanceForm: React.FC<AdminPerformanceFormProps> = ({
@@ -99,19 +100,19 @@ const AdminPerformanceForm: React.FC<AdminPerformanceFormProps> = ({
       const done = s?.re?.evening || {};
 
       const targetLogins = num(exp.expectedLogins);
-      const doneLogins   = num(done.loginsDone);
+      const doneLogins = num(done.loginsDone);
 
       const targetApprovals = num(exp.expectedApprovals);
-      const doneApprovals   = num(done.approvalsDone);
+      const doneApprovals = num(done.approvalsDone);
 
       const targetDisb = num(exp.expectedDisbursal);
-      const doneDisb   = num(done.disbursalDone);
+      const doneDisb = num(done.disbursalDone);
 
       const targetPhone = num(exp.phoneConnects);
-      const donePhone   = num(done.phoneConnectsDone);
+      const donePhone = num(done.phoneConnectsDone);
 
       const targetMeet = num(exp.physicalMeet);
-      const doneMeet   = num(done.physicalMeetDone);
+      const doneMeet = num(done.physicalMeetDone);
 
       // priority
       if (targetLogins || doneLogins) return { target: targetLogins, completed: doneLogins };
@@ -129,10 +130,10 @@ const AdminPerformanceForm: React.FC<AdminPerformanceFormProps> = ({
       const mEve = s?.manager?.evening || {};
 
       const targetLogins = num(mExp.logins);
-      const teamLogins   = num(mEve.teamLoginsDone);
+      const teamLogins = num(mEve.teamLoginsDone);
 
       const targetApprovals = num(mExp.approvals);
-      const approvalsAmt    = num(mEve.teamApprovalDoneAmount);
+      const approvalsAmt = num(mEve.teamApprovalDoneAmount);
 
       const targetDisb = num(mExp.disbursal);
       // (evening disbursal amount not present in your schema—adjust if you add it)
@@ -172,17 +173,17 @@ const AdminPerformanceForm: React.FC<AdminPerformanceFormProps> = ({
     const raw = selected.__raw || selected;
 
     const employeeId = pickEmployeeId(selected) || pickEmployeeId(raw);
-    const dateStr    = pickDate(selected) || pickDate(raw) || prefillDate || '';
-    const title      = getStr(selected.taskTitle) || deriveTitle(raw);
-    const description= getStr(selected.description || '');
+    const dateStr = pickDate(selected) || pickDate(raw) || prefillDate || '';
+    const title = getStr(selected.taskTitle) || deriveTitle(raw);
+    const description = getStr(selected.description || '');
 
     const { target, completed } =
       (selected.target != null || selected.completed != null)
         ? { target: num(selected.target), completed: num(selected.completed) }
         : deriveTargetCompleted(raw);
 
-    const goodPart   = getStr(selected.goodPart || raw?.manager?.evening?.topPerformer?.name || '');
-    const blockers   = getStr(selected.blockers || (raw?.manager?.evening?.filesStuck || []).join(', '));
+    const goodPart = getStr(selected.goodPart || raw?.manager?.evening?.topPerformer?.name || '');
+    const blockers = getStr(selected.blockers || (raw?.manager?.evening?.filesStuck || []).join(', '));
 
     setFormData({
       employee: employeeId,
@@ -241,9 +242,11 @@ const AdminPerformanceForm: React.FC<AdminPerformanceFormProps> = ({
       if (performanceId) {
         await dispatch(updatePerformance({ id: performanceId, body: payload })).unwrap();
         toast.success('Performance updated');
+        onSaved?.();
       } else {
         await dispatch(createPerformance(payload)).unwrap();
         toast.success('Performance created');
+        onSaved?.();
       }
       handleClose();
     } catch (err: any) {
