@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+
 import axios from 'axios';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -13,26 +14,34 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 /* ------------ local helpers + axios ------------ */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5500',
+  baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500',
 });
+
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token') || '';
+
     const companyId =
       localStorage.getItem('company_id') ||
       JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
       '';
+
     if (!config.headers) config.headers = {};
     if (token) config.headers.Authorization = `Bearer ${token}`;
     if (companyId) config.headers['x-company-id'] = companyId;
   }
+
+
   return config;
 });
 
 const asNum = (v: any) => {
   const n = Number(v ?? 0);
+
+
   return Number.isFinite(n) ? n : 0;
 };
+
 const asStr = (v: any) => (v ?? '').toString();
 
 /* ------------ Props ------------ */
@@ -64,6 +73,7 @@ export default function EditSnapshotDialog({
     expectedApprovals: 0,
     expectedDisbursal: 0,
   });
+
   const [empEvening, setEmpEvening] = useState({
     phoneConnectsDone: 0,
     physicalMeetDone: 0,
@@ -85,6 +95,7 @@ export default function EditSnapshotDialog({
     mtd_approvalLacs: 0,
     mtd_disbursalLacs: 0,
   });
+
   const [mgrEvening, setMgrEvening] = useState({
     teamLoginsDone: 0,
     teamApprovalDoneAmount: 0,
@@ -102,6 +113,7 @@ export default function EditSnapshotDialog({
     if (!doc) return;
     const raw = doc.__raw ? doc.__raw : doc;
     const r: 'employee' | 'manager' = raw?.role;
+
     setRecordId(raw?._id || '');
     setRole(r);
     setDateISO(raw?.date ? dayjs(raw.date).format('YYYY-MM-DD') : '');
@@ -163,6 +175,7 @@ export default function EditSnapshotDialog({
       expectedDisbursal: asNum(empMorning.expectedDisbursal),
     });
   };
+
   const saveEmployeeEvening = async () => {
     await api.post('/performance/re/evening', {
       id: recordId,
@@ -174,14 +187,15 @@ export default function EditSnapshotDialog({
       disbursalDone: asNum(empEvening.disbursalDone),
     });
   };
+
   const saveManagerMorning = async () => {
     await api.post('/performance/manager/morning', {
       id: recordId,
       date: dateISO,
       teamTargetLoanLacs: asNum(mgrMorning.teamTargetLoanLacs),
       ownContribution: asNum(mgrMorning.ownContribution),
-      teamMembers: mgrMorning.teamMembers.split(',').map(s=>s.trim()).filter(Boolean),
-      meetings: mgrMorning.meetings.split(',').map(s=>s.trim()).filter(Boolean),
+      teamMembers: mgrMorning.teamMembers.split(',').map(s => s.trim()).filter(Boolean),
+      meetings: mgrMorning.meetings.split(',').map(s => s.trim()).filter(Boolean),
       expected: {
         logins: asNum(mgrMorning.expected_logins),
         approvals: asNum(mgrMorning.expected_approvals),
@@ -194,6 +208,7 @@ export default function EditSnapshotDialog({
       },
     });
   };
+
   const saveManagerEvening = async () => {
     await api.post('/performance/manager/evening', {
       id: recordId,
@@ -201,11 +216,12 @@ export default function EditSnapshotDialog({
       teamLoginsDone: asNum(mgrEvening.teamLoginsDone),
       teamApprovalDoneAmount: asNum(mgrEvening.teamApprovalDoneAmount),
       topPerformer: { name: asStr(mgrEvening.topPerformerName) },
-      filesStuck: mgrEvening.filesStuck.split(',').map(s=>s.trim()).filter(Boolean),
+      filesStuck: mgrEvening.filesStuck.split(',').map(s => s.trim()).filter(Boolean),
       supportRequired: asStr(mgrEvening.supportRequired),
       overallSentiment: asStr(mgrEvening.overallSentiment),
     });
   };
+
   const saveAdminComment = async () => {
     if (!canAdminComment || !adminComment.trim()) return;
     await api.post('/performance/admin/comment', {
@@ -218,6 +234,7 @@ export default function EditSnapshotDialog({
   const saveAll = async () => {
     try {
       setSaving(true);
+
       if (role === 'employee') {
         await saveEmployeeMorning();
         await saveEmployeeEvening();
@@ -225,6 +242,7 @@ export default function EditSnapshotDialog({
         await saveManagerMorning();
         await saveManagerEvening();
       }
+
       await saveAdminComment();
       onSaved();
       onClose();
@@ -253,25 +271,25 @@ export default function EditSnapshotDialog({
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
             {role === 'employee' ? (
               <>
-                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Phone Connects" value={empMorning.phoneConnects} onChange={(e)=>setEmpMorning({...empMorning, phoneConnects: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Physical Meet" value={empMorning.physicalMeet} onChange={(e)=>setEmpMorning({...empMorning, physicalMeet: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Logins" value={empMorning.expectedLogins} onChange={(e)=>setEmpMorning({...empMorning, expectedLogins: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Approvals" value={empMorning.expectedApprovals} onChange={(e)=>setEmpMorning({...empMorning, expectedApprovals: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Disbursal" value={empMorning.expectedDisbursal} onChange={(e)=>setEmpMorning({...empMorning, expectedDisbursal: asNum(e.target.value)})} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Phone Connects" value={empMorning.phoneConnects} onChange={(e) => setEmpMorning({ ...empMorning, phoneConnects: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Physical Meet" value={empMorning.physicalMeet} onChange={(e) => setEmpMorning({ ...empMorning, physicalMeet: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Logins" value={empMorning.expectedLogins} onChange={(e) => setEmpMorning({ ...empMorning, expectedLogins: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Approvals" value={empMorning.expectedApprovals} onChange={(e) => setEmpMorning({ ...empMorning, expectedApprovals: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Disbursal" value={empMorning.expectedDisbursal} onChange={(e) => setEmpMorning({ ...empMorning, expectedDisbursal: asNum(e.target.value) })} /></Grid>
                 <Grid item xs={12}><Button variant="outlined" onClick={saveEmployeeMorning}>Save Morning Only</Button></Grid>
               </>
             ) : (
               <>
-                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Team Target Loan (Lacs)" value={mgrMorning.teamTargetLoanLacs} onChange={(e)=>setMgrMorning({...mgrMorning, teamTargetLoanLacs: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Own Contribution" value={mgrMorning.ownContribution} onChange={(e)=>setMgrMorning({...mgrMorning, ownContribution: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12}><TextField fullWidth label="Team Members (comma separated)" value={mgrMorning.teamMembers} onChange={(e)=>setMgrMorning({...mgrMorning, teamMembers: e.target.value})} /></Grid>
-                <Grid item xs={12}><TextField fullWidth label="Meetings (comma separated)" value={mgrMorning.meetings} onChange={(e)=>setMgrMorning({...mgrMorning, meetings: e.target.value})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Logins" value={mgrMorning.expected_logins} onChange={(e)=>setMgrMorning({...mgrMorning, expected_logins: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Approvals (₹)" value={mgrMorning.expected_approvals} onChange={(e)=>setMgrMorning({...mgrMorning, expected_approvals: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Disbursal (₹)" value={mgrMorning.expected_disbursal} onChange={(e)=>setMgrMorning({...mgrMorning, expected_disbursal: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="MTD Login (tillDate)" value={mgrMorning.mtd_login} onChange={(e)=>setMgrMorning({...mgrMorning, mtd_login: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="MTD Approvals (Lacs)" value={mgrMorning.mtd_approvalLacs} onChange={(e)=>setMgrMorning({...mgrMorning, mtd_approvalLacs: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="MTD Disbursal (Lacs)" value={mgrMorning.mtd_disbursalLacs} onChange={(e)=>setMgrMorning({...mgrMorning, mtd_disbursalLacs: asNum(e.target.value)})} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Team Target Loan (Lacs)" value={mgrMorning.teamTargetLoanLacs} onChange={(e) => setMgrMorning({ ...mgrMorning, teamTargetLoanLacs: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Own Contribution" value={mgrMorning.ownContribution} onChange={(e) => setMgrMorning({ ...mgrMorning, ownContribution: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12}><TextField fullWidth label="Team Members (comma separated)" value={mgrMorning.teamMembers} onChange={(e) => setMgrMorning({ ...mgrMorning, teamMembers: e.target.value })} /></Grid>
+                <Grid item xs={12}><TextField fullWidth label="Meetings (comma separated)" value={mgrMorning.meetings} onChange={(e) => setMgrMorning({ ...mgrMorning, meetings: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Logins" value={mgrMorning.expected_logins} onChange={(e) => setMgrMorning({ ...mgrMorning, expected_logins: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Approvals (₹)" value={mgrMorning.expected_approvals} onChange={(e) => setMgrMorning({ ...mgrMorning, expected_approvals: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Expected Disbursal (₹)" value={mgrMorning.expected_disbursal} onChange={(e) => setMgrMorning({ ...mgrMorning, expected_disbursal: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="MTD Login (tillDate)" value={mgrMorning.mtd_login} onChange={(e) => setMgrMorning({ ...mgrMorning, mtd_login: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="MTD Approvals (Lacs)" value={mgrMorning.mtd_approvalLacs} onChange={(e) => setMgrMorning({ ...mgrMorning, mtd_approvalLacs: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="MTD Disbursal (Lacs)" value={mgrMorning.mtd_disbursalLacs} onChange={(e) => setMgrMorning({ ...mgrMorning, mtd_disbursalLacs: asNum(e.target.value) })} /></Grid>
                 <Grid item xs={12}><Button variant="outlined" onClick={saveManagerMorning}>Save Morning Only</Button></Grid>
               </>
             )}
@@ -282,21 +300,21 @@ export default function EditSnapshotDialog({
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
             {role === 'employee' ? (
               <>
-                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Phone Connects Done" value={empEvening.phoneConnectsDone} onChange={(e)=>setEmpEvening({...empEvening, phoneConnectsDone: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Physical Meet Done" value={empEvening.physicalMeetDone} onChange={(e)=>setEmpEvening({...empEvening, physicalMeetDone: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Logins Done" value={empEvening.loginsDone} onChange={(e)=>setEmpEvening({...empEvening, loginsDone: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Approvals Done" value={empEvening.approvalsDone} onChange={(e)=>setEmpEvening({...empEvening, approvalsDone: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Disbursal Done" value={empEvening.disbursalDone} onChange={(e)=>setEmpEvening({...empEvening, disbursalDone: asNum(e.target.value)})} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Phone Connects Done" value={empEvening.phoneConnectsDone} onChange={(e) => setEmpEvening({ ...empEvening, phoneConnectsDone: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Physical Meet Done" value={empEvening.physicalMeetDone} onChange={(e) => setEmpEvening({ ...empEvening, physicalMeetDone: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Logins Done" value={empEvening.loginsDone} onChange={(e) => setEmpEvening({ ...empEvening, loginsDone: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Approvals Done" value={empEvening.approvalsDone} onChange={(e) => setEmpEvening({ ...empEvening, approvalsDone: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Disbursal Done" value={empEvening.disbursalDone} onChange={(e) => setEmpEvening({ ...empEvening, disbursalDone: asNum(e.target.value) })} /></Grid>
                 <Grid item xs={12}><Button variant="outlined" onClick={saveEmployeeEvening}>Save Evening Only</Button></Grid>
               </>
             ) : (
               <>
-                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Team Logins Done" value={mgrEvening.teamLoginsDone} onChange={(e)=>setMgrEvening({...mgrEvening, teamLoginsDone: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Team Approval Done Amount (₹)" value={mgrEvening.teamApprovalDoneAmount} onChange={(e)=>setMgrEvening({...mgrEvening, teamApprovalDoneAmount: asNum(e.target.value)})} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="Top Performer" value={mgrEvening.topPerformerName} onChange={(e)=>setMgrEvening({...mgrEvening, topPerformerName: e.target.value})} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="Files Stuck (comma separated)" value={mgrEvening.filesStuck} onChange={(e)=>setMgrEvening({...mgrEvening, filesStuck: e.target.value})} /></Grid>
-                <Grid item xs={12}><TextField fullWidth label="Support Required" value={mgrEvening.supportRequired} onChange={(e)=>setMgrEvening({...mgrEvening, supportRequired: e.target.value})} /></Grid>
-                <Grid item xs={12}><TextField fullWidth label="Overall Sentiment" value={mgrEvening.overallSentiment} onChange={(e)=>setMgrEvening({...mgrEvening, overallSentiment: e.target.value})} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Team Logins Done" value={mgrEvening.teamLoginsDone} onChange={(e) => setMgrEvening({ ...mgrEvening, teamLoginsDone: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Team Approval Done Amount (₹)" value={mgrEvening.teamApprovalDoneAmount} onChange={(e) => setMgrEvening({ ...mgrEvening, teamApprovalDoneAmount: asNum(e.target.value) })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Top Performer" value={mgrEvening.topPerformerName} onChange={(e) => setMgrEvening({ ...mgrEvening, topPerformerName: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Files Stuck (comma separated)" value={mgrEvening.filesStuck} onChange={(e) => setMgrEvening({ ...mgrEvening, filesStuck: e.target.value })} /></Grid>
+                <Grid item xs={12}><TextField fullWidth label="Support Required" value={mgrEvening.supportRequired} onChange={(e) => setMgrEvening({ ...mgrEvening, supportRequired: e.target.value })} /></Grid>
+                <Grid item xs={12}><TextField fullWidth label="Overall Sentiment" value={mgrEvening.overallSentiment} onChange={(e) => setMgrEvening({ ...mgrEvening, overallSentiment: e.target.value })} /></Grid>
                 <Grid item xs={12}><Button variant="outlined" onClick={saveManagerEvening}>Save Evening Only</Button></Grid>
               </>
             )}
@@ -310,7 +328,7 @@ export default function EditSnapshotDialog({
                 <DatePicker
                   label="Snapshot Date"
                   value={dateISO ? dayjs(dateISO) : null}
-                  onChange={(d)=>setDateISO(d ? d.format('YYYY-MM-DD') : '')}
+                  onChange={(d) => setDateISO(d ? d.format('YYYY-MM-DD') : '')}
                   slotProps={{ textField: { fullWidth: true } as any }}
                 />
               </LocalizationProvider>
@@ -327,7 +345,7 @@ export default function EditSnapshotDialog({
                   multiline
                   minRows={3}
                   value={adminComment}
-                  onChange={(e)=>setAdminComment(e.target.value)}
+                  onChange={(e) => setAdminComment(e.target.value)}
                   placeholder="Write a note for this snapshot…"
                 />
               </Grid>

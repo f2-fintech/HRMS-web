@@ -79,7 +79,7 @@ const getAuth = () => {
     role: String(user?.role ?? ''),
   };
 };
-const API = process.env.NEXT_PUBLIC_API_URL;
+const API = process.env.NEXT_PUBLIC_APP_URL;
 
 /** =========================
  *        ADMIN TASKS

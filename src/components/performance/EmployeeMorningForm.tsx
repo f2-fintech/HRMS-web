@@ -47,7 +47,7 @@ const AMOUNT_CHOICES = [
 const COUNT_CHOICES = Array.from({ length: 51 }, (_, i) => i);
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5500',
+  baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500',
 });
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
