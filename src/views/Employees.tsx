@@ -122,9 +122,7 @@ export default function EmployeeGrid() {
     }
   }
 
-  const handleClose = () => {
-    setShowForm(false)
-  }
+
 
   const debouncedSearchName = useDebounce(searchName, 500)
   const debouncedDesignation = useDebounce(selectedDesignation, 500)

@@ -10,7 +10,7 @@ import '@/app/globals.css'
 
 import ReduxProvider from '@/redux/provider';
 
-import '@/assets/iconify-icons/bundle-icons-css.ts'
+import '@/assets/iconify-icons/generated'
 
 
 
