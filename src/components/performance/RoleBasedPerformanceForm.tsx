@@ -14,6 +14,7 @@ interface Props {
   performances?: any[];
   existingSnapshot?: any;        // if editing manager snapshot
   designation?: string;          // 👈 add this
+  onSaved?: () => void;
 }
 
 const isManagerLikeDesignation = (designation?: string) => {
@@ -21,9 +22,9 @@ const isManagerLikeDesignation = (designation?: string) => {
   const d = designation.trim().toLowerCase();
 
   if (
-   
+
     d === 'team leader' ||
-    d.includes('team lead') 
+    d.includes('team lead')
   ) {
     return true;
   }
@@ -38,6 +39,7 @@ const RoleBasedPerformanceForm: React.FC<Props> = ({
   performances,
   existingSnapshot,
   designation,                          // 👈 add this
+  onSaved,
 }) => {
   const r = String(role);
   const shouldShowManager =
@@ -50,6 +52,7 @@ const RoleBasedPerformanceForm: React.FC<Props> = ({
         performanceId={performanceId}
         prefillDate={prefillDate}
         performances={performances}
+        onSaved={onSaved}
       />
     );
   }
@@ -61,6 +64,7 @@ const RoleBasedPerformanceForm: React.FC<Props> = ({
         snapshotId={performanceId}
         prefillDate={prefillDate}
         existingSnapshot={existingSnapshot}
+        onSaved={onSaved}
       />
     );
   }
@@ -70,6 +74,7 @@ const RoleBasedPerformanceForm: React.FC<Props> = ({
       handleClose={handleClose}
       performanceId={performanceId}
       prefillDate={prefillDate}
+      onSaved={onSaved}
     />
   );
 };

@@ -18,7 +18,7 @@ import axios from 'axios';
 
 /* ---------------- axios ---------------- */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5500',
+  baseURL: process.env.NEXT_PUBLIC_APP_URL,
 });
 
 api.interceptors.request.use((config) => {
@@ -63,7 +63,7 @@ type ClientRow = { type: string; count: number };
 type StuckRow = { location: string; reason: string };
 
 /* ---------------- component ---------------- */
-export default function ManagerSnapshotForm() {
+export default function ManagerSnapshotForm({ handleClose, onSaved }: { handleClose?: () => void; onSaved?: () => void }) {
   const [mode, setMode] = useState<Mode>('morning');
   const [date, setDate] = useState<string>(todayISO());
 
@@ -163,6 +163,8 @@ export default function ManagerSnapshotForm() {
     try {
       await api.post('/performance/manager', { date, morning });
       notify('✅ Morning snapshot saved', 'success');
+      onSaved?.();
+      handleClose?.();
     } catch (e: any) {
       notify(e?.response?.data?.message || '❌ Failed to save morning snapshot', 'error');
     }
@@ -188,6 +190,8 @@ export default function ManagerSnapshotForm() {
     try {
       await api.post('/performance/manager', { date, evening });
       notify('🌇 Evening snapshot saved', 'success');
+      onSaved?.();
+      handleClose?.();
     } catch (e: any) {
       notify(e?.response?.data?.message || '❌ Failed to save evening snapshot', 'error');
     }
