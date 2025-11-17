@@ -1,5 +1,4 @@
-'use client';
-
+"use client";
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
@@ -33,9 +32,7 @@ import PendingIcon from '@mui/icons-material/Pending';
 import BlockIcon from '@mui/icons-material/Block';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
-import DoneAllIcon from '@mui/icons-material/DoneAll';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
-import UploadFileIcon from '@mui/icons-material/UploadFile'; // (unused but okay)
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
 import type { Dayjs } from 'dayjs';
@@ -46,7 +43,6 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import Pagination from '@mui/material/Pagination';
 
 import RoleBasedPerformanceForm from '@/components/performance/RoleBasedPerformanceForm';
-import EditSnapshotDialog from './EditSnapshotDialog';
 import MyTeamPerformanceDialog from './MyTeamPerformanceDialog';
 
 /* ===================== Axios instance ===================== */
@@ -81,11 +77,26 @@ const getMeta = (
 ): { color: any; icon: React.ReactNode; label: string; border: string } => {
   switch (status) {
     case 'done':
-      return { color: 'success', icon: <CheckCircleIcon fontSize="small" />, label: 'Done', border: '#4caf50' };
+      return {
+        color: 'success',
+        icon: <CheckCircleIcon fontSize="small" />,
+        label: 'Done',
+        border: '#4caf50',
+      };
     case 'in_progress':
-      return { color: 'warning', icon: <PendingIcon fontSize="small" />, label: 'In Progress', border: '#ff9800' };
+      return {
+        color: 'warning',
+        icon: <PendingIcon fontSize="small" />,
+        label: 'In Progress',
+        border: '#ff9800',
+      };
     default:
-      return { color: 'default', icon: <BlockIcon fontSize="small" />, label: 'Planned', border: '#9e9e9e' };
+      return {
+        color: 'default',
+        icon: <BlockIcon fontSize="small" />,
+        label: 'Planned',
+        border: '#9e9e9e',
+      };
   }
 };
 
@@ -123,7 +134,6 @@ const computeMetrics = (doc: any) => {
     const m = doc?.manager || {};
     const exp = m?.morning?.expected || {};
     const eve = m?.evening || {};
-
     const loanTargetRu = Number(m?.morning?.teamTargetLoanLacs || 0) * 100000;
 
     const logins = {
@@ -157,7 +167,7 @@ const computeMetrics = (doc: any) => {
 
     return {
       taskTitle: `Manager ${picked.key} — ${doc?.date || ''}`,
-      description: `Target: ${picked.t} • Done: ${picked.d}`,
+      description: `Target: ${picked.t || 0} • Done: ${picked.d || 0}`,
       target: picked.t || 0,
       completed: picked.d || 0,
       status,
@@ -203,7 +213,6 @@ const pct = (planned = 0, done = 0) => {
 const prettyNum = (n: number, unit: 'rupee' | 'count') =>
   unit === 'rupee' ? `₹${Intl.NumberFormat('en-IN').format(n || 0)}` : `${n || 0}`;
 
-/** 👉 SIMPLE MetricRow: Commitment vs Delivery vs Pending */
 const MetricRow = ({ pair }: { pair: Pair }) => {
   const p = Number(pair.planned) || 0;
   const d = Number(pair.done) || 0;
@@ -224,7 +233,6 @@ const MetricRow = ({ pair }: { pair: Pair }) => {
             <b>{prettyNum(d, pair.unit)}</b> • Pending:{' '}
             <b>{prettyNum(pending, pair.unit)}</b>
           </Typography>
-
           <Typography variant="caption" color="text.secondary">
             {progress}% achieved
           </Typography>
@@ -284,13 +292,12 @@ const buildPairsForManager = (raw: any): Pair[] => {
 
   const plannedLogins = Number(exp.loginsTeam || 0);
   const plannedApproval = Number(exp.approvalLacs || 0) * 100000;
-
   const plannedDisbursal =
     Number(exp.disbursalAmount || 0) || Number(m.teamTargetLoanLacs || 0) * 100000;
 
   const doneLogins = Number(e.teamLoginsDone || 0);
   const doneApproval = Number(e.teamApprovalDoneAmount || 0);
-  const doneDisbursalRaw = (e as any)?.teamDisbursalDoneAmount;
+  const doneDisbursal = asNum((e as any)?.teamDisbursalDoneAmount ?? 0);
 
   const pairs: Pair[] = [
     {
@@ -307,17 +314,14 @@ const buildPairsForManager = (raw: any): Pair[] => {
       done: doneApproval,
       unit: 'rupee',
     },
-  ];
-
-  if (Number.isFinite(Number(doneDisbursalRaw)) || plannedDisbursal) {
-    pairs.push({
+    {
       key: 'disb',
       label: 'Team Disbursal (₹)',
       planned: plannedDisbursal,
-      done: Number.isFinite(Number(doneDisbursalRaw)) ? Number(doneDisbursalRaw) : 0,
+      done: doneDisbursal,
       unit: 'rupee',
-    });
-  }
+    },
+  ];
 
   return pairs;
 };
@@ -372,7 +376,7 @@ const HeaderBand = ({ role, emp, dateStr }: any) => (
   </Box>
 );
 
-/* ===================== Details Drawer (with till-date) ===================== */
+/* ===================== Details Drawer ===================== */
 const DetailsDrawer = ({
   open,
   onClose,
@@ -385,12 +389,10 @@ const DetailsDrawer = ({
   const [tillDatePairs, setTillDatePairs] = useState<Pair[]>([]);
   const [tillLoading, setTillLoading] = useState(false);
 
-  // Till-date aggregation: 1st se doc.date tak
   useEffect(() => {
     const run = async () => {
       if (!open || !doc) {
         setTillDatePairs([]);
-
         return;
       }
 
@@ -411,7 +413,6 @@ const DetailsDrawer = ({
 
         if (!empId || !snapshotDate || !snapshotDate.isValid()) {
           setTillDatePairs([]);
-
           return;
         }
 
@@ -443,12 +444,9 @@ const DetailsDrawer = ({
           }
         }
 
-        // 1st se snapshotDate tak hi
         list = list.filter((item: any) => {
           const d = dayjs(item?.date);
-
           if (!d.isValid()) return false;
-
           return d.valueOf() <= snapshotDate.valueOf();
         });
 
@@ -517,6 +515,7 @@ const DetailsDrawer = ({
       PaperProps={{ sx: { width: 520, p: 2.25, bgcolor: 'background.default' } }}
     >
       <HeaderBand role={role} emp={emp} dateStr={dateStr} />
+
       <Box sx={{ mt: 2.5 }}>
         <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: 1 }}>
           Comparison — Morning vs Evening
@@ -531,13 +530,11 @@ const DetailsDrawer = ({
         )}
       </Box>
 
-      {/* Till Date section */}
       <Box sx={{ mt: 2.5 }}>
         <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: 1 }}>
           Till Date — Commitment vs Delivery
         </Typography>
         <Divider sx={{ mb: 1 }} />
-
         {tillLoading ? (
           <Typography variant="body2" color="text.secondary">
             Calculating till-date performance…
@@ -553,7 +550,6 @@ const DetailsDrawer = ({
         )}
       </Box>
 
-      {/* Summary (selected date) */}
       <Box sx={{ mt: 2.5 }}>
         <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: 1 }}>
           Summary (Selected Date)
@@ -578,7 +574,6 @@ const DetailsDrawer = ({
               </Typography>
             </Grid>
             <Grid item xs={12}>
-
               <Typography variant="caption" color="text.secondary">
                 {pct(totals.planned, totals.done)}% achieved for this date
               </Typography>
@@ -587,7 +582,6 @@ const DetailsDrawer = ({
         </Paper>
       </Box>
 
-      {/* Summary (till date) */}
       {tillDatePairs.length > 0 && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: 1 }}>
@@ -631,7 +625,6 @@ const DetailsDrawer = ({
 };
 
 /* -------------------- MTD map type -------------------- */
-/** Month-to-date (1st se selected date tak) commitment + delivery */
 type MTD = {
   loginCommit: number;
   loginDone: number;
@@ -657,26 +650,25 @@ const PerformanceCard = ({
   onEdit,
   onDetails,
   mtd,
+  canEdit,
 }: {
   item: any;
-  onEdit: (id: string) => void;
+  onEdit?: (id: string) => void;
   onDetails: (doc: any) => void;
   mtd?: MTD;
+  canEdit?: boolean;
 }) => {
   const meta = getMeta(item?.status);
   const raw = item.__raw ? item.__raw : item;
   const role = raw?.role;
 
-  // Employee values
   const empMorning = raw?.re?.morning || {};
   const empEvening = raw?.re?.evening || {};
 
-  // Manager values
   const mgrMorning = raw?.manager?.morning || {};
   const mgrExpected = mgrMorning?.expected || {};
   const mgrEvening = raw?.manager?.evening || {};
 
-  // MORNING (targets)
   const morningLogin =
     role === 'manager'
       ? asNum(mgrExpected.loginsTeam ?? 0)
@@ -690,12 +682,11 @@ const PerformanceCard = ({
   const morningDisbursal =
     role === 'manager'
       ? asNum(
-        (mgrExpected.disbursalAmount ?? 0) ||
-        ((Number(mgrMorning.teamTargetLoanLacs || 0) || 0) * 100000)
-      )
+          (mgrExpected.disbursalAmount ?? 0) ||
+            ((Number(mgrMorning.teamTargetLoanLacs || 0) || 0) * 100000)
+        )
       : asNum(empMorning.expectedDisbursal ?? 0);
 
-  // EVENING (actuals)
   const eveningLogin =
     role === 'manager'
       ? asNum(mgrEvening.teamLoginsDone ?? 0)
@@ -705,33 +696,26 @@ const PerformanceCard = ({
     role === 'manager'
       ? asNum(mgrEvening.teamApprovalDoneAmount ?? 0)
       : asNum(empEvening.approvalsDone ?? 0);
+      
+      
 
   const mgrEveningDisbursalMaybe = (mgrEvening as any)?.teamDisbursalDoneAmount;
 
+  // ✅ always numeric, no null – chip hamesha dikhega
   const eveningDisbursal =
     role === 'manager'
-      ? Number.isFinite(Number(mgrEveningDisbursalMaybe))
-        ? asNum(mgrEveningDisbursalMaybe)
-        : null
+      ? asNum(mgrEveningDisbursalMaybe ?? 0)
       : asNum(empEvening.disbursalDone ?? 0);
 
-  // 👉 Simple primary summary (Disbursal) for that day
-  const primaryCommit = morningDisbursal || 0;
-  const primaryDone = (eveningDisbursal ?? 0) || 0;
-  const primaryProgress = pct(primaryCommit, primaryDone);
-
-  // 👉 Month-to-date approvals + disbursal (from mtd)
   const m = mtd || emptyMtd;
 
   const approvalCommit = m.approvalCommit || 0;
   const approvalDone = m.approvalDone || 0;
   const approvalPending = Math.max(approvalCommit - approvalDone, 0);
-  const approvalPct = pct(approvalCommit, approvalDone);
 
   const disbCommit = m.disbursalCommit || 0;
   const disbDone = m.disbursalDone || 0;
   const disbPending = Math.max(disbCommit - disbDone, 0);
-  const disbPct = pct(disbCommit, disbDone);
 
   const Stat = ({ label, value }: { label: string; value: number | null }) => {
     if (value === null || value === undefined) return null;
@@ -746,6 +730,8 @@ const PerformanceCard = ({
     );
   };
 
+  const formatRupeeShort = (n: number) =>
+    `₹${Intl.NumberFormat('en-IN').format(Number(n) || 0)}`;
 
   return (
     <Paper
@@ -766,7 +752,6 @@ const PerformanceCard = ({
         },
       }}
     >
-      {/* subtle glow strip */}
       <Box
         sx={{
           position: 'absolute',
@@ -779,7 +764,7 @@ const PerformanceCard = ({
         }}
       />
 
-      {/* top header row */}
+      {/* ===== Top: Avatar + name ===== */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Box sx={{ position: 'relative' }}>
           <Box
@@ -811,7 +796,8 @@ const PerformanceCard = ({
             variant="subtitle1"
             sx={{ fontWeight: 900, letterSpacing: 0.2 }}
           >
-            {(item?.employee?.first_name || '') + ' ' + (item?.employee?.last_name || '') || '—'}
+            {(item?.employee?.first_name || '') + ' ' + (item?.employee?.last_name || '') ||
+              '—'}
           </Typography>
           <Typography
             variant="caption"
@@ -824,13 +810,11 @@ const PerformanceCard = ({
               : item?.employee?.designation || '—'}
           </Typography>
         </Box>
-
       </Box>
 
-      {/* Morning vs Evening (today) */}
+      {/* ===== Middle: Morning & Evening cards ===== */}
       <Box sx={{ mt: 1.5 }}>
         <Grid container spacing={1.25}>
-          {/* Morning */}
           <Grid item xs={12} sm={6}>
             <Paper
               variant="outlined"
@@ -861,7 +845,6 @@ const PerformanceCard = ({
             </Paper>
           </Grid>
 
-          {/* Evening */}
           <Grid item xs={12} sm={6}>
             <Paper
               variant="outlined"
@@ -893,35 +876,104 @@ const PerformanceCard = ({
           </Grid>
         </Grid>
       </Box>
-      {!m.loading && (approvalCommit || disbCommit) && (
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.3 }}>
-            Total Till Date Approvals & Disbursal
+
+  
+      <Box sx={{ mt: 2 }}>
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 1.25,
+            borderRadius: 2,
+            bgcolor: '#f9fafb',
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 800, letterSpacing: 0.4, mb: 0.5, display: 'block' }}
+          >
+            Morning vs Evening – Login / Approval / Disbursal
           </Typography>
 
-          {/* Approvals MTD */}
-          <Box sx={{ mt: 0.75 }}>
-            <Typography variant="caption" color="text.secondary">
-              Approvals Commitment: <b>{rupee(approvalCommit)}</b> • Done:{' '}
-              <b>{rupee(approvalDone)}</b> • Pending: <b>{rupee(approvalPending)}</b>
-            </Typography>
+          <Grid container spacing={0.75}>
+            {/* Login row */}
+            <Grid item xs={4}>
+              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                Login
+              </Typography>
+            </Grid>
+            <Grid item xs={8}>
+              <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                <Chip
+                  size="small"
+                  label={`Morning: ${Intl.NumberFormat('en-IN').format(morningLogin || 0)}`}
+                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
+                  variant="outlined"
+                />
+                <Chip
+                  size="small"
+                  label={`Evening: ${Intl.NumberFormat('en-IN').format(eveningLogin || 0)}`}
+                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
+                  color="success"
+                  variant="outlined"
+                />
+              </Stack>
+            </Grid>
 
-          </Box>
+            {/* Approval row */}
+            <Grid item xs={4}>
+              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                Approval (₹)
+              </Typography>
+            </Grid>
+            <Grid item xs={8}>
+              <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                <Chip
+                  size="small"
+                  label={`Morning: ${formatRupeeShort(morningApproval || 0)}`}
+                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
+                  variant="outlined"
+                />
+                <Chip
+                  size="small"
+                  label={`Evening: ${formatRupeeShort(eveningApproval || 0)}`}
+                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
+                  color="success"
+                  variant="outlined"
+                />
+              </Stack>
+            </Grid>
 
-          {/* Disbursal MTD */}
-          <Box sx={{ mt: 0.75 }}>
-            <Typography variant="caption" color="text.secondary">
-              Disbursal Commitment: <b>{rupee(disbCommit)}</b> • Done:{' '}
-              <b>{rupee(disbDone)}</b> • Pending: <b>{rupee(disbPending)}</b>
-            </Typography>
+            {/* Disbursal row */}
+            <Grid item xs={4}>
+              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                Disbursal (₹)
+              </Typography>
+            </Grid>
+            <Grid item xs={8}>
+              <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                <Chip
+                  size="small"
+                  label={`Morning: ${formatRupeeShort(morningDisbursal || 0)}`}
+                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
+                  variant="outlined"
+                />
+                <Chip
+                  size="small"
+                  label={`Evening: ${formatRupeeShort(eveningDisbursal || 0)}`}
+                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
+                  color="success"
+                  variant="outlined"
+                />
+              </Stack>
+            </Grid>
+          </Grid>
+        </Paper>
+      </Box>
 
-          </Box>
-        </Box>
-      )}
-
+ 
       <Divider sx={{ my: 1.5 }} />
 
-      {/* footer actions */}
+      {/* ===== Footer: Date + buttons ===== */}
       <Box
         sx={{
           display: 'flex',
@@ -950,19 +1002,20 @@ const PerformanceCard = ({
           >
             Details
           </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="info"
-            onClick={() => onEdit(item?._id)}
-            sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 700 }}
-          >
-            Edit
-          </Button>
+          {canEdit && onEdit && (
+            <Button
+              size="small"
+              variant="contained"
+              color="info"
+              onClick={() => onEdit(item?._id)}
+              sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 700 }}
+            >
+              Edit
+            </Button>
+          )}
         </Stack>
       </Box>
     </Paper>
-
   );
 };
 
@@ -989,15 +1042,10 @@ export default function PerformanceGrid() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsDoc, setDetailsDoc] = useState<any | null>(null);
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [editDoc, setEditDoc] = useState<any | null>(null);
-
   const [teamDlgOpen, setTeamDlgOpen] = useState(false);
-
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [loadingTeams, setLoadingTeams] = useState(true);
-
   const [teamsPerfLoading, setTeamsPerfLoading] = useState(false);
 
   const [mtdMap, setMtdMap] = useState<Record<string, MTD>>({});
@@ -1020,7 +1068,7 @@ export default function PerformanceGrid() {
 
   const pickDate = (selectedDate ? selectedDate : dayjs()).format('YYYY-MM-DD');
 
-  // read user & load teams
+  /* -------- read user & load teams -------- */
   useEffect(() => {
     const user =
       typeof window !== 'undefined'
@@ -1040,7 +1088,6 @@ export default function PerformanceGrid() {
       try {
         if (!user?.id || !token) {
           setLoadingTeams(false);
-
           return;
         }
 
@@ -1062,13 +1109,12 @@ export default function PerformanceGrid() {
     fetchTeamsForUser();
   }, []);
 
-  // latest snapshot per employee (team dialog)
+  /* -------- latest snapshot per employee (team dialog) -------- */
   useEffect(() => {
     const run = async () => {
       try {
         if (!Array.isArray(teams) || teams.length === 0) {
           setEmpPerf({});
-
           return;
         }
 
@@ -1081,7 +1127,6 @@ export default function PerformanceGrid() {
 
         if (!employee_ids) {
           setEmpPerf({});
-
           return;
         }
 
@@ -1146,7 +1191,7 @@ export default function PerformanceGrid() {
     run();
   }, [teams, month, year]);
 
-  // --- MTD for visible employees (1st → pickDate)
+  /* -------- MTD for visible employees (1st → pickDate) -------- */
   const fetchMTDFor = async (empId: string) => {
     if (!empId) return;
     if (mtdMap[empId]?.loading) return;
@@ -1187,16 +1232,16 @@ export default function PerformanceGrid() {
 
       const endDate = dayjs(pickDate);
 
-      // Only same month + year and date <= pickDate
       list = list.filter((d: any) => {
         const dt = dayjs(d?.date);
 
         if (!dt.isValid()) return false;
 
-        return dt.month() + 1 === month && dt.year() === year && dt.valueOf() <= endDate.valueOf();
+        return (
+          dt.month() + 1 === month && dt.year() === year && dt.valueOf() <= endDate.valueOf()
+        );
       });
 
-      // Month-to-date sums
       let loginCommit = 0;
       let loginDone = 0;
       let approvalCommit = 0;
@@ -1260,6 +1305,7 @@ export default function PerformanceGrid() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, month, year, selectedDate]);
 
+  /* -------- List fetch -------- */
   const fetchList = async () => {
     try {
       setLoading(true);
@@ -1295,8 +1341,9 @@ export default function PerformanceGrid() {
         data = (data || []).filter((r: any) => {
           const emp = r?.employee || {};
 
-          const name = `${emp?.first_name || ''} ${emp?.last_name || ''
-            }`.trim().toLowerCase();
+          const name = `${emp?.first_name || ''} ${emp?.last_name || ''}`
+            .trim()
+            .toLowerCase();
 
           return name.includes(needle);
         });
@@ -1316,12 +1363,10 @@ export default function PerformanceGrid() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userRole, month, year, selectedDate, searchName, page, limit, selectedTeamId]);
 
+  /* -------- Edit / Details handlers -------- */
   const handleEditClick = (id: string) => {
-    const found = items.find((x) => x?._id === id);
-
-    if (!found) return;
-    setEditDoc(found);
-    setEditOpen(true);
+    setSelectedPerformanceId(id);
+    setShowForm(true);
   };
 
   const openDetails = (doc: any) => {
@@ -1369,9 +1414,7 @@ export default function PerformanceGrid() {
       } performance_summary.csv`;
 
     const rows = items.map((p: any) => {
-      const name = `${p?.employee?.first_name || ''} ${p?.employee?.last_name || ''
-        }`.trim();
-
+      const name = `${p?.employee?.first_name || ''} ${p?.employee?.last_name || ''}`.trim();
       const pretty = (n: number) => (p?.unit === 'rupee' ? rupee(n) : n);
 
       return [
@@ -1469,19 +1512,16 @@ export default function PerformanceGrid() {
             sx={{ ml: 'auto', display: 'flex', justifyContent: 'flex-end' }}
           >
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'nowrap', alignItems: 'center' }}>
-              {userRole === '1' && (
-                <>
-                  <Button
-                    variant="outlined"
-                    startIcon={<VisibilityIcon />}
-                    onClick={() => router.push(`./performance-upload/?date=${pickDate}`)}
-                    sx={{ borderRadius: 2, fontWeight: 600, whiteSpace: 'nowrap' }}
-                    size="small"
-                  >
-                    View Performance
-                  </Button>
-                </>
-              )}
+
+              <Button
+                variant="outlined"
+                startIcon={<VisibilityIcon />}
+                onClick={() => router.push(`./performance-upload/?date=${pickDate}`)}
+                sx={{ borderRadius: 2, fontWeight: 600, whiteSpace: 'nowrap' }}
+                size="small"
+              >
+                View Performance
+              </Button>
 
               {String(userRole) !== '1' && (
                 <Button
@@ -1575,16 +1615,10 @@ export default function PerformanceGrid() {
     [year, month, selectedDate, userRole, uploading, searchName]
   );
 
+  const canEditCards = String(userRole) !== '1';
+
   return (
     <Box>
-      <EditSnapshotDialog
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        doc={editDoc}
-        onSaved={fetchList}
-        canAdminComment={userRole === '1'}
-      />
-
       <DetailsDrawer
         open={detailsOpen}
         onClose={() => setDetailsOpen(false)}
@@ -1674,15 +1708,18 @@ export default function PerformanceGrid() {
                 p?.employee?._id || p?.employee_id || p?.owner_id || ''
               );
 
-              const mtd = empId && mtdMap[empId] ? mtdMap[empId] : { ...emptyMtd, loading: true };
+              const mtd = empId && mtdMap[empId]
+                ? mtdMap[empId]
+                : { ...emptyMtd, loading: true };
 
               return (
                 <Grid key={p?._id} item xs={12} sm={6} md={6}>
                   <PerformanceCard
                     item={p}
-                    onEdit={handleEditClick}
+                    onEdit={canEditCards ? handleEditClick : undefined}
                     onDetails={openDetails}
                     mtd={mtd}
+                    canEdit={canEditCards}
                   />
                 </Grid>
               );

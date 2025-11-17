@@ -4,10 +4,9 @@ import React, { useMemo, useState, ChangeEvent } from 'react';
 import {
   Box, Grid, Paper, Typography, TextField, Divider, Chip, Button,
   ToggleButton, ToggleButtonGroup, IconButton, Snackbar,
-  InputAdornment, MenuItem
+  InputAdornment
 } from '@mui/material';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import AddIcon from '@mui/icons-material/Add';
+
 import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
 
@@ -21,30 +20,6 @@ const numberOrNull = (v: string): number | null => {
 };
 
 const todayISO = () => new Date().toISOString().split('T')[0];
-
-// Amount helpers (Lakhs/Cr → ₹)
-const lakh = (x: number) => Math.round(x * 100000);
-const cr = (x: number) => Math.round(x * 10000000);
-const fmtINR = (n: number) => n.toLocaleString('en-IN');
-
-// Discrete amount options (value in ₹)
-const AMOUNT_CHOICES = [
-  { label: '0', value: 0 },
-  { label: '0.5 L', value: lakh(0.5) },
-  { label: '1 L', value: lakh(1) },
-  { label: '2 L', value: lakh(2) },
-  { label: '3 L', value: lakh(3) },
-  { label: '5 L', value: lakh(5) },
-  { label: '10 L', value: lakh(10) },
-  { label: '25 L', value: lakh(25) },
-  { label: '50 L', value: lakh(50) },
-  { label: '75 L', value: lakh(75) },
-  { label: '1 Cr', value: cr(1) },
-  { label: '2 Cr', value: cr(2) },
-];
-
-// Count options 0..50
-const COUNT_CHOICES = Array.from({ length: 51 }, (_, i) => i);
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
@@ -173,10 +148,9 @@ export default function REDailySnapshotForm({
     Object.values({ ...evening, followUps: undefined }).some((v) => (v as string) !== '') ||
     (evening.followUps?.length ?? 0) > 0;
 
-  // close AFTER snackbar hides (so koi extra box nahi dikhe)
+  // close AFTER snackbar hides
   const handleSnackClose = () => {
     setSnack({ open: false, msg: '' });
-    // form ko yahin band kar do
     closeForm();
   };
 
@@ -191,6 +165,7 @@ export default function REDailySnapshotForm({
       onSaved?.();
       resetAll();
       notify('✅ Morning snapshot saved');
+        window.location.reload();
     } catch (err: any) {
       notify(err?.response?.data?.message || '❌ Failed to save morning snapshot');
     } finally {
@@ -209,6 +184,7 @@ export default function REDailySnapshotForm({
       onSaved?.();
       resetAll();
       notify('🌇 Evening snapshot saved');
+        window.location.reload();
     } catch (err: any) {
       notify(err?.response?.data?.message || '❌ Failed to save evening snapshot');
     } finally {
@@ -216,7 +192,7 @@ export default function REDailySnapshotForm({
     }
   };
 
-  // comparison
+  // comparison (agar future me use karna ho)
   const progressRows = useMemo(() => {
     const mPhone = numberOrNull(morning.phoneConnects);
     const ePhone = numberOrNull(evening.phoneConnected);
@@ -249,7 +225,7 @@ export default function REDailySnapshotForm({
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
-      {/* Header (simple & clean) */}
+      {/* Header */}
       <Paper elevation={1} sx={{ p: 2.5, mb: 2.5, borderRadius: 3, position: 'relative' }}>
         <Typography variant="h5" sx={{ fontWeight: 800, pr: 6 }}>
           Relationship Executive — Daily Snapshot
@@ -331,58 +307,50 @@ export default function REDailySnapshotForm({
                   />
                 </Grid>
 
-                {/* Expected Logins → SELECT */}
+                {/* Expected Logins – manual number */}
                 <Grid item xs={12}>
                   <TextField
-                    select
                     fullWidth
                     label="Total Expected Logins"
                     name="expectedLogins"
                     value={morning.expectedLogins}
                     onChange={handleMorning}
-                  >
-                    {COUNT_CHOICES.map((v) => (
-                      <MenuItem key={v} value={String(v)}>{v}</MenuItem>
-                    ))}
-                  </TextField>
+                    inputMode="numeric"
+                  />
                 </Grid>
 
-                {/* Expected Approvals (L/Cr labels) */}
+                {/* Expected Approvals – manual ₹ */}
                 <Grid item xs={12}>
                   <TextField
-                    select
                     fullWidth
-                    label="Total Approval Expected"
+                    label="Total Approval Expected (₹)"
                     name="expectedApprovals"
                     value={morning.expectedApprovals}
                     onChange={handleMorning}
-                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
-                  >
-                    {AMOUNT_CHOICES.map((opt) => (
-                      <MenuItem key={opt.value} value={String(opt.value)}>
-                        {opt.label} <span style={{ opacity: .6 }}> &nbsp;({fmtINR(opt.value)})</span>
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    inputMode="numeric"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">₹</InputAdornment>
+                      ),
+                    }}
+                  />
                 </Grid>
 
-                {/* Expected Disbursal (L/Cr labels) */}
+                {/* Expected Disbursal – manual ₹ */}
                 <Grid item xs={12}>
                   <TextField
-                    select
                     fullWidth
-                    label="Total Disbursal Expected"
+                    label="Total Disbursal Expected (₹)"
                     name="expectedDisbursal"
                     value={morning.expectedDisbursal}
                     onChange={handleMorning}
-                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
-                  >
-                    {AMOUNT_CHOICES.map((opt) => (
-                      <MenuItem key={opt.value} value={String(opt.value)}>
-                        {opt.label} <span style={{ opacity: .6 }}> &nbsp;({fmtINR(opt.value)})</span>
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    inputMode="numeric"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">₹</InputAdornment>
+                      ),
+                    }}
+                  />
                 </Grid>
               </Grid>
 
@@ -404,7 +372,7 @@ export default function REDailySnapshotForm({
           </Grid>
         )}
 
-        {/* Evening + FOLLOW UPS */}
+        {/* Evening */}
         {mode === 'evening' && (
           <Grid item xs={12}>
             <Paper elevation={1} sx={{ p: 3, borderRadius: 3 }}>
@@ -438,108 +406,52 @@ export default function REDailySnapshotForm({
                   />
                 </Grid>
 
-                {/* Today's Login → SELECT */}
+                {/* Today's Login – manual */}
                 <Grid item xs={12}>
                   <TextField
-                    select
                     fullWidth
                     label="Today's Login"
                     name="todaysLogin"
                     value={evening.todaysLogin}
                     onChange={handleEvening}
-                  >
-                    {COUNT_CHOICES.map((v) => (
-                      <MenuItem key={v} value={String(v)}>{v}</MenuItem>
-                    ))}
-                  </TextField>
+                    inputMode="numeric"
+                  />
                 </Grid>
 
-                {/* Today's Approval (L/Cr) */}
+                {/* Today's Approval – manual ₹ */}
                 <Grid item xs={12}>
                   <TextField
-                    select
                     fullWidth
-                    label="Today's Approval"
+                    label="Today's Approval (₹)"
                     name="todaysApproval"
                     value={evening.todaysApproval}
                     onChange={handleEvening}
-                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
-                  >
-                    {AMOUNT_CHOICES.map((opt) => (
-                      <MenuItem key={opt.value} value={String(opt.value)}>
-                        {opt.label} <span style={{ opacity: .6 }}> &nbsp;({fmtINR(opt.value)})</span>
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    inputMode="numeric"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">₹</InputAdornment>
+                      ),
+                    }}
+                  />
                 </Grid>
 
-                {/* Today's Disbursal (L/Cr) */}
+                {/* Today's Disbursal – manual ₹ */}
                 <Grid item xs={12}>
                   <TextField
-                    select
                     fullWidth
-                    label="Today's Disbursal"
+                    label="Today's Disbursal (₹)"
                     name="todaysDisbursal"
                     value={evening.todaysDisbursal}
                     onChange={handleEvening}
-                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
-                  >
-                    {AMOUNT_CHOICES.map((opt) => (
-                      <MenuItem key={opt.value} value={String(opt.value)}>
-                        {opt.label} <span style={{ opacity: .6 }}> &nbsp;({fmtINR(opt.value)})</span>
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    inputMode="numeric"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">₹</InputAdornment>
+                      ),
+                    }}
+                  />
                 </Grid>
               </Grid>
-
-              {/* FOLLOW UPS */}
-              <Box sx={{ mt: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                    Follow-ups
-                  </Typography>
-                  <Button startIcon={<AddIcon />} variant="outlined" onClick={addFollowUp} sx={{ borderRadius: 2 }}>
-                    Add Follow-up
-                  </Button>
-                </Box>
-                <Divider sx={{ mb: 2 }} />
-
-                {evening.followUps.length === 0 && (
-                  <Typography variant="body2" color="text.secondary">
-                    No follow-ups added yet.
-                  </Typography>
-                )}
-
-                {evening.followUps.map((f, idx) => (
-                  <Grid container spacing={2} key={idx} sx={{ mb: 1 }}>
-                    <Grid item xs={12} md={3}>
-                      <TextField fullWidth label="Name" value={f.name} onChange={(e) => updateFollowUp(idx, 'name', e.target.value)} />
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <TextField fullWidth label="Phone" value={f.phone} onChange={(e) => updateFollowUp(idx, 'phone', e.target.value)} inputMode="tel" />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField fullWidth label="Remarks" value={f.remarks} onChange={(e) => updateFollowUp(idx, 'remarks', e.target.value)} />
-                    </Grid>
-                    <Grid item xs={12} md={2}>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <TextField
-                          fullWidth
-                          label="Follow-up On"
-                          type="date"
-                          value={f.followUpOn || todayISO()}
-                          onChange={(e) => updateFollowUp(idx, 'followUpOn', e.target.value)}
-                          InputLabelProps={{ shrink: true }}
-                        />
-                        <IconButton aria-label="remove" color="error" onClick={() => removeFollowUp(idx)}>
-                          <DeleteOutlineIcon />
-                        </IconButton>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                ))}
-              </Box>
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 1 }}>
                 <Button variant="outlined" onClick={handleCancel} sx={{ borderRadius: 2 }}>
@@ -558,49 +470,9 @@ export default function REDailySnapshotForm({
             </Paper>
           </Grid>
         )}
-
-        {/* comparison */}
-        <Grid item xs={12}>
-          <Paper elevation={1} sx={{ p: 3, borderRadius: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-              Evening vs Morning (Only shows when both values are filled)
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {progressRows.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                Fill both Morning and Evening values to see the comparison.
-              </Typography>
-            ) : (
-              <Grid container spacing={1}>
-                {progressRows.map((r) => (
-                  <Grid item xs={12} md={6} key={r.label}>
-                    <Box sx={{
-                      p: 2, borderRadius: 2, border: '1px solid rgba(0,0,0,0.08)',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      backgroundColor: r.achieved ? 'rgba(76,175,80,0.04)' : 'rgba(255,193,7,0.04)'
-                    }}>
-                      <Box>
-                        <Typography sx={{ fontWeight: 700 }}>{r.label}</Typography>
-                        <Typography variant="body2" color="text.secondary">Planned: {fmtINR(r.planned)}</Typography>
-                        <Typography variant="body2" color="text.secondary">Done: {fmtINR(r.done)}</Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Chip
-                          label={r.achieved ? 'Achieved' : `Pending: ${fmtINR(r.delta)}`}
-                          color={r.achieved ? 'success' : 'warning'}
-                          variant="outlined"
-                        />
-                      </Box>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            )}
-          </Paper>
-        </Grid>
       </Grid>
 
-      {/* Snackbar (TOP, plain message, no Alert box) */}
+      {/* Snackbar */}
       <Snackbar
         open={snack.open}
         autoHideDuration={1800}
@@ -611,7 +483,6 @@ export default function REDailySnapshotForm({
           sx: {
             borderRadius: 2,
             px: 2,
-            // subtle look (no colored Alert box)
             bgcolor: 'rgba(0,0,0,0.85)',
             color: 'white',
             boxShadow: 2,
