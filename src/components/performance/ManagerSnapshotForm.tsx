@@ -51,8 +51,9 @@ api.interceptors.request.use((config) => {
       user?.company?.id;
 
     if (token)
-      (config.headers as any).Authorization = `Bearer ${token}${company_id ? ` ${company_id}` : ''
-        }`;
+      (config.headers as any).Authorization = `Bearer ${token}${
+        company_id ? ` ${company_id}` : ''
+      }`;
     if (company_id) (config.headers as any)['x-company-id'] = company_id;
   }
 
@@ -63,23 +64,40 @@ api.interceptors.request.use((config) => {
 const todayISO = () => new Date().toISOString().split('T')[0];
 
 const clientTypes = [
-  { value: 'cold', label: 'Cold' },
-  { value: 'call', label: 'Call' },
+  { value: 'cold', label: 'Cold Call' },
   { value: 'appointment', label: 'Appointment' },
   { value: 'channel_partner', label: 'Channel Partner Visit' },
 ];
 
 /* ---------------- types ---------------- */
 type Mode = 'morning' | 'evening';
-type InternalRow = { count: string };
-type BankerRow = { lenderName: string; lenderContact: string; count: string };
-type ClientRow = { type: string; count: string };
+
+type InternalRow = {
+  count: string;
+  purpose: string;
+};
+
+type BankerRow = {
+  lenderName: string;
+  lenderContact: string;
+  count: string;
+  purpose: string;
+};
+
+type ClientRow = {
+  type: string;
+  clientName: string;
+  clientContact: string;
+  purpose: string;
+};
+
 type StuckRow = { location: string; reason: string };
 
 type SnapshotResponse = {
   date: string;
   morning?: {
     teamTargetLoanLacs?: number;
+    customerPhoneConnects?: number; // 🔹 morning calls
     ownContribution?: {
       login?: number;
       approvalLacs?: number;
@@ -93,14 +111,21 @@ type SnapshotResponse = {
       internal?: number;
       bankers?: number;
       clients?: number;
+      internalDetails?: {
+        count?: number;
+        purpose?: string;
+      }[];
       bankerDetails?: {
         lenderName?: string;
         lenderContact?: string;
         count?: number;
+        purpose?: string;
       }[];
       clientDetails?: {
-        type: string;
-        count: number;
+        type?: string;
+        clientName?: string;
+        contact?: string;
+        purpose?: string;
       }[];
     };
     expected?: {
@@ -117,8 +142,8 @@ type SnapshotResponse = {
   evening?: {
     teamLoginsDone?: number;
     teamApprovalDoneAmount?: number;
-
     teamDisbursalDoneAmount?: number;
+    customerPhoneConnectsDone?: number; // 🔹 NEW: evening calls done
     topPerformer?: {
       name?: string;
       valueLacs?: number;
@@ -166,8 +191,12 @@ export default function ManagerSnapshotForm({
   const [ownApprovalLacs, setOwnApprovalLacs] = useState<string>('');
   const [ownDisbursalLacs, setOwnDisbursalLacs] = useState<string>('');
   const [activeHeadcount, setActiveHeadcount] = useState<string>('');
+  const [workingHeadcount, setWorkingHeadcount] = useState<string>('');
 
-  // Meetings — ALL TOGETHER in same card now
+  const [customerPhoneConnects, setCustomerPhoneConnects] =
+    useState<string>('');
+
+  // Meetings
   const [hasInternal, setHasInternal] = useState(false);
   const [hasBanker, setHasBanker] = useState(false);
   const [hasClient, setHasClient] = useState(false);
@@ -176,10 +205,13 @@ export default function ManagerSnapshotForm({
   const [bankerList, setBankerList] = useState<BankerRow[]>([]);
   const [clientList, setClientList] = useState<ClientRow[]>([]);
 
-  const addInternal = () => setInternalList((p) => [...p, { count: '' }]);
+  const addInternal = () =>
+    setInternalList((p) => [...p, { count: '', purpose: '' }]);
 
-  const updateInternal = (i: number, count: string) =>
-    setInternalList((p) => p.map((r, idx) => (idx === i ? { ...r, count } : r)));
+  const updateInternal = (i: number, key: keyof InternalRow, value: string) =>
+    setInternalList((p) =>
+      p.map((row, idx) => (idx === i ? { ...row, [key]: value } : row)),
+    );
 
   const removeInternal = (i: number) =>
     setInternalList((p) => p.filter((_, idx) => idx !== i));
@@ -187,7 +219,7 @@ export default function ManagerSnapshotForm({
   const addBanker = () =>
     setBankerList((p) => [
       ...p,
-      { lenderName: '', lenderContact: '', count: '' },
+      { lenderName: '', lenderContact: '', count: '', purpose: '' },
     ]);
 
   const updateBanker = (i: number, key: keyof BankerRow, val: string) =>
@@ -200,7 +232,17 @@ export default function ManagerSnapshotForm({
 
   const addClient = () =>
     setClientList((p) =>
-      p.length < 3 ? [...p, { type: 'cold', count: '' }] : p,
+      p.length < 3
+        ? [
+            ...p,
+            {
+              type: 'cold',
+              clientName: '',
+              clientContact: '',
+              purpose: '',
+            },
+          ]
+        : p,
     );
 
   const updateClient = (i: number, key: keyof ClientRow, val: string) =>
@@ -233,12 +275,20 @@ export default function ManagerSnapshotForm({
   const [teamApprovalDoneAmount, setTeamApprovalDoneAmount] =
     useState<string>(''); // ₹
 
+  // 🔹 NEW: evening calls done
+  const [customerPhoneConnectsDone, setCustomerPhoneConnectsDone] =
+    useState<string>('');
+
   const [filesStuckDescription, setFilesStuckDescription] = useState('');
-  const [teamDisbursalDoneAmount, setTeamDisbursalDoneAmount] = useState<string>(''); // ₹
 
-  const [topPerformerName, setTopPerformerName] = useState<string>('');
+  const [teamDisbursalDoneAmount, setTeamDisbursalDoneAmount] =
+    useState<string>(''); // ₹
 
-  const [topPerformerValueLacs, setTopPerformerValueLacs] =
+  // 🔹 NEW: separate top performers
+  const [approvalTopName, setApprovalTopName] = useState<string>('');
+  const [approvalTopAmount, setApprovalTopAmount] = useState<string>('');
+  const [disbursalTopName, setDisbursalTopName] = useState<string>('');
+  const [disbursalTopAmount, setDisbursalTopAmount] =
     useState<string>('');
 
   const [filesStuck, setFilesStuck] = useState<StuckRow[]>([]);
@@ -260,6 +310,18 @@ export default function ManagerSnapshotForm({
   const removeStuck = (i: number) =>
     setFilesStuck((p) => p.filter((_, idx) => idx !== i));
 
+  /* -------- Combined Totals (Expected + Own) -------- */
+  const totalLoginCombined =
+    (Number(expectedLogins) || 0) + (Number(ownLoginCount) || 0);
+
+  const totalApprovalCombined =
+    (Number(expectedApprovalLacs) || 0) +
+    (Number(ownApprovalLacs) || 0);
+
+  const totalDisbursalCombined =
+    (Number(expectedDisbursalAmount) || 0) +
+    (Number(ownDisbursalLacs) || 0);
+
   /* -------- LOAD existing snapshot (DB -> UI) -------- */
   const loadSnapshot = async (selectedDate: string) => {
     try {
@@ -276,6 +338,12 @@ export default function ManagerSnapshotForm({
         setTeamTargetLacs(
           morning.teamTargetLoanLacs != null
             ? String(morning.teamTargetLoanLacs)
+            : '',
+        );
+
+        setCustomerPhoneConnects(
+          morning.customerPhoneConnects != null
+            ? String(morning.customerPhoneConnects)
             : '',
         );
 
@@ -296,19 +364,32 @@ export default function ManagerSnapshotForm({
         );
 
         const working = morning.teamMembers?.working;
+        const total = morning.teamMembers?.total;
 
-        setActiveHeadcount(
-          working != null ? String(working) : '',
-        );
+        setActiveHeadcount(total != null ? String(total) : '');
+        setWorkingHeadcount(working != null ? String(working) : '');
 
         // Meetings
         const mMeetings = morning.meetings;
 
         if (mMeetings) {
-          // Internal
-          if (mMeetings.internal && mMeetings.internal > 0) {
+          // Internal details
+          if (
+            mMeetings.internalDetails &&
+            mMeetings.internalDetails.length
+          ) {
             setHasInternal(true);
-            setInternalList([{ count: String(mMeetings.internal) }]);
+            setInternalList(
+              mMeetings.internalDetails.map((d) => ({
+                count: d.count != null ? String(d.count) : '',
+                purpose: d.purpose || '',
+              })),
+            );
+          } else if (mMeetings.internal && mMeetings.internal > 0) {
+            setHasInternal(true);
+            setInternalList([
+              { count: String(mMeetings.internal), purpose: '' },
+            ]);
           } else {
             setHasInternal(false);
             setInternalList([]);
@@ -321,8 +402,8 @@ export default function ManagerSnapshotForm({
               mMeetings.bankerDetails.map((b) => ({
                 lenderName: b.lenderName || '',
                 lenderContact: b.lenderContact || '',
-                count:
-                  b.count != null ? String(b.count) : '',
+                count: b.count != null ? String(b.count) : '',
+                purpose: b.purpose || '',
               })),
             );
           } else {
@@ -336,8 +417,9 @@ export default function ManagerSnapshotForm({
             setClientList(
               mMeetings.clientDetails.map((c) => ({
                 type: c.type || 'cold',
-                count:
-                  c.count != null ? String(c.count) : '',
+                clientName: c.clientName || '',
+                clientContact: c.contact || '',
+                purpose: c.purpose || '',
               })),
             );
           } else {
@@ -389,10 +471,12 @@ export default function ManagerSnapshotForm({
       } else {
         // No morning snapshot -> clear fields
         setTeamTargetLacs('');
+        setCustomerPhoneConnects('');
         setOwnLoginCount('');
         setOwnApprovalLacs('');
         setOwnDisbursalLacs('');
         setActiveHeadcount('');
+        setWorkingHeadcount('');
         setHasInternal(false);
         setInternalList([]);
         setHasBanker(false);
@@ -419,20 +503,24 @@ export default function ManagerSnapshotForm({
             ? String(evening.teamApprovalDoneAmount)
             : '',
         );
-         setTeamDisbursalDoneAmount(
+        setTeamDisbursalDoneAmount(
           evening.teamDisbursalDoneAmount != null
             ? String(evening.teamDisbursalDoneAmount)
             : '',
         );
 
-        setTopPerformerName(
-          evening.topPerformer?.name || '',
-        );
-        setTopPerformerValueLacs(
-          evening.topPerformer?.valueLacs != null
-            ? String(evening.topPerformer.valueLacs)
+        // 🔹 NEW: calls done (evening)
+        setCustomerPhoneConnectsDone(
+          evening.customerPhoneConnectsDone != null
+            ? String(evening.customerPhoneConnectsDone)
             : '',
         );
+
+        // existing topPerformer string ko abhi ignore kar rahe hain
+        setApprovalTopName('');
+        setApprovalTopAmount('');
+        setDisbursalTopName('');
+        setDisbursalTopAmount('');
 
         setFilesStuck(
           (evening.filesStuck || []).map((f) => ({
@@ -442,30 +530,32 @@ export default function ManagerSnapshotForm({
         );
 
         setSupportRequired(evening.supportRequired || '');
-        setOverallSentiment(
-          evening.overallSentiment || 'green',
-        );
-        setSentimentReason(
-          evening.sentimentReason || '',
-        );
+        setOverallSentiment(evening.overallSentiment || 'green');
+        setSentimentReason(evening.sentimentReason || '');
       } else {
         // No evening snapshot -> clear evening
         setTeamLoginsDone('');
         setTeamApprovalDoneAmount('');
-        setTopPerformerName('');
-        setTopPerformerValueLacs('');
+        setTeamDisbursalDoneAmount('');
+        setCustomerPhoneConnectsDone('');
+        setApprovalTopName('');
+        setApprovalTopAmount('');
+        setDisbursalTopName('');
+        setDisbursalTopAmount('');
         setFilesStuck([]);
         setSupportRequired('');
         setOverallSentiment('green');
         setSentimentReason('');
       }
     } catch (err: any) {
-      // Agar 404 ya no data mila toh fields reset, koi error toast nahi dikhayenge
+      // Reset on error / 404
       setTeamTargetLacs('');
+      setCustomerPhoneConnects('');
       setOwnLoginCount('');
       setOwnApprovalLacs('');
       setOwnDisbursalLacs('');
       setActiveHeadcount('');
+      setWorkingHeadcount('');
       setHasInternal(false);
       setInternalList([]);
       setHasBanker(false);
@@ -481,8 +571,12 @@ export default function ManagerSnapshotForm({
 
       setTeamLoginsDone('');
       setTeamApprovalDoneAmount('');
-      setTopPerformerName('');
-      setTopPerformerValueLacs('');
+      setTeamDisbursalDoneAmount('');
+      setCustomerPhoneConnectsDone('');
+      setApprovalTopName('');
+      setApprovalTopAmount('');
+      setDisbursalTopName('');
+      setDisbursalTopAmount('');
       setFilesStuck([]);
       setSupportRequired('');
       setOverallSentiment('green');
@@ -491,67 +585,77 @@ export default function ManagerSnapshotForm({
   };
 
   useEffect(() => {
-    // initial load + whenever date change -> DB se data laao
     loadSnapshot(date);
   }, [date]);
 
   /* -------- Submit handlers (API + snackbar) -------- */
   const saveMorning = async () => {
     const totalInternal = hasInternal
-      ? internalList.reduce(
-        (a, r) => a + (Number(r.count) || 0),
-        0,
-      )
+      ? internalList.reduce((a, r) => a + (Number(r.count) || 0), 0)
       : 0;
 
     const totalBankers = hasBanker
-      ? bankerList.reduce(
-        (a, r) => a + (Number(r.count) || 0),
-        0,
-      )
+      ? bankerList.reduce((a, r) => a + (Number(r.count) || 0), 0)
       : 0;
 
-    const totalClients = hasClient
-      ? clientList.reduce(
-        (a, r) => a + (Number(r.count) || 0),
-        0,
-      )
-      : 0;
-
-    const bankerDetails = hasBanker
-      ? bankerList
-        .map((b) => ({
-          lenderName: b.lenderName.trim(),
-          lenderContact: b.lenderContact.trim(),
-          count: Number(b.count) || 0,
-        }))
-        .filter((b) => b.lenderName || b.lenderContact || b.count > 0)
+    const internalDetails = hasInternal
+      ? internalList
+          .map((r) => ({
+            count: Number(r.count) || 0,
+            purpose: r.purpose.trim(),
+          }))
+          .filter((r) => r.count > 0 || r.purpose)
       : [];
 
     const clientDetails = hasClient
       ? clientList
-        .map((c) => ({
-          type: c.type,
-          count: Number(c.count) || 0,
-        }))
-        .filter((c) => c.count > 0)
+          .map((c) => ({
+            type: c.type,
+            clientName: c.clientName.trim(),
+            contact: c.clientContact.trim(),
+            purpose: c.purpose.trim(),
+          }))
+          .filter(
+            (c) => c.type || c.clientName || c.contact || c.purpose,
+          )
+      : [];
+
+    const totalClients = hasClient ? clientDetails.length : 0;
+
+    const bankerDetails = hasBanker
+      ? bankerList
+          .map((b) => ({
+            lenderName: b.lenderName.trim(),
+            lenderContact: b.lenderContact.trim(),
+            count: Number(b.count) || 0,
+            purpose: b.purpose.trim(),
+          }))
+          .filter(
+            (b) =>
+              b.lenderName ||
+              b.lenderContact ||
+              b.count > 0 ||
+              b.purpose,
+          )
       : [];
 
     const morning = {
       teamTargetLoanLacs: Number(teamTargetLacs) || 0,
+      customerPhoneConnects: Number(customerPhoneConnects) || 0,
       ownContribution: {
         login: Number(ownLoginCount) || 0,
         approvalLacs: Number(ownApprovalLacs) || 0,
         disbursalLacs: Number(ownDisbursalLacs) || 0,
       },
       teamMembers: {
-        working: Number(activeHeadcount) || 0,
+        working: Number(workingHeadcount) || 0,
         total: Number(activeHeadcount) || 0,
       },
       meetings: {
         internal: totalInternal,
         bankers: totalBankers,
         clients: totalClients,
+        internalDetails,
         bankerDetails,
         clientDetails,
       },
@@ -574,7 +678,8 @@ export default function ManagerSnapshotForm({
       handleClose?.();
     } catch (e: any) {
       notify(
-        e?.response?.data?.message || '❌ Failed to save morning snapshot',
+        e?.response?.data?.message ||
+          '❌ Failed to save morning snapshot',
         'error',
       );
     }
@@ -593,13 +698,40 @@ export default function ManagerSnapshotForm({
       return;
     }
 
+    // 🔹 Combine approval + disbursal performer for backend
+    const topSummaryParts: string[] = [];
+
+    if (approvalTopName || approvalTopAmount) {
+      topSummaryParts.push(
+        `Approval: ${approvalTopName || '-'} (₹${
+          approvalTopAmount || 0
+        })`,
+      );
+    }
+
+    if (disbursalTopName || disbursalTopAmount) {
+      topSummaryParts.push(
+        `Disbursal: ${disbursalTopName || '-'} (₹${
+          disbursalTopAmount || 0
+        })`,
+      );
+    }
+
+    const topPerformerNameCombined = topSummaryParts.join(' | ');
+
+    const topPerformerTotalValue =
+      (Number(approvalTopAmount) || 0) +
+      (Number(disbursalTopAmount) || 0);
+
     const evening = {
       teamLoginsDone: Number(teamLoginsDone) || 0,
       teamApprovalDoneAmount: Number(teamApprovalDoneAmount) || 0,
-       teamDisbursalDoneAmount: Number(teamDisbursalDoneAmount) || 0,
+      teamDisbursalDoneAmount: Number(teamDisbursalDoneAmount) || 0,
+      customerPhoneConnectsDone:
+        Number(customerPhoneConnectsDone) || 0, // 🔹 NEW field
       topPerformer: {
-        name: topPerformerName.trim(),
-        valueLacs: Number(topPerformerValueLacs) || 0,
+        name: topPerformerNameCombined,
+        valueLacs: topPerformerTotalValue,
       },
       filesStuck: filesStuck
         .map((f) => ({
@@ -620,7 +752,8 @@ export default function ManagerSnapshotForm({
       handleClose?.();
     } catch (e: any) {
       notify(
-        e?.response?.data?.message || '❌ Failed to save evening snapshot',
+        e?.response?.data?.message ||
+          '❌ Failed to save evening snapshot',
         'error',
       );
     }
@@ -649,7 +782,12 @@ export default function ManagerSnapshotForm({
           <Typography variant="h5" sx={{ fontWeight: 900 }}>
             TL / Manager — Daily Snapshot
           </Typography>
-          <Grid container spacing={2} sx={{ mt: 1.5 }} alignItems="center">
+          <Grid
+            container
+            spacing={2}
+            sx={{ mt: 1.5 }}
+            alignItems="center"
+          >
             <Grid item>
               <TextField
                 size="small"
@@ -683,13 +821,16 @@ export default function ManagerSnapshotForm({
               <Chip
                 label="v2"
                 size="small"
-                sx={{ bgcolor: 'rgba(255,255,255,.25)', color: 'white' }}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,.25)',
+                  color: 'white',
+                }}
               />
             </Grid>
           </Grid>
         </Paper>
 
-        {/* MORNING — with manual inputs + meetings */}
+        {/* MORNING */}
         {mode === 'morning' && (
           <Paper
             elevation={1}
@@ -700,34 +841,107 @@ export default function ManagerSnapshotForm({
               borderColor: 'divider',
             }}
           >
-            {/* Team Target */}
+            {/* Combined Totals (Expected + Own) */}
+            <Box
+              sx={{
+                mb: 2,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 1.5,
+              }}
+            >
+              <Chip
+                label={`Total Logins (Expected + Own): ${totalLoginCombined}`}
+                variant="outlined"
+              />
+              <Chip
+                label={`Total Approval (₹): ${totalApprovalCombined.toLocaleString(
+                  'en-IN',
+                )}`}
+                variant="outlined"
+              />
+              <Chip
+                label={`Total Disbursal (₹): ${totalDisbursalCombined.toLocaleString(
+                  'en-IN',
+                )}`}
+                variant="outlined"
+              />
+            </Box>
+
+            {/* Phone connects */}
             <Typography
               variant="subtitle1"
               sx={{ fontWeight: 800, mb: 1 }}
             >
-              1) Team Target (In Rupees)
+              Customers Connected on Phone
             </Typography>
-            <Grid container spacing={2} sx={{ mb: 1 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={3}>
                 <TextField
                   size="small"
                   fullWidth
-                  label="Enter Amount"
+                  label="connected on phone"
                   type="number"
-                  value={teamTargetLacs}
-                  onChange={(e) => setTeamTargetLacs(e.target.value)}
+                  value={customerPhoneConnects}
+                  onChange={(e) =>
+                    setCustomerPhoneConnects(e.target.value)
+                  }
                 />
               </Grid>
             </Grid>
 
             <Divider sx={{ my: 2 }} />
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 800, mb: 1 }}
+            >
+              Expected Delivery Today(Team)
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Expected Logins (Team)"
+                  type="number"
+                  value={expectedLogins}
+                  onChange={(e) =>
+                    setExpectedLogins(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Expected Approval (₹)"
+                  type="number"
+                  value={expectedApprovalLacs}
+                  onChange={(e) =>
+                    setExpectedApprovalLacs(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Expected Disbursal (₹)"
+                  type="number"
+                  value={expectedDisbursalAmount}
+                  onChange={(e) =>
+                    setExpectedDisbursalAmount(e.target.value)
+                  }
+                />
+              </Grid>
+            </Grid>
 
             {/* Own Contribution */}
             <Typography
               variant="subtitle1"
               sx={{ fontWeight: 800, mb: 1 }}
             >
-              2) Own Contribution
+              Own Contribution(individual Number)
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={3}>
@@ -737,41 +951,47 @@ export default function ManagerSnapshotForm({
                   label="Login — How many?"
                   type="number"
                   value={ownLoginCount}
-                  onChange={(e) => setOwnLoginCount(e.target.value)}
+                  onChange={(e) =>
+                    setOwnLoginCount(e.target.value)
+                  }
                 />
               </Grid>
               <Grid item xs={12} md={3}>
                 <TextField
                   size="small"
                   fullWidth
-                  label="Approval (In rupees)"
+                  label="Approval (₹)"
                   type="number"
                   value={ownApprovalLacs}
-                  onChange={(e) => setOwnApprovalLacs(e.target.value)}
+                  onChange={(e) =>
+                    setOwnApprovalLacs(e.target.value)
+                  }
                 />
               </Grid>
               <Grid item xs={12} md={3}>
                 <TextField
                   size="small"
                   fullWidth
-                  label="Disbursal (In rupees)"
+                  label="Disbursal (₹)"
                   type="number"
                   value={ownDisbursalLacs}
-                  onChange={(e) => setOwnDisbursalLacs(e.target.value)}
+                  onChange={(e) =>
+                    setOwnDisbursalLacs(e.target.value)
+                  }
                 />
               </Grid>
             </Grid>
 
             <Divider sx={{ my: 2 }} />
 
-            {/* Headcount */}
             <Typography
               variant="subtitle1"
               sx={{ fontWeight: 800, mb: 1 }}
             >
-              3) Total Active Headcount Today
+              Total Active Headcount
             </Typography>
-            <Grid container spacing={2}>
+
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={3}>
                 <TextField
                   size="small"
@@ -779,7 +999,22 @@ export default function ManagerSnapshotForm({
                   label="Active Headcount"
                   type="number"
                   value={activeHeadcount}
-                  onChange={(e) => setActiveHeadcount(e.target.value)}
+                  onChange={(e) =>
+                    setActiveHeadcount(e.target.value)
+                  }
+                />
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Working / Present Today"
+                  type="number"
+                  value={workingHeadcount}
+                  onChange={(e) =>
+                    setWorkingHeadcount(e.target.value)
+                  }
                 />
               </Grid>
             </Grid>
@@ -791,7 +1026,7 @@ export default function ManagerSnapshotForm({
               variant="subtitle1"
               sx={{ fontWeight: 800, mb: 1 }}
             >
-              4) Meetings (Internal • Banker • Client)
+              Meetings (Internal • Banker • Client)
             </Typography>
 
             {/* Internal meetings */}
@@ -816,7 +1051,7 @@ export default function ManagerSnapshotForm({
                     key={`int-${i}`}
                     sx={{ mb: 1 }}
                   >
-                    <Grid item xs={10} md={3}>
+                    <Grid item xs={12} md={3}>
                       <TextField
                         size="small"
                         fullWidth
@@ -824,15 +1059,40 @@ export default function ManagerSnapshotForm({
                         type="number"
                         value={row.count}
                         onChange={(e) =>
-                          updateInternal(i, e.target.value)
+                          updateInternal(
+                            i,
+                            'count',
+                            e.target.value,
+                          )
                         }
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={7}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Agenda / Purpose of meeting"
+                        value={row.purpose}
+                        onChange={(e) =>
+                          updateInternal(
+                            i,
+                            'purpose',
+                            e.target.value,
+                          )
+                        }
+                        multiline
+                        minRows={1}
+                        maxRows={3}
                       />
                     </Grid>
                     <Grid
                       item
-                      xs={2}
+                      xs={12}
                       md="auto"
-                      sx={{ display: 'flex', alignItems: 'center' }}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
                     >
                       <Tooltip title="Remove">
                         <IconButton
@@ -855,7 +1115,7 @@ export default function ManagerSnapshotForm({
               </Box>
             )}
 
-            {/* Banker / partner meetings */}
+            {/* Banker meetings */}
             <FormControlLabel
               control={
                 <Switch
@@ -884,7 +1144,11 @@ export default function ManagerSnapshotForm({
                         label="Lender Name"
                         value={row.lenderName}
                         onChange={(e) =>
-                          updateBanker(i, 'lenderName', e.target.value)
+                          updateBanker(
+                            i,
+                            'lenderName',
+                            e.target.value,
+                          )
                         }
                       />
                     </Grid>
@@ -895,27 +1159,34 @@ export default function ManagerSnapshotForm({
                         label="Lender Contact"
                         value={row.lenderContact}
                         onChange={(e) =>
-                          updateBanker(i, 'lenderContact', e.target.value)
+                          updateBanker(
+                            i,
+                            'lenderContact',
+                            e.target.value,
+                          )
                         }
                       />
                     </Grid>
-                    <Grid item xs={10} md={3}>
+                    <Grid item xs={12} md={4}>
                       <TextField
                         size="small"
                         fullWidth
-                        label="How many"
-                        type="number"
-                        value={row.count}
+                        label="Agenda / Purpose of Meeting"
+                        value={row.purpose}
                         onChange={(e) =>
-                          updateBanker(i, 'count', e.target.value)
+                          updateBanker(i, 'purpose', e.target.value)
                         }
                       />
                     </Grid>
+
                     <Grid
                       item
-                      xs={2}
+                      xs={12}
                       md="auto"
-                      sx={{ display: 'flex', alignItems: 'center' }}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
                     >
                       <Tooltip title="Remove">
                         <IconButton
@@ -967,34 +1238,80 @@ export default function ManagerSnapshotForm({
                           label="Client – Type"
                           value={row.type}
                           onChange={(e) =>
-                            updateClient(i, 'type', e.target.value)
+                            updateClient(
+                              i,
+                              'type',
+                              e.target.value,
+                            )
                           }
                         >
                           {clientTypes.map((c) => (
-                            <MenuItem key={c.value} value={c.value}>
+                            <MenuItem
+                              key={c.value}
+                              value={c.value}
+                            >
                               {c.label}
                             </MenuItem>
                           ))}
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={10} md={3}>
+                    <Grid item xs={12} md={3}>
                       <TextField
                         size="small"
                         fullWidth
-                        label="How many"
-                        type="number"
-                        value={row.count}
+                        label="Client Name"
+                        value={row.clientName}
                         onChange={(e) =>
-                          updateClient(i, 'count', e.target.value)
+                          updateClient(
+                            i,
+                            'clientName',
+                            e.target.value,
+                          )
                         }
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Client Contact"
+                        value={row.clientContact}
+                        onChange={(e) =>
+                          updateClient(
+                            i,
+                            'clientContact',
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={9}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Purpose / Discussion notes"
+                        value={row.purpose}
+                        onChange={(e) =>
+                          updateClient(
+                            i,
+                            'purpose',
+                            e.target.value,
+                          )
+                        }
+                        multiline
+                        minRows={1}
+                        maxRows={3}
                       />
                     </Grid>
                     <Grid
                       item
-                      xs={2}
+                      xs={12}
                       md="auto"
-                      sx={{ display: 'flex', alignItems: 'center' }}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
                     >
                       <Tooltip title="Remove">
                         <IconButton
@@ -1029,52 +1346,6 @@ export default function ManagerSnapshotForm({
 
             <Divider sx={{ my: 2 }} />
 
-            {/* Expected Today */}
-            <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: 800, mb: 1 }}
-            >
-              5) Expected Today
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Expected Logins (Team)"
-                  type="number"
-                  value={expectedLogins}
-                  onChange={(e) => setExpectedLogins(e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Expected Approval (Lacs)"
-                  type="number"
-                  value={expectedApprovalLacs}
-                  onChange={(e) =>
-                    setExpectedApprovalLacs(e.target.value)
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Expected Disbursal (₹)"
-                  type="number"
-                  value={expectedDisbursalAmount}
-                  onChange={(e) =>
-                    setExpectedDisbursalAmount(e.target.value)
-                  }
-                />
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 2 }} />
-
             {/* Till Date */}
             <Typography
               variant="subtitle1"
@@ -1090,7 +1361,9 @@ export default function ManagerSnapshotForm({
                   label="Till Date Logins"
                   type="number"
                   value={tillDateLogin}
-                  onChange={(e) => setTillDateLogin(e.target.value)}
+                  onChange={(e) =>
+                    setTillDateLogin(e.target.value)
+                  }
                 />
               </Grid>
               <Grid item xs={12} md={3}>
@@ -1170,13 +1443,27 @@ export default function ManagerSnapshotForm({
                 <TextField
                   size="small"
                   fullWidth
+                  label="Customers Connected on Phone (Today)"
+                  type="number"
+                  value={customerPhoneConnectsDone}
+                  onChange={(e) =>
+                    setCustomerPhoneConnectsDone(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
                   label="Team Logins Done"
                   type="number"
                   value={teamLoginsDone}
-                  onChange={(e) => setTeamLoginsDone(e.target.value)}
+                  onChange={(e) =>
+                    setTeamLoginsDone(e.target.value)
+                  }
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <TextField
                   size="small"
                   fullWidth
@@ -1188,7 +1475,7 @@ export default function ManagerSnapshotForm({
                   }
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <TextField
                   size="small"
                   fullWidth
@@ -1207,17 +1494,25 @@ export default function ManagerSnapshotForm({
               sx={{ fontWeight: 800, mb: 1 }}
             >
               <StarIcon sx={{ mr: 0.6 }} />
-              Top Performer
+              Top Performer from Team
             </Typography>
-            <Grid container spacing={2}>
+
+            {/* 🔹 Top Performer – Approval */}
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, mb: 0.5 }}
+            >
+              Top Performer – Approval
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 1 }}>
               <Grid item xs={12} md={6}>
                 <TextField
                   size="small"
                   fullWidth
-                  label="Name"
-                  value={topPerformerName}
+                  label="Name (Approval)"
+                  value={approvalTopName}
                   onChange={(e) =>
-                    setTopPerformerName(e.target.value)
+                    setApprovalTopName(e.target.value)
                   }
                 />
               </Grid>
@@ -1225,22 +1520,55 @@ export default function ManagerSnapshotForm({
                 <TextField
                   size="small"
                   fullWidth
-                  label="Disbursal Value (In Rupees)"
+                  label="Approval Value (₹)"
                   type="number"
-                  value={topPerformerValueLacs}
+                  value={approvalTopAmount}
                   onChange={(e) =>
-                    setTopPerformerValueLacs(e.target.value)
+                    setApprovalTopAmount(e.target.value)
                   }
                 />
               </Grid>
             </Grid>
+
+            {/* 🔹 Top Performer – Disbursal */}
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, mb: 0.5, mt: 1 }}
+            >
+              Top Performer – Disbursal
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Name (Disbursal)"
+                  value={disbursalTopName}
+                  onChange={(e) =>
+                    setDisbursalTopName(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Disbursal Value (₹)"
+                  type="number"
+                  value={disbursalTopAmount}
+                  onChange={(e) =>
+                    setDisbursalTopAmount(e.target.value)
+                  }
+                />
+              </Grid>
+            </Grid>
+
             <Typography
               variant="subtitle2"
               sx={{ fontWeight: 800, mt: 3, mb: 1 }}
             >
-              Files Stuck & Reasons
+              Files Stuck & Challenges faces dusring the day
             </Typography>
-
 
             <Box
               sx={{
@@ -1258,13 +1586,20 @@ export default function ManagerSnapshotForm({
                 fullWidth
                 variant="standard"
                 value={filesStuckDescription}
-                onChange={(e) => setFilesStuckDescription(e.target.value)}
+                onChange={(e) =>
+                  setFilesStuckDescription(e.target.value)
+                }
                 InputProps={{ disableUnderline: true }}
               />
             </Box>
 
             {filesStuck.map((row, i) => (
-              <Grid container spacing={1.5} key={i} sx={{ mb: 1 }}>
+              <Grid
+                container
+                spacing={1.5}
+                key={i}
+                sx={{ mb: 1 }}
+              >
                 <Grid item xs={12} md={5}>
                   <TextField
                     size="small"
@@ -1272,7 +1607,11 @@ export default function ManagerSnapshotForm({
                     label="Location / File"
                     value={row.location}
                     onChange={(e) =>
-                      updateStuck(i, 'location', e.target.value)
+                      updateStuck(
+                        i,
+                        'location',
+                        e.target.value,
+                      )
                     }
                   />
                 </Grid>
@@ -1283,7 +1622,11 @@ export default function ManagerSnapshotForm({
                     label="Reason"
                     value={row.reason}
                     onChange={(e) =>
-                      updateStuck(i, 'reason', e.target.value)
+                      updateStuck(
+                        i,
+                        'reason',
+                        e.target.value,
+                      )
                     }
                   />
                 </Grid>
@@ -1291,7 +1634,10 @@ export default function ManagerSnapshotForm({
                   item
                   xs={12}
                   md="auto"
-                  sx={{ display: 'flex', alignItems: 'center' }}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
                 >
                   <Tooltip title="Remove">
                     <IconButton
@@ -1305,13 +1651,12 @@ export default function ManagerSnapshotForm({
               </Grid>
             ))}
 
-
             <Grid container spacing={2} sx={{ mt: 2 }}>
               <Grid item xs={12}>
                 <TextField
                   size="small"
                   fullWidth
-                  label="Support Required (Tech/Operations/Banker Access/Other)"
+                  label="Support Required From (Tech/Operations/Banker Access/Other)"
                   value={supportRequired}
                   onChange={(e) =>
                     setSupportRequired(e.target.value)
@@ -1320,9 +1665,11 @@ export default function ManagerSnapshotForm({
                   rows={2}
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={4} sx={{ mt: 2 }}>
                 <FormControl fullWidth size="small">
-                  <InputLabel>Overall Sentiment</InputLabel>
+                  <InputLabel>
+                    Overall Sentiment From Today Delivery
+                  </InputLabel>
                   <Select
                     label="Overall Sentiment"
                     value={overallSentiment}
@@ -1409,7 +1756,10 @@ export default function ManagerSnapshotForm({
         onClose={() =>
           setSnack((s) => ({ ...s, open: false }))
         }
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
       >
         <Alert
           onClose={() =>

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
@@ -68,9 +68,10 @@ api.interceptors.request.use((config) => {
 });
 
 /* ===================== helpers ===================== */
-const rupee = (n: number) => `₹${Intl.NumberFormat('en-IN').format(n)}`;
+const rupee = (n: number) => `₹${Intl.NumberFormat('en-IN').format(n || 0)}`;
 const asNum = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const fullName = (e: any) => `${e?.first_name || ''} ${e?.last_name || ''}`.trim();
+const fullName = (e: any) =>
+  `${e?.first_name || ''} ${e?.last_name || ''}`.trim();
 
 const getMeta = (
   status?: string
@@ -107,11 +108,36 @@ const computeMetrics = (doc: any) => {
     const eve = doc?.re?.evening || {};
 
     const candidates = [
-      { key: 'logins', t: asNum(exp.expectedLogins), d: asNum(eve.loginsDone), unit: 'count' },
-      { key: 'approvals', t: asNum(exp.expectedApprovals), d: asNum(eve.approvalsDone), unit: 'rupee' },
-      { key: 'disbursal', t: asNum(exp.expectedDisbursal), d: asNum(eve.disbursalDone), unit: 'rupee' },
-      { key: 'phoneConnects', t: asNum(exp.phoneConnects), d: asNum(eve.phoneConnectsDone), unit: 'count' },
-      { key: 'physicalMeet', t: asNum(exp.physicalMeet), d: asNum(eve.physicalMeetDone), unit: 'count' },
+      {
+        key: 'logins',
+        t: asNum(exp.expectedLogins),
+        d: asNum(eve.loginsDone),
+        unit: 'count',
+      },
+      {
+        key: 'approvals',
+        t: asNum(exp.expectedApprovals),
+        d: asNum(eve.approvalsDone),
+        unit: 'rupee',
+      },
+      {
+        key: 'disbursal',
+        t: asNum(exp.expectedDisbursal),
+        d: asNum(eve.disbursalDone),
+        unit: 'rupee',
+      },
+      {
+        key: 'phoneConnects',
+        t: asNum(exp.phoneConnects),
+        d: asNum(eve.phoneConnectsDone),
+        unit: 'count',
+      },
+      {
+        key: 'physicalMeet',
+        t: asNum(exp.physicalMeet),
+        d: asNum(eve.physicalMeetDone),
+        unit: 'count',
+      },
     ];
 
     const picked = candidates.find((c) => c.t || c.d) || candidates[0];
@@ -133,26 +159,27 @@ const computeMetrics = (doc: any) => {
   if (doc?.role === 'manager') {
     const m = doc?.manager || {};
     const exp = m?.morning?.expected || {};
+    const own = m?.morning?.ownContribution || {};
     const eve = m?.evening || {};
-    const loanTargetRu = Number(m?.morning?.teamTargetLoanLacs || 0) * 100000;
 
+    // ✅ Morning Plan = Team Expected + Own Contribution
     const logins = {
       key: 'logins',
-      t: asNum(exp.loginsTeam),
+      t: asNum(exp.loginsTeam) + asNum(own.login),
       d: asNum(eve.teamLoginsDone),
       unit: 'count',
     };
 
     const apprAmt = {
-      key: 'approvals ₹',
-      t: asNum(exp.approvalLacs) * 100000,
+      key: 'approvals',
+      t: asNum(exp.approvalLacs) + asNum(own.approvalLacs),
       d: asNum(eve.teamApprovalDoneAmount),
       unit: 'rupee',
     };
 
     const disbAmt = {
-      key: 'disbursal ₹',
-      t: asNum(exp.disbursalAmount) || loanTargetRu,
+      key: 'disbursal',
+      t: asNum(exp.disbursalAmount) + asNum(own.disbursalLacs),
       d: asNum((eve as any).teamDisbursalDoneAmount ?? 0),
       unit: 'rupee',
     };
@@ -162,8 +189,10 @@ const computeMetrics = (doc: any) => {
 
     let status: 'done' | 'in_progress' | 'planned' = 'planned';
 
-    if ((picked.d || 0) >= (picked.t || 0) && (picked.t || 0) > 0) status = 'done';
-    else if ((picked.d || 0) > 0 || (picked.t || 0) > 0) status = 'in_progress';
+    if ((picked.d || 0) >= (picked.t || 0) && (picked.t || 0) > 0)
+      status = 'done';
+    else if ((picked.d || 0) > 0 || (picked.t || 0) > 0)
+      status = 'in_progress';
 
     return {
       taskTitle: `Manager ${picked.key} — ${doc?.date || ''}`,
@@ -199,7 +228,13 @@ const mapServerToCardItem = (doc: any) => {
 };
 
 /* ===================== Drawer helpers ===================== */
-type Pair = { key: string; label: string; planned: number; done: number; unit: 'count' | 'rupee' };
+type Pair = {
+  key: string;
+  label: string;
+  planned: number;
+  done: number;
+  unit: 'count' | 'rupee';
+};
 
 const pct = (planned = 0, done = 0) => {
   const p = Number(planned) || 0;
@@ -211,7 +246,9 @@ const pct = (planned = 0, done = 0) => {
 };
 
 const prettyNum = (n: number, unit: 'rupee' | 'count') =>
-  unit === 'rupee' ? `₹${Intl.NumberFormat('en-IN').format(n || 0)}` : `${n || 0}`;
+  unit === 'rupee'
+    ? `₹${Intl.NumberFormat('en-IN').format(n || 0)}`
+    : `${n || 0}`;
 
 const MetricRow = ({ pair }: { pair: Pair }) => {
   const p = Number(pair.planned) || 0;
@@ -289,11 +326,17 @@ const buildPairsForManager = (raw: any): Pair[] => {
   const m = raw?.manager?.morning || {};
   const e = raw?.manager?.evening || {};
   const exp = m?.expected || {};
+  const own = m?.ownContribution || {};
 
-  const plannedLogins = Number(exp.loginsTeam || 0);
-  const plannedApproval = Number(exp.approvalLacs || 0) * 100000;
+  // ✅ Morning Plan = Expected (team) + Own
+  const plannedLogins =
+    Number(exp.loginsTeam || 0) + Number(own.login || 0);
+
+  const plannedApproval =
+    Number(exp.approvalLacs || 0) + Number(own.approvalLacs || 0);
+
   const plannedDisbursal =
-    Number(exp.disbursalAmount || 0) || Number(m.teamTargetLoanLacs || 0) * 100000;
+    Number(exp.disbursalAmount || 0) + Number(own.disbursalLacs || 0);
 
   const doneLogins = Number(e.teamLoginsDone || 0);
   const doneApproval = Number(e.teamApprovalDoneAmount || 0);
@@ -349,7 +392,12 @@ const HeaderBand = ({ role, emp, dateStr }: any) => (
           'radial-gradient(1200px 300px at -10% -20%, rgba(255,255,255,0.15), transparent)',
       }}
     />
-    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ position: 'relative' }}>
+    <Stack
+      direction="row"
+      spacing={1.5}
+      alignItems="center"
+      sx={{ position: 'relative' }}
+    >
       <Avatar
         src={emp?.image || ''}
         sx={{ width: 42, height: 42, border: '2px solid rgba(255,255,255,.6)' }}
@@ -393,6 +441,7 @@ const DetailsDrawer = ({
     const run = async () => {
       if (!open || !doc) {
         setTillDatePairs([]);
+
         return;
       }
 
@@ -404,15 +453,16 @@ const DetailsDrawer = ({
 
         const empId = String(
           rawDoc?.employee?._id ||
-          rawDoc?.employee_id ||
-          rawDoc?.owner_id ||
-          ''
+            rawDoc?.employee_id ||
+            rawDoc?.owner_id ||
+            ''
         ).trim();
 
         const snapshotDate = rawDoc?.date ? dayjs(rawDoc.date) : null;
 
         if (!empId || !snapshotDate || !snapshotDate.isValid()) {
           setTillDatePairs([]);
+
           return;
         }
 
@@ -432,7 +482,10 @@ const DetailsDrawer = ({
         const payload = res?.data || {};
 
         if (Array.isArray(payload.data)) {
-          if (payload.data.length > 0 && Array.isArray(payload.data[0]?.records)) {
+          if (
+            payload.data.length > 0 &&
+            Array.isArray(payload.data[0]?.records)
+          ) {
             payload.data.forEach((g: any) =>
               (g.records || []).forEach((r: any) => {
                 if (!r.employee && g.employee) r.employee = g.employee;
@@ -446,7 +499,9 @@ const DetailsDrawer = ({
 
         list = list.filter((item: any) => {
           const d = dayjs(item?.date);
+
           if (!d.isValid()) return false;
+
           return d.valueOf() <= snapshotDate.valueOf();
         });
 
@@ -517,7 +572,10 @@ const DetailsDrawer = ({
       <HeaderBand role={role} emp={emp} dateStr={dateStr} />
 
       <Box sx={{ mt: 2.5 }}>
-        <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: 1 }}>
+        <Typography
+          variant="overline"
+          sx={{ fontWeight: 800, letterSpacing: 1 }}
+        >
           Comparison — Morning vs Evening
         </Typography>
         <Divider sx={{ mb: 1 }} />
@@ -531,7 +589,10 @@ const DetailsDrawer = ({
       </Box>
 
       <Box sx={{ mt: 2.5 }}>
-        <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: 1 }}>
+        <Typography
+          variant="overline"
+          sx={{ fontWeight: 800, letterSpacing: 1 }}
+        >
           Till Date — Commitment vs Delivery
         </Typography>
         <Divider sx={{ mb: 1 }} />
@@ -551,7 +612,10 @@ const DetailsDrawer = ({
       </Box>
 
       <Box sx={{ mt: 2.5 }}>
-        <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: 1 }}>
+        <Typography
+          variant="overline"
+          sx={{ fontWeight: 800, letterSpacing: 1 }}
+        >
           Summary (Selected Date)
         </Typography>
         <Divider sx={{ mb: 1 }} />
@@ -584,7 +648,10 @@ const DetailsDrawer = ({
 
       {tillDatePairs.length > 0 && (
         <Box sx={{ mt: 2 }}>
-          <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: 1 }}>
+          <Typography
+            variant="overline"
+            sx={{ fontWeight: 800, letterSpacing: 1 }}
+          >
             Summary (Till Date)
           </Typography>
           <Divider sx={{ mb: 1 }} />
@@ -613,7 +680,8 @@ const DetailsDrawer = ({
                   sx={{ height: 10, borderRadius: 2 }}
                 />
                 <Typography variant="caption" color="text.secondary">
-                  {pct(tillTotals.planned, tillTotals.done)}% overall achieved till this date
+                  {pct(tillTotals.planned, tillTotals.done)}% overall
+                  achieved till this date
                 </Typography>
               </Grid>
             </Grid>
@@ -645,48 +713,74 @@ const emptyMtd: MTD = {
   loading: false,
 };
 
+/* -------------------- Code Summary type (overall per code) -------------------- */
+type CodeSummaryRow = {
+  code: string;
+  employees?: string[];
+  totalLogins: number;
+  totalApproval: number;
+  totalDisbursal: number;
+  rowCount: number; // days
+};
+
+type ExcelSummary = CodeSummaryRow;
+
 const PerformanceCard = ({
   item,
   onEdit,
   onDetails,
   mtd,
   canEdit,
+  excelSummary,
 }: {
   item: any;
   onEdit?: (id: string) => void;
   onDetails: (doc: any) => void;
   mtd?: MTD;
   canEdit?: boolean;
+  excelSummary?: ExcelSummary;
 }) => {
   const meta = getMeta(item?.status);
   const raw = item.__raw ? item.__raw : item;
   const role = raw?.role;
 
+  // 🔹 Employee morning/evening
   const empMorning = raw?.re?.morning || {};
   const empEvening = raw?.re?.evening || {};
 
+  // 🔹 Manager morning/evening
   const mgrMorning = raw?.manager?.morning || {};
   const mgrExpected = mgrMorning?.expected || {};
+  const mgrOwn = mgrMorning?.ownContribution || {};
   const mgrEvening = raw?.manager?.evening || {};
 
+  // 🔹 NEW: Manager tillDate block safely read
+  const mgrTillDateRaw = mgrMorning?.tillDate || {};
+  const mgrTillDateLogin = Number(mgrTillDateRaw?.login ?? 0) || 0;
+  const mgrTillDateApprovalLacs =
+    Number(mgrTillDateRaw?.approvalLacs ?? 0) || 0;
+  const mgrTillDateDisbursalLacs =
+    Number(mgrTillDateRaw?.disbursalLacs ?? 0) || 0;
+
+  // 🔹 Morning metrics (employee vs manager)
   const morningLogin =
     role === 'manager'
-      ? asNum(mgrExpected.loginsTeam ?? 0)
+      ? asNum(mgrExpected.loginsTeam ?? 0) + asNum(mgrOwn.login ?? 0)
       : asNum(empMorning.expectedLogins ?? 0);
 
   const morningApproval =
     role === 'manager'
-      ? asNum(mgrExpected.approvalLacs ?? 0) * 100000
+      ? asNum(mgrExpected.approvalLacs ?? 0) +
+        asNum(mgrOwn.approvalLacs ?? 0)
       : asNum(empMorning.expectedApprovals ?? 0);
 
   const morningDisbursal =
     role === 'manager'
-      ? asNum(
-          (mgrExpected.disbursalAmount ?? 0) ||
-            ((Number(mgrMorning.teamTargetLoanLacs || 0) || 0) * 100000)
-        )
+      ? asNum(mgrExpected.disbursalAmount ?? 0) +
+        asNum(mgrOwn.disbursalLacs ?? 0)
       : asNum(empMorning.expectedDisbursal ?? 0);
 
+  // 🔹 Evening metrics (employee vs manager)
   const eveningLogin =
     role === 'manager'
       ? asNum(mgrEvening.teamLoginsDone ?? 0)
@@ -696,12 +790,10 @@ const PerformanceCard = ({
     role === 'manager'
       ? asNum(mgrEvening.teamApprovalDoneAmount ?? 0)
       : asNum(empEvening.approvalsDone ?? 0);
-      
-      
 
-  const mgrEveningDisbursalMaybe = (mgrEvening as any)?.teamDisbursalDoneAmount;
+  const mgrEveningDisbursalMaybe =
+    (mgrEvening as any)?.teamDisbursalDoneAmount;
 
-  // ✅ always numeric, no null – chip hamesha dikhega
   const eveningDisbursal =
     role === 'manager'
       ? asNum(mgrEveningDisbursalMaybe ?? 0)
@@ -709,21 +801,15 @@ const PerformanceCard = ({
 
   const m = mtd || emptyMtd;
 
-  const approvalCommit = m.approvalCommit || 0;
-  const approvalDone = m.approvalDone || 0;
-  const approvalPending = Math.max(approvalCommit - approvalDone, 0);
-
-  const disbCommit = m.disbursalCommit || 0;
-  const disbDone = m.disbursalDone || 0;
-  const disbPending = Math.max(disbCommit - disbDone, 0);
-
   const Stat = ({ label, value }: { label: string; value: number | null }) => {
     if (value === null || value === undefined) return null;
 
     return (
       <Chip
         size="small"
-        label={`${label}: ${Intl.NumberFormat('en-IN').format(Number(value) || 0)}`}
+        label={`${label}: ${Intl.NumberFormat('en-IN').format(
+          Number(value) || 0
+        )}`}
         variant="outlined"
         sx={{ height: 24, '& .MuiChip-label': { px: 1 } }}
       />
@@ -796,8 +882,9 @@ const PerformanceCard = ({
             variant="subtitle1"
             sx={{ fontWeight: 900, letterSpacing: 0.2 }}
           >
-            {(item?.employee?.first_name || '') + ' ' + (item?.employee?.last_name || '') ||
-              '—'}
+            {(item?.employee?.first_name || '') +
+              ' ' +
+              (item?.employee?.last_name || '') || '—'}
           </Typography>
           <Typography
             variant="caption"
@@ -810,6 +897,15 @@ const PerformanceCard = ({
               : item?.employee?.designation || '—'}
           </Typography>
         </Box>
+
+        {item?.employee?.code && (
+          <Chip
+            size="small"
+            label={`Code: ${item.employee.code}`}
+            variant="outlined"
+            sx={{ borderRadius: 999 }}
+          />
+        )}
       </Box>
 
       {/* ===== Middle: Morning & Evening cards ===== */}
@@ -821,17 +917,29 @@ const PerformanceCard = ({
               sx={{
                 p: 1.1,
                 borderRadius: 2,
-                background: 'linear-gradient(135deg,#f9fafb 0%,#eff6ff 100%)',
+                background:
+                  'linear-gradient(135deg,#f9fafb 0%,#eff6ff 100%)',
               }}
             >
               <Stack direction="row" alignItems="center" spacing={0.75}>
-                <HourglassBottomIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-                <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.3 }}>
+                <HourglassBottomIcon
+                  sx={{ fontSize: 16, color: 'primary.main' }}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{ fontWeight: 800, letterSpacing: 0.3 }}
+                >
                   Morning Commitment
                 </Typography>
               </Stack>
 
               <Stack direction="column" spacing={0.75} sx={{ mt: 0.75 }}>
+                <Box sx={{ width: 1 }}>
+                  <Stat
+                    label="Total Connected Calls"
+                    value={morningLogin}
+                  />
+                </Box>
                 <Box sx={{ width: 1 }}>
                   <Stat label="Login" value={morningLogin} />
                 </Box>
@@ -839,7 +947,10 @@ const PerformanceCard = ({
                   <Stat label="Approval" value={morningApproval} />
                 </Box>
                 <Box sx={{ width: 1 }}>
-                  <Stat label="Disbursal" value={morningDisbursal} />
+                  <Stat
+                    label="Disbursal"
+                    value={morningDisbursal}
+                  />
                 </Box>
               </Stack>
             </Paper>
@@ -851,25 +962,43 @@ const PerformanceCard = ({
               sx={{
                 p: 1.1,
                 borderRadius: 2,
-                background: 'linear-gradient(135deg,#f9fafb 0%,#ecfdf3 100%)',
+                background:
+                  'linear-gradient(135deg,#f9fafb 0%,#ecfdf3 100%)',
               }}
             >
               <Stack direction="row" alignItems="center" spacing={0.75}>
-                <TrendingUpOutlinedIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.3 }}>
+                <TrendingUpOutlinedIcon
+                  sx={{ fontSize: 16, color: 'success.main' }}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{ fontWeight: 800, letterSpacing: 0.3 }}
+                >
                   Evening Delivery
                 </Typography>
               </Stack>
 
               <Stack direction="column" spacing={0.75} sx={{ mt: 0.75 }}>
                 <Box sx={{ width: 1 }}>
+                  <Stat
+                    label="Total Connected Calls"
+                    value={eveningLogin}
+                  />
+                </Box>
+                <Box sx={{ width: 1 }}>
                   <Stat label="Login" value={eveningLogin} />
                 </Box>
                 <Box sx={{ width: 1 }}>
-                  <Stat label="Approval" value={eveningApproval} />
+                  <Stat
+                    label="Approval"
+                    value={eveningApproval}
+                  />
                 </Box>
                 <Box sx={{ width: 1 }}>
-                  <Stat label="Disbursal" value={eveningDisbursal} />
+                  <Stat
+                    label="Disbursal"
+                    value={eveningDisbursal}
+                  />
                 </Box>
               </Stack>
             </Paper>
@@ -877,100 +1006,264 @@ const PerformanceCard = ({
         </Grid>
       </Box>
 
-  
-      <Box sx={{ mt: 2 }}>
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 1.25,
-            borderRadius: 2,
-            bgcolor: '#f9fafb',
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ fontWeight: 800, letterSpacing: 0.4, mb: 0.5, display: 'block' }}
-          >
-            Morning vs Evening – Login / Approval / Disbursal
+      {/* 🔹 Till Date (Manager Morning) – sirf manager ke liye {/* 🔹 Manager Snapshot */}
+{role === 'manager' && (
+  <Box sx={{ mt: 2 }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 1.8,
+        borderRadius: 3,
+        background:
+          'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+        border: '1px solid #eef0f6',
+        transition: '0.25s',
+        '&:hover': {
+          boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+          transform: 'translateY(-3px)',
+        },
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 900,
+          fontSize: 12.5,
+          letterSpacing: 0.5,
+          textTransform: 'uppercase',
+          color: '#1e293b',
+          mb: 1.2,
+          display: 'block',
+        }}
+      >
+        Till Date — Manager Snapshot
+      </Typography>
+
+      <Grid container spacing={2}>
+        <Grid item xs={4}>
+          <Typography variant="caption" color="text.secondary">
+            Login
           </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            {mgrTillDateLogin}
+          </Typography>
+        </Grid>
 
-          <Grid container spacing={0.75}>
-            {/* Login row */}
-            <Grid item xs={4}>
-              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                Login
-              </Typography>
-            </Grid>
-            <Grid item xs={8}>
-              <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                <Chip
-                  size="small"
-                  label={`Morning: ${Intl.NumberFormat('en-IN').format(morningLogin || 0)}`}
-                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
-                  variant="outlined"
-                />
-                <Chip
-                  size="small"
-                  label={`Evening: ${Intl.NumberFormat('en-IN').format(eveningLogin || 0)}`}
-                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
-                  color="success"
-                  variant="outlined"
-                />
-              </Stack>
-            </Grid>
+        <Grid item xs={4}>
+          <Typography variant="caption" color="text.secondary">
+            Approval (₹)
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            ₹{mgrTillDateApprovalLacs}
+          </Typography>
+        </Grid>
 
-            {/* Approval row */}
-            <Grid item xs={4}>
-              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                Approval (₹)
-              </Typography>
-            </Grid>
-            <Grid item xs={8}>
-              <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                <Chip
-                  size="small"
-                  label={`Morning: ${formatRupeeShort(morningApproval || 0)}`}
-                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
-                  variant="outlined"
-                />
-                <Chip
-                  size="small"
-                  label={`Evening: ${formatRupeeShort(eveningApproval || 0)}`}
-                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
-                  color="success"
-                  variant="outlined"
-                />
-              </Stack>
-            </Grid>
+        <Grid item xs={4}>
+          <Typography variant="caption" color="text.secondary">
+            Disbursal (₹)
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            ₹{mgrTillDateDisbursalLacs}
+          </Typography>
+        </Grid>
+      </Grid>
+    </Paper>
+  </Box>
+)}
 
-            {/* Disbursal row */}
-            <Grid item xs={4}>
-              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                Disbursal (₹)
+{/* 🔹 Financial Snapshot — SAME DESIGN AS TILL DATE */}
+{excelSummary && (
+  <Box sx={{ mt: 2 }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 1.8,
+        borderRadius: 3,
+        background:
+          'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+        border: '1px solid #eef0f6',
+        transition: '0.25s',
+        '&:hover': {
+          boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+          transform: 'translateY(-3px)',
+        },
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 900,
+          fontSize: 12.5,
+          letterSpacing: 0.5,
+          textTransform: 'uppercase',
+          color: '#1e293b',
+          mb: 0.2,
+          display: 'block',
+        }}
+      >
+        Financial Snapshot — By Company
+      </Typography>
+
+      <Grid container spacing={1}>
+        
+        <Grid item xs={4}>
+          <Typography variant="caption" color="text.secondary">
+            Total Logins
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            {excelSummary.totalLogins}
+          </Typography>
+        </Grid>
+
+        <Grid item xs={4}>
+          <Typography variant="caption" color="text.secondary">
+            Total Approval (₹)
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            {formatRupeeShort(excelSummary.totalApproval)}
+          </Typography>
+        </Grid>
+
+        <Grid item xs={4}>
+          <Typography variant="caption" color="text.secondary">
+            Total Disbursal (₹)
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            {formatRupeeShort(excelSummary.totalDisbursal)}
+          </Typography>
+        </Grid>
+
+      </Grid>
+    </Paper>
+  </Box>
+)}
+
+<Box sx={{ mt: 2 }}>
+  <Paper
+    variant="outlined"
+    sx={{
+      p: 1.25,
+      borderRadius: 2,
+      bgcolor: '#f9fafb',
+    }}
+  >
+    <Typography
+      variant="caption"
+      sx={{
+        fontWeight: 800,
+        letterSpacing: 0.4,
+        mb: 0.5,
+        display: 'block',
+        color: '#374151',
+      }}
+    >
+      Morning vs Evening – Calls / Login / Approval / Disbursal
+    </Typography>
+
+    <Grid container spacing={1}>
+
+      {[
+        {
+          label: 'Connected Calls',
+          morning: morningLogin,
+          evening: eveningLogin,
+        },
+        {
+          label: 'Login',
+          morning: morningLogin,
+          evening: eveningLogin,
+        },
+        {
+          label: 'Approval (₹)',
+          morning: morningApproval,
+          evening: eveningApproval,
+        },
+        {
+          label: 'Disbursal (₹)',
+          morning: morningDisbursal,
+          evening: eveningDisbursal,
+        },
+      ].map((item, idx) => {
+
+        const m = Number(item.morning || 0);
+        const e = Number(item.evening || 0);
+
+        const pct = m === 0 ? (e > 0 ? 100 : 0) : Math.round((e / m) * 100);
+
+        let pctColor = '#6b7280';
+        let arrow = '→';
+
+        if (pct > 100) { pctColor = '#059669'; arrow = '↑'; }
+        else if (pct < 100) { pctColor = '#dc2626'; arrow = '↓'; }
+
+        return (
+          <Grid key={idx} item xs={12}>
+            <Stack
+              direction="row"
+              spacing={3}
+              alignItems="center"
+              flexWrap="wrap"
+              sx={{
+                p: 1,
+                borderRadius: 1.5,
+                border: '1px solid #e5e7eb',
+                background: '#ffffff',
+              }}
+            >
+              {/* Label */}
+              <Typography variant="caption" sx={{ fontWeight: 800, minWidth: 110 }}>
+                {item.label}
               </Typography>
-            </Grid>
-            <Grid item xs={8}>
-              <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                <Chip
-                  size="small"
-                  label={`Morning: ${formatRupeeShort(morningDisbursal || 0)}`}
-                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
-                  variant="outlined"
-                />
-                <Chip
-                  size="small"
-                  label={`Evening: ${formatRupeeShort(eveningDisbursal || 0)}`}
-                  sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 11 } }}
-                  color="success"
-                  variant="outlined"
-                />
-              </Stack>
-            </Grid>
+
+              {/* Morning */}
+              <Chip
+                size="small"
+                label={`Mrng: ${formatRupeeShort(m)}`}
+                variant="outlined"
+                sx={{
+                  height: 22,
+                  '& .MuiChip-label': { px: 0.8, fontSize: 11 },
+                }}
+              />
+
+              {/* Evening */}
+              <Chip
+                size="small"
+                label={`Eve: ${formatRupeeShort(e)}`}
+                color="success"
+                variant="outlined"
+                sx={{
+                  height: 22,
+                  '& .MuiChip-label': { px: 0.8, fontSize: 11 },
+                }}
+              />
+
+              {/* Percentage ↓🔥 SAME LINE */}
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 900,
+                  color: pctColor,
+                  fontSize: 12,
+                }}
+              >
+                {arrow} {pct}% Achieved
+              </Typography>
+            </Stack>
           </Grid>
-        </Paper>
-      </Box>
+        );
+      })}
 
- 
+    </Grid>
+  </Paper>
+</Box>
+
+
+
+
+
       <Divider sx={{ my: 1.5 }} />
 
       {/* ===== Footer: Date + buttons ===== */}
@@ -990,7 +1283,7 @@ const PerformanceCard = ({
           sx={{
             borderRadius: 999,
             fontWeight: 600,
-            '& .MuiChip-label': { px: 1 },
+            '& .MuiChip-label': { px: 3},
           }}
         />
         <Stack direction="row" spacing={1}>
@@ -998,7 +1291,11 @@ const PerformanceCard = ({
             size="small"
             variant="outlined"
             onClick={() => onDetails(item)}
-            sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 600 }}
+            sx={{
+              borderRadius: 999,
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
           >
             Details
           </Button>
@@ -1008,7 +1305,11 @@ const PerformanceCard = ({
               variant="contained"
               color="info"
               onClick={() => onEdit(item?._id)}
-              sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 700 }}
+              sx={{
+                borderRadius: 999,
+                textTransform: 'none',
+                fontWeight: 700,
+              }}
             >
               Edit
             </Button>
@@ -1034,7 +1335,8 @@ export default function PerformanceGrid() {
   const [limit] = useState<number>(12);
 
   const [showForm, setShowForm] = useState(false);
-  const [selectedPerformanceId, setSelectedPerformanceId] = useState<string | null>(null);
+  const [selectedPerformanceId, setSelectedPerformanceId] =
+    useState<string | null>(null);
 
   const [userRole, setUserRole] = useState<string>('');
   const [userDesignation, setUserDesignation] = useState<string>('');
@@ -1063,12 +1365,23 @@ export default function PerformanceGrid() {
     >
   >({});
 
+  // 🔹 Code summary (Excel) + map
+  const [codeSummary, setCodeSummary] = useState<CodeSummaryRow[]>([]);
+  const [codeSummaryLoading, setCodeSummaryLoading] = useState(false);
+  const [codeSummaryMap, setCodeSummaryMap] = useState<
+    Record<string, CodeSummaryRow>
+  >({});
+
+  // 🔹 logged-in user ka employee code
+  const [myCode, setMyCode] = useState<string | null>(null);
+
   const router = useRouter();
   const [uploading] = useState(false);
 
-  const pickDate = (selectedDate ? selectedDate : dayjs()).format('YYYY-MM-DD');
+  const pickDate = (selectedDate ? selectedDate : dayjs()).format(
+    'YYYY-MM-DD'
+  );
 
-  /* -------- read user & load teams -------- */
   useEffect(() => {
     const user =
       typeof window !== 'undefined'
@@ -1076,10 +1389,13 @@ export default function PerformanceGrid() {
         : {};
 
     const token =
-      typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      typeof window !== 'undefined'
+        ? localStorage.getItem('token')
+        : null;
 
     setUserRole(String(user?.role || ''));
     setUserDesignation(String(user?.designation || ''));
+    setMyCode(String(user?.code || ''));
 
     const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
     const url = `${base}/teams/manager-one/${user?.id}`;
@@ -1088,6 +1404,7 @@ export default function PerformanceGrid() {
       try {
         if (!user?.id || !token) {
           setLoadingTeams(false);
+
           return;
         }
 
@@ -1115,6 +1432,7 @@ export default function PerformanceGrid() {
       try {
         if (!Array.isArray(teams) || teams.length === 0) {
           setEmpPerf({});
+
           return;
         }
 
@@ -1127,6 +1445,7 @@ export default function PerformanceGrid() {
 
         if (!employee_ids) {
           setEmpPerf({});
+
           return;
         }
 
@@ -1137,8 +1456,8 @@ export default function PerformanceGrid() {
         const arr: any[] = Array.isArray(resp.data)
           ? resp.data
           : Array.isArray(resp.data?.data)
-            ? resp.data.data
-            : [];
+          ? resp.data.data
+          : [];
 
         const perEmp: Record<string, any> = {};
 
@@ -1149,7 +1468,10 @@ export default function PerformanceGrid() {
           if (d.month() + 1 !== month || d.year() !== year) continue;
 
           const empId = String(
-            doc?.owner_id || doc?.employee?._id || doc?.employee_id || ''
+            doc?.owner_id ||
+              doc?.employee?._id ||
+              doc?.employee_id ||
+              ''
           ).trim();
 
           if (!empId) continue;
@@ -1161,7 +1483,9 @@ export default function PerformanceGrid() {
             dayjs(doc.date).isAfter(dayjs(previous.date)) ||
             (doc?.createdAt &&
               previous?.createdAt &&
-              dayjs(doc.createdAt).isAfter(dayjs(previous.createdAt)));
+              dayjs(doc.createdAt).isAfter(
+                dayjs(previous.createdAt)
+              ));
 
           if (isLater) perEmp[empId] = doc;
         }
@@ -1193,8 +1517,15 @@ export default function PerformanceGrid() {
 
   /* -------- MTD for visible employees (1st → pickDate) -------- */
   const fetchMTDFor = async (empId: string) => {
-    if (!empId) return;
-    if (mtdMap[empId]?.loading) return;
+    if (!empId) {
+      console.warn('[MTD] empId missing, skipping');
+
+      return;
+    }
+
+    if (mtdMap[empId]?.loading) {
+      return;
+    }
 
     setMtdMap((m) => ({
       ...m,
@@ -1214,11 +1545,15 @@ export default function PerformanceGrid() {
       };
 
       const res = await api.get('/performance/list', { params });
+
       let list: any[] = [];
       const payload = res?.data || {};
 
       if (Array.isArray(payload.data)) {
-        if (payload.data.length > 0 && Array.isArray(payload.data[0]?.records)) {
+        if (
+          payload.data.length > 0 &&
+          Array.isArray(payload.data[0]?.records)
+        ) {
           payload.data.forEach((g: any) =>
             (g.records || []).forEach((r: any) => {
               if (!r.employee && g.employee) r.employee = g.employee;
@@ -1228,6 +1563,8 @@ export default function PerformanceGrid() {
         } else {
           list = payload.data;
         }
+      } else {
+        list = [];
       }
 
       const endDate = dayjs(pickDate);
@@ -1237,9 +1574,12 @@ export default function PerformanceGrid() {
 
         if (!dt.isValid()) return false;
 
-        return (
-          dt.month() + 1 === month && dt.year() === year && dt.valueOf() <= endDate.valueOf()
-        );
+        const ok =
+          dt.month() + 1 === month &&
+          dt.year() === year &&
+          dt.valueOf() <= endDate.valueOf();
+
+        return ok;
       });
 
       let loginCommit = 0;
@@ -1252,7 +1592,9 @@ export default function PerformanceGrid() {
       for (const doc of list) {
         const raw = doc?.__raw ? doc.__raw : doc;
 
-        if (raw?.role !== 'employee') continue;
+        if (raw?.role !== 'employee') {
+          continue;
+        }
 
         const m = raw?.re?.morning || {};
         const e = raw?.re?.evening || {};
@@ -1278,7 +1620,7 @@ export default function PerformanceGrid() {
           loading: false,
         },
       }));
-    } catch {
+    } catch (err) {
       setMtdMap((m) => ({
         ...m,
         [empId]: { ...emptyMtd, loading: false },
@@ -1291,7 +1633,12 @@ export default function PerformanceGrid() {
       new Set(
         items
           .map((it) =>
-            String(it?.employee?._id || it?.employee_id || it?.owner_id || '')
+            String(
+              it?.employee?._id ||
+                it?.employee_id ||
+                it?.owner_id ||
+                ''
+            )
           )
           .filter(Boolean)
       )
@@ -1304,6 +1651,77 @@ export default function PerformanceGrid() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, month, year, selectedDate]);
+
+  /* -------- Code-wise summary fetch (Excel) -------- */
+  useEffect(() => {
+    const fetchCodeSummary = async () => {
+      try {
+        setCodeSummaryLoading(true);
+
+        let company_id: string | undefined;
+
+        if (typeof window !== 'undefined') {
+          const u = JSON.parse(
+            localStorage.getItem('user') || '{}'
+          );
+
+          company_id =
+            localStorage.getItem('company_id') ||
+            u?.company_id ||
+            undefined;
+        }
+
+        const res = await api.get('/performance-upload/code-summary', {
+          params: { company_id },
+        });
+
+        const rows: any[] = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+        const mapped: CodeSummaryRow[] = rows
+          .map((r: any) => ({
+            code: r._id || r.code || '—',
+            employees: [],
+            totalLogins: Number(r.totalLogins || 0),
+            totalApproval: Number(r.totalApproval || 0),
+            totalDisbursal: Number(r.totalDisbursal || 0),
+            rowCount: Number(r.countDays || 0),
+          }))
+          .filter(
+            (r) =>
+              r.totalLogins !== 0 ||
+              r.totalApproval !== 0 ||
+              r.totalDisbursal !== 0
+          );
+
+        setCodeSummary(mapped);
+
+        const map: Record<string, CodeSummaryRow> = {};
+
+        mapped.forEach((r) => {
+          if (r.code) map[r.code] = r;
+        });
+        setCodeSummaryMap(map);
+      } catch (e) {
+        setCodeSummary([]);
+        setCodeSummaryMap({});
+      } finally {
+        setCodeSummaryLoading(false);
+      }
+    };
+
+    fetchCodeSummary();
+  }, []);
+
+  // 🔹 logged-in user ka Excel summary (sirf uska code)
+  const myCodeSummary: CodeSummaryRow | undefined = useMemo(() => {
+    if (!myCode) return undefined;
+
+    return codeSummaryMap[myCode] || undefined;
+  }, [myCode, codeSummaryMap]);
 
   /* -------- List fetch -------- */
   const fetchList = async () => {
@@ -1319,7 +1737,11 @@ export default function PerformanceGrid() {
       const res = await api.get('/performance/list', { params });
       let { data, total } = res.data || { data: [], total: 0 };
 
-      if (Array.isArray(data) && data.length > 0 && Array.isArray(data[0]?.records)) {
+      if (
+        Array.isArray(data) &&
+        data.length > 0 &&
+        Array.isArray(data[0]?.records)
+      ) {
         const flat: any[] = [];
 
         data.forEach((g: any) =>
@@ -1332,7 +1754,8 @@ export default function PerformanceGrid() {
       }
 
       data = (data || []).filter(
-        (d: any) => dayjs(d?.date).format('YYYY-MM-DD') === pickDate
+        (d: any) =>
+          dayjs(d?.date).format('YYYY-MM-DD') === pickDate
       );
 
       const needle = searchName.trim().toLowerCase();
@@ -1341,7 +1764,9 @@ export default function PerformanceGrid() {
         data = (data || []).filter((r: any) => {
           const emp = r?.employee || {};
 
-          const name = `${emp?.first_name || ''} ${emp?.last_name || ''}`
+          const name = `${emp?.first_name || ''} ${
+            emp?.last_name || ''
+          }`
             .trim()
             .toLowerCase();
 
@@ -1357,11 +1782,25 @@ export default function PerformanceGrid() {
   };
 
   useEffect(() => {
-    if (userRole && (teams.length === 0 || selectedTeamId || userRole !== '2')) {
+    if (
+      userRole &&
+      (teams.length === 0 ||
+        selectedTeamId ||
+        userRole !== '2')
+    ) {
       fetchList();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRole, month, year, selectedDate, searchName, page, limit, selectedTeamId]);
+  }, [
+    userRole,
+    month,
+    year,
+    selectedDate,
+    searchName,
+    page,
+    limit,
+    selectedTeamId,
+  ]);
 
   /* -------- Edit / Details handlers -------- */
   const handleEditClick = (id: string) => {
@@ -1410,12 +1849,16 @@ export default function PerformanceGrid() {
       'December',
     ];
 
-    const fileName = `${monthNames[month - 1]} ${year}${selectedDate ? ' - ' + selectedDate.format('YYYY-MM-DD') : ''
-      } performance_summary.csv`;
+    const fileName = `${monthNames[month - 1]} ${year}${
+      selectedDate ? ' - ' + selectedDate.format('YYYY-MM-DD') : ''
+    } performance_summary.csv`;
 
     const rows = items.map((p: any) => {
-      const name = `${p?.employee?.first_name || ''} ${p?.employee?.last_name || ''}`.trim();
-      const pretty = (n: number) => (p?.unit === 'rupee' ? rupee(n) : n);
+      const name = `${p?.employee?.first_name || ''} ${
+        p?.employee?.last_name || ''
+      }`.trim();
+      const pretty = (n: number) =>
+        p?.unit === 'rupee' ? rupee(n) : n;
 
       return [
         name,
@@ -1423,13 +1866,23 @@ export default function PerformanceGrid() {
         p?.taskTitle || '',
         pretty(p?.target ?? 0),
         pretty(p?.completed ?? 0),
-        pretty(Math.max((p?.target ?? 0) - (p?.completed ?? 0), 0)),
+        pretty(
+          Math.max((p?.target ?? 0) - (p?.completed ?? 0), 0)
+        ),
         p?.status || '',
       ];
     });
 
     const header = [
-      ['Employee Name', 'Date', 'Task Title', 'Target', 'Completed', 'Remaining', 'Status'],
+      [
+        'Employee Name',
+        'Date',
+        'Task Title',
+        'Target',
+        'Completed',
+        'Remaining',
+        'Status',
+      ],
     ];
 
     const csvContent = [...header, ...rows]
@@ -1476,7 +1929,10 @@ export default function PerformanceGrid() {
               >
                 Performance
               </Typography>
-              <Typography variant="subtitle2" sx={{ opacity: 0.7, fontWeight: 700 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ opacity: 0.7, fontWeight: 700 }}
+              >
                 Dashboard / Performance
               </Typography>
             </Box>
@@ -1489,7 +1945,9 @@ export default function PerformanceGrid() {
                 label="Select Month and Year"
                 value={dayjs(new Date(year, month - 1))}
                 onChange={onMonthChange}
-                slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
+                slotProps={{
+                  textField: { fullWidth: true, size: 'medium' },
+                }}
               />
             </LocalizationProvider>
           </Grid>
@@ -1500,7 +1958,9 @@ export default function PerformanceGrid() {
                 label="Select Date"
                 value={selectedDate}
                 onChange={onDateChange}
-                slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
+                slotProps={{
+                  textField: { fullWidth: true, size: 'medium' },
+                }}
               />
             </LocalizationProvider>
           </Grid>
@@ -1509,15 +1969,26 @@ export default function PerformanceGrid() {
             item
             xs={12}
             md="auto"
-            sx={{ ml: 'auto', display: 'flex', justifyContent: 'flex-end' }}
+            sx={{
+              ml: 'auto',
+              display: 'flex',
+              justifyContent: 'flex-end',
+            }}
           >
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'nowrap', alignItems: 'center' }}>
-
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ flexWrap: 'nowrap', alignItems: 'center' }}
+            >
               <Button
                 variant="outlined"
                 startIcon={<VisibilityIcon />}
-                onClick={() => router.push(`./performance-upload/?date=${pickDate}`)}
-                sx={{ borderRadius: 2, fontWeight: 600, whiteSpace: 'nowrap' }}
+                onClick={() => router.push(`./performance-upload`)}
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                }}
                 size="small"
               >
                 View Performance
@@ -1585,7 +2056,12 @@ export default function PerformanceGrid() {
           </Grid>
         </Grid>
 
-        <Grid container spacing={2} alignItems="center" sx={{ mt: 1 }}>
+        <Grid
+          container
+          spacing={2}
+          alignItems="center"
+          sx={{ mt: 1 }}
+        >
           {userRole === '1' && (
             <Grid item xs={12} md={4}>
               <TextField
@@ -1652,7 +2128,12 @@ export default function PerformanceGrid() {
       >
         {HeaderToolbar}
 
-        <Dialog open={showForm} onClose={() => setShowForm(false)} fullWidth maxWidth="md">
+        <Dialog
+          open={showForm}
+          onClose={() => setShowForm(false)}
+          fullWidth
+          maxWidth="md"
+        >
           <DialogContent sx={{ p: 0 }}>
             <RoleBasedPerformanceForm
               role={userRole}
@@ -1670,12 +2151,98 @@ export default function PerformanceGrid() {
       </Box>
 
       <Box sx={{ px: 2, pt: 3, pb: 6 }}>
+        {/* 🔹 Code Summary Section */}
+        <Paper
+          elevation={0}
+          sx={{
+            mb: 3,
+            p: 2,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            background: 'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
+          }}
+        >
+       
+            <>
+              {codeSummaryLoading ? (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  Fetching your code summary…
+                </Typography>
+              ) : !myCodeSummary ? (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  
+                </Typography>
+              ) : (
+                <Grid container spacing={2}>
+                  <Grid item xs={6} md={3}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      Total Logins
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 900 }}
+                    >
+                      {myCodeSummary.totalLogins}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      Total Approval
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 900 }}
+                    >
+                      {rupee(myCodeSummary.totalApproval)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      Total Disbursal
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 900 }}
+                    >
+                      {rupee(myCodeSummary.totalDisbursal)}
+                    </Typography>
+                  </Grid>
+              
+                </Grid>
+              )}
+            </>
+          
+        </Paper>
+
+     
         {loading ? (
           <Grid container spacing={2}>
             {Array.from({ length: 6 }).map((_, i) => (
               <Grid key={i} item xs={12} sm={6} md={6}>
-                <Paper sx={{ p: 2.5, borderRadius: 3 }}>
-                  <Skeleton variant="rectangular" height={130} sx={{ borderRadius: 2 }} />
+                <Paper
+                  sx={{ p: 2.5, borderRadius: 3 }}
+                >
+                  <Skeleton
+                    variant="rectangular"
+                    height={130}
+                    sx={{ borderRadius: 2 }}
+                  />
                   <Box sx={{ mt: 2 }}>
                     <Skeleton width="60%" />
                     <Skeleton width="40%" />
@@ -1691,35 +2258,55 @@ export default function PerformanceGrid() {
               p: 5,
               borderRadius: 3,
               textAlign: 'center',
-              background: 'linear-gradient(180deg,#ffffff 0%,#fafafa 100%)',
+              background:
+                'linear-gradient(180deg,#ffffff 0%,#fafafa 100%)',
             }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 900, mb: 0.75 }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 900, mb: 0.75 }}
+            >
               No records
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Try changing month/year, date, search, or open <b>My Team Performance</b>.
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Try changing month/year, date, search, or open{' '}
+              <b>My Team Performance</b>.
             </Typography>
           </Paper>
         ) : (
           <Grid container spacing={2.25}>
             {items.map((p) => {
               const empId = String(
-                p?.employee?._id || p?.employee_id || p?.owner_id || ''
+                p?.employee?._id ||
+                  p?.employee_id ||
+                  p?.owner_id ||
+                  ''
               );
 
               const mtd = empId && mtdMap[empId]
                 ? mtdMap[empId]
                 : { ...emptyMtd, loading: true };
 
+              // 🔹 yahan employee.code ya fallback myCode se Excel summary pick kar rahe
+              const empCode = (p?.employee?.code || myCode || '').trim();
+              const excelSummary = empCode
+                ? codeSummaryMap[empCode]
+                : undefined;
+
               return (
                 <Grid key={p?._id} item xs={12} sm={6} md={6}>
                   <PerformanceCard
                     item={p}
-                    onEdit={canEditCards ? handleEditClick : undefined}
+                    onEdit={
+                      canEditCards ? handleEditClick : undefined
+                    }
                     onDetails={openDetails}
                     mtd={mtd}
                     canEdit={canEditCards}
+                    excelSummary={excelSummary}
                   />
                 </Grid>
               );
@@ -1728,7 +2315,14 @@ export default function PerformanceGrid() {
         )}
       </Box>
 
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: -2, mb: 4 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          mt: -2,
+          mb: 4,
+        }}
+      >
         <Pagination
           count={Math.max(1, Math.ceil((total || 0) / limit))}
           page={page}
