@@ -31,11 +31,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  MenuItem,
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -63,10 +61,11 @@ api.interceptors.request.use((config) => {
       '';
 
     if (!config.headers) config.headers = {};
-    if (token) config.headers.Authorization = `Bearer token ${token}`.replace(
-      'token ',
-      'Bearer ',
-    ); // safety
+    if (token)
+      config.headers.Authorization = `Bearer token ${token}`.replace(
+        'token ',
+        'Bearer ',
+      ); 
     if (companyId) config.headers['x-company-id'] = companyId;
   }
 
@@ -82,8 +81,17 @@ type Row = {
   manager_tl?: string;
   login?: number;
   approval?: number; // in Rupees
-  disbursal?: number; // in Rupees
+  disbursal?: number;
+  code?: string;
   [k: string]: any;
+};
+
+type SortKey = 'login' | 'approval' | 'disbursal' | null;
+type SortDirection = 'asc' | 'desc';
+
+type SortConfig = {
+  key: SortKey;
+  direction: SortDirection;
 };
 
 /* ---------------- Helpers ---------------- */
@@ -116,10 +124,17 @@ export default function PerformanceUploadPage() {
     total_logins: '',
     approval_lakh: '',
     disbursal_lakh: '',
+    code: '',
   });
 
-  // Rupees / Lakhs toggle
+ 
   const [amountUnit, setAmountUnit] = useState<'rupees' | 'lakhs'>('rupees');
+
+
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    key: null,
+    direction: 'asc',
+  });
 
   useEffect(() => {
     const t = setTimeout(
@@ -127,18 +142,14 @@ export default function PerformanceUploadPage() {
       300,
     );
 
-
     return () => clearTimeout(t);
   }, [search]);
-
-  // read default date from query
   useEffect(() => {
     const d = q?.get('date');
-
     setDate(d ? dayjs(d) : dayjs());
   }, [q]);
 
-  // detect role=1 (admin)
+
   useEffect(() => {
     const user =
       typeof window !== 'undefined'
@@ -150,7 +161,7 @@ export default function PerformanceUploadPage() {
 
   const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
 
-  /* ------------ Fetch + normalize ------------ */
+
   const fetchList = async () => {
     try {
       setLoading(true);
@@ -161,7 +172,7 @@ export default function PerformanceUploadPage() {
         '';
 
       const res = await api.get('/performance-upload/get-performance', {
-        params: { date: dateStr, company_id },
+        params: { company_id },
       });
 
       const raw: any[] = Array.isArray(res.data)
@@ -173,6 +184,10 @@ export default function PerformanceUploadPage() {
         login: Number(r.login ?? r.total_logins ?? 0),
         approval: Number(r.approval ?? r.approval_amount ?? 0),
         disbursal: Number(r.disbursal ?? r.disbursal_amount ?? 0),
+        code:
+          typeof r.code === 'string'
+            ? r.code.trim()
+            : (r.code ?? '').toString().trim(),
       }));
 
       setRows(normalized);
@@ -186,14 +201,8 @@ export default function PerformanceUploadPage() {
 
   useEffect(() => {
     if (dateStr) fetchList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  
   }, [dateStr]);
-
-  /* ------------ Actions ------------ */
-  const handlePickDate = (d: Dayjs | null) => {
-    setDate(d);
-    if (d) router.replace(`/performance-upload?date=${d.format('YYYY-MM-DD')}`);
-  };
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -231,12 +240,12 @@ export default function PerformanceUploadPage() {
     }
   };
 
-  /* ------------ Manual form handlers ------------ */
+
   const handleFormChange =
     (field: keyof typeof form) =>
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        setForm((prev) => ({ ...prev, [field]: e.target.value }));
-      };
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   const resetForm = () => {
     setForm({
@@ -245,6 +254,7 @@ export default function PerformanceUploadPage() {
       total_logins: '',
       approval_lakh: '',
       disbursal_lakh: '',
+      code: '',
     });
     setAmountUnit('rupees');
     setEditingId(null);
@@ -276,6 +286,7 @@ export default function PerformanceUploadPage() {
       const payload = {
         date: dateStr,
         employee_name: form.employee_name.trim(),
+        code: form.code?.trim() || undefined,
         manager_tl: form.manager_tl.trim(),
         total_logins: Number(form.total_logins || 0),
         approval_amount: Math.round(approvalNumber * multiplier),
@@ -313,7 +324,6 @@ export default function PerformanceUploadPage() {
     };
   }, [rows]);
 
-  /* ------------ Star performers ------------ */
   const starPerformers = useMemo(() => {
     if (!rows.length) {
       return { approval: null as Row | null, disbursal: null as Row | null };
@@ -338,7 +348,7 @@ export default function PerformanceUploadPage() {
     return { approval, disbursal };
   }, [rows]);
 
-  /* ------------ Manager options ------------ */
+
   const managerOptions = useMemo(() => {
     const set = new Set<string>();
 
@@ -351,19 +361,39 @@ export default function PerformanceUploadPage() {
     return Array.from(set);
   }, [rows]);
 
-  /* ------------ Filtered Rows ------------ */
   const filteredRows = useMemo(() => {
     if (!debounced) return rows;
 
     return rows.filter((r) => {
       const name = (r.employee_name || '').toLowerCase();
       const id = (r.employee_id || '').toLowerCase();
+      const code = (r.code || '').toLowerCase();
 
-      return name.includes(debounced) || id.includes(debounced);
+      return (
+        name.includes(debounced) || id.includes(debounced) || code.includes(debounced)
+      );
     });
   }, [rows, debounced]);
 
-  /* ------------ Row color helper ------------ */
+
+  const sortedRows: Row[] = useMemo(() => {
+    if (!sortConfig.key) return filteredRows;
+
+    const data = [...filteredRows];
+    const { key, direction } = sortConfig;
+
+    data.sort((a, b) => {
+      const aVal = Number(a[key!] || 0);
+      const bVal = Number(b[key!] || 0);
+
+      if (direction === 'asc') return aVal - bVal;
+      return bVal - aVal;
+    });
+
+    return data;
+  }, [filteredRows, sortConfig]);
+
+
   const rowBg = (r: Row) => {
     const hasAny =
       (Number(r.login) || 0) > 0 ||
@@ -385,8 +415,16 @@ export default function PerformanceUploadPage() {
           'linear-gradient(135deg, #f1f5f9 0%, #e0f2fe 40%, #eef2ff 100%)',
       }}
     >
-      <Box sx={{ maxWidth: '1120px', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {/* ========== HEADER CARD (like Tailwind) ========== */}
+      <Box
+        sx={{
+          maxWidth: '1120px',
+          mx: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3,
+        }}
+      >
+     
         <Paper
           elevation={0}
           sx={{
@@ -397,7 +435,7 @@ export default function PerformanceUploadPage() {
             boxShadow: '0 10px 35px rgba(15,23,42,0.10)',
           }}
         >
-          {/* Top Row: Back + Title & Action Buttons */}
+          
           <Box
             sx={{
               display: 'flex',
@@ -408,7 +446,7 @@ export default function PerformanceUploadPage() {
               mb: 3,
             }}
           >
-            {/* Left: Back Button + Title */}
+           
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <IconButton
                 onClick={() => router.back()}
@@ -443,7 +481,7 @@ export default function PerformanceUploadPage() {
               </Box>
             </Box>
 
-            {/* Right: Action Buttons */}
+          
             <Box
               sx={{
                 display: 'flex',
@@ -455,24 +493,24 @@ export default function PerformanceUploadPage() {
               <Button
                 onClick={() => {
                   const header = [
-                    'date',
                     'employee_id',
                     'employee_name',
                     'manager_tl',
                     'login',
                     'approval',
                     'disbursal',
+                    'code',
                     '_id',
                   ];
 
-                  const body = filteredRows.map((r) => [
-                    r.date || '',
+                  const body = sortedRows.map((r) => [
                     r.employee_id || '',
                     r.employee_name || '',
                     r.manager_tl || '',
                     Number(r.login || 0),
                     Number(r.approval || 0),
                     Number(r.disbursal || 0),
+                    r.code || '',
                     r._id || '',
                   ]);
 
@@ -572,37 +610,23 @@ export default function PerformanceUploadPage() {
             </Box>
           </Box>
 
-          {/* Date + Search Row */}
+     
           <Box
             sx={{
               display: 'flex',
               flexDirection: { xs: 'column', sm: 'row' },
               gap: 1.5,
               mb: 3,
+              alignItems: { sm: 'center' },
             }}
           >
-            {/* Date Picker */}
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                label="Select Date"
-                value={date}
-                onChange={handlePickDate}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    size: 'small',
-                  },
-                }}
-              />
-            </LocalizationProvider>
-
             {/* Search */}
             <TextField
               fullWidth
               size="small"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search employee..."
+              placeholder="Search employee / id / code..."
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -611,14 +635,61 @@ export default function PerformanceUploadPage() {
                 ),
               }}
             />
+
+            
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                minWidth: { xs: '100%', sm: 'auto' },
+                justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+              }}
+            >
+              <TextField
+                select
+                size="small"
+                label="Sort by"
+                value={sortConfig.key || ''}
+                onChange={(e) => {
+                  const value = e.target.value as SortKey | '';
+                  if (!value) {
+                    setSortConfig({ key: null, direction: 'asc' });
+                  } else {
+                    setSortConfig((prev) => ({
+                      key: value,
+                      direction: prev.key === value ? prev.direction : 'desc',
+                    }));
+                  }
+                }}
+                sx={{ minWidth: 170 }}
+              >
+                <MenuItem value="">None</MenuItem>
+                <MenuItem value="login">Logins</MenuItem>
+                <MenuItem value="approval">Approvals</MenuItem>
+                <MenuItem value="disbursal">Disbursals</MenuItem>
+              </TextField>
+
+              {sortConfig.key && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() =>
+                    setSortConfig((prev) => ({
+                      ...prev,
+                      direction: prev.direction === 'asc' ? 'desc' : 'asc',
+                    }))
+                  }
+                  sx={{ textTransform: 'none', borderRadius: 999 }}
+                >
+                  {sortConfig.direction === 'asc' ? '↑ Asc' : '↓ Desc'}
+                </Button>
+              )}
+            </Stack>
           </Box>
-
-
         </Paper>
 
-        {/* ========== STATS GRID (3 compact gradient cards) ========== */}
         <Grid container spacing={2}>
-          {/* Total Logins */}
+        
           <Grid item xs={12} md={4}>
             <Paper
               sx={{
@@ -674,7 +745,12 @@ export default function PerformanceUploadPage() {
                 </Typography>
                 <Typography
                   variant="h6"
-                  sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: "#fff" }}
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 25,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
                 >
                   {totals.logins.toLocaleString('en-IN')}
                 </Typography>
@@ -682,7 +758,7 @@ export default function PerformanceUploadPage() {
             </Paper>
           </Grid>
 
-          {/* Total Approvals */}
+   
           <Grid item xs={12} md={4}>
             <Paper
               sx={{
@@ -738,7 +814,12 @@ export default function PerformanceUploadPage() {
                 </Typography>
                 <Typography
                   variant="h6"
-                  sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: "#fff" }}
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 25,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
                 >
                   {rupee(totals.approvals)}
                 </Typography>
@@ -746,7 +827,6 @@ export default function PerformanceUploadPage() {
             </Paper>
           </Grid>
 
-          {/* Total Disbursals */}
           <Grid item xs={12} md={4}>
             <Paper
               sx={{
@@ -802,7 +882,12 @@ export default function PerformanceUploadPage() {
                 </Typography>
                 <Typography
                   variant="h6"
-                  sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: "#fff" }}
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 25,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
                 >
                   {rupee(totals.disbursal)}
                 </Typography>
@@ -811,7 +896,7 @@ export default function PerformanceUploadPage() {
           </Grid>
         </Grid>
 
-        {/* ========== STAR PERFORMERS BIG CARD ========== */}
+    
         {(starPerformers.approval || starPerformers.disbursal) && (
           <Paper
             sx={{
@@ -822,7 +907,9 @@ export default function PerformanceUploadPage() {
               boxShadow: '0 12px 30px rgba(15,23,42,0.08)',
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}
+            >
               <Box
                 sx={{
                   width: 40,
@@ -850,8 +937,7 @@ export default function PerformanceUploadPage() {
                       borderRadius: 2.5,
                       position: 'relative',
                       overflow: 'hidden',
-                      background:
-                        '#e0f2fe',
+                      background: '#e0f2fe',
                       border: '1px solid #e0f2fe',
                     }}
                   >
@@ -875,7 +961,9 @@ export default function PerformanceUploadPage() {
                           mb: 0.5,
                         }}
                       >
-                        <EmojiEventsIcon sx={{ fontSize: 20, color: '#15803d' }} />
+                        <EmojiEventsIcon
+                          sx={{ fontSize: 20, color: '#15803d' }}
+                        />
                         <Typography
                           variant="body2"
                           sx={{ fontWeight: 600, color: '#166534' }}
@@ -891,7 +979,11 @@ export default function PerformanceUploadPage() {
                       </Typography>
                       <Typography
                         variant="h5"
-                        sx={{ fontWeight: 800, mt: 0.5, color: '#16a34a' }}
+                        sx={{
+                          fontWeight: 800,
+                          mt: 0.5,
+                          color: '#16a34a',
+                        }}
                       >
                         {rupee(Number(starPerformers.approval.approval || 0))}
                       </Typography>
@@ -949,16 +1041,21 @@ export default function PerformanceUploadPage() {
                       </Typography>
                       <Typography
                         variant="h5"
-                        sx={{ fontWeight: 800, mt: 0.5, color: '#4f46e5' }}
+                        sx={{
+                          fontWeight: 800,
+                          mt: 0.5,
+                          color: '#4f46e5',
+                        }}
                       >
-                        {rupee(Number(starPerformers.disbursal.disbursal || 0))}
+                        {rupee(
+                          Number(starPerformers.disbursal.disbursal || 0),
+                        )}
                       </Typography>
                     </Box>
                   </Paper>
                 </Grid>
               )}
             </Grid>
-
           </Paper>
         )}
 
@@ -978,7 +1075,7 @@ export default function PerformanceUploadPage() {
                 Loading…
               </Typography>
             </Box>
-          ) : filteredRows.length === 0 ? (
+          ) : sortedRows.length === 0 ? (
             <Box sx={{ textAlign: 'center', p: 5 }}>
               <Box
                 sx={{
@@ -1015,29 +1112,34 @@ export default function PerformanceUploadPage() {
                     }}
                   >
                     <TableCell sx={{ fontWeight: 800 }}>Employee</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>
-                      Manager / TL
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Code</TableCell>
+
+                    <TableCell sx={{ fontWeight: 800 }}>Manager / TL</TableCell>
+
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Logins
                     </TableCell>
+
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Approvals (₹)
                     </TableCell>
+
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Disbursal (₹)
                     </TableCell>
+
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Actions
                     </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredRows.map((r) => (
+                  {sortedRows.map((r) => (
                     <TableRow key={r._id} sx={{ background: rowBg(r) }}>
                       <TableCell>
-                        <Typography sx={{ fontWeight: 700,color:"#6b21a8" }}>
+                        <Typography
+                          sx={{ fontWeight: 700, color: '#6b21a8' }}
+                        >
                           {r.employee_name || '-'}
                         </Typography>
                         {r.employee_id && (
@@ -1050,10 +1152,11 @@ export default function PerformanceUploadPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {r.date
-                          ? dayjs(r.date).format('DD MMM YYYY')
-                          : '-'}
+                        <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                          {r.code || '—'}
+                        </Typography>
                       </TableCell>
+
                       <TableCell>
                         {r.manager_tl ? (
                           <Chip
@@ -1133,14 +1236,15 @@ export default function PerformanceUploadPage() {
                                     ),
                                     approval_lakh: r.approval
                                       ? Number(
-                                        r.approval,
-                                      ).toLocaleString('en-IN')
+                                          r.approval,
+                                        ).toLocaleString('en-IN')
                                       : '',
                                     disbursal_lakh: r.disbursal
                                       ? Number(
-                                        r.disbursal,
-                                      ).toLocaleString('en-IN')
+                                          r.disbursal,
+                                        ).toLocaleString('en-IN')
                                       : '',
+                                    code: r.code || '',
                                   });
                                   setAmountUnit('rupees');
                                   setFormOpen(true);
@@ -1199,23 +1303,6 @@ export default function PerformanceUploadPage() {
           </DialogTitle>
           <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
             <Grid container spacing={2.5}>
-              {/* Date inside dialog */}
-              <Grid item xs={12}>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DatePicker
-                    label="Date"
-                    value={date}
-                    onChange={handlePickDate}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        size: 'medium',
-                      },
-                    }}
-                  />
-                </LocalizationProvider>
-              </Grid>
-
               <Grid item xs={12} md={6}>
                 <TextField
                   label="Employee Name"
@@ -1224,6 +1311,15 @@ export default function PerformanceUploadPage() {
                   fullWidth
                   size="medium"
                   required
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Code (optional)"
+                  value={form.code}
+                  onChange={handleFormChange('code')}
+                  fullWidth
+                  size="medium"
                 />
               </Grid>
 
@@ -1261,8 +1357,6 @@ export default function PerformanceUploadPage() {
                 />
               </Grid>
 
-
-
               {/* Approval */}
               <Grid item xs={12} md={4}>
                 <TextField
@@ -1276,8 +1370,7 @@ export default function PerformanceUploadPage() {
                   onChange={(e) => {
                     const val = e.target.value;
 
-                    const isAllowed =
-                      /^[0-9,]*$/.test(val) || val === '';
+                    const isAllowed = /^[0-9,]*$/.test(val) || val === '';
 
                     if (!isAllowed) return;
                     setForm((prev) => ({
@@ -1314,8 +1407,7 @@ export default function PerformanceUploadPage() {
                   onChange={(e) => {
                     const val = e.target.value;
 
-                    const isAllowed =
-                      /^[0-9,]*$/.test(val) || val === '';
+                    const isAllowed = /^[0-9,]*$/.test(val) || val === '';
 
                     if (!isAllowed) return;
                     setForm((prev) => ({
@@ -1367,8 +1459,8 @@ export default function PerformanceUploadPage() {
 }
 
 /**
- * Small helper "star" icon using EmojiEvents + style, so we don't add a new import.
- * If you want, you can replace with a dedicated icon import.
+ * Small helper "star" icon using simple shape,
+ * so we don't add a new MUI icon import.
  */
 function StarBorderIconLike() {
   return (
@@ -1389,7 +1481,5 @@ function StarBorderIconLike() {
 }
 
 function StarIconInside() {
-  return (
-    <span style={{ fontSize: 14, lineHeight: 1 }}>★</span>
-  );
+  return <span style={{ fontSize: 14, lineHeight: 1 }}>★</span>;
 }
