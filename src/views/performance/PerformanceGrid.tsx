@@ -163,7 +163,6 @@ const computeMetrics = (doc: any) => {
     const own = m?.morning?.ownContribution || {};
     const eve = m?.evening || {};
 
-    // ✅ Morning Plan = Team Expected + Own Contribution
     const logins = {
       key: 'logins',
       t: asNum(exp.loginsTeam) + asNum(own.login),
@@ -773,6 +772,8 @@ const PerformanceCard = ({
     mgrMorning.customerPhoneConnects ?? 0
   );
 
+
+
   const eveningManagerPhoneConnects = asNum(
     mgrEvening.customerPhoneConnectsDone ?? 0
   );
@@ -960,6 +961,16 @@ const PerformanceCard = ({
 
                 </Box>
                 <Box sx={{ width: 1 }}>
+                  <Stat
+                    label="Physical Meetings"
+                    value={
+                      role === 'manager'
+                        ? asNum(mgrMorning.physicalMeet ?? 0)
+                        : asNum(empMorning.physicalMeet ?? 0)
+                    }
+                  />
+                </Box>
+                <Box sx={{ width: 1 }}>
                   <Stat label="Login" value={morningLogin} />
                 </Box>
                 <Box sx={{ width: 1 }}>
@@ -1009,6 +1020,16 @@ const PerformanceCard = ({
                   />
 
                 </Box>
+                  <Box sx={{ width: 1 }}>
+    <Stat
+      label="Physical Meetings"
+      value={
+        role === 'manager'
+          ? asNum(mgrEvening.physicalMeetDone ?? 0)
+          : asNum(empEvening.physicalMeetDone ?? 0)
+      }
+    />
+  </Box>
                 <Box sx={{ width: 1 }}>
                   <Stat label="Login" value={eveningLogin} />
                 </Box>
@@ -1030,73 +1051,85 @@ const PerformanceCard = ({
         </Grid>
       </Box>
 
-      {/* 🔹 Till Date (Manager Morning) – sirf manager ke liye {/* 🔹 Manager Snapshot */}
-      {role === 'manager' && (
-        <Box sx={{ mt: 2 }}>
-          <Paper
-            variant="outlined"
+
+      <Box sx={{ mt: 2 }}>
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 1.8,
+            borderRadius: 3,
+            background: 'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+            border: '1px solid #eef0f6',
+            transition: '0.25s',
+            '&:hover': {
+              boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+              transform: 'translateY(-3px)',
+            },
+          }}
+        >
+          <Typography
+            variant="caption"
             sx={{
-              p: 1.8,
-              borderRadius: 3,
-              background:
-                'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-              border: '1px solid #eef0f6',
-              transition: '0.25s',
-              '&:hover': {
-                boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
-                transform: 'translateY(-3px)',
-              },
+              fontWeight: 900,
+              fontSize: 12.5,
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+              color: '#1e293b',
+              mb: 1.2,
+              display: 'block',
             }}
           >
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 900,
-                fontSize: 12.5,
-                letterSpacing: 0.5,
-                textTransform: 'uppercase',
-                color: '#1e293b',
-                mb: 1.2,
-                display: 'block',
-              }}
-            >
-              Till Date — Manager Snapshot
-            </Typography>
+            Till Date — Snapshot
+          </Typography>
 
-            <Grid container spacing={2}>
-              <Grid item xs={4}>
-                <Typography variant="caption" color="text.secondary">
-                  Login
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  {mgrTillDateLogin}
-                </Typography>
-              </Grid>
+          <Grid container spacing={2}>
 
-              <Grid item xs={4}>
-                <Typography variant="caption" color="text.secondary">
-                  Approval (₹)
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  ₹{mgrTillDateApprovalLacs}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={4}>
-                <Typography variant="caption" color="text.secondary">
-                  Disbursal (₹)
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  ₹{mgrTillDateDisbursalLacs}
-                </Typography>
-              </Grid>
+            {/* ===== Login ===== */}
+            <Grid item xs={4}>
+              <Typography variant="caption" color="text.secondary">
+                Login
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                {role === 'manager'
+                  ? mgrTillDateLogin
+                  : (raw?.re?.morning?.tillDate?.login || 0)}
+              </Typography>
             </Grid>
-          </Paper>
-        </Box>
-      )}
 
-      {/* 🔹 Financial Snapshot — SAME DESIGN AS TILL DATE */}
+            {/* ===== Approval ===== */}
+            <Grid item xs={4}>
+              <Typography variant="caption" color="text.secondary">
+                Approval (₹)
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                ₹
+                {role === 'manager'
+                  ? mgrTillDateApprovalLacs
+                  : (raw?.re?.morning?.tillDate?.approvalLacs || 0)}
+              </Typography>
+            </Grid>
+
+            {/* ===== Disbursal ===== */}
+            <Grid item xs={4}>
+              <Typography variant="caption" color="text.secondary">
+                Disbursal (₹)
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                ₹
+                {role === 'manager'
+                  ? mgrTillDateDisbursalLacs
+                  : (raw?.re?.morning?.tillDate?.disbursalLacs || 0)}
+              </Typography>
+            </Grid>
+
+          </Grid>
+        </Paper>
+      </Box>
+
+
+
+
       {excelSummary && (
         <Box sx={{ mt: 2 }}>
           <Paper
