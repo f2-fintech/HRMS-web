@@ -70,6 +70,7 @@ api.interceptors.request.use((config) => {
 /* ===================== helpers ===================== */
 const rupee = (n: number) => `₹${Intl.NumberFormat('en-IN').format(n || 0)}`;
 const asNum = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
 const fullName = (e: any) =>
   `${e?.first_name || ''} ${e?.last_name || ''}`.trim();
 
@@ -453,9 +454,9 @@ const DetailsDrawer = ({
 
         const empId = String(
           rawDoc?.employee?._id ||
-            rawDoc?.employee_id ||
-            rawDoc?.owner_id ||
-            ''
+          rawDoc?.employee_id ||
+          rawDoc?.owner_id ||
+          ''
         ).trim();
 
         const snapshotDate = rawDoc?.date ? dayjs(rawDoc.date) : null;
@@ -747,6 +748,9 @@ const PerformanceCard = ({
   // 🔹 Employee morning/evening
   const empMorning = raw?.re?.morning || {};
   const empEvening = raw?.re?.evening || {};
+  const morningPhoneConnects = asNum(empMorning.phoneConnects ?? 0);
+  const eveningPhoneConnects = asNum(empEvening.phoneConnectsDone ?? 0);
+
 
   // 🔹 Manager morning/evening
   const mgrMorning = raw?.manager?.morning || {};
@@ -757,12 +761,22 @@ const PerformanceCard = ({
   // 🔹 NEW: Manager tillDate block safely read
   const mgrTillDateRaw = mgrMorning?.tillDate || {};
   const mgrTillDateLogin = Number(mgrTillDateRaw?.login ?? 0) || 0;
+
   const mgrTillDateApprovalLacs =
     Number(mgrTillDateRaw?.approvalLacs ?? 0) || 0;
+
   const mgrTillDateDisbursalLacs =
     Number(mgrTillDateRaw?.disbursalLacs ?? 0) || 0;
 
   // 🔹 Morning metrics (employee vs manager)
+  const morningManagerPhoneConnects = asNum(
+    mgrMorning.customerPhoneConnects ?? 0
+  );
+
+  const eveningManagerPhoneConnects = asNum(
+    mgrEvening.customerPhoneConnectsDone ?? 0
+  );
+
   const morningLogin =
     role === 'manager'
       ? asNum(mgrExpected.loginsTeam ?? 0) + asNum(mgrOwn.login ?? 0)
@@ -771,13 +785,13 @@ const PerformanceCard = ({
   const morningApproval =
     role === 'manager'
       ? asNum(mgrExpected.approvalLacs ?? 0) +
-        asNum(mgrOwn.approvalLacs ?? 0)
+      asNum(mgrOwn.approvalLacs ?? 0)
       : asNum(empMorning.expectedApprovals ?? 0);
 
   const morningDisbursal =
     role === 'manager'
       ? asNum(mgrExpected.disbursalAmount ?? 0) +
-        asNum(mgrOwn.disbursalLacs ?? 0)
+      asNum(mgrOwn.disbursalLacs ?? 0)
       : asNum(empMorning.expectedDisbursal ?? 0);
 
   // 🔹 Evening metrics (employee vs manager)
@@ -937,8 +951,13 @@ const PerformanceCard = ({
                 <Box sx={{ width: 1 }}>
                   <Stat
                     label="Total Connected Calls"
-                    value={morningLogin}
+                    value={
+                      role === 'manager'
+                        ? morningManagerPhoneConnects
+                        : morningPhoneConnects
+                    }
                   />
+
                 </Box>
                 <Box sx={{ width: 1 }}>
                   <Stat label="Login" value={morningLogin} />
@@ -982,8 +1001,13 @@ const PerformanceCard = ({
                 <Box sx={{ width: 1 }}>
                   <Stat
                     label="Total Connected Calls"
-                    value={eveningLogin}
+                    value={
+                      role === 'manager'
+                        ? eveningManagerPhoneConnects
+                        : eveningPhoneConnects
+                    }
                   />
+
                 </Box>
                 <Box sx={{ width: 1 }}>
                   <Stat label="Login" value={eveningLogin} />
@@ -1007,258 +1031,258 @@ const PerformanceCard = ({
       </Box>
 
       {/* 🔹 Till Date (Manager Morning) – sirf manager ke liye {/* 🔹 Manager Snapshot */}
-{role === 'manager' && (
-  <Box sx={{ mt: 2 }}>
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 1.8,
-        borderRadius: 3,
-        background:
-          'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-        border: '1px solid #eef0f6',
-        transition: '0.25s',
-        '&:hover': {
-          boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
-          transform: 'translateY(-3px)',
-        },
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          fontWeight: 900,
-          fontSize: 12.5,
-          letterSpacing: 0.5,
-          textTransform: 'uppercase',
-          color: '#1e293b',
-          mb: 1.2,
-          display: 'block',
-        }}
-      >
-        Till Date — Manager Snapshot
-      </Typography>
-
-      <Grid container spacing={2}>
-        <Grid item xs={4}>
-          <Typography variant="caption" color="text.secondary">
-            Login
-          </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            {mgrTillDateLogin}
-          </Typography>
-        </Grid>
-
-        <Grid item xs={4}>
-          <Typography variant="caption" color="text.secondary">
-            Approval (₹)
-          </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            ₹{mgrTillDateApprovalLacs}
-          </Typography>
-        </Grid>
-
-        <Grid item xs={4}>
-          <Typography variant="caption" color="text.secondary">
-            Disbursal (₹)
-          </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            ₹{mgrTillDateDisbursalLacs}
-          </Typography>
-        </Grid>
-      </Grid>
-    </Paper>
-  </Box>
-)}
-
-{/* 🔹 Financial Snapshot — SAME DESIGN AS TILL DATE */}
-{excelSummary && (
-  <Box sx={{ mt: 2 }}>
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 1.8,
-        borderRadius: 3,
-        background:
-          'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-        border: '1px solid #eef0f6',
-        transition: '0.25s',
-        '&:hover': {
-          boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
-          transform: 'translateY(-3px)',
-        },
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          fontWeight: 900,
-          fontSize: 12.5,
-          letterSpacing: 0.5,
-          textTransform: 'uppercase',
-          color: '#1e293b',
-          mb: 0.2,
-          display: 'block',
-        }}
-      >
-        Financial Snapshot — By Company
-      </Typography>
-
-      <Grid container spacing={1}>
-        
-        <Grid item xs={4}>
-          <Typography variant="caption" color="text.secondary">
-            Total Logins
-          </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            {excelSummary.totalLogins}
-          </Typography>
-        </Grid>
-
-        <Grid item xs={4}>
-          <Typography variant="caption" color="text.secondary">
-            Total Approval (₹)
-          </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            {formatRupeeShort(excelSummary.totalApproval)}
-          </Typography>
-        </Grid>
-
-        <Grid item xs={4}>
-          <Typography variant="caption" color="text.secondary">
-            Total Disbursal (₹)
-          </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            {formatRupeeShort(excelSummary.totalDisbursal)}
-          </Typography>
-        </Grid>
-
-      </Grid>
-    </Paper>
-  </Box>
-)}
-
-<Box sx={{ mt: 2 }}>
-  <Paper
-    variant="outlined"
-    sx={{
-      p: 1.25,
-      borderRadius: 2,
-      bgcolor: '#f9fafb',
-    }}
-  >
-    <Typography
-      variant="caption"
-      sx={{
-        fontWeight: 800,
-        letterSpacing: 0.4,
-        mb: 0.5,
-        display: 'block',
-        color: '#374151',
-      }}
-    >
-      Morning vs Evening – Calls / Login / Approval / Disbursal
-    </Typography>
-
-    <Grid container spacing={1}>
-
-      {[
-        {
-          label: 'Connected Calls',
-          morning: morningLogin,
-          evening: eveningLogin,
-        },
-        {
-          label: 'Login',
-          morning: morningLogin,
-          evening: eveningLogin,
-        },
-        {
-          label: 'Approval (₹)',
-          morning: morningApproval,
-          evening: eveningApproval,
-        },
-        {
-          label: 'Disbursal (₹)',
-          morning: morningDisbursal,
-          evening: eveningDisbursal,
-        },
-      ].map((item, idx) => {
-
-        const m = Number(item.morning || 0);
-        const e = Number(item.evening || 0);
-
-        const pct = m === 0 ? (e > 0 ? 100 : 0) : Math.round((e / m) * 100);
-
-        let pctColor = '#6b7280';
-        let arrow = '→';
-
-        if (pct > 100) { pctColor = '#059669'; arrow = '↑'; }
-        else if (pct < 100) { pctColor = '#dc2626'; arrow = '↓'; }
-
-        return (
-          <Grid key={idx} item xs={12}>
-            <Stack
-              direction="row"
-              spacing={3}
-              alignItems="center"
-              flexWrap="wrap"
+      {role === 'manager' && (
+        <Box sx={{ mt: 2 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 1.8,
+              borderRadius: 3,
+              background:
+                'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+              border: '1px solid #eef0f6',
+              transition: '0.25s',
+              '&:hover': {
+                boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+                transform: 'translateY(-3px)',
+              },
+            }}
+          >
+            <Typography
+              variant="caption"
               sx={{
-                p: 1,
-                borderRadius: 1.5,
-                border: '1px solid #e5e7eb',
-                background: '#ffffff',
+                fontWeight: 900,
+                fontSize: 12.5,
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                color: '#1e293b',
+                mb: 1.2,
+                display: 'block',
               }}
             >
-              {/* Label */}
-              <Typography variant="caption" sx={{ fontWeight: 800, minWidth: 110 }}>
-                {item.label}
-              </Typography>
+              Till Date — Manager Snapshot
+            </Typography>
 
-              {/* Morning */}
-              <Chip
-                size="small"
-                label={`Mrng: ${formatRupeeShort(m)}`}
-                variant="outlined"
-                sx={{
-                  height: 22,
-                  '& .MuiChip-label': { px: 0.8, fontSize: 11 },
-                }}
-              />
+            <Grid container spacing={2}>
+              <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">
+                  Login
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  {mgrTillDateLogin}
+                </Typography>
+              </Grid>
 
-              {/* Evening */}
-              <Chip
-                size="small"
-                label={`Eve: ${formatRupeeShort(e)}`}
-                color="success"
-                variant="outlined"
-                sx={{
-                  height: 22,
-                  '& .MuiChip-label': { px: 0.8, fontSize: 11 },
-                }}
-              />
+              <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">
+                  Approval (₹)
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  ₹{mgrTillDateApprovalLacs}
+                </Typography>
+              </Grid>
 
-              {/* Percentage ↓🔥 SAME LINE */}
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 900,
-                  color: pctColor,
-                  fontSize: 12,
-                }}
-              >
-                {arrow} {pct}% Achieved
-              </Typography>
-            </Stack>
+              <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">
+                  Disbursal (₹)
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  ₹{mgrTillDateDisbursalLacs}
+                </Typography>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Box>
+      )}
+
+      {/* 🔹 Financial Snapshot — SAME DESIGN AS TILL DATE */}
+      {excelSummary && (
+        <Box sx={{ mt: 2 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 1.8,
+              borderRadius: 3,
+              background:
+                'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+              border: '1px solid #eef0f6',
+              transition: '0.25s',
+              '&:hover': {
+                boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+                transform: 'translateY(-3px)',
+              },
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 900,
+                fontSize: 12.5,
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                color: '#1e293b',
+                mb: 0.2,
+                display: 'block',
+              }}
+            >
+              Financial Snapshot — By Company
+            </Typography>
+
+            <Grid container spacing={1}>
+
+              <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">
+                  Total Logins
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  {excelSummary.totalLogins}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">
+                  Total Approval (₹)
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  {formatRupeeShort(excelSummary.totalApproval)}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">
+                  Total Disbursal (₹)
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  {formatRupeeShort(excelSummary.totalDisbursal)}
+                </Typography>
+              </Grid>
+
+            </Grid>
+          </Paper>
+        </Box>
+      )}
+
+      <Box sx={{ mt: 2 }}>
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 1.25,
+            borderRadius: 2,
+            bgcolor: '#f9fafb',
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 800,
+              letterSpacing: 0.4,
+              mb: 0.5,
+              display: 'block',
+              color: '#374151',
+            }}
+          >
+            Morning vs Evening – Calls / Login / Approval / Disbursal
+          </Typography>
+
+          <Grid container spacing={1}>
+
+            {[
+              {
+                label: 'Connected Calls',
+                morning: morningPhoneConnects,
+                evening: eveningPhoneConnects,
+              },
+              {
+                label: 'Login',
+                morning: morningLogin,
+                evening: eveningLogin,
+              },
+              {
+                label: 'Approval (₹)',
+                morning: morningApproval,
+                evening: eveningApproval,
+              },
+              {
+                label: 'Disbursal (₹)',
+                morning: morningDisbursal,
+                evening: eveningDisbursal,
+              },
+            ].map((item, idx) => {
+
+              const m = Number(item.morning || 0);
+              const e = Number(item.evening || 0);
+
+              const pct = m === 0 ? (e > 0 ? 100 : 0) : Math.round((e / m) * 100);
+
+              let pctColor = '#6b7280';
+              let arrow = '→';
+
+              if (pct > 100) { pctColor = '#059669'; arrow = '↑'; }
+              else if (pct < 100) { pctColor = '#dc2626'; arrow = '↓'; }
+
+              return (
+                <Grid key={idx} item xs={12}>
+                  <Stack
+                    direction="row"
+                    spacing={3}
+                    alignItems="center"
+                    flexWrap="wrap"
+                    sx={{
+                      p: 1,
+                      borderRadius: 1.5,
+                      border: '1px solid #e5e7eb',
+                      background: '#ffffff',
+                    }}
+                  >
+                    {/* Label */}
+                    <Typography variant="caption" sx={{ fontWeight: 800, minWidth: 110 }}>
+                      {item.label}
+                    </Typography>
+
+                    {/* Morning */}
+                    <Chip
+                      size="small"
+                      label={`Mrng: ${formatRupeeShort(m)}`}
+                      variant="outlined"
+                      sx={{
+                        height: 22,
+                        '& .MuiChip-label': { px: 0.8, fontSize: 11 },
+                      }}
+                    />
+
+                    {/* Evening */}
+                    <Chip
+                      size="small"
+                      label={`Eve: ${formatRupeeShort(e)}`}
+                      color="success"
+                      variant="outlined"
+                      sx={{
+                        height: 22,
+                        '& .MuiChip-label': { px: 0.8, fontSize: 11 },
+                      }}
+                    />
+
+                    {/* Percentage ↓🔥 SAME LINE */}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 900,
+                        color: pctColor,
+                        fontSize: 12,
+                      }}
+                    >
+                      {arrow} {pct}% Achieved
+                    </Typography>
+                  </Stack>
+                </Grid>
+              );
+            })}
+
           </Grid>
-        );
-      })}
-
-    </Grid>
-  </Paper>
-</Box>
+        </Paper>
+      </Box>
 
 
 
@@ -1283,7 +1307,7 @@ const PerformanceCard = ({
           sx={{
             borderRadius: 999,
             fontWeight: 600,
-            '& .MuiChip-label': { px: 3},
+            '& .MuiChip-label': { px: 3 },
           }}
         />
         <Stack direction="row" spacing={1}>
@@ -1335,6 +1359,7 @@ export default function PerformanceGrid() {
   const [limit] = useState<number>(12);
 
   const [showForm, setShowForm] = useState(false);
+
   const [selectedPerformanceId, setSelectedPerformanceId] =
     useState<string | null>(null);
 
@@ -1368,6 +1393,7 @@ export default function PerformanceGrid() {
   // 🔹 Code summary (Excel) + map
   const [codeSummary, setCodeSummary] = useState<CodeSummaryRow[]>([]);
   const [codeSummaryLoading, setCodeSummaryLoading] = useState(false);
+
   const [codeSummaryMap, setCodeSummaryMap] = useState<
     Record<string, CodeSummaryRow>
   >({});
@@ -1456,8 +1482,8 @@ export default function PerformanceGrid() {
         const arr: any[] = Array.isArray(resp.data)
           ? resp.data
           : Array.isArray(resp.data?.data)
-          ? resp.data.data
-          : [];
+            ? resp.data.data
+            : [];
 
         const perEmp: Record<string, any> = {};
 
@@ -1469,9 +1495,9 @@ export default function PerformanceGrid() {
 
           const empId = String(
             doc?.owner_id ||
-              doc?.employee?._id ||
-              doc?.employee_id ||
-              ''
+            doc?.employee?._id ||
+            doc?.employee_id ||
+            ''
           ).trim();
 
           if (!empId) continue;
@@ -1635,9 +1661,9 @@ export default function PerformanceGrid() {
           .map((it) =>
             String(
               it?.employee?._id ||
-                it?.employee_id ||
-                it?.owner_id ||
-                ''
+              it?.employee_id ||
+              it?.owner_id ||
+              ''
             )
           )
           .filter(Boolean)
@@ -1678,8 +1704,8 @@ export default function PerformanceGrid() {
         const rows: any[] = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data?.data)
-          ? res.data.data
-          : [];
+            ? res.data.data
+            : [];
 
         const mapped: CodeSummaryRow[] = rows
           .map((r: any) => ({
@@ -1764,9 +1790,8 @@ export default function PerformanceGrid() {
         data = (data || []).filter((r: any) => {
           const emp = r?.employee || {};
 
-          const name = `${emp?.first_name || ''} ${
-            emp?.last_name || ''
-          }`
+          const name = `${emp?.first_name || ''} ${emp?.last_name || ''
+            }`
             .trim()
             .toLowerCase();
 
@@ -1849,14 +1874,13 @@ export default function PerformanceGrid() {
       'December',
     ];
 
-    const fileName = `${monthNames[month - 1]} ${year}${
-      selectedDate ? ' - ' + selectedDate.format('YYYY-MM-DD') : ''
-    } performance_summary.csv`;
+    const fileName = `${monthNames[month - 1]} ${year}${selectedDate ? ' - ' + selectedDate.format('YYYY-MM-DD') : ''
+      } performance_summary.csv`;
 
     const rows = items.map((p: any) => {
-      const name = `${p?.employee?.first_name || ''} ${
-        p?.employee?.last_name || ''
-      }`.trim();
+      const name = `${p?.employee?.first_name || ''} ${p?.employee?.last_name || ''
+        }`.trim();
+
       const pretty = (n: number) =>
         p?.unit === 'rupee' ? rupee(n) : n;
 
@@ -2163,74 +2187,74 @@ export default function PerformanceGrid() {
             background: 'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
           }}
         >
-       
-            <>
-              {codeSummaryLoading ? (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Fetching your code summary…
-                </Typography>
-              ) : !myCodeSummary ? (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  
-                </Typography>
-              ) : (
-                <Grid container spacing={2}>
-                  <Grid item xs={6} md={3}>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                    >
-                      Total Logins
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 900 }}
-                    >
-                      {myCodeSummary.totalLogins}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6} md={3}>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                    >
-                      Total Approval
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 900 }}
-                    >
-                      {rupee(myCodeSummary.totalApproval)}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6} md={3}>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                    >
-                      Total Disbursal
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 900 }}
-                    >
-                      {rupee(myCodeSummary.totalDisbursal)}
-                    </Typography>
-                  </Grid>
-              
+
+          <>
+            {codeSummaryLoading ? (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Fetching your code summary…
+              </Typography>
+            ) : !myCodeSummary ? (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+
+              </Typography>
+            ) : (
+              <Grid container spacing={2}>
+                <Grid item xs={6} md={3}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Total Logins
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 900 }}
+                  >
+                    {myCodeSummary.totalLogins}
+                  </Typography>
                 </Grid>
-              )}
-            </>
-          
+                <Grid item xs={6} md={3}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Total Approval
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 900 }}
+                  >
+                    {rupee(myCodeSummary.totalApproval)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6} md={3}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Total Disbursal
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 900 }}
+                  >
+                    {rupee(myCodeSummary.totalDisbursal)}
+                  </Typography>
+                </Grid>
+
+              </Grid>
+            )}
+          </>
+
         </Paper>
 
-     
+
         {loading ? (
           <Grid container spacing={2}>
             {Array.from({ length: 6 }).map((_, i) => (
@@ -2281,9 +2305,9 @@ export default function PerformanceGrid() {
             {items.map((p) => {
               const empId = String(
                 p?.employee?._id ||
-                  p?.employee_id ||
-                  p?.owner_id ||
-                  ''
+                p?.employee_id ||
+                p?.owner_id ||
+                ''
               );
 
               const mtd = empId && mtdMap[empId]
@@ -2292,6 +2316,7 @@ export default function PerformanceGrid() {
 
               // 🔹 yahan employee.code ya fallback myCode se Excel summary pick kar rahe
               const empCode = (p?.employee?.code || myCode || '').trim();
+
               const excelSummary = empCode
                 ? codeSummaryMap[empCode]
                 : undefined;
