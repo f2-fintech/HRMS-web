@@ -39,17 +39,20 @@ export default function REDailySnapshotForm({
   onClose?: () => void;
   onSaved?: () => void;
 }) {
-  // visibility (Close / Auto-hide)
+  /* ------------------------------------------------------ */
+  /* VISIBILITY */
   const [isOpen, setIsOpen] = useState(true);
   const closeForm = () => {
     setIsOpen(false);
     onClose?.();
   };
 
-  // state
+  /* ------------------------------------------------------ */
+  /* STATES */
   const [date, setDate] = useState<string>(todayISO());
   const [mode, setMode] = useState<'morning' | 'evening'>('morning');
 
+  /* ------------------- Morning States -------------------- */
   const initialMorning = {
     phoneConnects: '' as NumStr,
     physicalMeet: '' as NumStr,
@@ -59,6 +62,12 @@ export default function REDailySnapshotForm({
   };
   const [morning, setMorning] = useState(initialMorning);
 
+  /* ✔ NEW — Till Date Snapshot */
+  const [tillDateLogin, setTillDateLogin] = useState<string>('');
+  const [tillDateApprovalLacs, setTillDateApprovalLacs] = useState<string>('');
+  const [tillDateDisbursalLacs, setTillDateDisbursalLacs] = useState<string>('');
+
+  /* ------------------- Evening States -------------------- */
   const initialEvening = {
     phoneConnected: '' as NumStr,
     physicalMet: '' as NumStr,
@@ -72,57 +81,40 @@ export default function REDailySnapshotForm({
   const [savingMorning, setSavingMorning] = useState(false);
   const [savingEvening, setSavingEvening] = useState(false);
 
-  // Snackbar (TOP) — plain message (no Alert box)
+  /* ------------------------------------------------------ */
+  /* SNACKBAR */
   const [snack, setSnack] = useState<{ open: boolean; msg: string }>({
-    open: false, msg: ''
+    open: false,
+    msg: '',
   });
   const notify = (msg: string) => setSnack({ open: true, msg });
 
-  // handlers
+  /* ------------------------------------------------------ */
+  /* HANDLERS */
   const handleMorning = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setMorning((p) => ({ ...p, [name]: value }));
   };
+
   const handleEvening = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEvening((p) => ({ ...p, [name]: value }));
   };
 
-  const resetAll = () => {
+  const handleCancel = () => {
     setDate(todayISO());
     setMode('morning');
     setMorning(initialMorning);
     setEvening(initialEvening);
-  };
-
-  const handleCancel = () => {
-    resetAll();
+    setTillDateLogin('');
+    setTillDateApprovalLacs('');
+    setTillDateDisbursalLacs('');
     closeForm();
   };
 
-  // follow-ups
-  const addFollowUp = () => {
-    setEvening((p) => ({
-      ...p,
-      followUps: [...p.followUps, { name: '', phone: '', remarks: '', followUpOn: todayISO() }],
-    }));
-  };
-  const updateFollowUp = (idx: number, key: keyof FollowUp, val: string) => {
-    setEvening((p) => {
-      const copy = [...p.followUps];
-      copy[idx] = { ...copy[idx], [key]: val };
-      return { ...p, followUps: copy };
-    });
-  };
-  const removeFollowUp = (idx: number) => {
-    setEvening((p) => {
-      const copy = [...p.followUps];
-      copy.splice(idx, 1);
-      return { ...p, followUps: copy };
-    });
-  };
+  /* ------------------------------------------------------ */
+  /* PAYLOADS */
 
-  // payloads
   const morningPayload = () => ({
     date,
     phoneConnects: numberOrNull(morning.phoneConnects),
@@ -130,7 +122,15 @@ export default function REDailySnapshotForm({
     expectedLogins: numberOrNull(morning.expectedLogins),
     expectedApprovals: numberOrNull(morning.expectedApprovals),
     expectedDisbursal: numberOrNull(morning.expectedDisbursal),
+
+    /* ✔ NEW — Till Date Fields */
+    tillDate: {
+    login: numberOrNull(tillDateLogin),
+    approvalLacs: numberOrNull(tillDateApprovalLacs),
+    disbursalLacs: numberOrNull(tillDateDisbursalLacs),
+  }
   });
+
   const eveningPayload = () => ({
     date,
     phoneConnectsDone: numberOrNull(evening.phoneConnected),
@@ -139,93 +139,54 @@ export default function REDailySnapshotForm({
     approvalsDone: numberOrNull(evening.todaysApproval),
     disbursalDone: numberOrNull(evening.todaysDisbursal),
     followUps: (evening.followUps || []).filter(
-      f => f.name || f.phone || f.remarks || f.followUpOn
+      (f) => f.name || f.phone || f.remarks || f.followUpOn
     ),
   });
 
-  const isMorningFilled = Object.values(morning).some((v) => v !== '');
-  const isEveningFilled =
-    Object.values({ ...evening, followUps: undefined }).some((v) => (v as string) !== '') ||
-    (evening.followUps?.length ?? 0) > 0;
-
-  // close AFTER snackbar hides
-  const handleSnackClose = () => {
-    setSnack({ open: false, msg: '' });
-    closeForm();
-  };
+  /* ------------------------------------------------------ */
+  /* SAVE HANDLERS */
 
   const saveMorning = async () => {
-    if (!isMorningFilled) {
-      notify('Please fill at least one Morning field.');
-      return;
-    }
+    const payload = morningPayload();
     setSavingMorning(true);
+
     try {
-      await api.post('/performance/re/morning', morningPayload());
-      onSaved?.();
-      resetAll();
+      await api.post('/performance/re/morning', payload);
+
       notify('✅ Morning snapshot saved');
-        window.location.reload();
+      onSaved?.();
+      window.location.reload();
     } catch (err: any) {
-      notify(err?.response?.data?.message || '❌ Failed to save morning snapshot');
+      notify(err?.response?.data?.message || '❌ Failed to save morning');
     } finally {
       setSavingMorning(false);
     }
   };
 
   const saveEvening = async () => {
-    if (!isEveningFilled) {
-      notify('Please fill at least one Evening field or add a follow-up.');
-      return;
-    }
+    const payload = eveningPayload();
     setSavingEvening(true);
+
     try {
-      await api.post('/performance/re/evening', eveningPayload());
-      onSaved?.();
-      resetAll();
+      await api.post('/performance/re/evening', payload);
+
       notify('🌇 Evening snapshot saved');
-        window.location.reload();
+      onSaved?.();
+      window.location.reload();
     } catch (err: any) {
-      notify(err?.response?.data?.message || '❌ Failed to save evening snapshot');
+      notify(err?.response?.data?.message || '❌ Failed to save evening');
     } finally {
       setSavingEvening(false);
     }
   };
 
-  // comparison (agar future me use karna ho)
-  const progressRows = useMemo(() => {
-    const mPhone = numberOrNull(morning.phoneConnects);
-    const ePhone = numberOrNull(evening.phoneConnected);
-    const mMeet = numberOrNull(morning.physicalMeet);
-    const eMeet = numberOrNull(evening.physicalMet);
-    const mLog = numberOrNull(morning.expectedLogins);
-    const eLog = numberOrNull(evening.todaysLogin);
-    const mAppr = numberOrNull(morning.expectedApprovals);
-    const eAppr = numberOrNull(evening.todaysApproval);
-    const mDisb = numberOrNull(morning.expectedDisbursal);
-    const eDisb = numberOrNull(evening.todaysDisbursal);
-
-    const make = (label: string, planned: number | null, done: number | null) => {
-      if (planned === null || done === null) return null;
-      const delta = planned - done;
-      const achieved = done >= planned && planned > 0;
-      return { label, planned, done, delta, achieved };
-    };
-
-    return [
-      make('Phone Connects', mPhone, ePhone),
-      make('Physical Meets', mMeet, eMeet),
-      make('Logins', mLog, eLog),
-      make('Approvals (₹)', mAppr, eAppr),
-      make('Disbursals (₹)', mDisb, eDisb),
-    ].filter(Boolean) as Array<{ label: string; planned: number; done: number; delta: number; achieved: boolean; }>;
-  }, [morning, evening]);
+  /* ------------------------------------------------------ */
 
   if (!isOpen) return null;
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
-      {/* Header */}
+      {/* HEADER */}
       <Paper elevation={1} sx={{ p: 2.5, mb: 2.5, borderRadius: 3, position: 'relative' }}>
         <Typography variant="h5" sx={{ fontWeight: 800, pr: 6 }}>
           Relationship Executive — Daily Snapshot
@@ -243,7 +204,7 @@ export default function REDailySnapshotForm({
         </IconButton>
       </Paper>
 
-      {/* Date + Mode Toggle */}
+      {/* DATE + TOGGLE */}
       <Paper elevation={1} sx={{ p: 2.5, borderRadius: 3, mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={4}>
@@ -272,222 +233,248 @@ export default function REDailySnapshotForm({
         </Grid>
       </Paper>
 
-      <Grid container spacing={2}>
-        {/* Morning */}
-        {mode === 'morning' && (
-          <Grid item xs={12}>
-            <Paper elevation={1} sx={{ p: 3, borderRadius: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  Morning Commitments
-                </Typography>
-                <Chip label="Plan" size="small" color="warning" />
-              </Box>
-              <Divider sx={{ mb: 3 }} />
+      {/* ====================================================== */}
+      {/* ===================== MORNING ======================== */}
+      {/* ====================================================== */}
 
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Connect with Customers on Phone"
-                    name="phoneConnects"
-                    value={morning.phoneConnects}
-                    onChange={handleMorning}
-                    inputMode="numeric"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Connect with Customers on Physical Meet"
-                    name="physicalMeet"
-                    value={morning.physicalMeet}
-                    onChange={handleMorning}
-                    inputMode="numeric"
-                  />
-                </Grid>
+      {mode === 'morning' && (
+        <Paper elevation={1} sx={{ p: 3, borderRadius: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
+            Morning Commitments
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
 
-                {/* Expected Logins – manual number */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Total Expected Logins"
-                    name="expectedLogins"
-                    value={morning.expectedLogins}
-                    onChange={handleMorning}
-                    inputMode="numeric"
-                  />
-                </Grid>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Connect with Customers on Phone"
+                name="phoneConnects"
+                value={morning.phoneConnects}
+                onChange={handleMorning}
+                inputMode="numeric"
+              />
+            </Grid>
 
-                {/* Expected Approvals – manual ₹ */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Total Approval Expected (₹)"
-                    name="expectedApprovals"
-                    value={morning.expectedApprovals}
-                    onChange={handleMorning}
-                    inputMode="numeric"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">₹</InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Connect with Customers on Physical Meet"
+                name="physicalMeet"
+                value={morning.physicalMeet}
+                onChange={handleMorning}
+                inputMode="numeric"
+              />
+            </Grid>
 
-                {/* Expected Disbursal – manual ₹ */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Total Disbursal Expected (₹)"
-                    name="expectedDisbursal"
-                    value={morning.expectedDisbursal}
-                    onChange={handleMorning}
-                    inputMode="numeric"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">₹</InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Total Expected Logins"
+                name="expectedLogins"
+                value={morning.expectedLogins}
+                onChange={handleMorning}
+                inputMode="numeric"
+              />
+            </Grid>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 1 }}>
-                <Button variant="outlined" onClick={handleCancel} sx={{ borderRadius: 2 }}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  color="warning"
-                  onClick={saveMorning}
-                  disabled={savingMorning}
-                  sx={{ borderRadius: 2, fontWeight: 700 }}
-                >
-                  {savingMorning ? 'Saving…' : 'Save Morning'}
-                </Button>
-              </Box>
-            </Paper>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Total Approval Expected (₹)"
+                name="expectedApprovals"
+                value={morning.expectedApprovals}
+                onChange={handleMorning}
+                inputMode="numeric"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Total Disbursal Expected (₹)"
+                name="expectedDisbursal"
+                value={morning.expectedDisbursal}
+                onChange={handleMorning}
+                inputMode="numeric"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                }}
+              />
+            </Grid>
           </Grid>
-        )}
 
-        {/* Evening */}
-        {mode === 'evening' && (
-          <Grid item xs={12}>
-            <Paper elevation={1} sx={{ p: 3, borderRadius: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  Evening Delivery
-                </Typography>
-                <Chip label="Update" size="small" color="success" />
-              </Box>
-              <Divider sx={{ mb: 3 }} />
+          {/* ------------------------------------------------------- */}
+          {/* ✔ NEW — TILL DATE SNAPSHOT (Same Style as Manager Form) */}
+          {/* ------------------------------------------------------- */}
 
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Connect with Customers on Phone"
-                    name="phoneConnected"
-                    value={evening.phoneConnected}
-                    onChange={handleEvening}
-                    inputMode="numeric"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Connected with Customers on Physical Meet"
-                    name="physicalMet"
-                    value={evening.physicalMet}
-                    onChange={handleEvening}
-                    inputMode="numeric"
-                  />
-                </Grid>
+          <Divider sx={{ my: 2 }} />
 
-                {/* Today's Login – manual */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Today's Login"
-                    name="todaysLogin"
-                    value={evening.todaysLogin}
-                    onChange={handleEvening}
-                    inputMode="numeric"
-                  />
-                </Grid>
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
+            Till Date — Snapshot
+          </Typography>
 
-                {/* Today's Approval – manual ₹ */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Today's Approval (₹)"
-                    name="todaysApproval"
-                    value={evening.todaysApproval}
-                    onChange={handleEvening}
-                    inputMode="numeric"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">₹</InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Till Date Logins"
+                type="number"
+                value={tillDateLogin}
+                onChange={(e) => setTillDateLogin(e.target.value)}
+              />
+            </Grid>
 
-                {/* Today's Disbursal – manual ₹ */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Today's Disbursal (₹)"
-                    name="todaysDisbursal"
-                    value={evening.todaysDisbursal}
-                    onChange={handleEvening}
-                    inputMode="numeric"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">₹</InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Till Date Approval (Lacs)"
+                type="number"
+                value={tillDateApprovalLacs}
+                onChange={(e) => setTillDateApprovalLacs(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                }}
+              />
+            </Grid>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 1 }}>
-                <Button variant="outlined" onClick={handleCancel} sx={{ borderRadius: 2 }}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  color="success"
-                  onClick={saveEvening}
-                  disabled={savingEvening}
-                  sx={{ borderRadius: 2, fontWeight: 700 }}
-                >
-                  {savingEvening ? 'Saving…' : 'Save Evening'}
-                </Button>
-              </Box>
-            </Paper>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Till Date Disbursal (Lacs)"
+                type="number"
+                value={tillDateDisbursalLacs}
+                onChange={(e) => setTillDateDisbursalLacs(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                }}
+              />
+            </Grid>
           </Grid>
-        )}
-      </Grid>
+
+          {/* ------------------------------------------------------- */}
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+            <Button variant="outlined" onClick={handleCancel} sx={{ borderRadius: 2 }}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              color="warning"
+              onClick={saveMorning}
+              disabled={savingMorning}
+              sx={{ borderRadius: 2, fontWeight: 700, ml: 1 }}
+            >
+              {savingMorning ? 'Saving…' : 'Save Morning'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
+
+      {/* ====================================================== */}
+      {/* ==================== EVENING ========================== */}
+      {/* ====================================================== */}
+
+      {mode === 'evening' && (
+        <Paper elevation={1} sx={{ p: 3, borderRadius: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
+            Evening Delivery
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Connect with Customers on Phone"
+                name="phoneConnected"
+                value={evening.phoneConnected}
+                onChange={handleEvening}
+                inputMode="numeric"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Connected with Customers on Physical Meet"
+                name="physicalMet"
+                value={evening.physicalMet}
+                onChange={handleEvening}
+                inputMode="numeric"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Today's Login"
+                name="todaysLogin"
+                value={evening.todaysLogin}
+                onChange={handleEvening}
+                inputMode="numeric"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Today's Approval (₹)"
+                name="todaysApproval"
+                value={evening.todaysApproval}
+                onChange={handleEvening}
+                inputMode="numeric"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Today's Disbursal (₹)"
+                name="todaysDisbursal"
+                value={evening.todaysDisbursal}
+                onChange={handleEvening}
+                inputMode="numeric"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                }}
+              />
+            </Grid>
+          </Grid>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+            <Button variant="outlined" onClick={handleCancel} sx={{ borderRadius: 2 }}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              color="success"
+              onClick={saveEvening}
+              disabled={savingEvening}
+              sx={{ borderRadius: 2, fontWeight: 700, ml: 1 }}
+            >
+              {savingEvening ? 'Saving…' : 'Save Evening'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
 
       {/* Snackbar */}
       <Snackbar
         open={snack.open}
-        autoHideDuration={1800}
-        onClose={handleSnackClose}
+        autoHideDuration={2000}
+        onClose={() => setSnack({ open: false, msg: '' })}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         message={snack.msg}
-        ContentProps={{
-          sx: {
-            borderRadius: 2,
-            px: 2,
-            bgcolor: 'rgba(0,0,0,0.85)',
-            color: 'white',
-            boxShadow: 2,
-          }
-        }}
       />
     </Box>
   );
