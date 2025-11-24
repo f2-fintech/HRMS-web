@@ -63,7 +63,7 @@ import AttendanceCard from '@/components/attendancecard/AttendanceCard'
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch()
   const theme = useTheme()
-  const { attendances, loading, count, filteredAttendance } = useSelector((state: RootState) => state.attendances)
+  const { attendances, loading, count, filteredAttendance, statusCounts } = useSelector((state: RootState) => state.attendances)
 
   const [showForm, setShowForm] = useState(false)
   const [selectedAttendance, setSelectedAttendance] = useState(null)
@@ -81,117 +81,78 @@ export default function AttendanceGrid() {
   const [prefillEmployeeName, setPrefillEmployeeName] = useState('')
   const [prefillDate, setPrefillDate] = useState('')
 
-  const [statusCounts, setStatusCounts] = useState([])
-
   const [allEmployees, setAllEmployees] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const isMediumScreen = useMediaQuery(theme.breakpoints.down('md'))
 
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      setError(null)
-
-      try {
-        const employeesData = await fetchMonthlyAttendanceSummary(month, year)
-
-        setAllEmployees(employeesData)
-      } catch (error: any) {
-        setError(error.message || 'Failed to fetch employee data')
-      } finally {
-      }
-    }
-
-    fetchEmployees()
-  }, [month, year])
-
-  const handleExportAttendance = () => {
-    // Month names array
-    const monthNames = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December'
-    ]
-
-    // Get the selected month and year
-    const formattedMonth = monthNames[month - 1] // Convert month number to name
-    const fileName = `${formattedMonth} ${year} attendance_summary.csv`
-
-    // Define the CSV header
-    const csvContent = [
-      ['Employee Name', 'Present', 'Absent', 'On Half', 'On Leave', 'On WFH', 'On Field'],
-
-      // Map attendance data to rows
-      ...allEmployees.map(emp => [
-        emp.employeeName,
-        emp.statuses.Present,
-        emp.statuses.Absent,
-        emp.statuses['On Half'],
-        emp.statuses['On Leave'],
-        emp.statuses['On Wfh'],
-        emp.statuses['On Field']
-      ])
-    ]
-      .map(e => e.join(',')) // Join each row by commas
-      .join('\n') // Join rows with newline characters
-
-    // Create a blob from the CSV content
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-
-    if (link.download !== undefined) {
-      // Create a download link
-      const url = URL.createObjectURL(blob)
-
-      link.setAttribute('href', url)
-      link.setAttribute('download', fileName) // Set the dynamic file name
-      link.style.visibility = 'hidden'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    }
-  }
-
-  const fetchStatusCounts = async () => {
-    let token: string | null = null
-    const { company_id } = typeof window !== 'undefined' ? JSON.parse(localStorage?.getItem('user')) : {}
-
-    if (typeof window !== 'undefined') {
-      token = localStorage.getItem('token')
-    }
-
+  const handleExportAttendance = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/employee-status-counts?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${searchName}&location=${searchLocation}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token} ${company_id}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
+      setError(null)
+      // Fetch fresh data for export
+      const employeesData = await fetchMonthlyAttendanceSummary(month, year)
 
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
+      if (!employeesData || employeesData.length === 0) {
+        setError('No data available to export')
+        return
       }
 
-      const data = await response.json()
+      // Month names array
+      const monthNames = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December'
+      ]
 
-      setStatusCounts(data.statusCounts)
-    } catch (error) {
-      console.error('Error fetching status counts:', error)
+      // Get the selected month and year
+      const formattedMonth = monthNames[month - 1] // Convert month number to name
+      const fileName = `${formattedMonth} ${year} attendance_summary.csv`
 
-      // toast.error("Failed to load attendance counts.");
+      // Define the CSV header
+      const csvContent = [
+        ['Employee Name', 'Present', 'Absent', 'On Half', 'On Leave', 'On WFH', 'On Field'],
+
+        // Map attendance data to rows
+        ...employeesData.map(emp => [
+          emp.employeeName,
+          emp.statuses.Present,
+          emp.statuses.Absent,
+          emp.statuses['On Half'],
+          emp.statuses['On Leave'],
+          emp.statuses['On Wfh'],
+          emp.statuses['On Field']
+        ])
+      ]
+        .map(e => e.join(',')) // Join each row by commas
+        .join('\n') // Join rows with newline characters
+
+      // Create a blob from the CSV content
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+
+      if (link.download !== undefined) {
+        // Create a download link
+        const url = URL.createObjectURL(blob)
+
+        link.setAttribute('href', url)
+        link.setAttribute('download', fileName) // Set the dynamic file name
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to export attendance data')
+      console.error('Export error:', error)
     }
   }
 
@@ -199,33 +160,17 @@ export default function AttendanceGrid() {
   const debouncedSearchLocation = useDebounce(searchLocation, 500)
 
   useEffect(() => {
-    if (userRole === '1' && debouncedSearchName.trim() === '' && debouncedSearchLocation.trim() === '') {
-      fetchStatusCounts()
-
-      dispatch(
-        fetchAttendances({
-          month,
-          year, // Added year
-          page, // Reset to first page
-          limit,
-          keyword: '',
-          location: ''
-        })
-      )
-    } else {
-      dispatch(
-        fetchAttendances({
-          month,
-          year, // Added year
-
-          page, // Reset to first page when searching
-          limit,
-          keyword: debouncedSearchName.trim(),
-          location: debouncedSearchLocation.trim()
-        })
-      )
-      fetchStatusCounts()
-    }
+    // Single dispatch that fetches both attendances and status counts
+    dispatch(
+      fetchAttendances({
+        month,
+        year,
+        page,
+        limit,
+        keyword: debouncedSearchName.trim(),
+        location: debouncedSearchLocation.trim()
+      })
+    )
   }, [page, limit, month, year, debouncedSearchName, debouncedSearchLocation])
 
   const handleInputChange = e => {

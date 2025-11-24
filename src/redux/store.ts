@@ -27,6 +27,7 @@ import configurationReducer from './features/configuration/configurationSlice'
 import dashboardPreferencesReducer from './features/dashboardPreferences/dashboardPreferencesSlice'
 import profilesReducer from './features/profileEmployeee/profilesSlice';
 import performanceReducer from './features/performances/performanceSlice';
+import pagesReducer from './features/pages/pagesSlice';
 
 
 
@@ -77,6 +78,7 @@ const appReducer = combineReducers({
   dashboardPreferences: dashboardPreferencesReducer,
   profiles: profilesReducer,
   performances: performanceReducer,
+  pages: pagesReducer,
 })
 
 // Root reducer with RESET functionality
