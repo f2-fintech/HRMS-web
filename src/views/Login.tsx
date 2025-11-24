@@ -1,9 +1,12 @@
 'use client'
 import { useState } from 'react';
-import Image from 'next/image';
+
 import type { FormEvent } from 'react';
+
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -24,6 +27,7 @@ import {
 } from '@mui/material';
 
 import { Visibility, VisibilityOff } from '@mui/icons-material';
+
 import type { Mode } from '@core/types';
 import { useImageVariant } from '@core/hooks/useImageVariant';
 import Illustrations from '@components/Illustrations';
@@ -117,6 +121,7 @@ const Login = ({ mode }: { mode: Mode }) => {
 
       if (!response.ok) {
         const errorData = await response.json()
+
         throw new Error(errorData.message || 'Network response was not ok')
       }
 
@@ -127,6 +132,7 @@ const Login = ({ mode }: { mode: Mode }) => {
         id: data.payload.id,
         role: data.payload.role,
         designation: data.payload.designation,
+        code: data.payload.code,
         company_id: data.payload.company_id
       }));
 

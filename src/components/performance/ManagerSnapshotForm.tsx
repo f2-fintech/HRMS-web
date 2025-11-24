@@ -1,12 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import type { SelectChangeEvent } from '@mui/material';
 import {
-  Box, Container, Grid, Paper, Typography, Divider, Button, TextField, MenuItem,
-  FormControl, InputLabel, Select, Chip, ToggleButtonGroup, ToggleButton,
-  IconButton, Switch, FormControlLabel, Tooltip, Snackbar, Alert
+  Box,
+  Container,
+  Grid,
+  Paper,
+  Typography,
+  Divider,
+  Button,
+  TextField,
+  ToggleButtonGroup,
+  ToggleButton,
+  IconButton,
+  Switch,
+  FormControlLabel,
+  Tooltip,
+  Snackbar,
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -28,60 +45,158 @@ api.interceptors.request.use((config) => {
     const user = userRaw ? JSON.parse(userRaw) : null;
 
     const company_id =
-      user?.company_id ?? user?.companyId ?? user?.company?._id ?? user?.company?.id;
+      user?.company_id ??
+      user?.companyId ??
+      user?.company?._id ??
+      user?.company?.id;
 
-    if (token) (config.headers as any).Authorization = `Bearer ${token}${company_id ? ` ${company_id}` : ''}`;
+    if (token)
+      (config.headers as any).Authorization = `Bearer ${token}${
+        company_id ? ` ${company_id}` : ''
+      }`;
     if (company_id) (config.headers as any)['x-company-id'] = company_id;
   }
-
 
   return config;
 });
 
 /* ---------------- helpers ---------------- */
 const todayISO = () => new Date().toISOString().split('T')[0];
-const countOptions = Array.from({ length: 51 }, (_, i) => i);      // 0..50
-const smallCountOptions = Array.from({ length: 11 }, (_, i) => i); // 0..10
-const amountLacsOptions = [0, 1, 2, 3, 5, 10, 15, 20, 25, 50, 75, 100];
-
-const amountRupeesOptions = [
-  0, 100000, 200000, 300000, 500000, 750000, 1000000, 1500000, 2000000, 2500000, 5000000, 10000000,
-];
 
 const clientTypes = [
-  { value: 'cold', label: 'Cold' },
-  { value: 'call', label: 'Call' },
+  { value: 'cold', label: 'Cold Call' },
   { value: 'appointment', label: 'Appointment' },
   { value: 'channel_partner', label: 'Channel Partner Visit' },
 ];
 
 /* ---------------- types ---------------- */
 type Mode = 'morning' | 'evening';
-type InternalRow = { count: number };
-type BankerRow = { lenderName: string; lenderContact: string; count: number };
-type ClientRow = { type: string; count: number };
+
+type InternalRow = {
+  count: string;
+  purpose: string;
+};
+
+type BankerRow = {
+  lenderName: string;
+  lenderContact: string;
+  count: string;
+  purpose: string;
+};
+
+type ClientRow = {
+  type: string;
+  clientName: string;
+  clientContact: string;
+  purpose: string;
+};
+
 type StuckRow = { location: string; reason: string };
 
+type SnapshotResponse = {
+  date: string;
+  morning?: {
+    teamTargetLoanLacs?: number;
+    customerPhoneConnects?: number; // 🔹 morning calls
+    ownContribution?: {
+      login?: number;
+      approvalLacs?: number;
+      disbursalLacs?: number;
+    };
+    teamMembers?: {
+      working?: number;
+      total?: number;
+    };
+    meetings?: {
+      internal?: number;
+      bankers?: number;
+      clients?: number;
+      internalDetails?: {
+        count?: number;
+        purpose?: string;
+      }[];
+      bankerDetails?: {
+        lenderName?: string;
+        lenderContact?: string;
+        count?: number;
+        purpose?: string;
+      }[];
+      clientDetails?: {
+        type?: string;
+        clientName?: string;
+        contact?: string;
+        purpose?: string;
+      }[];
+    };
+    expected?: {
+      loginsTeam?: number;
+      approvalLacs?: number;
+      disbursalAmount?: number;
+    };
+    tillDate?: {
+      login?: number;
+      approvalLacs?: number;
+      disbursalLacs?: number;
+    };
+  };
+  evening?: {
+    teamLoginsDone?: number;
+    teamApprovalDoneAmount?: number;
+    teamDisbursalDoneAmount?: number;
+    customerPhoneConnectsDone?: number; // 🔹 NEW: evening calls done
+    topPerformer?: {
+      name?: string;
+      valueLacs?: number;
+    };
+    filesStuck?: {
+      location?: string;
+      reason?: string;
+    }[];
+    supportRequired?: string;
+    overallSentiment?: 'green' | 'yellow' | 'red';
+    sentimentReason?: string | null;
+  };
+};
+
 /* ---------------- component ---------------- */
-export default function ManagerSnapshotForm({ handleClose, onSaved }: { handleClose?: () => void; onSaved?: () => void }) {
+export default function ManagerSnapshotForm({
+  handleClose,
+  onSaved,
+}: {
+  handleClose?: () => void;
+  onSaved?: () => void;
+}) {
   const [mode, setMode] = useState<Mode>('morning');
   const [date, setDate] = useState<string>(todayISO());
 
   // Snackbar (top-center)
-  const [snack, setSnack] = useState<{ open: boolean; msg: string; type: 'success' | 'error' | 'info' }>({
-    open: false, msg: '', type: 'success'
+  const [snack, setSnack] = useState<{
+    open: boolean;
+    msg: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    open: false,
+    msg: '',
+    type: 'success',
   });
 
-  const notify = (msg: string, type: 'success' | 'error' | 'info' = 'success') => setSnack({ open: true, msg, type });
+  const notify = (
+    msg: string,
+    type: 'success' | 'error' | 'info' = 'success',
+  ) => setSnack({ open: true, msg, type });
 
-  /* -------- Morning -------- */
-  const [teamTargetLacs, setTeamTargetLacs] = useState<number>(0);
-  const [ownLoginCount, setOwnLoginCount] = useState<number>(0);
-  const [ownApprovalLacs, setOwnApprovalLacs] = useState<number>(0);
-  const [ownDisbursalLacs, setOwnDisbursalLacs] = useState<number>(0);
-  const [activeHeadcount, setActiveHeadcount] = useState<number>(0);
+  /* -------- Morning (manual numeric input) -------- */
+  const [teamTargetLacs, setTeamTargetLacs] = useState<string>('');
+  const [ownLoginCount, setOwnLoginCount] = useState<string>('');
+  const [ownApprovalLacs, setOwnApprovalLacs] = useState<string>('');
+  const [ownDisbursalLacs, setOwnDisbursalLacs] = useState<string>('');
+  const [activeHeadcount, setActiveHeadcount] = useState<string>('');
+  const [workingHeadcount, setWorkingHeadcount] = useState<string>('');
 
-  // Meetings — ALL TOGETHER in same card now
+  const [customerPhoneConnects, setCustomerPhoneConnects] =
+    useState<string>('');
+
+  // Meetings
   const [hasInternal, setHasInternal] = useState(false);
   const [hasBanker, setHasBanker] = useState(false);
   const [hasClient, setHasClient] = useState(false);
@@ -90,74 +205,470 @@ export default function ManagerSnapshotForm({ handleClose, onSaved }: { handleCl
   const [bankerList, setBankerList] = useState<BankerRow[]>([]);
   const [clientList, setClientList] = useState<ClientRow[]>([]);
 
-  const addInternal = () => setInternalList(p => [...p, { count: 0 }]);
+  const addInternal = () =>
+    setInternalList((p) => [...p, { count: '', purpose: '' }]);
 
-  const updateInternal = (i: number, count: number) =>
-    setInternalList(p => p.map((r, idx) => (idx === i ? { ...r, count } : r)));
+  const updateInternal = (i: number, key: keyof InternalRow, value: string) =>
+    setInternalList((p) =>
+      p.map((row, idx) => (idx === i ? { ...row, [key]: value } : row)),
+    );
 
-  const removeInternal = (i: number) => setInternalList(p => p.filter((_, idx) => idx !== i));
+  const removeInternal = (i: number) =>
+    setInternalList((p) => p.filter((_, idx) => idx !== i));
 
-  const addBanker = () => setBankerList(p => [...p, { lenderName: '', lenderContact: '', count: 0 }]);
+  const addBanker = () =>
+    setBankerList((p) => [
+      ...p,
+      { lenderName: '', lenderContact: '', count: '', purpose: '' },
+    ]);
 
-  const updateBanker = (i: number, key: keyof BankerRow, val: string | number) =>
-    setBankerList(p => p.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)));
+  const updateBanker = (i: number, key: keyof BankerRow, val: string) =>
+    setBankerList((p) =>
+      p.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)),
+    );
 
-  const removeBanker = (i: number) => setBankerList(p => p.filter((_, idx) => idx !== i));
+  const removeBanker = (i: number) =>
+    setBankerList((p) => p.filter((_, idx) => idx !== i));
 
-  const addClient = () => setClientList(p => (p.length < 3 ? [...p, { type: 'cold', count: 0 }] : p));
+  const addClient = () =>
+    setClientList((p) =>
+      p.length < 3
+        ? [
+            ...p,
+            {
+              type: 'cold',
+              clientName: '',
+              clientContact: '',
+              purpose: '',
+            },
+          ]
+        : p,
+    );
 
-  const updateClient = (i: number, key: keyof ClientRow, val: string | number) =>
-    setClientList(p => p.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)));
+  const updateClient = (i: number, key: keyof ClientRow, val: string) =>
+    setClientList((p) =>
+      p.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)),
+    );
 
-  const removeClient = (i: number) => setClientList(p => p.filter((_, idx) => idx !== i));
+  const removeClient = (i: number) =>
+    setClientList((p) => p.filter((_, idx) => idx !== i));
 
-  const [expectedLogins, setExpectedLogins] = useState<number>(0);
-  const [expectedApprovalLacs, setExpectedApprovalLacs] = useState<number>(0);
-  const [expectedDisbursalAmount, setExpectedDisbursalAmount] = useState<number>(0); // ₹
-  const [tillDateLogin, setTillDateLogin] = useState<number>(0);
-  const [tillDateApprovalLacs, setTillDateApprovalLacs] = useState<number>(0);
-  const [tillDateDisbursalLacs, setTillDateDisbursalLacs] = useState<number>(0);
+  const [expectedLogins, setExpectedLogins] = useState<string>('');
 
-  /* -------- Evening -------- */
-  const [teamLoginsDone, setTeamLoginsDone] = useState<number>(0);
-  const [teamApprovalDoneAmount, setTeamApprovalDoneAmount] = useState<number>(0); // ₹
-  const [topPerformerName, setTopPerformerName] = useState<string>('');
-  const [topPerformerValueLacs, setTopPerformerValueLacs] = useState<number>(0);
+  const [expectedApprovalLacs, setExpectedApprovalLacs] =
+    useState<string>('');
+
+  const [expectedDisbursalAmount, setExpectedDisbursalAmount] =
+    useState<string>(''); // ₹
+
+  const [tillDateLogin, setTillDateLogin] = useState<string>('');
+
+  const [tillDateApprovalLacs, setTillDateApprovalLacs] =
+    useState<string>('');
+
+  const [tillDateDisbursalLacs, setTillDateDisbursalLacs] =
+    useState<string>('');
+
+  /* -------- Evening (manual numeric input) -------- */
+  const [teamLoginsDone, setTeamLoginsDone] = useState<string>('');
+
+  const [teamApprovalDoneAmount, setTeamApprovalDoneAmount] =
+    useState<string>(''); // ₹
+
+  // 🔹 NEW: evening calls done
+  const [customerPhoneConnectsDone, setCustomerPhoneConnectsDone] =
+    useState<string>('');
+
+  const [filesStuckDescription, setFilesStuckDescription] = useState('');
+
+  const [teamDisbursalDoneAmount, setTeamDisbursalDoneAmount] =
+    useState<string>(''); // ₹
+
+  // 🔹 NEW: separate top performers
+  const [approvalTopName, setApprovalTopName] = useState<string>('');
+  const [approvalTopAmount, setApprovalTopAmount] = useState<string>('');
+  const [disbursalTopName, setDisbursalTopName] = useState<string>('');
+  const [disbursalTopAmount, setDisbursalTopAmount] =
+    useState<string>('');
+
   const [filesStuck, setFilesStuck] = useState<StuckRow[]>([]);
   const [supportRequired, setSupportRequired] = useState<string>('');
-  const [overallSentiment, setOverallSentiment] = useState<'green' | 'yellow' | 'red'>('green');
+
+  const [overallSentiment, setOverallSentiment] =
+    useState<'green' | 'yellow' | 'red'>('green');
+
   const [sentimentReason, setSentimentReason] = useState<string>('');
 
-  const addStuck = () => setFilesStuck((p) => [...p, { location: '', reason: '' }]);
+  const addStuck = () =>
+    setFilesStuck((p) => [...p, { location: '', reason: '' }]);
 
   const updateStuck = (i: number, key: keyof StuckRow, val: string) =>
-    setFilesStuck((p) => p.map((row, idx) => (idx === i ? { ...row, [key]: val } : row)));
+    setFilesStuck((p) =>
+      p.map((row, idx) => (idx === i ? { ...row, [key]: val } : row)),
+    );
 
-  const removeStuck = (i: number) => setFilesStuck(p => p.filter((_, idx) => idx !== i));
+  const removeStuck = (i: number) =>
+    setFilesStuck((p) => p.filter((_, idx) => idx !== i));
 
-  /* -------- Submit handlers (show snackbar) -------- */
+  /* -------- Combined Totals (Expected + Own) -------- */
+  const totalLoginCombined =
+    (Number(expectedLogins) || 0) + (Number(ownLoginCount) || 0);
+
+  const totalApprovalCombined =
+    (Number(expectedApprovalLacs) || 0) +
+    (Number(ownApprovalLacs) || 0);
+
+  const totalDisbursalCombined =
+    (Number(expectedDisbursalAmount) || 0) +
+    (Number(ownDisbursalLacs) || 0);
+
+  /* -------- LOAD existing snapshot (DB -> UI) -------- */
+  const loadSnapshot = async (selectedDate: string) => {
+    try {
+      const res = await api.get<SnapshotResponse>('/performance/manager', {
+        params: { date: selectedDate },
+      });
+
+      const data = res.data;
+      const morning = data.morning;
+      const evening = data.evening;
+
+      // ------- Morning mapping -------
+      if (morning) {
+        setTeamTargetLacs(
+          morning.teamTargetLoanLacs != null
+            ? String(morning.teamTargetLoanLacs)
+            : '',
+        );
+
+        setCustomerPhoneConnects(
+          morning.customerPhoneConnects != null
+            ? String(morning.customerPhoneConnects)
+            : '',
+        );
+
+        setOwnLoginCount(
+          morning.ownContribution?.login != null
+            ? String(morning.ownContribution.login)
+            : '',
+        );
+        setOwnApprovalLacs(
+          morning.ownContribution?.approvalLacs != null
+            ? String(morning.ownContribution.approvalLacs)
+            : '',
+        );
+        setOwnDisbursalLacs(
+          morning.ownContribution?.disbursalLacs != null
+            ? String(morning.ownContribution.disbursalLacs)
+            : '',
+        );
+
+        const working = morning.teamMembers?.working;
+        const total = morning.teamMembers?.total;
+
+        setActiveHeadcount(total != null ? String(total) : '');
+        setWorkingHeadcount(working != null ? String(working) : '');
+
+        // Meetings
+        const mMeetings = morning.meetings;
+
+        if (mMeetings) {
+          // Internal details
+          if (
+            mMeetings.internalDetails &&
+            mMeetings.internalDetails.length
+          ) {
+            setHasInternal(true);
+            setInternalList(
+              mMeetings.internalDetails.map((d) => ({
+                count: d.count != null ? String(d.count) : '',
+                purpose: d.purpose || '',
+              })),
+            );
+          } else if (mMeetings.internal && mMeetings.internal > 0) {
+            setHasInternal(true);
+            setInternalList([
+              { count: String(mMeetings.internal), purpose: '' },
+            ]);
+          } else {
+            setHasInternal(false);
+            setInternalList([]);
+          }
+
+          // Banker details
+          if (mMeetings.bankerDetails && mMeetings.bankerDetails.length) {
+            setHasBanker(true);
+            setBankerList(
+              mMeetings.bankerDetails.map((b) => ({
+                lenderName: b.lenderName || '',
+                lenderContact: b.lenderContact || '',
+                count: b.count != null ? String(b.count) : '',
+                purpose: b.purpose || '',
+              })),
+            );
+          } else {
+            setHasBanker(false);
+            setBankerList([]);
+          }
+
+          // Client details
+          if (mMeetings.clientDetails && mMeetings.clientDetails.length) {
+            setHasClient(true);
+            setClientList(
+              mMeetings.clientDetails.map((c) => ({
+                type: c.type || 'cold',
+                clientName: c.clientName || '',
+                clientContact: c.contact || '',
+                purpose: c.purpose || '',
+              })),
+            );
+          } else {
+            setHasClient(false);
+            setClientList([]);
+          }
+        } else {
+          setHasInternal(false);
+          setInternalList([]);
+          setHasBanker(false);
+          setBankerList([]);
+          setHasClient(false);
+          setClientList([]);
+        }
+
+        // Expected
+        setExpectedLogins(
+          morning.expected?.loginsTeam != null
+            ? String(morning.expected.loginsTeam)
+            : '',
+        );
+        setExpectedApprovalLacs(
+          morning.expected?.approvalLacs != null
+            ? String(morning.expected.approvalLacs)
+            : '',
+        );
+        setExpectedDisbursalAmount(
+          morning.expected?.disbursalAmount != null
+            ? String(morning.expected.disbursalAmount)
+            : '',
+        );
+
+        // Till date
+        setTillDateLogin(
+          morning.tillDate?.login != null
+            ? String(morning.tillDate.login)
+            : '',
+        );
+        setTillDateApprovalLacs(
+          morning.tillDate?.approvalLacs != null
+            ? String(morning.tillDate.approvalLacs)
+            : '',
+        );
+        setTillDateDisbursalLacs(
+          morning.tillDate?.disbursalLacs != null
+            ? String(morning.tillDate.disbursalLacs)
+            : '',
+        );
+      } else {
+        // No morning snapshot -> clear fields
+        setTeamTargetLacs('');
+        setCustomerPhoneConnects('');
+        setOwnLoginCount('');
+        setOwnApprovalLacs('');
+        setOwnDisbursalLacs('');
+        setActiveHeadcount('');
+        setWorkingHeadcount('');
+        setHasInternal(false);
+        setInternalList([]);
+        setHasBanker(false);
+        setBankerList([]);
+        setHasClient(false);
+        setClientList([]);
+        setExpectedLogins('');
+        setExpectedApprovalLacs('');
+        setExpectedDisbursalAmount('');
+        setTillDateLogin('');
+        setTillDateApprovalLacs('');
+        setTillDateDisbursalLacs('');
+      }
+
+      // ------- Evening mapping -------
+      if (evening) {
+        setTeamLoginsDone(
+          evening.teamLoginsDone != null
+            ? String(evening.teamLoginsDone)
+            : '',
+        );
+        setTeamApprovalDoneAmount(
+          evening.teamApprovalDoneAmount != null
+            ? String(evening.teamApprovalDoneAmount)
+            : '',
+        );
+        setTeamDisbursalDoneAmount(
+          evening.teamDisbursalDoneAmount != null
+            ? String(evening.teamDisbursalDoneAmount)
+            : '',
+        );
+
+        // 🔹 NEW: calls done (evening)
+        setCustomerPhoneConnectsDone(
+          evening.customerPhoneConnectsDone != null
+            ? String(evening.customerPhoneConnectsDone)
+            : '',
+        );
+
+        // existing topPerformer string ko abhi ignore kar rahe hain
+        setApprovalTopName('');
+        setApprovalTopAmount('');
+        setDisbursalTopName('');
+        setDisbursalTopAmount('');
+
+        setFilesStuck(
+          (evening.filesStuck || []).map((f) => ({
+            location: f.location || '',
+            reason: f.reason || '',
+          })),
+        );
+
+        setSupportRequired(evening.supportRequired || '');
+        setOverallSentiment(evening.overallSentiment || 'green');
+        setSentimentReason(evening.sentimentReason || '');
+      } else {
+        // No evening snapshot -> clear evening
+        setTeamLoginsDone('');
+        setTeamApprovalDoneAmount('');
+        setTeamDisbursalDoneAmount('');
+        setCustomerPhoneConnectsDone('');
+        setApprovalTopName('');
+        setApprovalTopAmount('');
+        setDisbursalTopName('');
+        setDisbursalTopAmount('');
+        setFilesStuck([]);
+        setSupportRequired('');
+        setOverallSentiment('green');
+        setSentimentReason('');
+      }
+    } catch (err: any) {
+      // Reset on error / 404
+      setTeamTargetLacs('');
+      setCustomerPhoneConnects('');
+      setOwnLoginCount('');
+      setOwnApprovalLacs('');
+      setOwnDisbursalLacs('');
+      setActiveHeadcount('');
+      setWorkingHeadcount('');
+      setHasInternal(false);
+      setInternalList([]);
+      setHasBanker(false);
+      setBankerList([]);
+      setHasClient(false);
+      setClientList([]);
+      setExpectedLogins('');
+      setExpectedApprovalLacs('');
+      setExpectedDisbursalAmount('');
+      setTillDateLogin('');
+      setTillDateApprovalLacs('');
+      setTillDateDisbursalLacs('');
+
+      setTeamLoginsDone('');
+      setTeamApprovalDoneAmount('');
+      setTeamDisbursalDoneAmount('');
+      setCustomerPhoneConnectsDone('');
+      setApprovalTopName('');
+      setApprovalTopAmount('');
+      setDisbursalTopName('');
+      setDisbursalTopAmount('');
+      setFilesStuck([]);
+      setSupportRequired('');
+      setOverallSentiment('green');
+      setSentimentReason('');
+    }
+  };
+
+  useEffect(() => {
+    loadSnapshot(date);
+  }, [date]);
+
+  /* -------- Submit handlers (API + snackbar) -------- */
   const saveMorning = async () => {
-    const totalInternal = hasInternal ? internalList.reduce((a, r) => a + (r.count || 0), 0) : 0;
-    const totalBankers = hasBanker ? bankerList.reduce((a, r) => a + (r.count || 0), 0) : 0;
-    const totalClients = hasClient ? clientList.reduce((a, r) => a + (r.count || 0), 0) : 0;
+    const totalInternal = hasInternal
+      ? internalList.reduce((a, r) => a + (Number(r.count) || 0), 0)
+      : 0;
 
-    const bankerDetails = hasBanker
-      ? bankerList
-        .map(b => ({ lenderName: b.lenderName?.trim() || '', lenderContact: b.lenderContact?.trim() || '', count: b.count || 0 }))
-        .filter(b => b.lenderName || b.lenderContact || b.count > 0)
+    const totalBankers = hasBanker
+      ? bankerList.reduce((a, r) => a + (Number(r.count) || 0), 0)
+      : 0;
+
+    const internalDetails = hasInternal
+      ? internalList
+          .map((r) => ({
+            count: Number(r.count) || 0,
+            purpose: r.purpose.trim(),
+          }))
+          .filter((r) => r.count > 0 || r.purpose)
       : [];
 
     const clientDetails = hasClient
-      ? clientList.map(c => ({ type: c.type, count: c.count || 0 })).filter(c => c.count > 0)
+      ? clientList
+          .map((c) => ({
+            type: c.type,
+            clientName: c.clientName.trim(),
+            contact: c.clientContact.trim(),
+            purpose: c.purpose.trim(),
+          }))
+          .filter(
+            (c) => c.type || c.clientName || c.contact || c.purpose,
+          )
+      : [];
+
+    const totalClients = hasClient ? clientDetails.length : 0;
+
+    const bankerDetails = hasBanker
+      ? bankerList
+          .map((b) => ({
+            lenderName: b.lenderName.trim(),
+            lenderContact: b.lenderContact.trim(),
+            count: Number(b.count) || 0,
+            purpose: b.purpose.trim(),
+          }))
+          .filter(
+            (b) =>
+              b.lenderName ||
+              b.lenderContact ||
+              b.count > 0 ||
+              b.purpose,
+          )
       : [];
 
     const morning = {
-      teamTargetLoanLacs: teamTargetLacs,
-      ownContribution: { login: ownLoginCount, approvalLacs: ownApprovalLacs, disbursalLacs: ownDisbursalLacs },
-      teamMembers: { working: activeHeadcount, total: activeHeadcount },
-      meetings: { internal: totalInternal, bankers: totalBankers, clients: totalClients, bankerDetails, clientDetails },
-      expected: { loginsTeam: expectedLogins, approvalLacs: expectedApprovalLacs, disbursalAmount: expectedDisbursalAmount },
-      tillDate: { login: tillDateLogin, approvalLacs: tillDateApprovalLacs, disbursalLacs: tillDateDisbursalLacs },
+      teamTargetLoanLacs: Number(teamTargetLacs) || 0,
+      customerPhoneConnects: Number(customerPhoneConnects) || 0,
+      ownContribution: {
+        login: Number(ownLoginCount) || 0,
+        approvalLacs: Number(ownApprovalLacs) || 0,
+        disbursalLacs: Number(ownDisbursalLacs) || 0,
+      },
+      teamMembers: {
+        working: Number(workingHeadcount) || 0,
+        total: Number(activeHeadcount) || 0,
+      },
+      meetings: {
+        internal: totalInternal,
+        bankers: totalBankers,
+        clients: totalClients,
+        internalDetails,
+        bankerDetails,
+        clientDetails,
+      },
+      expected: {
+        loginsTeam: Number(expectedLogins) || 0,
+        approvalLacs: Number(expectedApprovalLacs) || 0,
+        disbursalAmount: Number(expectedDisbursalAmount) || 0,
+      },
+      tillDate: {
+        login: Number(tillDateLogin) || 0,
+        approvalLacs: Number(tillDateApprovalLacs) || 0,
+        disbursalLacs: Number(tillDateDisbursalLacs) || 0,
+      },
     };
 
     try {
@@ -166,22 +677,69 @@ export default function ManagerSnapshotForm({ handleClose, onSaved }: { handleCl
       onSaved?.();
       handleClose?.();
     } catch (e: any) {
-      notify(e?.response?.data?.message || '❌ Failed to save morning snapshot', 'error');
+      notify(
+        e?.response?.data?.message ||
+          '❌ Failed to save morning snapshot',
+        'error',
+      );
     }
   };
 
   const saveEvening = async () => {
-    if ((overallSentiment === 'yellow' || overallSentiment === 'red') && !sentimentReason.trim()) {
-      notify('Please add a short reason for Yellow/Red sentiment.', 'info');
+    if (
+      (overallSentiment === 'yellow' || overallSentiment === 'red') &&
+      !sentimentReason.trim()
+    ) {
+      notify(
+        'Please add a short reason for Yellow/Red sentiment.',
+        'info',
+      );
 
       return;
     }
 
+    // 🔹 Combine approval + disbursal performer for backend
+    const topSummaryParts: string[] = [];
+
+    if (approvalTopName || approvalTopAmount) {
+      topSummaryParts.push(
+        `Approval: ${approvalTopName || '-'} (₹${
+          approvalTopAmount || 0
+        })`,
+      );
+    }
+
+    if (disbursalTopName || disbursalTopAmount) {
+      topSummaryParts.push(
+        `Disbursal: ${disbursalTopName || '-'} (₹${
+          disbursalTopAmount || 0
+        })`,
+      );
+    }
+
+    const topPerformerNameCombined = topSummaryParts.join(' | ');
+
+    const topPerformerTotalValue =
+      (Number(approvalTopAmount) || 0) +
+      (Number(disbursalTopAmount) || 0);
+
     const evening = {
-      teamLoginsDone,
-      teamApprovalDoneAmount,
-      topPerformer: { name: topPerformerName.trim(), valueLacs: topPerformerValueLacs },
-      filesStuck: filesStuck.map(f => ({ location: f.location.trim(), reason: f.reason.trim() })).filter(f => f.location || f.reason),
+      teamLoginsDone: Number(teamLoginsDone) || 0,
+      teamApprovalDoneAmount: Number(teamApprovalDoneAmount) || 0,
+      teamDisbursalDoneAmount: Number(teamDisbursalDoneAmount) || 0,
+      customerPhoneConnectsDone:
+        Number(customerPhoneConnectsDone) || 0, // 🔹 NEW field
+      topPerformer: {
+        name: topPerformerNameCombined,
+        valueLacs: topPerformerTotalValue,
+      },
+      filesStuck: filesStuck
+        .map((f) => ({
+          location: f.location.trim(),
+          reason: f.reason.trim(),
+        }))
+        .filter((f) => f.location || f.reason),
+      filesStuckDescription: filesStuckDescription.trim(),
       supportRequired: supportRequired.trim(),
       overallSentiment,
       sentimentReason: sentimentReason.trim() || null,
@@ -193,260 +751,670 @@ export default function ManagerSnapshotForm({ handleClose, onSaved }: { handleCl
       onSaved?.();
       handleClose?.();
     } catch (e: any) {
-      notify(e?.response?.data?.message || '❌ Failed to save evening snapshot', 'error');
+      notify(
+        e?.response?.data?.message ||
+          '❌ Failed to save evening snapshot',
+        'error',
+      );
     }
   };
 
   /* ---------------- UI ---------------- */
   return (
-    <Box sx={{
-      py: 2, background:
-        'radial-gradient(900px 420px at 10% -10%, rgba(99,102,241,0.08), transparent 60%), radial-gradient(800px 420px at 90% -20%, rgba(236,72,153,0.07), transparent 60%)'
-    }}>
+    <Box
+      sx={{
+        py: 2,
+        background:
+          'radial-gradient(900px 420px at 10% -10%, rgba(99,102,241,0.08), transparent 60%), radial-gradient(800px 420px at 90% -20%, rgba(236,72,153,0.07), transparent 60%)',
+      }}
+    >
       <Container maxWidth="lg">
         {/* Header + controls */}
-        <Paper elevation={0} sx={{
-          p: { xs: 2, md: 3 }, mb: 2.5, borderRadius: 4, color: 'white',
-
-        }}>
-          <Typography variant="h5" sx={{ fontWeight: 900 }}>TL / Manager — Daily Snapshot</Typography>
-          <Grid container spacing={2} sx={{ mt: 1.5 }} alignItems="center">
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, md: 3 },
+            mb: 2.5,
+            borderRadius: 4,
+            color: 'white',
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 900 }}>
+            TL / Manager — Daily Snapshot
+          </Typography>
+          <Grid
+            container
+            spacing={2}
+            sx={{ mt: 1.5 }}
+            alignItems="center"
+          >
             <Grid item>
-              <TextField size="small" label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ bgcolor: 'white', borderRadius: 1 }} />
+              <TextField
+                size="small"
+                label="Date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ bgcolor: 'white', borderRadius: 1 }}
+              />
             </Grid>
             <Grid item>
-              <ToggleButtonGroup exclusive value={mode} onChange={(_, v) => v && setMode(v)} size="small" color="secondary">
-                <ToggleButton value="morning"><ScheduleIcon sx={{ mr: .6 }} />Morning</ToggleButton>
-                <ToggleButton value="evening"><NightlightIcon sx={{ mr: .6 }} />Evening</ToggleButton>
+              <ToggleButtonGroup
+                exclusive
+                value={mode}
+                onChange={(_, v) => v && setMode(v)}
+                size="small"
+                color="secondary"
+              >
+                <ToggleButton value="morning">
+                  <ScheduleIcon sx={{ mr: 0.6 }} />
+                  Morning
+                </ToggleButton>
+                <ToggleButton value="evening">
+                  <NightlightIcon sx={{ mr: 0.6 }} />
+                  Evening
+                </ToggleButton>
               </ToggleButtonGroup>
             </Grid>
-            <Grid item><Chip label="v2" size="small" sx={{ bgcolor: 'rgba(255,255,255,.25)', color: 'white' }} /></Grid>
+            <Grid item>
+              <Chip
+                label="v2"
+                size="small"
+                sx={{
+                  bgcolor: 'rgba(255,255,255,.25)',
+                  color: 'white',
+                }}
+              />
+            </Grid>
           </Grid>
         </Paper>
 
-        {/* MORNING — single card with meetings inside */}
+        {/* MORNING */}
         {mode === 'morning' && (
-          <Paper elevation={1} sx={{ p: { xs: 2, md: 3 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-            {/* Team Target */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>1) Team Target (Lacs)</Typography>
-            <Grid container spacing={2} sx={{ mb: 1 }}>
+          <Paper
+            elevation={1}
+            sx={{
+              p: { xs: 2, md: 3 },
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            {/* Combined Totals (Expected + Own) */}
+            <Box
+              sx={{
+                mb: 2,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 1.5,
+              }}
+            >
+              <Chip
+                label={`Total Logins (Expected + Own): ${totalLoginCombined}`}
+                variant="outlined"
+              />
+              <Chip
+                label={`Total Approval (₹): ${totalApprovalCombined.toLocaleString(
+                  'en-IN',
+                )}`}
+                variant="outlined"
+              />
+              <Chip
+                label={`Total Disbursal (₹): ${totalDisbursalCombined.toLocaleString(
+                  'en-IN',
+                )}`}
+                variant="outlined"
+              />
+            </Box>
+
+            {/* Phone connects */}
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 800, mb: 1 }}
+            >
+              Customers Connected on Phone
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Team Target</InputLabel>
-                  <Select label="Team Target" value={String(teamTargetLacs)} onChange={(e: SelectChangeEvent<string>) => setTeamTargetLacs(Number(e.target.value))}>
-                    {amountLacsOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="connected on phone"
+                  type="number"
+                  value={customerPhoneConnects}
+                  onChange={(e) =>
+                    setCustomerPhoneConnects(e.target.value)
+                  }
+                />
               </Grid>
             </Grid>
 
             <Divider sx={{ my: 2 }} />
-
-            {/* Own Contribution (three fields) */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>2) Own Contribution</Typography>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 800, mb: 1 }}
+            >
+              Expected Delivery Today(Team)
+            </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Login — How many?</InputLabel>
-                  <Select label="Login — How many?" value={String(ownLoginCount)} onChange={(e: SelectChangeEvent<string>) => setOwnLoginCount(Number(e.target.value))}>
-                    {smallCountOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Expected Logins (Team)"
+                  type="number"
+                  value={expectedLogins}
+                  onChange={(e) =>
+                    setExpectedLogins(e.target.value)
+                  }
+                />
               </Grid>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Approval (Lacs)</InputLabel>
-                  <Select label="Approval (Lacs)" value={String(ownApprovalLacs)} onChange={(e: SelectChangeEvent<string>) => setOwnApprovalLacs(Number(e.target.value))}>
-                    {amountLacsOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Expected Approval (₹)"
+                  type="number"
+                  value={expectedApprovalLacs}
+                  onChange={(e) =>
+                    setExpectedApprovalLacs(e.target.value)
+                  }
+                />
               </Grid>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Disbursal (Lacs)</InputLabel>
-                  <Select label="Disbursal (Lacs)" value={String(ownDisbursalLacs)} onChange={(e: SelectChangeEvent<string>) => setOwnDisbursalLacs(Number(e.target.value))}>
-                    {amountLacsOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Expected Disbursal (₹)"
+                  type="number"
+                  value={expectedDisbursalAmount}
+                  onChange={(e) =>
+                    setExpectedDisbursalAmount(e.target.value)
+                  }
+                />
               </Grid>
             </Grid>
 
-            <Divider sx={{ my: 2 }} />
-
-            {/* Headcount */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>3) Total Active Headcount Today</Typography>
+            {/* Own Contribution */}
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 800, mb: 1 }}
+            >
+              Own Contribution(individual Number)
+            </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Active</InputLabel>
-                  <Select label="Active" value={String(activeHeadcount)} onChange={(e: SelectChangeEvent<string>) => setActiveHeadcount(Number(e.target.value))}>
-                    {countOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Login — How many?"
+                  type="number"
+                  value={ownLoginCount}
+                  onChange={(e) =>
+                    setOwnLoginCount(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Approval (₹)"
+                  type="number"
+                  value={ownApprovalLacs}
+                  onChange={(e) =>
+                    setOwnApprovalLacs(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Disbursal (₹)"
+                  type="number"
+                  value={ownDisbursalLacs}
+                  onChange={(e) =>
+                    setOwnDisbursalLacs(e.target.value)
+                  }
+                />
               </Grid>
             </Grid>
 
             <Divider sx={{ my: 2 }} />
 
-            {/*  MEETINGS — all together here */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>4) Meetings (Internal • Banker • Client)</Typography>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 800, mb: 1 }}
+            >
+              Total Active Headcount
+            </Typography>
 
-            {/* Internal */}
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Active Headcount"
+                  type="number"
+                  value={activeHeadcount}
+                  onChange={(e) =>
+                    setActiveHeadcount(e.target.value)
+                  }
+                />
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Working / Present Today"
+                  type="number"
+                  value={workingHeadcount}
+                  onChange={(e) =>
+                    setWorkingHeadcount(e.target.value)
+                  }
+                />
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Meetings */}
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 800, mb: 1 }}
+            >
+              Meetings (Internal • Banker • Client)
+            </Typography>
+
+            {/* Internal meetings */}
             <FormControlLabel
-              control={<Switch checked={hasInternal} onChange={(e) => { setHasInternal(e.target.checked); if (!e.target.checked) setInternalList([]); }} />}
+              control={
+                <Switch
+                  checked={hasInternal}
+                  onChange={(e) => {
+                    setHasInternal(e.target.checked);
+                    if (!e.target.checked) setInternalList([]);
+                  }}
+                />
+              }
               label="Internal / Team"
             />
             {hasInternal && (
               <Box sx={{ mb: 1 }}>
                 {internalList.map((row, i) => (
-                  <Grid container spacing={1.5} key={`int-${i}`} sx={{ mb: 1 }}>
-                    <Grid item xs={10} md={3}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>How many</InputLabel>
-                        <Select label="How many" value={String(row.count)} onChange={(e: SelectChangeEvent<string>) => updateInternal(i, Number(e.target.value))}>
-                          {smallCountOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                        </Select>
-                      </FormControl>
+                  <Grid
+                    container
+                    spacing={1.5}
+                    key={`int-${i}`}
+                    sx={{ mb: 1 }}
+                  >
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="How many"
+                        type="number"
+                        value={row.count}
+                        onChange={(e) =>
+                          updateInternal(
+                            i,
+                            'count',
+                            e.target.value,
+                          )
+                        }
+                      />
                     </Grid>
-                    <Grid item xs={2} md="auto" sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Tooltip title="Remove"><IconButton color="error" onClick={() => removeInternal(i)}><DeleteOutlineIcon /></IconButton></Tooltip>
+                    <Grid item xs={12} md={7}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Agenda / Purpose of meeting"
+                        value={row.purpose}
+                        onChange={(e) =>
+                          updateInternal(
+                            i,
+                            'purpose',
+                            e.target.value,
+                          )
+                        }
+                        multiline
+                        minRows={1}
+                        maxRows={3}
+                      />
+                    </Grid>
+                    <Grid
+                      item
+                      xs={12}
+                      md="auto"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Tooltip title="Remove">
+                        <IconButton
+                          color="error"
+                          onClick={() => removeInternal(i)}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
                     </Grid>
                   </Grid>
                 ))}
-                <Button variant="outlined" startIcon={<AddIcon />} onClick={addInternal}>Add Internal</Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={addInternal}
+                >
+                  Add Internal
+                </Button>
               </Box>
             )}
 
-            {/* Banker */}
+            {/* Banker meetings */}
             <FormControlLabel
-              control={<Switch checked={hasBanker} onChange={(e) => { setHasBanker(e.target.checked); if (!e.target.checked) setBankerList([]); }} />}
+              control={
+                <Switch
+                  checked={hasBanker}
+                  onChange={(e) => {
+                    setHasBanker(e.target.checked);
+                    if (!e.target.checked) setBankerList([]);
+                  }}
+                />
+              }
               label="Banker / Partner"
             />
             {hasBanker && (
               <Box sx={{ mb: 1 }}>
                 {bankerList.map((row, i) => (
-                  <Grid container spacing={1.5} key={`bank-${i}`} sx={{ mb: 1 }}>
-                    <Grid item xs={12} md={3}><TextField size="small" fullWidth label="Lender Name" value={row.lenderName} onChange={(e) => updateBanker(i, 'lenderName', e.target.value)} /></Grid>
-                    <Grid item xs={12} md={3}><TextField size="small" fullWidth label="Lender Contact" value={row.lenderContact} onChange={(e) => updateBanker(i, 'lenderContact', e.target.value)} /></Grid>
-                    <Grid item xs={10} md={3}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>How many</InputLabel>
-                        <Select label="How many" value={String(row.count)} onChange={(e: SelectChangeEvent<string>) => updateBanker(i, 'count', Number(e.target.value))}>
-                          {smallCountOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                        </Select>
-                      </FormControl>
+                  <Grid
+                    container
+                    spacing={1.5}
+                    key={`bank-${i}`}
+                    sx={{ mb: 1 }}
+                  >
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Lender Name"
+                        value={row.lenderName}
+                        onChange={(e) =>
+                          updateBanker(
+                            i,
+                            'lenderName',
+                            e.target.value,
+                          )
+                        }
+                      />
                     </Grid>
-                    <Grid item xs={2} md="auto" sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Tooltip title="Remove"><IconButton color="error" onClick={() => removeBanker(i)}><DeleteOutlineIcon /></IconButton></Tooltip>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Lender Contact"
+                        value={row.lenderContact}
+                        onChange={(e) =>
+                          updateBanker(
+                            i,
+                            'lenderContact',
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Agenda / Purpose of Meeting"
+                        value={row.purpose}
+                        onChange={(e) =>
+                          updateBanker(i, 'purpose', e.target.value)
+                        }
+                      />
+                    </Grid>
+
+                    <Grid
+                      item
+                      xs={12}
+                      md="auto"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Tooltip title="Remove">
+                        <IconButton
+                          color="error"
+                          onClick={() => removeBanker(i)}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
                     </Grid>
                   </Grid>
                 ))}
-                <Button variant="outlined" startIcon={<AddIcon />} onClick={addBanker}>Add Banker</Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={addBanker}
+                >
+                  Add Banker
+                </Button>
               </Box>
             )}
 
-            {/* Client */}
+            {/* Client interactions */}
             <FormControlLabel
-              control={<Switch checked={hasClient} onChange={(e) => { setHasClient(e.target.checked); if (!e.target.checked) setClientList([]); }} />}
+              control={
+                <Switch
+                  checked={hasClient}
+                  onChange={(e) => {
+                    setHasClient(e.target.checked);
+                    if (!e.target.checked) setClientList([]);
+                  }}
+                />
+              }
               label="Client Interactions"
             />
             {hasClient && (
               <Box>
                 {clientList.map((row, i) => (
-                  <Grid container spacing={1.5} key={`client-${i}`} sx={{ mb: 1 }}>
+                  <Grid
+                    container
+                    spacing={1.5}
+                    key={`client-${i}`}
+                    sx={{ mb: 1 }}
+                  >
                     <Grid item xs={12} md={3}>
                       <FormControl fullWidth size="small">
                         <InputLabel>Client – Type</InputLabel>
-                        <Select label="Client – Type" value={row.type} onChange={(e: SelectChangeEvent<string>) => updateClient(i, 'type', e.target.value)}>
-                          {clientTypes.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+                        <Select
+                          label="Client – Type"
+                          value={row.type}
+                          onChange={(e) =>
+                            updateClient(
+                              i,
+                              'type',
+                              e.target.value,
+                            )
+                          }
+                        >
+                          {clientTypes.map((c) => (
+                            <MenuItem
+                              key={c.value}
+                              value={c.value}
+                            >
+                              {c.label}
+                            </MenuItem>
+                          ))}
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={10} md={3}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>How many</InputLabel>
-                        <Select label="How many" value={String(row.count)} onChange={(e: SelectChangeEvent<string>) => updateClient(i, 'count', Number(e.target.value))}>
-                          {smallCountOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                        </Select>
-                      </FormControl>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Client Name"
+                        value={row.clientName}
+                        onChange={(e) =>
+                          updateClient(
+                            i,
+                            'clientName',
+                            e.target.value,
+                          )
+                        }
+                      />
                     </Grid>
-                    <Grid item xs={2} md="auto" sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Tooltip title="Remove"><IconButton color="error" onClick={() => removeClient(i)}><DeleteOutlineIcon /></IconButton></Tooltip>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Client Contact"
+                        value={row.clientContact}
+                        onChange={(e) =>
+                          updateClient(
+                            i,
+                            'clientContact',
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={9}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Purpose / Discussion notes"
+                        value={row.purpose}
+                        onChange={(e) =>
+                          updateClient(
+                            i,
+                            'purpose',
+                            e.target.value,
+                          )
+                        }
+                        multiline
+                        minRows={1}
+                        maxRows={3}
+                      />
+                    </Grid>
+                    <Grid
+                      item
+                      xs={12}
+                      md="auto"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Tooltip title="Remove">
+                        <IconButton
+                          color="error"
+                          onClick={() => removeClient(i)}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
                     </Grid>
                   </Grid>
                 ))}
-                <Button variant="outlined" startIcon={<AddIcon />} onClick={addClient} disabled={clientList.length >= 3}>Add Client</Button>
-                {clientList.length >= 3 && <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>(Max 3)</Typography>}
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={addClient}
+                  disabled={clientList.length >= 3}
+                >
+                  Add Client
+                </Button>
+                {clientList.length >= 3 && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ ml: 1 }}
+                  >
+                    (Max 3)
+                  </Typography>
+                )}
               </Box>
             )}
 
             <Divider sx={{ my: 2 }} />
 
-            {/* Expected Today */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>5) Expected Today</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Expected Logins (Team)</InputLabel>
-                  <Select label="Expected Logins (Team)" value={String(expectedLogins)} onChange={(e: SelectChangeEvent<string>) => setExpectedLogins(Number(e.target.value))}>
-                    {countOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Expected Approval (Lacs)</InputLabel>
-                  <Select label="Expected Approval (Lacs)" value={String(expectedApprovalLacs)} onChange={(e: SelectChangeEvent<string>) => setExpectedApprovalLacs(Number(e.target.value))}>
-                    {amountLacsOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Expected Disbursal (₹)</InputLabel>
-                  <Select label="Expected Disbursal (₹)" value={String(expectedDisbursalAmount)} onChange={(e: SelectChangeEvent<string>) => setExpectedDisbursalAmount(Number(e.target.value))}>
-                    {amountRupeesOptions.map(v => <MenuItem key={v} value={v}>{v.toLocaleString('en-IN')}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 2 }} />
-
             {/* Till Date */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>Till Date — Snapshot</Typography>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 800, mb: 1 }}
+            >
+              Till Date — Snapshot
+            </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Till Date Logins</InputLabel>
-                  <Select label="Till Date Logins" value={String(tillDateLogin)} onChange={(e: SelectChangeEvent<string>) => setTillDateLogin(Number(e.target.value))}>
-                    {countOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Till Date Logins"
+                  type="number"
+                  value={tillDateLogin}
+                  onChange={(e) =>
+                    setTillDateLogin(e.target.value)
+                  }
+                />
               </Grid>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Till Date Approval (Lacs)</InputLabel>
-                  <Select label="Till Date Approval (Lacs)" value={String(tillDateApprovalLacs)} onChange={(e: SelectChangeEvent<string>) => setTillDateApprovalLacs(Number(e.target.value))}>
-                    {amountLacsOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Till Date Approval (Lacs)"
+                  type="number"
+                  value={tillDateApprovalLacs}
+                  onChange={(e) =>
+                    setTillDateApprovalLacs(e.target.value)
+                  }
+                />
               </Grid>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Till Date Disbursal (Lacs)</InputLabel>
-                  <Select label="Till Date Disbursal (Lacs)" value={String(tillDateDisbursalLacs)} onChange={(e: SelectChangeEvent<string>) => setTillDateDisbursalLacs(Number(e.target.value))}>
-                    {amountLacsOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Till Date Disbursal (Lacs)"
+                  type="number"
+                  value={tillDateDisbursalLacs}
+                  onChange={(e) =>
+                    setTillDateDisbursalLacs(e.target.value)
+                  }
+                />
               </Grid>
             </Grid>
 
             {/* actions */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
-              <Button variant="outlined">Cancel</Button>
-              <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={saveMorning}
-                sx={{ fontWeight: 700, borderRadius: 2, backgroundColor: '#ff902f', '&:hover': { backgroundColor: '#ff7b21' } }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 1,
+                mt: 3,
+              }}
+            >
+              <Button variant="outlined" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<CheckCircleIcon />}
+                onClick={saveMorning}
+                sx={{
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  backgroundColor: '#ff902f',
+                  '&:hover': { backgroundColor: '#ff7b21' },
+                }}
+              >
                 Submit Morning
               </Button>
             </Box>
@@ -455,80 +1423,325 @@ export default function ManagerSnapshotForm({ handleClose, onSaved }: { handleCl
 
         {/* EVENING */}
         {mode === 'evening' && (
-          <Paper elevation={1} sx={{ p: { xs: 2, md: 3 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>Evening Delivery</Typography>
+          <Paper
+            elevation={1}
+            sx={{
+              p: { xs: 2, md: 3 },
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 800, mb: 1 }}
+            >
+              Evening Delivery
+            </Typography>
             <Grid container spacing={2} sx={{ mb: 1 }}>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Team Logins Done</InputLabel>
-                  <Select label="Team Logins Done" value={String(teamLoginsDone)} onChange={(e: SelectChangeEvent<string>) => setTeamLoginsDone(Number(e.target.value))}>
-                    {countOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Customers Connected on Phone (Today)"
+                  type="number"
+                  value={customerPhoneConnectsDone}
+                  onChange={(e) =>
+                    setCustomerPhoneConnectsDone(e.target.value)
+                  }
+                />
               </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Team Approval Done (₹)</InputLabel>
-                  <Select label="Team Approval Done (₹)" value={String(teamApprovalDoneAmount)} onChange={(e: SelectChangeEvent<string>) => setTeamApprovalDoneAmount(Number(e.target.value))}>
-                    {amountRupeesOptions.map(v => <MenuItem key={v} value={v}>{v.toLocaleString('en-IN')}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}><StarIcon sx={{ mr: .6 }} />Top Performer</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}><TextField size="small" fullWidth label="Name" value={topPerformerName} onChange={(e) => setTopPerformerName(e.target.value)} /></Grid>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Value (Lacs)</InputLabel>
-                  <Select label="Value (Lacs)" value={String(topPerformerValueLacs)} onChange={(e: SelectChangeEvent<string>) => setTopPerformerValueLacs(Number(e.target.value))}>
-                    {amountLacsOptions.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Team Logins Done"
+                  type="number"
+                  value={teamLoginsDone}
+                  onChange={(e) =>
+                    setTeamLoginsDone(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Team Approval Done (₹)"
+                  type="number"
+                  value={teamApprovalDoneAmount}
+                  onChange={(e) =>
+                    setTeamApprovalDoneAmount(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Team Disbursal Done (₹)"
+                  type="number"
+                  value={teamDisbursalDoneAmount}
+                  onChange={(e) =>
+                    setTeamDisbursalDoneAmount(e.target.value)
+                  }
+                />
               </Grid>
             </Grid>
 
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 3, mb: 1 }}>Files Stuck & Reasons</Typography>
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 800, mb: 1 }}
+            >
+              <StarIcon sx={{ mr: 0.6 }} />
+              Top Performer from Team
+            </Typography>
+
+            {/* 🔹 Top Performer – Approval */}
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, mb: 0.5 }}
+            >
+              Top Performer – Approval
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 1 }}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Name (Approval)"
+                  value={approvalTopName}
+                  onChange={(e) =>
+                    setApprovalTopName(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Approval Value (₹)"
+                  type="number"
+                  value={approvalTopAmount}
+                  onChange={(e) =>
+                    setApprovalTopAmount(e.target.value)
+                  }
+                />
+              </Grid>
+            </Grid>
+
+            {/* 🔹 Top Performer – Disbursal */}
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, mb: 0.5, mt: 1 }}
+            >
+              Top Performer – Disbursal
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Name (Disbursal)"
+                  value={disbursalTopName}
+                  onChange={(e) =>
+                    setDisbursalTopName(e.target.value)
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Disbursal Value (₹)"
+                  type="number"
+                  value={disbursalTopAmount}
+                  onChange={(e) =>
+                    setDisbursalTopAmount(e.target.value)
+                  }
+                />
+              </Grid>
+            </Grid>
+
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 800, mt: 3, mb: 1 }}
+            >
+              Files Stuck & Challenges faces dusring the day
+            </Typography>
+
+            <Box
+              sx={{
+                border: '1px solid #d0d0d0',
+                borderRadius: '8px',
+                p: 2,
+                mb: 2,
+              }}
+            >
+              <TextField
+                placeholder="Describe the stuck files and the reasons here..."
+                multiline
+                minRows={3}
+                maxRows={6}
+                fullWidth
+                variant="standard"
+                value={filesStuckDescription}
+                onChange={(e) =>
+                  setFilesStuckDescription(e.target.value)
+                }
+                InputProps={{ disableUnderline: true }}
+              />
+            </Box>
+
             {filesStuck.map((row, i) => (
-              <Grid container spacing={1.5} key={i} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={5}><TextField size="small" fullWidth label="Location / File" value={row.location} onChange={(e) => updateStuck(i, 'location', e.target.value)} /></Grid>
-                <Grid item xs={12} md={6}><TextField size="small" fullWidth label="Reason" value={row.reason} onChange={(e) => updateStuck(i, 'reason', e.target.value)} /></Grid>
-                <Grid item xs={12} md="auto" sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Tooltip title="Remove"><IconButton onClick={() => removeStuck(i)} color="error"><DeleteOutlineIcon /></IconButton></Tooltip>
+              <Grid
+                container
+                spacing={1.5}
+                key={i}
+                sx={{ mb: 1 }}
+              >
+                <Grid item xs={12} md={5}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Location / File"
+                    value={row.location}
+                    onChange={(e) =>
+                      updateStuck(
+                        i,
+                        'location',
+                        e.target.value,
+                      )
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Reason"
+                    value={row.reason}
+                    onChange={(e) =>
+                      updateStuck(
+                        i,
+                        'reason',
+                        e.target.value,
+                      )
+                    }
+                  />
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  md="auto"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Tooltip title="Remove">
+                    <IconButton
+                      onClick={() => removeStuck(i)}
+                      color="error"
+                    >
+                      <DeleteOutlineIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Grid>
               </Grid>
             ))}
-            <Button startIcon={<AddIcon />} onClick={addStuck} variant="outlined" sx={{ mt: .5 }}>Add File</Button>
 
             <Grid container spacing={2} sx={{ mt: 2 }}>
               <Grid item xs={12}>
-                <TextField size="small" fullWidth label="Support Required (Tech/Operations/Banker Access)" value={supportRequired} onChange={(e) => setSupportRequired(e.target.value)} multiline rows={2} />
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Support Required From (Tech/Operations/Banker Access/Other)"
+                  value={supportRequired}
+                  onChange={(e) =>
+                    setSupportRequired(e.target.value)
+                  }
+                  multiline
+                  rows={2}
+                />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={4} sx={{ mt: 2 }}>
                 <FormControl fullWidth size="small">
-                  <InputLabel>Overall Sentiment</InputLabel>
-                  <Select label="Overall Sentiment" value={overallSentiment} onChange={(e: SelectChangeEvent<string>) => setOverallSentiment(e.target.value as any)}>
-                    <MenuItem value="green">Green – Targets Achieved</MenuItem>
-                    <MenuItem value="yellow">Yellow – Partial Delivery</MenuItem>
-                    <MenuItem value="red">Red – Major Gaps</MenuItem>
+                  <InputLabel>
+                    Overall Sentiment From Today Delivery
+                  </InputLabel>
+                  <Select
+                    label="Overall Sentiment"
+                    value={overallSentiment}
+                    onChange={(e) =>
+                      setOverallSentiment(e.target.value as any)
+                    }
+                  >
+                    <MenuItem value="green">
+                      Green – Targets Achieved
+                    </MenuItem>
+                    <MenuItem value="yellow">
+                      Yellow – Partial Delivery
+                    </MenuItem>
+                    <MenuItem value="red">
+                      Red – Major Gaps
+                    </MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
             </Grid>
 
             {overallSentiment !== 'green' && (
-              <Paper variant="outlined" sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: 'rgba(255,193,7,0.06)' }}>
+              <Paper
+                variant="outlined"
+                sx={{
+                  mt: 2,
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(255,193,7,0.06)',
+                }}
+              >
                 <Typography sx={{ fontWeight: 700, mb: 1 }}>
-                  {overallSentiment === 'yellow' ? 'What felt off today?' : 'What caused the major gaps today?'}
+                  {overallSentiment === 'yellow'
+                    ? 'What felt off today?'
+                    : 'What caused the major gaps today?'}
                 </Typography>
-                <TextField size="small" fullWidth label={overallSentiment === 'yellow' ? 'Reason (Yellow)' : 'Reason (Red)'} value={sentimentReason} onChange={(e) => setSentimentReason(e.target.value)} multiline rows={2} />
+                <TextField
+                  size="small"
+                  fullWidth
+                  label={
+                    overallSentiment === 'yellow'
+                      ? 'Reason (Yellow)'
+                      : 'Reason (Red)'
+                  }
+                  value={sentimentReason}
+                  onChange={(e) =>
+                    setSentimentReason(e.target.value)
+                  }
+                  multiline
+                  rows={2}
+                />
               </Paper>
             )}
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
-              <Button variant="outlined">Cancel</Button>
-              <Button variant="contained" color="success" startIcon={<CheckCircleIcon />} onClick={saveEvening} sx={{ fontWeight: 700, borderRadius: 2 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 1,
+                mt: 3,
+              }}
+            >
+              <Button variant="outlined" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<CheckCircleIcon />}
+                onClick={saveEvening}
+                sx={{ fontWeight: 700, borderRadius: 2 }}
+              >
                 Submit Evening
               </Button>
             </Box>
@@ -540,11 +1753,18 @@ export default function ManagerSnapshotForm({ handleClose, onSaved }: { handleCl
       <Snackbar
         open={snack.open}
         autoHideDuration={2500}
-        onClose={() => setSnack(s => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        onClose={() =>
+          setSnack((s) => ({ ...s, open: false }))
+        }
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
       >
         <Alert
-          onClose={() => setSnack(s => ({ ...s, open: false }))}
+          onClose={() =>
+            setSnack((s) => ({ ...s, open: false }))
+          }
           severity={snack.type}
           variant="filled"
           sx={{ width: '100%' }}
