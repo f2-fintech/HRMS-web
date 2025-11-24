@@ -30,6 +30,7 @@ import GavelIcon from '@mui/icons-material/Gavel'
 
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import ArticleIcon from '@mui/icons-material/Article';
 
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
 import useVerticalNav from '@menu/hooks/useVerticalNav'
@@ -191,6 +192,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               </MenuItem>
                <MenuItem href={`/performance`} icon={<AssessmentIcon />}>
                 Performance
+              </MenuItem>
+              <MenuItem href={`/pages`} icon={<ArticleIcon />}>
+                Pages
               </MenuItem>
               <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
                 Query
