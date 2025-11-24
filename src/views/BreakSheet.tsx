@@ -106,6 +106,17 @@ const BreakSheet: React.FC = () => {
             // Check 4: Screen width
             const smallScreen = window.innerWidth < 768
             
+            // Debug logging
+            console.log('🔍 Mobile Detection Debug:', {
+                hasTouch,
+                isMobileUA,
+                hasCoarsePointer,
+                smallScreen,
+                userAgent: ua,
+                screenWidth: window.innerWidth,
+                maxTouchPoints: navigator.maxTouchPoints
+            })
+            
             // Return true if at least 2 conditions match for better accuracy
             const conditions = [
                 hasTouch && smallScreen,
@@ -113,8 +124,11 @@ const BreakSheet: React.FC = () => {
                 hasCoarsePointer
             ]
             const matchCount = conditions.filter(Boolean).length
+            const isMobileDevice = matchCount >= 2 || (isMobileUA && hasTouch)
             
-            setIsMobile(matchCount >= 2 || (isMobileUA && hasTouch))
+            console.log('📱 Is Mobile Device:', isMobileDevice, '| Match Count:', matchCount)
+            
+            setIsMobile(isMobileDevice)
         }
         
         checkDevice()
@@ -493,6 +507,15 @@ const BreakSheet: React.FC = () => {
 
     // Early return for mobile employees (userRole > 2 means regular employee)
     // Admin (role 1) and Manager (role 2) can access on any device
+    console.log('🔐 Access Check:', {
+        isMobile,
+        userRole,
+        userRoleType: typeof userRole,
+        userRoleNumber: Number(userRole),
+        isEmployee: Number(userRole) > 2,
+        shouldBlock: isMobile && Number(userRole) > 2
+    })
+    
     if (isMobile && Number(userRole) > 2) {
         return (
             <Box
