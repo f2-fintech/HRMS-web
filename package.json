@@ -14,8 +14,9 @@
     "postinstall": "npm run build:icons"
   },
   "dependencies": {
-    "@blocknote/core": "^0.11.0",
-    "@blocknote/react": "^0.11.0",
+    "@blocknote/core": "^0.42.3",
+    "@blocknote/mantine": "^0.42.3",
+    "@blocknote/react": "^0.42.3",
     "@date-io/date-fns": "^3.2.1",
     "@date-io/dayjs": "^3.0.0",
     "@emotion/cache": "^11.11.0",

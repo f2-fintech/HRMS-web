@@ -15,8 +15,27 @@ import {
     Typography,
     Avatar,
     Chip,
+    IconButton,
+    List,
+    ListItem,
+    ListItemAvatar,
+    ListItemText,
+    ListItemSecondaryAction,
+    Divider,
+    Alert,
+    Stack,
+    Paper,
+    Tooltip,
+    CircularProgress,
 } from '@mui/material';
-import { People as PeopleIcon } from '@mui/icons-material';
+import {
+    People as PeopleIcon,
+    Close as CloseIcon,
+    Link as LinkIcon,
+    CheckCircle as CheckIcon,
+    PersonAdd as PersonAddIcon,
+    ContentCopy as CopyIcon,
+} from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import type { AppDispatch, RootState } from '@/redux/store';
 import { sharePage } from '@/redux/features/pages/pagesSlice';
@@ -47,6 +66,7 @@ export default function ShareDialog({
     const { employees } = useSelector((state: RootState) => state.employees);
     const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
 
     useEffect(() => {
         // Preselect already shared employees
@@ -78,19 +98,111 @@ export default function ShareDialog({
         }
     };
 
+    const handleCopyLink = () => {
+        const pageUrl = `${window.location.origin}/pages/${pageId}`;
+        navigator.clipboard.writeText(pageUrl).then(() => {
+            setCopySuccess(true);
+            toast.success('Link copied to clipboard');
+            setTimeout(() => setCopySuccess(false), 2000);
+        });
+    };
+
+    const handleRemoveEmployee = (employeeId: string) => {
+        setSelectedEmployees(selectedEmployees.filter((emp) => emp._id !== employeeId));
+    };
+
+    const handleSelectAll = () => {
+        setSelectedEmployees([...employees]);
+    };
+
+    const handleClearAll = () => {
+        setSelectedEmployees([]);
+    };
+
     console.log('Rendering ShareDialog with selectedEmployees:', employees);
 
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-            <DialogTitle>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PeopleIcon />
-                    <Typography variant="h6">Share Page with Employees</Typography>
-                </Box>
+        <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 2 } }}>
+            <DialogTitle sx={{ pb: 2 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PeopleIcon color="primary" />
+                        <Typography variant="h6" fontWeight={600}>
+                            Share Page
+                        </Typography>
+                    </Box>
+                    <IconButton onClick={onClose} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </Stack>
             </DialogTitle>
 
             <DialogContent>
-                <Box sx={{ mt: 2 }}>
+                {/* Copy Link Section */}
+                <Paper
+                    elevation={0}
+                    sx={{
+                        p: 2,
+                        mb: 3,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        bgcolor: 'background.default',
+                    }}
+                >
+                    <Stack direction="row" spacing={2} alignItems="center">
+                        <LinkIcon color="action" />
+                        <Box flexGrow={1}>
+                            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                                Share Link
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                Anyone with the link and access can view this page
+                            </Typography>
+                        </Box>
+                        <Button
+                            variant="outlined"
+                            startIcon={copySuccess ? <CheckIcon /> : <CopyIcon />}
+                            onClick={handleCopyLink}
+                            sx={{ borderRadius: 2 }}
+                        >
+                            {copySuccess ? 'Copied!' : 'Copy Link'}
+                        </Button>
+                    </Stack>
+                </Paper>
+
+                <Divider sx={{ mb: 3 }}>
+                    <Chip label="OR" size="small" />
+                </Divider>
+
+                {/* Employee Selection */}
+                <Box sx={{ mb: 3 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                            Share with Specific Employees
+                        </Typography>
+                        {employees.length > 0 && (
+                            <Stack direction="row" spacing={1}>
+                                <Button
+                                    size="small"
+                                    onClick={handleSelectAll}
+                                    disabled={selectedEmployees.length === employees.length}
+                                    sx={{ textTransform: 'none' }}
+                                >
+                                    Select All
+                                </Button>
+                                <Button
+                                    size="small"
+                                    onClick={handleClearAll}
+                                    disabled={selectedEmployees.length === 0}
+                                    sx={{ textTransform: 'none' }}
+                                >
+                                    Clear All
+                                </Button>
+                            </Stack>
+                        )}
+                    </Stack>
+
                     <Autocomplete
                         multiple
                         id="employee-autocomplete"
@@ -111,7 +223,7 @@ export default function ShareDialog({
                                     sx={{ width: 32, height: 32, mr: 2 }}
                                 />
                                 <Box>
-                                    <Typography variant="body1">
+                                    <Typography variant="body2">
                                         {option.first_name} {option.last_name}
                                     </Typography>
                                     {option.designation && (
@@ -122,28 +234,21 @@ export default function ShareDialog({
                                 </Box>
                             </li>
                         )}
-                        renderTags={(value, getTagProps) =>
-                            value.map((option, index) => (
-                                <Chip
-                                    {...getTagProps({ index })}
-                                    key={option._id}
-                                    avatar={<Avatar src={option.image} alt={option.first_name} />}
-                                    label={`${option.first_name} ${option.last_name}`}
-                                />
-                            ))
-                        }
+                        renderTags={() => null} // Hide tags in input, show in list below
                         renderInput={(params) => (
                             <TextField
                                 {...params}
-                                label="Select Employees"
-                                placeholder="Search employees..."
+                                placeholder="Search employees by name..."
                                 variant="outlined"
-                                helperText={
-                                    selectedEmployees.length > 0
-                                        ? `${selectedEmployees.length} employee${selectedEmployees.length > 1 ? 's' : ''
-                                        } selected`
-                                        : 'Select employees to share this page with'
-                                }
+                                InputProps={{
+                                    ...params.InputProps,
+                                    startAdornment: (
+                                        <>
+                                            <PersonAddIcon sx={{ ml: 1, mr: 0.5, color: 'action.active' }} />
+                                            {params.InputProps.startAdornment}
+                                        </>
+                                    ),
+                                }}
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
                                         backgroundColor: '#fff',
@@ -155,25 +260,81 @@ export default function ShareDialog({
                     />
                 </Box>
 
-                {selectedEmployees.length === 0 && (
-                    <Box
+                {/* Selected Employees List */}
+                {selectedEmployees.length > 0 ? (
+                    <Paper
+                        elevation={0}
                         sx={{
-                            mt: 3,
-                            p: 2,
-                            backgroundColor: '#f5f5f5',
+                            border: '1px solid',
+                            borderColor: 'divider',
                             borderRadius: 2,
-                            textAlign: 'center',
+                            maxHeight: 300,
+                            overflow: 'auto',
                         }}
                     >
-                        <Typography variant="body2" color="text.secondary">
-                            💡 No employees selected. The page will be private (admin only).
+                        <List dense>
+                            {selectedEmployees.map((employee, index) => (
+                                <React.Fragment key={employee._id}>
+                                    {index > 0 && <Divider />}
+                                    <ListItem>
+                                        <ListItemAvatar>
+                                            <Avatar src={employee.image} alt={employee.first_name} />
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                            primary={
+                                                <Typography variant="body2" fontWeight={500}>
+                                                    {employee.first_name} {employee.last_name}
+                                                </Typography>
+                                            }
+                                            secondary={
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {employee.designation || 'No designation'}
+                                                </Typography>
+                                            }
+                                        />
+                                        <ListItemSecondaryAction>
+                                            <Tooltip title="Remove">
+                                                <IconButton
+                                                    edge="end"
+                                                    size="small"
+                                                    onClick={() => handleRemoveEmployee(employee._id)}
+                                                >
+                                                    <CloseIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </ListItemSecondaryAction>
+                                    </ListItem>
+                                </React.Fragment>
+                            ))}
+                        </List>
+                    </Paper>
+                ) : (
+                    <Alert severity="info" icon={<PeopleIcon />} sx={{ borderRadius: 2 }}>
+                        No employees selected. Select employees to share this page with them.
+                    </Alert>
+                )}
+
+                {/* Summary */}
+                {selectedEmployees.length > 0 && (
+                    <Box
+                        sx={{
+                            mt: 2,
+                            p: 2,
+                            backgroundColor: 'success.lighter',
+                            borderRadius: 2,
+                            border: '1px solid',
+                            borderColor: 'success.light',
+                        }}
+                    >
+                        <Typography variant="body2" color="success.dark">
+                            <strong>{selectedEmployees.length}</strong> {selectedEmployees.length === 1 ? 'employee' : 'employees'} will have read-only access to this page
                         </Typography>
                     </Box>
                 )}
             </DialogContent>
 
             <DialogActions sx={{ px: 3, pb: 3 }}>
-                <Button onClick={onClose} disabled={loading}>
+                <Button onClick={onClose} disabled={loading} sx={{ borderRadius: 2 }}>
                     Cancel
                 </Button>
                 <Button
@@ -181,7 +342,8 @@ export default function ShareDialog({
                     variant="contained"
                     color="primary"
                     disabled={loading}
-                    sx={{ minWidth: 120 }}
+                    sx={{ minWidth: 120, borderRadius: 2 }}
+                    startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <PeopleIcon />}
                 >
                     {loading ? 'Sharing...' : 'Share Page'}
                 </Button>
