@@ -298,6 +298,7 @@ const buildPairsForEmployee = (raw: any): Pair[] => {
       done: Number(e.physicalMeetDone || 0),
       unit: 'count',
     },
+    
     {
       key: 'login',
       label: 'Logins',
@@ -725,6 +726,7 @@ type CodeSummaryRow = {
 
 type ExcelSummary = CodeSummaryRow;
 
+
 const PerformanceCard = ({
   item,
   onEdit,
@@ -1020,16 +1022,16 @@ const PerformanceCard = ({
                   />
 
                 </Box>
-                  <Box sx={{ width: 1 }}>
-    <Stat
-      label="Physical Meetings"
-      value={
-        role === 'manager'
-          ? asNum(mgrEvening.physicalMeetDone ?? 0)
-          : asNum(empEvening.physicalMeetDone ?? 0)
-      }
-    />
-  </Box>
+                <Box sx={{ width: 1 }}>
+                  <Stat
+                    label="Physical Meetings"
+                    value={
+                      role === 'manager'
+                        ? asNum(mgrEvening.physicalMeetDone ?? 0)
+                        : asNum(empEvening.physicalMeetDone ?? 0)
+                    }
+                  />
+                </Box>
                 <Box sx={{ width: 1 }}>
                   <Stat label="Login" value={eveningLogin} />
                 </Box>
@@ -1326,23 +1328,24 @@ const PerformanceCard = ({
       {/* ===== Footer: Date + buttons ===== */}
       <Box
         sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
           gap: 1,
         }}
       >
         <Chip
           size="small"
           icon={<CalendarMonthIcon />}
-          label={item?.date ? dayjs(item.date).format('DD MMM YYYY') : '-'}
+          label={item?.date ? dayjs(item.date).format("DD MMM YYYY") : "-"}
           variant="outlined"
           sx={{
             borderRadius: 999,
             fontWeight: 600,
-            '& .MuiChip-label': { px: 3 },
+            "& .MuiChip-label": { px: 3 },
           }}
         />
+
         <Stack direction="row" spacing={1}>
           <Button
             size="small"
@@ -1350,21 +1353,22 @@ const PerformanceCard = ({
             onClick={() => onDetails(item)}
             sx={{
               borderRadius: 999,
-              textTransform: 'none',
+              textTransform: "none",
               fontWeight: 600,
             }}
           >
             Details
           </Button>
+
           {canEdit && onEdit && (
             <Button
               size="small"
               variant="contained"
-              color="info"
-              onClick={() => onEdit(item?._id)}
+              color="info"     // FIXED
+              onClick={() => onEdit(item?._id)}   // ⭐ ID bhejna correct ✔
               sx={{
                 borderRadius: 999,
-                textTransform: 'none',
+                textTransform: "none",
                 fontWeight: 700,
               }}
             >
@@ -1373,6 +1377,7 @@ const PerformanceCard = ({
           )}
         </Stack>
       </Box>
+
     </Paper>
   );
 };
@@ -2175,10 +2180,9 @@ export default function PerformanceGrid() {
 
       <Box
         sx={{
-          position: 'sticky',
+
           top: 0,
-          zIndex: 1,
-          bgcolor: 'background.default',
+          zIndex: 1, bgcolor: 'background.default',
           p: 2,
           pb: 1,
         }}
@@ -2353,13 +2357,12 @@ export default function PerformanceGrid() {
               const excelSummary = empCode
                 ? codeSummaryMap[empCode]
                 : undefined;
-
               return (
                 <Grid key={p?._id} item xs={12} sm={6} md={6}>
                   <PerformanceCard
                     item={p}
                     onEdit={
-                      canEditCards ? handleEditClick : undefined
+                      canEditCards ? () => handleEditClick(p?._id) : undefined
                     }
                     onDetails={openDetails}
                     mtd={mtd}
@@ -2368,6 +2371,8 @@ export default function PerformanceGrid() {
                   />
                 </Grid>
               );
+
+
             })}
           </Grid>
         )}

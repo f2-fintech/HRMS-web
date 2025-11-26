@@ -45,6 +45,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SearchIcon from '@mui/icons-material/Search';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import EditIcon from '@mui/icons-material/Edit';
+import CloseIcon from '@mui/icons-material/Close';
+
 
 /* ---------------- AXIOS ---------------- */
 const api = axios.create({
@@ -620,21 +622,57 @@ export default function PerformanceUploadPage() {
               alignItems: { sm: 'center' },
             }}
           >
-            {/* Search */}
-            <TextField
-              fullWidth
-              size="small"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search employee / id / code..."
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
+   <TextField
+  fullWidth
+  size="small"
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  placeholder="Search employee / id / code..."
+  sx={{
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 3,
+    }
+  }}
+  InputProps={{
+    startAdornment: (
+      <InputAdornment position="start">
+        <SearchIcon
+          fontSize="small"
+          sx={{ color: '#64748b', ml: 1 }}
+        />
+      </InputAdornment>
+    ),
+    endAdornment: search && (
+      <InputAdornment position="end">
+       <IconButton
+  size="small"
+  onClick={() => {
+    setSearch('');
+    setDebounced('');
+  }}
+  sx={{
+    p: 0.2,
+    color: '#475569',
+    bgcolor: 'transparent !important',
+    '&:hover': {
+      bgcolor: 'transparent !important',
+      color: '#1e293b',
+      
+    },
+    '& .MuiTouchRipple-root': {
+      display: 'none', 
+    },
+  }}
+>
+  <CloseIcon sx={{ fontSize: 8 }} />
+</IconButton>
+
+      </InputAdornment>
+    ),
+  }}
+/>
+
+
 
             
             <Stack
