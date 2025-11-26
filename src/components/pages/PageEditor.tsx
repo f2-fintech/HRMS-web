@@ -48,7 +48,6 @@ import {
   ArrowUpward as ArrowUpIcon,
   CloudDone as CloudDoneIcon,
   Settings as SettingsIcon,
-  KeyboardShortcut,
 } from '@mui/icons-material';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { toast } from 'react-toastify';
@@ -62,6 +61,7 @@ import {
 } from '@/redux/features/pages/pagesSlice';
 import ShareDialog from './ShareDialog';
 import Loader from '@/components/loader/loader';
+import PageBreadcrumb from './PageBreadcrumb';
 
 // Dynamically import BlockNote components to avoid SSR issues
 const BlockNoteEditor = dynamic(
@@ -104,6 +104,10 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   const [charCount, setCharCount] = useState(0);
   const editorRef = useRef<any>(null);
   
+  // Track which page the current blocks belong to - prevents saving stale data
+  const blocksPageIdRef = useRef<string | null>(null);
+  const isNavigatingRef = useRef<boolean>(false);
+  
   const trigger = useScrollTrigger({
     disableHysteresis: true,
     threshold: 100,
@@ -130,11 +134,24 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   useEffect(() => {
     if (pageId && pageId !== 'new') {
       console.log('Fetching page:', pageId);
+      
+      // CRITICAL: Mark as navigating to prevent autosave of stale data
+      isNavigatingRef.current = true;
+      blocksPageIdRef.current = null; // Invalidate current blocks
+      
+      // Clear local state IMMEDIATELY to prevent stale data being saved
+      setTitle('Untitled');
+      setIcon(undefined);
+      setCoverImage(undefined);
+      setBlocks([]);
       setInitialLoadDone(false);
+      
       dispatch(fetchPageById(pageId));
     } else if (pageId === 'new') {
       // Reset for new page
       console.log('Setting up new page');
+      isNavigatingRef.current = false;
+      blocksPageIdRef.current = 'new';
       setTitle('Untitled');
       setIcon(undefined);
       setCoverImage(undefined);
@@ -148,6 +165,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   useEffect(() => {
     console.log('Effect triggered:', { 
       hasCurrentPage: !!currentPage, 
+      currentPageId: currentPage?._id,
       pageId, 
       initialLoadDone, 
       userRole, 
@@ -157,15 +175,28 @@ export default function PageEditor({ pageId }: PageEditorProps) {
     });
     
     if (currentPage && pageId && pageId !== 'new' && !initialLoadDone && userRole && userId) {
+      // CRITICAL: Verify this is the correct page data (guard against race conditions)
+      if (currentPage._id !== pageId) {
+        console.log('Page ID mismatch, skipping initialization:', { currentPageId: currentPage._id, pageId });
+        return;
+      }
+      
       console.log('Initializing page data:', currentPage);
       
       setTitle(currentPage.title || 'Untitled');
       setIcon(currentPage.icon);
       setCoverImage(currentPage.cover_image);
-      if (currentPage.blocks && currentPage.blocks.length > 0) {
-        console.log('Setting blocks:', currentPage.blocks);
-        setBlocks(currentPage.blocks);
-      }
+      
+      // Set blocks from currentPage
+      const pageBlocks = currentPage.blocks && currentPage.blocks.length > 0 
+        ? currentPage.blocks 
+        : [];
+      console.log('Setting blocks:', pageBlocks);
+      setBlocks(pageBlocks);
+      
+      // CRITICAL: Mark these blocks as belonging to this page
+      blocksPageIdRef.current = pageId;
+      isNavigatingRef.current = false; // Navigation complete
 
       // Check if user is admin or page creator
       const isAdmin = userRole === '1';
@@ -190,11 +221,27 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   }, [currentPage, userRole, userId, pageId, initialLoadDone]);
 
   const handleAutoSave = useCallback(async () => {
+    // CRITICAL GUARDS: Prevent saving stale data
     if (!pageId || pageId === 'new' || isReadOnly) return;
+    
+    // Don't save if we're navigating between pages
+    if (isNavigatingRef.current) {
+      console.log('Auto-save skipped: navigation in progress');
+      return;
+    }
+    
+    // Don't save if blocks don't belong to this page
+    if (blocksPageIdRef.current !== pageId) {
+      console.log('Auto-save skipped: blocks belong to different page', {
+        blocksPageId: blocksPageIdRef.current,
+        currentPageId: pageId
+      });
+      return;
+    }
 
     setSaving(true);
     try {
-      console.log('Auto-saving with blocks:', blocks);
+      console.log('Auto-saving with blocks:', blocks, 'for page:', pageId);
       await dispatch(
         updatePage({
           id: pageId,
@@ -215,14 +262,20 @@ export default function PageEditor({ pageId }: PageEditorProps) {
 
   // Autosave functionality (debounced)
   useEffect(() => {
-    if (!isReadOnly && pageId && pageId !== 'new' && mounted) {
+    // Only autosave when:
+    // 1. Not read-only
+    // 2. Valid pageId
+    // 3. Component is mounted
+    // 4. Initial load is complete (page data has been fetched)
+    // 5. Blocks belong to this page
+    if (!isReadOnly && pageId && pageId !== 'new' && mounted && initialLoadDone && blocksPageIdRef.current === pageId) {
       const timer = setTimeout(() => {
         handleAutoSave();
-      }, 2000); // 2 second debounce
+      }, 500); // 500ms debounce for responsive autosave
 
       return () => clearTimeout(timer);
     }
-  }, [blocks, title, icon, handleAutoSave, mounted, isReadOnly, pageId]);
+  }, [blocks, title, icon, handleAutoSave, mounted, isReadOnly, pageId, initialLoadDone]);
 
   const handleManualSave = async () => {
     if (pageId === 'new') {
@@ -296,6 +349,51 @@ export default function PageEditor({ pageId }: PageEditorProps) {
     }
   };
 
+  // Create parent page and return its ID (used when adding child page to unsaved page)
+  const handleCreateParentPage = useCallback(async (): Promise<string | null> => {
+    if (pageId !== 'new') {
+      return pageId || null;
+    }
+    
+    try {
+      setSaving(true);
+      
+      // Get the latest content directly from the editor
+      let currentBlocks = blocks;
+      if (editorRef.current) {
+        try {
+          currentBlocks = editorRef.current.topLevelBlocks || blocks;
+        } catch (e) {
+          console.warn('Could not get editor topLevelBlocks, using state blocks:', e);
+        }
+      }
+      
+      console.log('Creating parent page with blocks:', currentBlocks);
+      const result = await dispatch(
+        createPage({
+          title: title || 'Untitled',
+          icon,
+          cover_image: coverImage,
+          blocks: currentBlocks.length > 0 ? currentBlocks : [],
+        })
+      ).unwrap();
+      
+      console.log('Parent page created:', result._id);
+      
+      // Navigate to the newly created page (URL will update)
+      router.push(`/pages/${result._id}`);
+      
+      // Return the new page ID so child page can be created
+      return result._id;
+    } catch (error) {
+      console.error('Create parent page error:', error);
+      toast.error('Failed to create page');
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  }, [pageId, blocks, title, icon, coverImage, dispatch, router]);
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
   };
@@ -322,12 +420,24 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   };
 
   const handleBlocksChange = useCallback((newBlocks: any[]) => {
-    console.log('Blocks changed:', newBlocks);
+    // Only accept block changes if we're not navigating and blocks are for current page
+    if (isNavigatingRef.current) {
+      console.log('Block change ignored: navigation in progress');
+      return;
+    }
+    
+    console.log('Blocks changed:', newBlocks, 'for page:', pageId);
     // Ensure we always set an array, even if undefined is passed
-    setBlocks(Array.isArray(newBlocks) ? newBlocks : []);
+    const blocksArray = Array.isArray(newBlocks) ? newBlocks : [];
+    setBlocks(blocksArray);
+    
+    // Update blocksPageIdRef to current page since user is actively editing
+    if (pageId && pageId !== 'new' && initialLoadDone) {
+      blocksPageIdRef.current = pageId;
+    }
     
     // Calculate word and character count
-    const text = newBlocks
+    const text = blocksArray
       .map((block: any) => {
         if (block.content && Array.isArray(block.content)) {
           return block.content.map((c: any) => c.text || '').join(' ');
@@ -338,7 +448,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
     
     setCharCount(text.length);
     setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
-  }, []);
+  }, [pageId, initialLoadDone]);
 
   const handleShareClick = () => {
     setShareDialogOpen(true);
@@ -418,41 +528,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       <Box sx={{ maxWidth: 900, mx: 'auto', py: 3, px: { xs: 2, md: 3 } }}>
         {/* Breadcrumbs */}
         <Box sx={{ mb: 3 }}>
-          <Breadcrumbs
-            separator={<NavigateNextIcon fontSize="small" />}
-            aria-label="breadcrumb"
-            sx={{ mb: 2 }}
-          >
-            <Link
-              underline="hover"
-              color="inherit"
-              href="/"
-              sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'pointer' }}
-              onClick={(e) => {
-                e.preventDefault();
-                router.push('/');
-              }}
-            >
-              <HomeIcon fontSize="small" />
-              Dashboard
-            </Link>
-            <Link
-              underline="hover"
-              color="inherit"
-              href="/pages"
-              sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'pointer' }}
-              onClick={(e) => {
-                e.preventDefault();
-                router.push('/pages');
-              }}
-            >
-              <ArticleIcon fontSize="small" />
-              Pages
-            </Link>
-            <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-              {title}
-            </Typography>
-          </Breadcrumbs>
+          <PageBreadcrumb pageId={pageId} currentTitle={title} />
 
           {/* Status Bar */}
           <Paper
@@ -700,6 +776,9 @@ export default function PageEditor({ pageId }: PageEditorProps) {
               isReadOnly={isReadOnly}
               onBlocksChange={handleBlocksChange}
               editorRef={editorRef}
+              currentPageId={pageId !== 'new' ? pageId : undefined}
+              onImmediateSave={handleManualSave}
+              onCreateParentPage={pageId === 'new' ? handleCreateParentPage : undefined}
             />
           </Paper>
         )}

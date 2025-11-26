@@ -138,42 +138,6 @@ export default function ShareDialog({
             </DialogTitle>
 
             <DialogContent>
-                {/* Copy Link Section */}
-                <Paper
-                    elevation={0}
-                    sx={{
-                        p: 2,
-                        mb: 3,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 2,
-                        bgcolor: 'background.default',
-                    }}
-                >
-                    <Stack direction="row" spacing={2} alignItems="center">
-                        <LinkIcon color="action" />
-                        <Box flexGrow={1}>
-                            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                                Share Link
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                                Anyone with the link and access can view this page
-                            </Typography>
-                        </Box>
-                        <Button
-                            variant="outlined"
-                            startIcon={copySuccess ? <CheckIcon /> : <CopyIcon />}
-                            onClick={handleCopyLink}
-                            sx={{ borderRadius: 2 }}
-                        >
-                            {copySuccess ? 'Copied!' : 'Copy Link'}
-                        </Button>
-                    </Stack>
-                </Paper>
-
-                <Divider sx={{ mb: 3 }}>
-                    <Chip label="OR" size="small" />
-                </Divider>
 
                 {/* Employee Selection */}
                 <Box sx={{ mb: 3 }}>
