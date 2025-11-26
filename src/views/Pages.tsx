@@ -35,6 +35,7 @@ import {
   Divider,
   Collapse,
   alpha,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -63,7 +64,7 @@ import {
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import type { AppDispatch, RootState } from '@/redux/store';
-import { fetchPages, deletePage, fetchPageTree } from '@/redux/features/pages/pagesSlice';
+import { fetchPages, deletePage, fetchPageTree, createPage } from '@/redux/features/pages/pagesSlice';
 import Loader from '@/components/loader/loader';
 import useDebounce from '@/utility/debounce/useDebounce';
 
@@ -84,7 +85,7 @@ interface PageNode {
 export default function PagesView() {
   const router = useRouter();
   const dispatch: AppDispatch = useDispatch();
-  const { pages, pageTree, total, loading, error } = useSelector((state: RootState) => state.pages);
+  const { pages, pageTree, total, loading, treeLoading, error } = useSelector((state: RootState) => state.pages);
 
   const [userRole, setUserRole] = useState<string>('');
   const [userId, setUserId] = useState<string>('');
@@ -95,9 +96,14 @@ export default function PagesView() {
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'tree'>('grid');
   const [sortBy, setSortBy] = useState<'recent' | 'title' | 'oldest'>('recent');
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
-  const [actionMenuAnchor, setActionMenuAnchor] = useState<null | HTMLElement>(null);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<{ top: number; left: number } | null>(null);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [isCreating, setIsCreating] = useState(false);
+  
+  // Virtual anchor element for menu positioning
+  const virtualAnchorRef = React.useRef<{ getBoundingClientRect: () => DOMRect } | null>(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const itemsPerPage = 12;
@@ -183,8 +189,24 @@ export default function PagesView() {
     }
   }, [pages, sortBy]);
 
-  const handleCreatePage = () => {
-    router.push('/pages/new');
+  const handleCreatePage = async () => {
+    setIsCreating(true);
+    try {
+      // Create a new page with default "Untitled" title
+      const result = await dispatch(createPage({ title: 'Untitled' })).unwrap();
+      
+      // Redirect to the newly created page
+      if (result && result._id) {
+        router.push(`/pages/${result._id}`);
+      } else {
+        toast.error('Failed to create page');
+      }
+    } catch (err) {
+      toast.error('Failed to create page');
+      console.error('Create page error:', err);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleEditPage = (pageId: string) => {
@@ -198,13 +220,28 @@ export default function PagesView() {
 
   const handleDeleteConfirm = async () => {
     if (pageToDelete) {
+      setIsDeleting(true);
       try {
         await dispatch(deletePage(pageToDelete)).unwrap();
-        toast.success('Page deleted successfully');
+        toast.success('Page and all child pages deleted successfully');
         setDeleteDialogOpen(false);
         setPageToDelete(null);
+        // Refresh the tree view if in tree mode, otherwise refresh pages list
+        if (isAdmin && viewMode === 'tree') {
+          dispatch(fetchPageTree());
+        } else {
+          dispatch(
+            fetchPages({
+              page,
+              limit: itemsPerPage,
+              search: debouncedSearchTerm,
+            })
+          );
+        }
       } catch (err) {
         toast.error('Failed to delete page');
+      } finally {
+        setIsDeleting(false);
       }
     }
   };
@@ -215,13 +252,29 @@ export default function PagesView() {
 
   const handleActionMenuOpen = (event: React.MouseEvent<HTMLElement>, pageId: string) => {
     event.stopPropagation();
-    setActionMenuAnchor(event.currentTarget);
+    const rect = event.currentTarget.getBoundingClientRect();
+    // Store the position for the virtual anchor
+    virtualAnchorRef.current = {
+      getBoundingClientRect: () => ({
+        top: rect.bottom,
+        left: rect.right,
+        bottom: rect.bottom,
+        right: rect.right,
+        width: 0,
+        height: 0,
+        x: rect.right,
+        y: rect.bottom,
+        toJSON: () => ({}),
+      }),
+    };
+    setActionMenuAnchor({ top: rect.bottom, left: rect.right });
     setSelectedPageId(pageId);
   };
 
   const handleActionMenuClose = () => {
     setActionMenuAnchor(null);
     setSelectedPageId(null);
+    virtualAnchorRef.current = null;
   };
 
   const handleDuplicatePage = (pageId: string) => {
@@ -365,8 +418,9 @@ export default function PagesView() {
           </Box>
 
           {/* Actions */}
-          {isAdmin && (
-            <Stack direction="row" spacing={0.5} sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}>
+          <Stack direction="row" spacing={0.5} sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}>
+            {/* Share button - visible to all users */}
+            {isAdmin && (
               <Tooltip title="Share">
                 <IconButton
                   size="small"
@@ -378,6 +432,9 @@ export default function PagesView() {
                   <ShareIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
+            )}
+            {/* More options - only for admin */}
+            {isAdmin && (
               <Tooltip title="More">
                 <IconButton
                   size="small"
@@ -386,8 +443,8 @@ export default function PagesView() {
                   <MoreIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-            </Stack>
-          )}
+            )}
+          </Stack>
         </Paper>
 
         {/* Children */}
@@ -451,8 +508,9 @@ export default function PagesView() {
                 variant="contained"
                 color="primary"
                 size="large"
-                startIcon={<AddIcon />}
+                startIcon={isCreating ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
                 onClick={handleCreatePage}
+                disabled={isCreating}
                 sx={{
                   borderRadius: 2,
                   px: 3,
@@ -465,7 +523,7 @@ export default function PagesView() {
                   },
                 }}
               >
-                Create Page
+                {isCreating ? 'Creating...' : 'Create Page'}
               </Button>
             </Grid>
           )}
@@ -690,11 +748,12 @@ export default function PagesView() {
                 variant="contained"
                 color="primary"
                 size="large"
-                startIcon={<AddIcon />}
+                startIcon={isCreating ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
                 onClick={handleCreatePage}
+                disabled={isCreating}
                 sx={{ borderRadius: 2, px: 4, py: 1.5 }}
               >
-                Create Your First Page
+                {isCreating ? 'Creating...' : 'Create Your First Page'}
               </Button>
             )}
           </Paper>
@@ -741,11 +800,12 @@ export default function PagesView() {
                 variant="contained"
                 color="primary"
                 size="large"
-                startIcon={<AddIcon />}
+                startIcon={isCreating ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
                 onClick={handleCreatePage}
+                disabled={isCreating}
                 sx={{ borderRadius: 2, px: 4, py: 1.5 }}
               >
-                Create Your First Page
+                {isCreating ? 'Creating...' : 'Create Your First Page'}
               </Button>
             )}
           </Paper>
@@ -903,17 +963,18 @@ export default function PagesView() {
                           </Stack>
                         </CardContent>
 
-                        {/* Actions (Admin Only) */}
-                        {isAdmin && (
-                          <CardActions
-                            className="quick-actions"
-                            sx={{
-                              justifyContent: 'flex-end',
-                              pt: 0,
-                              opacity: 0,
-                              transition: 'opacity 0.2s',
-                            }}
-                          >
+                        {/* Actions */}
+                        <CardActions
+                          className="quick-actions"
+                          sx={{
+                            justifyContent: 'flex-end',
+                            pt: 0,
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                          }}
+                        >
+                          {/* Share button - only admin can share */}
+                          {isAdmin && (
                             <Tooltip title="Share">
                               <IconButton
                                 size="small"
@@ -925,6 +986,9 @@ export default function PagesView() {
                                 <ShareIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
+                          )}
+                          {/* More options - only for admin */}
+                          {isAdmin && (
                             <Tooltip title="More">
                               <IconButton
                                 size="small"
@@ -933,8 +997,8 @@ export default function PagesView() {
                                 <MoreIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                          </CardActions>
-                        )}
+                          )}
+                        </CardActions>
                       </Card>
                     </Fade>
                   </Grid>
@@ -1013,9 +1077,10 @@ export default function PagesView() {
                         </Stack>
                       </Box>
 
-                      {/* Actions (Admin Only) */}
-                      {isAdmin && (
-                        <Stack direction="row" spacing={1}>
+                      {/* Actions */}
+                      <Stack direction="row" spacing={1}>
+                        {/* Share button - only admin can share */}
+                        {isAdmin && (
                           <Tooltip title="Share">
                             <IconButton
                               size="small"
@@ -1027,6 +1092,9 @@ export default function PagesView() {
                               <ShareIcon />
                             </IconButton>
                           </Tooltip>
+                        )}
+                        {/* Edit button - only admin can edit */}
+                        {isAdmin && (
                           <Tooltip title="Edit">
                             <IconButton
                               size="small"
@@ -1038,6 +1106,9 @@ export default function PagesView() {
                               <EditIcon />
                             </IconButton>
                           </Tooltip>
+                        )}
+                        {/* More options - only admin */}
+                        {isAdmin && (
                           <Tooltip title="More">
                             <IconButton
                               size="small"
@@ -1046,8 +1117,8 @@ export default function PagesView() {
                               <MoreIcon />
                             </IconButton>
                           </Tooltip>
-                        </Stack>
-                      )}
+                        )}
+                      </Stack>
                     </Paper>
                   </Fade>
                 ))}
@@ -1074,9 +1145,23 @@ export default function PagesView() {
 
       {/* Action Menu */}
       <Menu
-        anchorEl={actionMenuAnchor}
+        anchorReference="anchorPosition"
+        anchorPosition={actionMenuAnchor ? { top: actionMenuAnchor.top, left: actionMenuAnchor.left } : undefined}
         open={Boolean(actionMenuAnchor)}
         onClose={handleActionMenuClose}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        slotProps={{
+          paper: {
+            elevation: 3,
+            sx: {
+              minWidth: 180,
+              mt: 0.5,
+            },
+          },
+        }}
       >
         <MenuItem
           onClick={() => {
@@ -1128,7 +1213,7 @@ export default function PagesView() {
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
+        onClose={() => !isDeleting && setDeleteDialogOpen(false)}
         PaperProps={{
           sx: { borderRadius: 2 },
         }}
@@ -1139,12 +1224,19 @@ export default function PagesView() {
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete this page? This action cannot be undone.
+          <Typography sx={{ mb: 2 }}>
+            Are you sure you want to delete this page?
+          </Typography>
+          <Typography variant="body2" color="warning.main" sx={{ fontWeight: 500 }}>
+            ⚠️ Warning: This will also delete all child/subpages under this page. This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ borderRadius: 2 }}>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)} 
+            sx={{ borderRadius: 2 }}
+            disabled={isDeleting}
+          >
             Cancel
           </Button>
           <Button
@@ -1152,8 +1244,10 @@ export default function PagesView() {
             color="error"
             variant="contained"
             sx={{ borderRadius: 2 }}
+            disabled={isDeleting}
+            startIcon={isDeleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
           >
-            Delete
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
