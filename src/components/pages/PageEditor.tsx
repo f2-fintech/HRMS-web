@@ -62,6 +62,7 @@ import {
 import ShareDialog from './ShareDialog';
 import Loader from '@/components/loader/loader';
 import PageBreadcrumb from './PageBreadcrumb';
+import PageSidebar from './PageSidebar';
 
 // Dynamically import BlockNote components to avoid SSR issues
 const BlockNoteEditor = dynamic(
@@ -102,6 +103,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   const [infoDrawerOpen, setInfoDrawerOpen] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const editorRef = useRef<any>(null);
   
   // Track which page the current blocks belong to - prevents saving stale data
@@ -487,103 +489,114 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   const readingTime = Math.ceil(wordCount / 200); // Average reading speed
 
   return (
-    <>
-      {/* Floating Action Button - Save for Mobile */}
-      {!isReadOnly && (
-        <Zoom in timeout={300}>
-          <Fab
-            color="primary"
-            aria-label="save"
-            sx={{
-              position: 'fixed',
-              bottom: 24,
-              right: 24,
-              display: { xs: 'flex', md: 'none' },
-            }}
-            onClick={handleManualSave}
-            disabled={saving}
-          >
-            {saving ? <CircularProgress size={24} color="inherit" /> : <SaveIcon />}
-          </Fab>
-        </Zoom>
+    <Box sx={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+      {/* Sidebar for Admin */}
+      {isAdmin && (
+        <PageSidebar
+          currentPageId={pageId}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
       )}
 
-      {/* Scroll to Top Button */}
-      <Zoom in={trigger}>
-        <Fab
-          size="small"
-          color="default"
-          aria-label="scroll to top"
-          sx={{
-            position: 'fixed',
-            bottom: { xs: 88, md: 24 },
-            right: 24,
-          }}
-          onClick={scrollToTop}
-        >
-          <ArrowUpIcon />
-        </Fab>
-      </Zoom>
+      {/* Main Content Area */}
+      <Box sx={{ flexGrow: 1, overflow: 'auto', position: 'relative' }}>
+        {/* Floating Action Button - Save for Mobile */}
+        {!isReadOnly && (
+          <Zoom in timeout={300}>
+            <Fab
+              color="primary"
+              aria-label="save"
+              sx={{
+                position: 'fixed',
+                bottom: 24,
+                right: 24,
+                display: { xs: 'flex', md: 'none' },
+              }}
+              onClick={handleManualSave}
+              disabled={saving}
+            >
+              {saving ? <CircularProgress size={24} color="inherit" /> : <SaveIcon />}
+            </Fab>
+          </Zoom>
+        )}
 
-      <Box sx={{ maxWidth: 900, mx: 'auto', py: 3, px: { xs: 2, md: 3 } }}>
-        {/* Breadcrumbs */}
-        <Box sx={{ mb: 3 }}>
-          <PageBreadcrumb pageId={pageId} currentTitle={title} />
-
-          {/* Status Bar */}
-          <Paper
-            elevation={0}
+        {/* Scroll to Top Button */}
+        <Zoom in={trigger}>
+          <Fab
+            size="small"
+            color="default"
+            aria-label="scroll to top"
             sx={{
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 2,
-              flexWrap: 'wrap',
-              gap: 2,
+              position: 'fixed',
+              bottom: { xs: 88, md: 24 },
+              right: 24,
             }}
+            onClick={scrollToTop}
           >
-            <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-              {!isReadOnly ? (
-                <>
-                  <Button
-                    variant="contained"
-                    startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-                    onClick={handleManualSave}
-                    disabled={saving}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    {pageId === 'new' ? 'Create Page' : 'Save'}
-                  </Button>
-                  {lastSaved && (
-                    <Chip
-                      icon={<CloudDoneIcon />}
-                      label={`Saved ${lastSaved.toLocaleTimeString()}`}
-                      size="small"
-                      color="success"
-                      variant="outlined"
-                    />
-                  )}
-                  {saving && (
-                    <Chip
-                      icon={<CircularProgress size={16} />}
-                      label="Saving..."
-                      size="small"
-                      variant="outlined"
-                    />
-                  )}
-                </>
-              ) : (
-                <Chip
-                  icon={<ViewIcon />}
-                  label="Read-only mode"
-                  size="small"
-                  color="info"
-                  variant="outlined"
-                />
-              )}
+            <ArrowUpIcon />
+          </Fab>
+        </Zoom>
+
+        <Box sx={{ maxWidth: 900, mx: 'auto', py: 3, px: { xs: 2, md: 3 } }}>
+          {/* Breadcrumbs */}
+          <Box sx={{ mb: 3 }}>
+            <PageBreadcrumb pageId={pageId} currentTitle={title} />
+
+            {/* Status Bar */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                flexWrap: 'wrap',
+                gap: 2,
+              }}
+            >
+              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                {!isReadOnly ? (
+                  <>
+                    <Button
+                      variant="contained"
+                      startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                      onClick={handleManualSave}
+                      disabled={saving}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      {pageId === 'new' ? 'Create Page' : 'Save'}
+                    </Button>
+                    {lastSaved && (
+                      <Chip
+                        icon={<CloudDoneIcon />}
+                        label={`Saved ${lastSaved.toLocaleTimeString()}`}
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                      />
+                    )}
+                    {saving && (
+                      <Chip
+                        icon={<CircularProgress size={16} />}
+                        label="Saving..."
+                        size="small"
+                        variant="outlined"
+                      />
+                    )}
+                  </>
+                ) : (
+                  <Chip
+                    icon={<ViewIcon />}
+                    label="Read-only mode"
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                  />
+                )}
             </Stack>
 
             <Stack direction="row" spacing={1}>
@@ -932,6 +945,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
           currentSharedWith={currentPage?.shared_with || []}
         />
       )}
-    </>
+      </Box>
+    </Box>
   );
 }

@@ -37,6 +37,7 @@ interface PagesState {
   pageTree: Page[]; // Full hierarchical tree
   total: number;
   loading: boolean;
+  treeLoading: boolean;
   childrenLoading: boolean;
   breadcrumbLoading: boolean;
   error: string | null;
@@ -50,6 +51,7 @@ const initialState: PagesState = {
   pageTree: [],
   total: 0,
   loading: false,
+  treeLoading: false,
   childrenLoading: false,
   breadcrumbLoading: false,
   error: null,
@@ -543,15 +545,15 @@ const pagesSlice = createSlice({
       })
       // Fetch page tree
       .addCase(fetchPageTree.pending, (state) => {
-        state.loading = true;
+        state.treeLoading = true;
         state.error = null;
       })
       .addCase(fetchPageTree.fulfilled, (state, action) => {
-        state.loading = false;
+        state.treeLoading = false;
         state.pageTree = action.payload;
       })
       .addCase(fetchPageTree.rejected, (state, action) => {
-        state.loading = false;
+        state.treeLoading = false;
         state.error = action.error.message || 'Failed to fetch page tree';
       })
       // Create child page
