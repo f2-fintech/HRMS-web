@@ -14,6 +14,9 @@
     "postinstall": "npm run build:icons"
   },
   "dependencies": {
+    "@blocknote/core": "^0.42.3",
+    "@blocknote/mantine": "^0.42.3",
+    "@blocknote/react": "^0.42.3",
     "@date-io/date-fns": "^3.2.1",
     "@date-io/dayjs": "^3.0.0",
     "@emotion/cache": "^11.11.0",
@@ -24,6 +27,7 @@
     "@mui/lab": "^5.0.0-alpha.170",
     "@mui/material": "^5.15.20",
     "@mui/styles": "^5.15.20",
+    "@mui/system": "^7.3.5",
     "@mui/x-data-grid": "^7.9.0",
     "@mui/x-date-pickers": "^7.8.0",
     "@netlify/plugin-nextjs": "^5.14.5",
@@ -34,6 +38,7 @@
     "classnames": "^2.5.1",
     "date-fns": "^2.30.0",
     "dayjs": "^1.11.12",
+    "emoji-picker-react": "^4.15.2",
     "framer-motion": "^11.5.4",
     "idb": "^8.0.0",
     "jwt-decode": "^4.0.0",
@@ -54,7 +59,8 @@
     "react-toastify": "^10.0.5",
     "react-use": "^17.5.0",
     "recharts": "^2.15.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@iconify/json": "^2.2.218",

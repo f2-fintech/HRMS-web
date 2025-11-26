@@ -22,6 +22,7 @@ interface attendancesState {
   attendances: Attendance[]
   filteredAttendance: Attendance[]
   count: number // Add count here
+  statusCounts: any[] // Add status counts
   loading: boolean
   error: string | null
 }
@@ -30,6 +31,7 @@ const initialState: attendancesState = {
   attendances: [],
   filteredAttendance: [],
   count: 0, // Initialize with 0
+  statusCounts: [], // Initialize status counts
   loading: false,
   error: null
 }
@@ -92,7 +94,8 @@ export const fetchAttendances = createAsyncThunk(
 
     return {
       attendances: data.attendances,
-      count: data.totalCount
+      count: data.totalCount,
+      statusCounts: data.statusCounts || []
     }
   }
 )
@@ -133,6 +136,7 @@ export const attendancesSlice = createSlice({
       state.attendances = []
       state.filteredAttendance = []
       state.count = 0
+      state.statusCounts = []
     },
     filterAttendance(state, action: PayloadAction<{ name: string; location: string }>) {
       const { name, location } = action.payload
@@ -183,6 +187,7 @@ export const attendancesSlice = createSlice({
       .addCase(fetchAttendances.fulfilled, (state, action) => {
         state.attendances = action.payload.attendances
         state.count = action.payload.count // Set the count
+        state.statusCounts = action.payload.statusCounts || [] // Set status counts
         state.loading = false
       })
       .addCase(fetchAttendances.rejected, (state, action) => {

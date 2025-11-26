@@ -40,6 +40,7 @@ const BreakSheet: React.FC = () => {
     const dispatch: AppDispatch = useDispatch()
     const { breaks } = useSelector((state: RootState) => state.breaks)
 
+    const [isMobile, setIsMobile] = useState<boolean>(false)
     const [breakType, setBreakType] = useState<string>('')
     const [otherBreakType, setOtherBreakType] = useState<string>('')
     const [startTime, setStartTime] = useState<string>('')
@@ -86,6 +87,55 @@ const BreakSheet: React.FC = () => {
     const companyId = employee?.company_id
 
     const breakOptions = ['Select break type', 'Washroom', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
+
+    // Hybrid mobile detection (Option 4)
+    useEffect(() => {
+        const checkDevice = () => {
+            // Check 1: Touch capability
+            const hasTouch = ('ontouchstart' in window) || 
+                           (navigator.maxTouchPoints > 0) ||
+                           ((navigator as any).msMaxTouchPoints > 0)
+            
+            // Check 2: User Agent
+            const ua = navigator.userAgent.toLowerCase()
+            const isMobileUA = /android|webos|iphone|ipod|blackberry|iemobile|opera mini/i.test(ua)
+            
+            // Check 3: Pointer type (coarse = touch device)
+            const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches
+            
+            // Check 4: Screen width
+            const smallScreen = window.innerWidth < 768
+            
+            // Debug logging
+            console.log('🔍 Mobile Detection Debug:', {
+                hasTouch,
+                isMobileUA,
+                hasCoarsePointer,
+                smallScreen,
+                userAgent: ua,
+                screenWidth: window.innerWidth,
+                maxTouchPoints: navigator.maxTouchPoints
+            })
+            
+            // Return true if at least 2 conditions match for better accuracy
+            const conditions = [
+                hasTouch && smallScreen,
+                isMobileUA,
+                hasCoarsePointer
+            ]
+            const matchCount = conditions.filter(Boolean).length
+            const isMobileDevice = matchCount >= 2 || (isMobileUA && hasTouch)
+            
+            console.log('📱 Is Mobile Device:', isMobileDevice, '| Match Count:', matchCount)
+            
+            setIsMobile(isMobileDevice)
+        }
+        
+        checkDevice()
+        window.addEventListener('resize', checkDevice)
+        
+        return () => window.removeEventListener('resize', checkDevice)
+    }, [])
 
     const fetchExceedBreakEmployees = async () => {
         if (showExceedBreaks) {
@@ -453,6 +503,47 @@ const BreakSheet: React.FC = () => {
             link.click()
             document.body.removeChild(link)
         }
+    }
+
+    // Early return for mobile employees (userRole > 2 means regular employee)
+    // Admin (role 1) and Manager (role 2) can access on any device
+    console.log('🔐 Access Check:', {
+        isMobile,
+        userRole,
+        userRoleType: typeof userRole,
+        userRoleNumber: Number(userRole),
+        isEmployee: Number(userRole) > 2,
+        shouldBlock: isMobile && Number(userRole) > 2
+    })
+    
+    if (isMobile && Number(userRole) > 2) {
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '80vh',
+                    p: 4,
+                    backgroundColor: 'background.default'
+                }}
+            >
+                <div className="text-center max-w-md">
+                    <div className="text-6xl mb-6">💻</div>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                        Desktop Only Feature
+                    </h2>
+                    <p className="text-lg text-gray-600 mb-6">
+                        Break Sheet is only accessible on desktop devices.
+                    </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p className="text-blue-800">
+                            📌 Please use a laptop or desktop computer to access this feature.
+                        </p>
+                    </div>
+                </div>
+            </Box>
+        )
     }
 
     return (
