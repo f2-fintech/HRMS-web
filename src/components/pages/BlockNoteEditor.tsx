@@ -5,14 +5,22 @@ import { useRouter } from 'next/navigation';
 import { 
   useCreateBlockNote, 
   createReactInlineContentSpec,
+  createReactBlockSpec,
   SuggestionMenuController,
   getDefaultReactSlashMenuItems,
-  DefaultReactSuggestionItem
+  DefaultReactSuggestionItem,
+  SideMenuController,
+  SideMenu,
+  DragHandleMenu,
+  RemoveBlockItem,
+  BlockColorsItem,
+  useComponentsContext,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import {
   BlockNoteSchema,
   defaultInlineContentSpecs,
+  defaultBlockSpecs,
   filterSuggestionItems,
 } from "@blocknote/core";
 
@@ -22,6 +30,10 @@ import "@blocknote/mantine/style.css";
 import { PartialBlock } from "@blocknote/core";
 import { toast } from 'react-toastify';
 import { CircularProgress, Box } from '@mui/material';
+import StorageIcon from '@mui/icons-material/Storage';
+import TurnIntoDatabaseDialog from './database/TurnIntoDatabaseDialog';
+import InlineDatabaseView from './database/InlineDatabaseView';
+import type { Database, DatabaseColumn, CellValue } from './database/types';
 
 /* ---------------------------------------------------
    CUSTOM INLINE CONTENT: Page Mention
@@ -90,14 +102,355 @@ const PageMention = createReactInlineContentSpec(
 );
 
 /* ---------------------------------------------------
-   SCHEMA: Create schema with custom inline content
+   CUSTOM BLOCK: Database Block
+   Renders an embedded database view inside the editor
+   Uses window.dispatchEvent to communicate with parent for data fetching
+--------------------------------------------------- */
+const DatabaseBlock = createReactBlockSpec(
+  {
+    type: "database",
+    propSchema: {
+      databaseId: { default: "" },
+      title: { default: "Untitled Database" },
+    },
+    content: "none",
+  },
+  {
+    render: (props) => {
+      const { databaseId, title } = props.block.props;
+      const [database, setDatabase] = React.useState<Database | null>(null);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState<string | null>(null);
+
+      // Fetch database data
+      React.useEffect(() => {
+        if (!databaseId) {
+          setLoading(false);
+          return;
+        }
+
+        const fetchDatabase = async () => {
+          try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const company_id = user.company_id || '';
+            const user_id = user.id || '';
+            const role = user.role || '';
+
+            const response = await fetch(
+              `${process.env.NEXT_PUBLIC_APP_URL}/databases/${databaseId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token} ${company_id} ${user_id} ${role}`,
+                },
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error('Failed to fetch database');
+            }
+
+            const data = await response.json();
+            setDatabase(data);
+          } catch (err: any) {
+            console.error('Error fetching database:', err);
+            setError(err.message || 'Failed to load database');
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchDatabase();
+      }, [databaseId]);
+
+      // Handle add row
+      const handleAddRow = async () => {
+        if (!databaseId) return;
+        try {
+          const token = localStorage.getItem('token');
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const company_id = user.company_id || '';
+          const user_id = user.id || '';
+          const role = user.role || '';
+
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/databases/${databaseId}/rows`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token} ${company_id} ${user_id} ${role}`,
+              },
+              body: JSON.stringify({ cells: {} }),
+            }
+          );
+
+          if (response.ok) {
+            const updatedDb = await response.json();
+            setDatabase(updatedDb);
+          }
+        } catch (err) {
+          console.error('Error adding row:', err);
+        }
+      };
+
+      // Handle update cell
+      const handleUpdateCell = async (rowId: string, columnId: string, value: any) => {
+        if (!databaseId) {
+          console.error('handleUpdateCell: No databaseId');
+          return;
+        }
+        try {
+          const token = localStorage.getItem('token');
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const company_id = user.company_id || '';
+          const user_id = user.id || '';
+          const role = user.role || '';
+
+          const cellValue: CellValue = typeof value === 'string' 
+            ? { text: value }
+            : typeof value === 'number'
+            ? { number: value }
+            : { text: String(value) };
+
+          console.log('Updating cell:', { databaseId, rowId, columnId, cellValue });
+
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/databases/${databaseId}/cells`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token} ${company_id} ${user_id} ${role}`,
+              },
+              body: JSON.stringify({
+                rowId,
+                cells: { [columnId]: cellValue },
+              }),
+            }
+          );
+
+          console.log('Cell update response status:', response.status);
+
+          if (response.ok) {
+            const updatedDb = await response.json();
+            console.log('Cell update success, new database:', updatedDb);
+            setDatabase(updatedDb);
+          } else {
+            const errorText = await response.text();
+            console.error('Cell update failed:', response.status, errorText);
+          }
+        } catch (err) {
+          console.error('Error updating cell:', err);
+        }
+      };
+
+      // Handle delete row
+      const handleDeleteRow = async (rowId: string) => {
+        if (!databaseId) return;
+        try {
+          const token = localStorage.getItem('token');
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const company_id = user.company_id || '';
+          const user_id = user.id || '';
+          const role = user.role || '';
+
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/databases/${databaseId}/rows/${rowId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                Authorization: `Bearer ${token} ${company_id} ${user_id} ${role}`,
+              },
+            }
+          );
+
+          if (response.ok) {
+            const updatedDb = await response.json();
+            setDatabase(updatedDb);
+          }
+        } catch (err) {
+          console.error('Error deleting row:', err);
+        }
+      };
+
+      // Handle add column
+      const handleAddColumn = async (column: Partial<DatabaseColumn>) => {
+        if (!databaseId) return;
+        try {
+          const token = localStorage.getItem('token');
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const company_id = user.company_id || '';
+          const user_id = user.id || '';
+          const role = user.role || '';
+
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/databases/${databaseId}/columns`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token} ${company_id} ${user_id} ${role}`,
+              },
+              body: JSON.stringify(column),
+            }
+          );
+
+          if (response.ok) {
+            const updatedDb = await response.json();
+            setDatabase(updatedDb);
+          }
+        } catch (err) {
+          console.error('Error adding column:', err);
+        }
+      };
+
+      // Handle update column
+      const handleUpdateColumn = async (columnId: string, updates: Partial<DatabaseColumn>) => {
+        if (!databaseId) {
+          console.error('handleUpdateColumn: No databaseId');
+          return;
+        }
+        try {
+          const token = localStorage.getItem('token');
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const company_id = user.company_id || '';
+          const user_id = user.id || '';
+          const role = user.role || '';
+
+          console.log('Updating column:', { databaseId, columnId, updates });
+
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/databases/${databaseId}/columns/${columnId}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token} ${company_id} ${user_id} ${role}`,
+              },
+              body: JSON.stringify(updates),
+            }
+          );
+
+          console.log('Column update response status:', response.status);
+
+          if (response.ok) {
+            const updatedDb = await response.json();
+            console.log('Column update success, new database:', updatedDb);
+            setDatabase(updatedDb);
+          } else {
+            const errorText = await response.text();
+            console.error('Column update failed:', response.status, errorText);
+          }
+        } catch (err) {
+          console.error('Error updating column:', err);
+        }
+      };
+
+      // Handle delete column
+      const handleDeleteColumn = async (columnId: string) => {
+        if (!databaseId) return;
+        try {
+          const token = localStorage.getItem('token');
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const company_id = user.company_id || '';
+          const user_id = user.id || '';
+          const role = user.role || '';
+
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/databases/${databaseId}/columns/${columnId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                Authorization: `Bearer ${token} ${company_id} ${user_id} ${role}`,
+              },
+            }
+          );
+
+          if (response.ok) {
+            const updatedDb = await response.json();
+            setDatabase(updatedDb);
+          }
+        } catch (err) {
+          console.error('Error deleting column:', err);
+        }
+      };
+
+      return (
+        <div 
+          contentEditable={false} 
+          style={{ 
+            userSelect: 'none',
+            width: '100%',
+            maxWidth: '100%',
+            overflow: 'visible',
+          }}
+        >
+          <InlineDatabaseView
+            database={database}
+            loading={loading}
+            error={error || undefined}
+            onAddRow={handleAddRow}
+            onUpdateCell={handleUpdateCell}
+            onDeleteRow={handleDeleteRow}
+            onAddColumn={handleAddColumn}
+            onUpdateColumn={handleUpdateColumn}
+            onDeleteColumn={handleDeleteColumn}
+            readOnly={false}
+          />
+        </div>
+      );
+    },
+  }
+);
+
+/* ---------------------------------------------------
+   SCHEMA: Create schema with custom blocks and inline content
 --------------------------------------------------- */
 const schema = BlockNoteSchema.create({
+  blockSpecs: {
+    ...defaultBlockSpecs,
+    database: DatabaseBlock(),
+  },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
     pageMention: PageMention,
   },
 });
+
+/* ---------------------------------------------------
+   CUSTOM DRAG HANDLE MENU COMPONENT
+   Defined outside main component to avoid type inference issues
+--------------------------------------------------- */
+interface CustomDragHandleMenuContentProps {
+  block: any;
+  onTurnIntoDatabase: (block: any) => void;
+  [key: string]: any;
+}
+
+const CustomDragHandleMenuContent: React.FC<CustomDragHandleMenuContentProps> = (props) => {
+  const { block, onTurnIntoDatabase, ...menuProps } = props;
+  const Components = useComponentsContext();
+  const isTable = block?.type === 'table';
+  
+  return (
+    <DragHandleMenu {...menuProps} block={block}>
+      <RemoveBlockItem {...menuProps} block={block}>Delete</RemoveBlockItem>
+      <BlockColorsItem {...menuProps} block={block}>Colors</BlockColorsItem>
+      {isTable && Components && (
+        <Components.Generic.Menu.Item
+          onClick={() => onTurnIntoDatabase(block)}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <StorageIcon fontSize="small" sx={{ color: '#667eea' }} />
+            Turn into Database
+          </Box>
+        </Components.Generic.Menu.Item>
+      )}
+    </DragHandleMenu>
+  );
+};
 
 interface BlockNoteEditorProps {
   initialBlocks: any[];
@@ -107,6 +460,7 @@ interface BlockNoteEditorProps {
   currentPageId?: string; // For creating child pages (undefined for new pages)
   onImmediateSave?: () => void; // Callback to trigger immediate save (used after creating child page)
   onCreateParentPage?: () => Promise<string | null>; // Callback to create parent page first (returns new page ID)
+  onDatabaseCreated?: (databaseId: string) => void; // Callback when a database is created from a table
 }
 
 /* ---------------------------------------------------
@@ -117,7 +471,7 @@ const sanitizeBlocks = (blocks: any[]): PartialBlock[] | null => {
     return null;
   }
 
-  const sanitizeInlineContent = (item: any) => {
+  const sanitizeInlineContent = (item: any): any => {
     if (!item || typeof item !== "object") {
       return { type: "text", text: "", styles: {} };
     }
@@ -160,6 +514,78 @@ const sanitizeBlocks = (blocks: any[]): PartialBlock[] | null => {
     };
   };
 
+  // Sanitize a single table cell - handles both formats:
+  // 1. { type: "tableCell", content: [...], props: {...} } - stored format
+  // 2. [...] - array of inline content - BlockNote format
+  const sanitizeTableCell = (cell: any): any[] => {
+    if (!cell) return [];
+    
+    // Format 1: Object with type "tableCell" (from database)
+    if (cell && typeof cell === "object" && cell.type === "tableCell") {
+      if (Array.isArray(cell.content)) {
+        return cell.content.map(sanitizeInlineContent).filter(Boolean);
+      }
+      return [];
+    }
+    
+    // Format 2: Direct array of inline content (BlockNote native)
+    if (Array.isArray(cell)) {
+      return cell.map(sanitizeInlineContent).filter(Boolean);
+    }
+    
+    return [];
+  };
+
+  // Sanitize table content (rows with cells containing inline content)
+  const sanitizeTableContent = (content: any): any => {
+    if (!content || typeof content !== "object") {
+      return { type: "tableContent", rows: [] };
+    }
+    
+    // Handle already-structured tableContent
+    if (content.type === "tableContent" && Array.isArray(content.rows)) {
+      const sanitizedContent: any = {
+        type: "tableContent",
+        rows: content.rows.map((row: any) => {
+          if (!row || typeof row !== "object") {
+            return { cells: [] };
+          }
+          return {
+            cells: Array.isArray(row.cells)
+              ? row.cells.map(sanitizeTableCell)
+              : [],
+          };
+        }),
+      };
+      
+      // Preserve columnWidths if present
+      if (Array.isArray(content.columnWidths)) {
+        sanitizedContent.columnWidths = content.columnWidths;
+      }
+      
+      return sanitizedContent;
+    }
+    
+    // Handle raw array format (rows directly as array)
+    if (Array.isArray(content)) {
+      return {
+        type: "tableContent",
+        rows: content.map((row: any) => {
+          if (!row || typeof row !== "object") {
+            return { cells: [] };
+          }
+          return {
+            cells: Array.isArray(row.cells)
+              ? row.cells.map(sanitizeTableCell)
+              : [],
+          };
+        }),
+      };
+    }
+    
+    return { type: "tableContent", rows: [] };
+  };
+
   const sanitizeProps = (props: any) => {
     if (!props || typeof props !== "object") {
       return {
@@ -173,12 +599,56 @@ const sanitizeBlocks = (blocks: any[]): PartialBlock[] | null => {
     );
   };
 
-  const sanitizeBlock = (block: any) => {
+  const sanitizeBlock = (block: any): any => {
     if (!block || typeof block !== "object") return null;
 
+    const blockType = block.type || "paragraph";
+    
+    // Handle database blocks - preserve databaseId and title props
+    if (blockType === "database") {
+      return {
+        id: block.id || undefined,
+        type: "database",
+        props: {
+          databaseId: block.props?.databaseId || "",
+          title: block.props?.title || "Untitled Database",
+        },
+        content: undefined,
+        children: [],
+      };
+    }
+    
+    // Handle table blocks specially - they use tableContent instead of array of inline content
+    if (blockType === "table") {
+      return {
+        id: block.id || undefined,
+        type: "table",
+        props: sanitizeProps(block.props),
+        content: sanitizeTableContent(block.content),
+        children: Array.isArray(block.children)
+          ? block.children.map(sanitizeBlock).filter(Boolean)
+          : [],
+      };
+    }
+    
+    // Handle blocks with no content (like images, file, video, audio)
+    const noContentTypes = ["image", "file", "video", "audio", "column", "columnList"];
+    if (noContentTypes.includes(blockType)) {
+      return {
+        id: block.id || undefined,
+        type: blockType,
+        props: sanitizeProps(block.props),
+        content: undefined,
+        children: Array.isArray(block.children)
+          ? block.children.map(sanitizeBlock).filter(Boolean)
+          : [],
+      };
+    }
+
+    // Standard blocks with inline content array
     return {
       id: block.id || undefined,
-      type: block.type || "paragraph",
+      type: blockType,
       props: sanitizeProps(block.props),
       content: Array.isArray(block.content)
         ? block.content.map(sanitizeInlineContent).filter(Boolean)
@@ -208,10 +678,15 @@ export default function BlockNoteEditorComponent({
   currentPageId,
   onImmediateSave,
   onCreateParentPage,
+  onDatabaseCreated,
 }: BlockNoteEditorProps) {
   
   const router = useRouter();
   const [creatingPage, setCreatingPage] = useState(false);
+  
+  // Turn into Database state
+  const [selectedTableBlock, setSelectedTableBlock] = useState<any>(null);
+  const [databaseDialogOpen, setDatabaseDialogOpen] = useState(false);
   
   // Handle navigation events from PageMention clicks
   useEffect(() => {
@@ -430,6 +905,67 @@ export default function BlockNoteEditorComponent({
     };
   }, [editor, onBlocksChange]);
 
+  /* Handle Turn into Database from Side Menu */
+  const handleTurnIntoDatabase = useCallback((block: any) => {
+    if (!block || block.type !== 'table') {
+      toast.error('Please select a table block');
+      return;
+    }
+    
+    if (!currentPageId) {
+      toast.error('Please save the page first before converting to database');
+      return;
+    }
+    
+    setSelectedTableBlock(block);
+    setDatabaseDialogOpen(true);
+  }, [currentPageId]);
+
+  /* Handle database creation success - replace table with database block */
+  const handleDatabaseCreated = useCallback((databaseId: string, title: string) => {
+    if (editor && selectedTableBlock) {
+      try {
+        // Replace the table block with a database block
+        editor.updateBlock(selectedTableBlock.id, {
+          type: "database",
+          props: {
+            databaseId: databaseId,
+            title: title || "Untitled Database",
+          },
+        } as any);
+        
+        // Notify parent about block changes
+        onBlocksChange(editor.document);
+        
+        // Trigger immediate save to persist the change
+        if (onImmediateSave) {
+          setTimeout(() => {
+            onImmediateSave();
+          }, 100);
+        }
+        
+        toast.success('Table converted to database successfully!');
+      } catch (err) {
+        console.error('Failed to replace table block:', err);
+        toast.error('Database created but failed to update editor');
+      }
+    }
+    
+    setDatabaseDialogOpen(false);
+    setSelectedTableBlock(null);
+    
+    // Notify parent
+    if (onDatabaseCreated) {
+      onDatabaseCreated(databaseId);
+    }
+  }, [editor, selectedTableBlock, onBlocksChange, onImmediateSave, onDatabaseCreated]);
+
+  /* Custom Drag Handle Menu with Turn into Database option */
+  // Using a simple functional component approach to avoid complex type issues
+  const renderCustomDragHandleMenu = (props: any) => {
+    return <CustomDragHandleMenuContent {...props} onTurnIntoDatabase={handleTurnIntoDatabase} />;
+  };
+
   return (
     <>
       {/* Your Custom CSS – untouched */}
@@ -465,12 +1001,26 @@ export default function BlockNoteEditorComponent({
           color: white;
           border-color: #667eea;
         }
+
+        /* Database block scroll fix */
+        .bn-block-content[data-content-type="database"],
+        [data-block-type="database"],
+        [data-content-type="database"] {
+          overflow: visible !important;
+          max-width: 100% !important;
+        }
+        
+        .bn-block-content[data-content-type="database"] > div,
+        [data-block-type="database"] > div {
+          overflow: visible !important;
+        }
       `}</style>
 
       <BlockNoteView 
         editor={editor as any} 
         theme="light"
         slashMenu={false}
+        sideMenu={false}
       >
         <SuggestionMenuController
           triggerCharacter={"/"}
@@ -478,7 +1028,27 @@ export default function BlockNoteEditorComponent({
             filterSuggestionItems(getCustomSlashMenuItems(editor as any), query)
           }
         />
+        <SideMenuController
+          sideMenu={(props) => (
+            <SideMenu {...props} dragHandleMenu={(menuProps: any) => renderCustomDragHandleMenu(menuProps)} />
+          )}
+        />
       </BlockNoteView>
+
+      {/* Turn into Database Dialog */}
+      {selectedTableBlock && currentPageId && (
+        <TurnIntoDatabaseDialog
+          open={databaseDialogOpen}
+          onClose={() => {
+            setDatabaseDialogOpen(false);
+            setSelectedTableBlock(null);
+          }}
+          pageId={currentPageId}
+          blockId={selectedTableBlock.id || ''}
+          tableData={selectedTableBlock.content}
+          onSuccess={handleDatabaseCreated}
+        />
+      )}
       
       {/* Loading overlay when creating page */}
       {creatingPage && (

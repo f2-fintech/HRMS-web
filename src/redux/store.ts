@@ -28,6 +28,7 @@ import dashboardPreferencesReducer from './features/dashboardPreferences/dashboa
 import profilesReducer from './features/profileEmployeee/profilesSlice';
 import performanceReducer from './features/performances/performanceSlice';
 import pagesReducer from './features/pages/pagesSlice';
+import databasesReducer from './features/databases/databasesSlice';
 
 
 
@@ -79,6 +80,7 @@ const appReducer = combineReducers({
   profiles: profilesReducer,
   performances: performanceReducer,
   pages: pagesReducer,
+  databases: databasesReducer,
 })
 
 // Root reducer with RESET functionality
