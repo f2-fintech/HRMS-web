@@ -1,35 +1,19 @@
 'use client';
 
 import React from 'react';
-
 import EmployeeMorningForm from './EmployeeMorningForm';
 import ManagerSnapshotForm from './ManagerSnapshotForm';
-import AdminPerformanceForm from './AdminPerformanceForm';
 
 interface Props {
-  role: string | number;         // '1' = Admin, '2' = Manager/TL/Senior/BH, '3' = Employee
+  role: string | number;
   handleClose: () => void;
   prefillDate?: string;
   performanceId?: string | null;
   performances?: any[];
-  existingSnapshot?: any;        // if editing manager snapshot
-  designation?: string;          // 👈 add this
+  existingSnapshot?: any;
+  designation?: string;
   onSaved?: () => void;
 }
-
-const isManagerLikeDesignation = (designation?: string) => {
-  if (!designation) return false;
-  const d = designation.trim().toLowerCase();
-
-  if (
-
-    d === 'team leader' ||
-    d.includes('team lead')
-  ) {
-    return true;
-  }
-  return false;
-};
 
 const RoleBasedPerformanceForm: React.FC<Props> = ({
   role,
@@ -38,30 +22,24 @@ const RoleBasedPerformanceForm: React.FC<Props> = ({
   performanceId,
   performances,
   existingSnapshot,
-  designation,                          // 👈 add this
+  designation,
   onSaved,
 }) => {
-  const r = String(role);
-  const shouldShowManager =
-    r === '2' || isManagerLikeDesignation(designation);
 
-  if (r === '1') {
-    return (
-      <AdminPerformanceForm
-        handleClose={handleClose}
-        performanceId={performanceId}
-        prefillDate={prefillDate}
-        performances={performances}
-        onSaved={onSaved}
-      />
-    );
-  }
+  /** ROLE PRIORITY FIXED LOGIC:
+   * Manager = 2  → big form
+   * TL = 3       → big form
+   * Employee = 4 → small form
+   */
+  const numericRole = Number(role);
 
-  if (shouldShowManager) {
+  const shouldShowManagerForm = numericRole === 2 || numericRole === 3;
+
+  if (shouldShowManagerForm) {
     return (
       <ManagerSnapshotForm
         handleClose={handleClose}
-        snapshotId={performanceId}
+        performanceId={performanceId}
         prefillDate={prefillDate}
         existingSnapshot={existingSnapshot}
         onSaved={onSaved}
@@ -73,6 +51,7 @@ const RoleBasedPerformanceForm: React.FC<Props> = ({
     <EmployeeMorningForm
       handleClose={handleClose}
       performanceId={performanceId}
+      performances={performances}
       prefillDate={prefillDate}
       onSaved={onSaved}
     />

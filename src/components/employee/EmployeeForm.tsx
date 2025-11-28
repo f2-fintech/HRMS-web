@@ -72,7 +72,8 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     image: '',
     code: '',
     location: '',
-    company_id: ''
+    company_id: '',
+    manager_id:''
   })
 
   const [imageFocus, setImageFocus] = useState(false)
@@ -112,7 +113,8 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
           image: selected.image,
           code: selected.code,
           location: selected.location,
-          company_id: selected.company_id
+          company_id: selected.company_id,
+            manager_id: selected.manager_id || ''   
         })
         setImagePreviewUrl(selected.image)
       }
@@ -134,6 +136,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     dispatch(fetchDesignations({ page: 1, limit: 0, keyword: '' }))
     dispatch(fetchCompanies({ page: 1, limit: 0, keyword: '' }))
   }, [])
+    const managerList = employees.filter(
+    (emp) =>
+      emp.role_priority == 2 ||
+      emp.designation === "Founder & CEO" ||
+      emp.designation === "Co-Founder & MD"
+  );
+
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
@@ -891,58 +900,80 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             {errors.role_priority && <Typography color='error'>{errors.role_priority}</Typography>}
           </FormControl>
         </Grid>
-        {role > 0 && (
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth error={!!errors.designation}>
-              <Autocomplete
-                id='designation-select'
-                options={designations
-                  .map(designation => designation.title)
-                  .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))}
-                getOptionLabel={option => option}
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    label='Select Designation'
-                    variant='outlined'
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <InputAdornment position='start'>
-                          <BadgeIcon color='action' />
-                        </InputAdornment>
-                      )
-                    }}
-                    sx={{
-                      '& .MuiInputLabel-root': {
-                        color: 'textColor ' // Change label text color to black
-                      },
-                      '& .MuiOutlinedInput-root': {
-                        '& fieldset': {
-                          borderColor: 'textColor ' // Set border color to black
-                        },
-                        '&:hover fieldset': {
-                          borderColor: 'textColor ' // Set hover border color to black
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: 'textColor ' // Set focused border color to black
-                        }
-                      },
-                      '& .MuiInputBase-input': {
-                        color: 'textColor ' // Change input text color to black
-                      }
-                    }}
-                  />
-                )}
-                value={formData.designation}
-                onChange={(event, newValue) => {
-                  handleChange({ target: { name: 'designation', value: newValue } })
-                }}
-              />
-              {errors.designation && <Typography color='error'>{errors.designation}</Typography>}
-            </FormControl>
-          </Grid>
+      {/* ====================== DESIGNATION SELECT ====================== */}
+{role > 0 && (
+  <Grid item xs={12} md={6}>
+    <FormControl fullWidth error={!!errors.designation}>
+      <Autocomplete
+        id="designation-select"
+        options={designations
+          .map(d => d.title)
+          .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+        }
+        value={formData.designation}
+        getOptionLabel={option => option}
+        onChange={(e, value) => {
+          handleChange({
+            target: { name: "designation", value: value }
+          })
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Select Designation"
+            InputProps={{
+              ...params.InputProps,
+              startAdornment: (
+                <InputAdornment position="start">
+                  <BadgeIcon color="action" />
+                </InputAdornment>
+              )
+            }}
+          />
         )}
+      />
+
+      {errors.designation && (
+        <Typography color="error">{errors.designation}</Typography>
+      )}
+    </FormControl>
+  </Grid>
+)}
+
+
+{/* ====================== MANAGER SELECT — ONLY IF TL ====================== */}
+{formData.designation === "Team Leader" && (
+  <Grid item xs={12} md={6}>
+    <FormControl fullWidth error={!!errors.manager_id}>
+      <InputLabel>Select Manager</InputLabel>
+
+      <Select
+        name="manager_id"
+        value={formData.manager_id}
+        onChange={handleChange}
+        label="Select Manager"
+      >
+        {employees
+          .filter(
+            emp =>
+              emp.role_priority == 2 ||
+              emp.designation === "Founder & CEO" ||
+              emp.designation === "Co-Founder & MD"
+          )
+          .map(m => (
+            <MenuItem key={m._id} value={m._id}>
+              {m.first_name} {m.last_name}
+            </MenuItem>
+          ))}
+      </Select>
+
+      {errors.manager_id && (
+        <Typography color="error">{errors.manager_id}</Typography>
+      )}
+    </FormControl>
+  </Grid>
+)}
+
         {role === '0' ? (
           <Grid item xs={12} md={6}>
             <FormControl fullWidth error={!!errors.company_id}>
@@ -959,6 +990,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               {errors.company_id && <Typography color='error'>{errors.company_id}</Typography>}
             </FormControl>
           </Grid>
+          
         ) : null}
         {role > 0 && (
           <Grid item xs={12} md={6}>
