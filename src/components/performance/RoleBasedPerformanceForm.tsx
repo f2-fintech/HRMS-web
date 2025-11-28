@@ -1,35 +1,19 @@
 'use client';
 
 import React from 'react';
-
 import EmployeeMorningForm from './EmployeeMorningForm';
 import ManagerSnapshotForm from './ManagerSnapshotForm';
 
-
 interface Props {
-  role: string | number;     
+  role: string | number;
   handleClose: () => void;
   prefillDate?: string;
   performanceId?: string | null;
   performances?: any[];
-  existingSnapshot?: any;        
-  designation?: string;          
+  existingSnapshot?: any;
+  designation?: string;
   onSaved?: () => void;
 }
-
-const isManagerLikeDesignation = (designation?: string) => {
-  if (!designation) return false;
-  const d = designation.trim().toLowerCase();
-
-  if (
-
-    d === 'team leader' ||
-    d.includes('team lead')
-  ) {
-    return true;
-  }
-  return false;
-};
 
 const RoleBasedPerformanceForm: React.FC<Props> = ({
   role,
@@ -38,19 +22,24 @@ const RoleBasedPerformanceForm: React.FC<Props> = ({
   performanceId,
   performances,
   existingSnapshot,
-  designation,                       
+  designation,
   onSaved,
 }) => {
-  const r = String(role);
-  const shouldShowManager =
-    r === '2' || isManagerLikeDesignation(designation);
 
+  /** ROLE PRIORITY FIXED LOGIC:
+   * Manager = 2  → big form
+   * TL = 3       → big form
+   * Employee = 4 → small form
+   */
+  const numericRole = Number(role);
 
-  if (shouldShowManager) {
+  const shouldShowManagerForm = numericRole === 2 || numericRole === 3;
+
+  if (shouldShowManagerForm) {
     return (
       <ManagerSnapshotForm
         handleClose={handleClose}
-        snapshotId={performanceId}
+        performanceId={performanceId}
         prefillDate={prefillDate}
         existingSnapshot={existingSnapshot}
         onSaved={onSaved}
@@ -62,11 +51,10 @@ const RoleBasedPerformanceForm: React.FC<Props> = ({
     <EmployeeMorningForm
       handleClose={handleClose}
       performanceId={performanceId}
-      performances={performances}   
+      performances={performances}
       prefillDate={prefillDate}
       onSaved={onSaved}
     />
-
   );
 };
 

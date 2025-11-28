@@ -21,6 +21,7 @@ import {
   Stack,
   TextField,
   Typography,
+  Tooltip,
 } from '@mui/material';
 
 import AddIcon from '@mui/icons-material/Add';
@@ -298,7 +299,7 @@ const buildPairsForEmployee = (raw: any): Pair[] => {
       done: Number(e.physicalMeetDone || 0),
       unit: 'count',
     },
-    
+
     {
       key: 'login',
       label: 'Logins',
@@ -478,7 +479,8 @@ const DetailsDrawer = ({
           page: 1,
         };
 
-        const res = await api.get('/performance/list', { params });
+        const res = await api.get("/performance", { params });
+
         let list: any[] = [];
         const payload = res?.data || {};
 
@@ -1010,6 +1012,8 @@ const PerformanceCard = ({
                 </Typography>
               </Stack>
 
+
+
               <Stack direction="column" spacing={0.75} sx={{ mt: 0.75 }}>
                 <Box sx={{ width: 1 }}>
                   <Stat
@@ -1052,6 +1056,161 @@ const PerformanceCard = ({
           </Grid>
         </Grid>
       </Box>
+      {role === "manager" && (
+        <>
+          {/* ⭐ SHOW heading only if approval/disbursal performers exist */}
+          {(mgrEvening?.topApprovalPerformer?.name ||
+            mgrEvening?.topDisbursalPerformer?.name ||
+            mgrEvening?.filesStuckDescription ||
+            mgrEvening?.topPerformer?.name) && (
+              <Box
+                sx={{
+                  mt: 1.5,
+                  p: 1.2,
+                  borderRadius: 2,
+                  bgcolor: "#fafafa",
+                  border: "1px solid #e5e7eb",
+                }}
+              >
+                {/* ⭐ Heading only if approval or disbursal perform exist */}
+                {(mgrEvening?.topApprovalPerformer?.name ||
+                  mgrEvening?.topDisbursalPerformer?.name) && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: 12,
+                        color: "#111827",
+                        mb: 1,
+                        display: "block",
+                      }}
+                    >
+                      Top Performers
+                    </Typography>
+                  )}
+
+                <Stack spacing={1}>
+                  {/* ⭐ Approval Performer */}
+                  {mgrEvening?.topApprovalPerformer?.name && (
+                    <Box
+                      sx={{
+                        p: 1,
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 2,
+                        bgcolor: "white",
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                        Approval Performer:
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {mgrEvening.topApprovalPerformer.name} • ₹
+                        {asNum(mgrEvening.topApprovalPerformer.valueLacs)} L
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* ⭐ Disbursal Performer */}
+                  {mgrEvening?.topDisbursalPerformer?.name && (
+                    <Box
+                      sx={{
+                        p: 1,
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 2,
+                        bgcolor: "white",
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                        Disbursal Performer:
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {mgrEvening.topDisbursalPerformer.name} • ₹
+                        {asNum(mgrEvening.topDisbursalPerformer.valueLacs)} L
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* ⭐ Overall Performer (Optional, but heading doesn't depend on it) */}
+                  {mgrEvening?.topPerformer?.name && (
+                    <Box
+                      sx={{
+                        p: 1,
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 2,
+                        bgcolor: "white",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 900,
+                          fontSize: 13,
+                          color: "#312e81",
+                          mb: 1.2,
+                          display: "block",
+                        }}
+                      >
+                        ⭐ Top Performers
+                      </Typography>
+
+                      <Typography variant="body2" sx={{
+                        fontWeight: 600,
+                        fontSize: 15,
+                        color: "#312e81",
+                        mb: 1.2,
+                        display: "block",
+                      }}>
+                        {mgrEvening.topPerformer.name}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* ⭐ FILE STUCK REASON */}
+                  {mgrEvening?.filesStuckDescription && (
+                    <Tooltip
+                      title={mgrEvening.filesStuckDescription}
+                      arrow
+                      placement="top"
+                    >
+                      <Box
+                        sx={{
+                          p: 1,
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 2,
+                          bgcolor: "white",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 700, mr: 0.6, color: "black" }}
+                        >
+                          Files Stuck Reason:
+                        </Typography>
+
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 500,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            maxWidth: "150px",
+                          }}
+                        >
+                          {mgrEvening.filesStuckDescription}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                  )}
+                </Stack>
+              </Box>
+            )}
+        </>
+      )}
+
+
 
 
       <Box sx={{ mt: 2 }}>
@@ -1086,8 +1245,6 @@ const PerformanceCard = ({
           </Typography>
 
           <Grid container spacing={2}>
-
-            {/* ===== Login ===== */}
             <Grid item xs={4}>
               <Typography variant="caption" color="text.secondary">
                 Login
@@ -1111,8 +1268,6 @@ const PerformanceCard = ({
                   : (raw?.re?.morning?.tillDate?.approvalLacs || 0)}
               </Typography>
             </Grid>
-
-            {/* ===== Disbursal ===== */}
             <Grid item xs={4}>
               <Typography variant="caption" color="text.secondary">
                 Disbursal (₹)
@@ -1128,10 +1283,6 @@ const PerformanceCard = ({
           </Grid>
         </Paper>
       </Box>
-
-
-
-
       {excelSummary && (
         <Box sx={{ mt: 2 }}>
           <Paper
@@ -1364,8 +1515,8 @@ const PerformanceCard = ({
             <Button
               size="small"
               variant="contained"
-              color="info"     // FIXED
-              onClick={() => onEdit(item?._id)}   // ⭐ ID bhejna correct ✔
+              color="info"
+              onClick={() => onEdit(item?._id)}
               sx={{
                 borderRadius: 999,
                 textTransform: "none",
@@ -1384,13 +1535,13 @@ const PerformanceCard = ({
 
 /* ===================== Main ===================== */
 export default function PerformanceGrid() {
+
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
 
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
   const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
 
   const [searchName, setSearchName] = useState<string>('');
   const [page, setPage] = useState<number>(1);
@@ -1414,6 +1565,8 @@ export default function PerformanceGrid() {
   const [teamsPerfLoading, setTeamsPerfLoading] = useState(false);
 
   const [mtdMap, setMtdMap] = useState<Record<string, MTD>>({});
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
 
   const [empPerf, setEmpPerf] = useState<
     Record<
@@ -1442,44 +1595,63 @@ export default function PerformanceGrid() {
   const router = useRouter();
   const [uploading] = useState(false);
 
-  const pickDate = (selectedDate ? selectedDate : dayjs()).format(
-    'YYYY-MM-DD'
-  );
+  const pickDate = selectedDate || dayjs().format("YYYY-MM-DD");
 
   useEffect(() => {
     const user =
-      typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('user') || '{}')
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("user") || "{}")
         : {};
 
-    const token =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('token')
-        : null;
+    const token = localStorage.getItem("token");
 
-    setUserRole(String(user?.role || ''));
-    setUserDesignation(String(user?.designation || ''));
-    setMyCode(String(user?.code || ''));
+    setUserRole(String(user.role_priority ?? user.role ?? ""));
+    setUserDesignation(String(user.designation ?? ""));
+    setMyCode(user.code || null);
 
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
-    const url = `${base}/teams/manager-one/${user?.id}`;
+    if (!user?.id || !token) {
+      setLoadingTeams(false);
+      return;
+    }
+
+    const base = process.env.NEXT_PUBLIC_APP_URL;
+    const role = Number(user.role_priority ?? user.role);
+
+    let url = "";
+
+    // ⭐ Manager → manager-one API
+    if (role === 2) {
+      url = `${base}/teams/manager-one/${user.id}`;
+    }
+
+    // ⭐ Team Leader → tl-one API
+    else if (role === 3) {
+      url = `${base}/teams/tl-one/${user.id}`;
+    }
+
+    // ⭐ Employee → no team
+    else {
+      setLoadingTeams(false);
+      return;
+    }
 
     const fetchTeamsForUser = async () => {
       try {
-        if (!user?.id || !token) {
-          setLoadingTeams(false);
-
-          return;
-        }
-
         const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "x-company-id": user.company_id
+          }
         });
 
         const raw = await res.json();
+        console.log("TEAM API RESPONSE:", raw);
 
         setTeams(raw.employees || []);
-      } catch {
+        setSelectedTeamId(raw.team_id || null);
+
+      } catch (err) {
+        console.log("TEAM FETCH ERROR:", err);
         setTeams([]);
         setSelectedTeamId(null);
       } finally {
@@ -1489,6 +1661,9 @@ export default function PerformanceGrid() {
 
     fetchTeamsForUser();
   }, []);
+
+
+
 
   /* -------- latest snapshot per employee (team dialog) -------- */
   useEffect(() => {
@@ -1609,6 +1784,7 @@ export default function PerformanceGrid() {
       };
 
       const res = await api.get('/performance/list', { params });
+
 
       let list: any[] = [];
       const payload = res?.data || {};
@@ -2078,7 +2254,7 @@ export default function PerformanceGrid() {
                 </Button>
               )}
 
-              {!['1', '3', '4'].includes(String(userRole)) && (
+              {['2', '3'].includes(String(userRole)) && (
                 <Button
                   variant="outlined"
                   startIcon={<GroupIcon />}
@@ -2095,6 +2271,7 @@ export default function PerformanceGrid() {
                   Team Performance
                 </Button>
               )}
+
 
               <Button
                 variant="contained"
@@ -2153,7 +2330,7 @@ export default function PerformanceGrid() {
     [year, month, selectedDate, userRole, uploading, searchName]
   );
 
-  const canEditCards = String(userRole) !== '1';
+  const canEditCards = true;
 
   return (
     <Box>
