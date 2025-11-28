@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, ChangeEvent } from 'react';
+import React, { useMemo, useState, ChangeEvent, useEffect } from 'react';
 import {
   Box, Grid, Paper, Typography, TextField, Divider, Chip, Button,
   ToggleButton, ToggleButtonGroup, IconButton, Snackbar,
@@ -35,10 +35,13 @@ api.interceptors.request.use((config) => {
 export default function REDailySnapshotForm({
   onClose,
   onSaved,
+  performanceId,
 }: {
   onClose?: () => void;
   onSaved?: () => void;
+  performanceId?: string | null;
 }) {
+
   /* ------------------------------------------------------ */
   /* VISIBILITY */
   const [isOpen, setIsOpen] = useState(true);
@@ -62,7 +65,7 @@ export default function REDailySnapshotForm({
   };
   const [morning, setMorning] = useState(initialMorning);
 
-  /* ✔ NEW — Till Date Snapshot */
+  /* ------------------- Till Date -------------------------- */
   const [tillDateLogin, setTillDateLogin] = useState<string>('');
   const [tillDateApprovalLacs, setTillDateApprovalLacs] = useState<string>('');
   const [tillDateDisbursalLacs, setTillDateDisbursalLacs] = useState<string>('');
@@ -90,6 +93,56 @@ export default function REDailySnapshotForm({
   const notify = (msg: string) => setSnack({ open: true, msg });
 
   /* ------------------------------------------------------ */
+  /* AUTO POPULATE ON EDIT — FIXED WITH GET API */
+  useEffect(() => {
+    if (!performanceId) return;
+
+    const fetchData = async () => {
+      try {
+        const res = await api.get(`/performance/re/${performanceId}`);
+        const raw = res.data;
+
+        // set date
+        setDate(raw.date?.split("T")[0] || todayISO());
+
+        // detect mode
+        if (raw.re?.evening) setMode("evening");
+        else setMode("morning");
+
+        /* ---------- Morning populate ---------- */
+        const m = raw.re?.morning || {};
+        setMorning({
+          phoneConnects: String(m.phoneConnects ?? ""),
+          physicalMeet: String(m.physicalMeet ?? ""),
+          expectedLogins: String(m.expectedLogins ?? ""),
+          expectedApprovals: String(m.expectedApprovals ?? ""),
+          expectedDisbursal: String(m.expectedDisbursal ?? ""),
+        });
+
+        const t = m.tillDate || {};
+        setTillDateLogin(String(t.login ?? ""));
+        setTillDateApprovalLacs(String(t.approvalLacs ?? ""));
+        setTillDateDisbursalLacs(String(t.disbursalLacs ?? ""));
+
+        /* ---------- Evening populate ---------- */
+        const e = raw.re?.evening || {};
+        setEvening({
+          phoneConnected: String(e.phoneConnectsDone ?? ""),
+          physicalMet: String(e.physicalMeetDone ?? ""),
+          todaysLogin: String(e.loginsDone ?? ""),
+          todaysApproval: String(e.approvalsDone ?? ""),
+          todaysDisbursal: String(e.disbursalDone ?? ""),
+          followUps: e.followUps || [],
+        });
+      } catch (err) {
+        console.error("Failed to fetch snapshot", err);
+      }
+    };
+
+    fetchData();
+  }, [performanceId]);
+
+  /* ------------------------------------------------------ */
   /* HANDLERS */
   const handleMorning = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -114,7 +167,6 @@ export default function REDailySnapshotForm({
 
   /* ------------------------------------------------------ */
   /* PAYLOADS */
-
   const morningPayload = () => ({
     date,
     phoneConnects: numberOrNull(morning.phoneConnects),
@@ -122,13 +174,11 @@ export default function REDailySnapshotForm({
     expectedLogins: numberOrNull(morning.expectedLogins),
     expectedApprovals: numberOrNull(morning.expectedApprovals),
     expectedDisbursal: numberOrNull(morning.expectedDisbursal),
-
-    /* ✔ NEW — Till Date Fields */
     tillDate: {
-    login: numberOrNull(tillDateLogin),
-    approvalLacs: numberOrNull(tillDateApprovalLacs),
-    disbursalLacs: numberOrNull(tillDateDisbursalLacs),
-  }
+      login: numberOrNull(tillDateLogin),
+      approvalLacs: numberOrNull(tillDateApprovalLacs),
+      disbursalLacs: numberOrNull(tillDateDisbursalLacs),
+    }
   });
 
   const eveningPayload = () => ({
@@ -145,13 +195,16 @@ export default function REDailySnapshotForm({
 
   /* ------------------------------------------------------ */
   /* SAVE HANDLERS */
-
   const saveMorning = async () => {
     const payload = morningPayload();
     setSavingMorning(true);
 
     try {
-      await api.post('/performance/re/morning', payload);
+      if (performanceId) {
+        await api.patch(`/performance/re/morning/${performanceId}`, payload);
+      } else {
+        await api.post('/performance/re/morning', payload);
+      }
 
       notify('✅ Morning snapshot saved');
       onSaved?.();
@@ -168,7 +221,11 @@ export default function REDailySnapshotForm({
     setSavingEvening(true);
 
     try {
-      await api.post('/performance/re/evening', payload);
+      if (performanceId) {
+        await api.patch(`/performance/re/evening/${performanceId}`, payload);
+      } else {
+        await api.post('/performance/re/evening', payload);
+      }
 
       notify('🌇 Evening snapshot saved');
       onSaved?.();
@@ -181,11 +238,11 @@ export default function REDailySnapshotForm({
   };
 
   /* ------------------------------------------------------ */
-
   if (!isOpen) return null;
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
+
       {/* HEADER */}
       <Paper elevation={1} sx={{ p: 2.5, mb: 2.5, borderRadius: 3, position: 'relative' }}>
         <Typography variant="h5" sx={{ fontWeight: 800, pr: 6 }}>
@@ -233,10 +290,7 @@ export default function REDailySnapshotForm({
         </Grid>
       </Paper>
 
-      {/* ====================================================== */}
-      {/* ===================== MORNING ======================== */}
-      {/* ====================================================== */}
-
+      {/* MORNING FORM */}
       {mode === 'morning' && (
         <Paper elevation={1} sx={{ p: 3, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
@@ -307,10 +361,7 @@ export default function REDailySnapshotForm({
             </Grid>
           </Grid>
 
-          {/* ------------------------------------------------------- */}
-          {/* ✔ NEW — TILL DATE SNAPSHOT (Same Style as Manager Form) */}
-          {/* ------------------------------------------------------- */}
-
+          {/* Till date */}
           <Divider sx={{ my: 2 }} />
 
           <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
@@ -358,8 +409,6 @@ export default function REDailySnapshotForm({
             </Grid>
           </Grid>
 
-          {/* ------------------------------------------------------- */}
-
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
             <Button variant="outlined" onClick={handleCancel} sx={{ borderRadius: 2 }}>
               Cancel
@@ -377,10 +426,7 @@ export default function REDailySnapshotForm({
         </Paper>
       )}
 
-      {/* ====================================================== */}
-      {/* ==================== EVENING ========================== */}
-      {/* ====================================================== */}
-
+      {/* EVENING FORM */}
       {mode === 'evening' && (
         <Paper elevation={1} sx={{ p: 3, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
@@ -468,7 +514,6 @@ export default function REDailySnapshotForm({
         </Paper>
       )}
 
-      {/* Snackbar */}
       <Snackbar
         open={snack.open}
         autoHideDuration={2000}

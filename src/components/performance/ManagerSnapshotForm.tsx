@@ -162,9 +162,11 @@ type SnapshotResponse = {
 export default function ManagerSnapshotForm({
   handleClose,
   onSaved,
+  performanceId,
 }: {
   handleClose?: () => void;
   onSaved?: () => void;
+  performanceId?:()=>string;
 }) {
   const [mode, setMode] = useState<Mode>('morning');
   const [date, setDate] = useState<string>(todayISO());
@@ -323,270 +325,173 @@ export default function ManagerSnapshotForm({
     (Number(ownDisbursalLacs) || 0);
 
   /* -------- LOAD existing snapshot (DB -> UI) -------- */
-  const loadSnapshot = async (selectedDate: string) => {
-    try {
-      const res = await api.get<SnapshotResponse>('/performance/manager', {
+const loadSnapshot = async (selectedDate: string) => {
+  try {
+    let res = null;
+
+    // If editing via ID (RE or Manager)
+    if (performanceId) {
+      // Try RE first
+      try {
+        res = await api.get(`/performance/re/${performanceId}`);
+      } catch (e) {
+        res = null;
+      }
+
+      // If not RE → try Manager
+      if (!res) {
+        res = await api.get(`/performance/manager/${performanceId}`);
+      }
+    } else {
+      // Create mode (MANAGER create)
+      res = await api.get(`/performance/manager`, {
         params: { date: selectedDate },
       });
+    }
 
-      const data = res.data;
-      const morning = data.morning;
-      const evening = data.evening;
+    const raw = res.data;
 
-      // ------- Morning mapping -------
-      if (morning) {
-        setTeamTargetLacs(
-          morning.teamTargetLoanLacs != null
-            ? String(morning.teamTargetLoanLacs)
-            : '',
-        );
+    // Auto detect whether RE or Manager
+    const morning =
+      raw?.manager?.morning ||
+      raw?.re?.morning ||
+      null;
 
-        setCustomerPhoneConnects(
-          morning.customerPhoneConnects != null
-            ? String(morning.customerPhoneConnects)
-            : '',
-        );
+    const evening =
+      raw?.manager?.evening ||
+      raw?.re?.evening ||
+      null;
 
-        setOwnLoginCount(
-          morning.ownContribution?.login != null
-            ? String(morning.ownContribution.login)
-            : '',
-        );
-        setOwnApprovalLacs(
-          morning.ownContribution?.approvalLacs != null
-            ? String(morning.ownContribution.approvalLacs)
-            : '',
-        );
-        setOwnDisbursalLacs(
-          morning.ownContribution?.disbursalLacs != null
-            ? String(morning.ownContribution.disbursalLacs)
-            : '',
-        );
+    /* -------------- MORNING LOAD ---------------- */
+    if (morning) {
+      setTeamTargetLacs(String(morning.teamTargetLoanLacs ?? ""));
+      setCustomerPhoneConnects(String(morning.customerPhoneConnects ?? ""));
 
-        const working = morning.teamMembers?.working;
-        const total = morning.teamMembers?.total;
+      setOwnLoginCount(String(morning.ownContribution?.login ?? ""));
+      setOwnApprovalLacs(String(morning.ownContribution?.approvalLacs ?? ""));
+      setOwnDisbursalLacs(String(morning.ownContribution?.disbursalLacs ?? ""));
 
-        setActiveHeadcount(total != null ? String(total) : '');
-        setWorkingHeadcount(working != null ? String(working) : '');
+      setWorkingHeadcount(String(morning.teamMembers?.working ?? ""));
+      setActiveHeadcount(String(morning.teamMembers?.total ?? ""));
 
-        // Meetings
-        const mMeetings = morning.meetings;
+      // Internal
+      const internal = morning.meetings?.internalDetails || [];
+      setHasInternal(internal.length > 0);
+      setInternalList(
+        internal.map((i: any) => ({
+          count: String(i.count ?? ""),
+          purpose: i.purpose ?? "",
+        }))
+      );
 
-        if (mMeetings) {
-          // Internal details
-          if (
-            mMeetings.internalDetails &&
-            mMeetings.internalDetails.length
-          ) {
-            setHasInternal(true);
-            setInternalList(
-              mMeetings.internalDetails.map((d) => ({
-                count: d.count != null ? String(d.count) : '',
-                purpose: d.purpose || '',
-              })),
-            );
-          } else if (mMeetings.internal && mMeetings.internal > 0) {
-            setHasInternal(true);
-            setInternalList([
-              { count: String(mMeetings.internal), purpose: '' },
-            ]);
-          } else {
-            setHasInternal(false);
-            setInternalList([]);
-          }
+      // Banker
+      const bankers = morning.meetings?.bankerDetails || [];
+      setHasBanker(bankers.length > 0);
+      setBankerList(
+        bankers.map((b: any) => ({
+          lenderName: b.lenderName ?? "",
+          lenderContact: b.lenderContact ?? "",
+          count: String(b.count ?? ""),
+          purpose: b.purpose ?? "",
+        }))
+      );
 
-          // Banker details
-          if (mMeetings.bankerDetails && mMeetings.bankerDetails.length) {
-            setHasBanker(true);
-            setBankerList(
-              mMeetings.bankerDetails.map((b) => ({
-                lenderName: b.lenderName || '',
-                lenderContact: b.lenderContact || '',
-                count: b.count != null ? String(b.count) : '',
-                purpose: b.purpose || '',
-              })),
-            );
-          } else {
-            setHasBanker(false);
-            setBankerList([]);
-          }
+      // Client
+      const clients = morning.meetings?.clientDetails || [];
+      setHasClient(clients.length > 0);
+      setClientList(
+        clients.map((c: any) => ({
+          type: c.type ?? "cold",
+          clientName: c.clientName ?? "",
+          clientContact: c.contact ?? "",
+          purpose: c.purpose ?? "",
+        }))
+      );
 
-          // Client details
-          if (mMeetings.clientDetails && mMeetings.clientDetails.length) {
-            setHasClient(true);
-            setClientList(
-              mMeetings.clientDetails.map((c) => ({
-                type: c.type || 'cold',
-                clientName: c.clientName || '',
-                clientContact: c.contact || '',
-                purpose: c.purpose || '',
-              })),
-            );
-          } else {
-            setHasClient(false);
-            setClientList([]);
-          }
-        } else {
-          setHasInternal(false);
-          setInternalList([]);
-          setHasBanker(false);
-          setBankerList([]);
-          setHasClient(false);
-          setClientList([]);
-        }
+      // Expected
+      setExpectedLogins(String(morning.expected?.loginsTeam ?? ""));
+      setExpectedApprovalLacs(String(morning.expected?.approvalLacs ?? ""));
+      setExpectedDisbursalAmount(String(morning.expected?.disbursalAmount ?? ""));
 
-        // Expected
-        setExpectedLogins(
-          morning.expected?.loginsTeam != null
-            ? String(morning.expected.loginsTeam)
-            : '',
-        );
-        setExpectedApprovalLacs(
-          morning.expected?.approvalLacs != null
-            ? String(morning.expected.approvalLacs)
-            : '',
-        );
-        setExpectedDisbursalAmount(
-          morning.expected?.disbursalAmount != null
-            ? String(morning.expected.disbursalAmount)
-            : '',
-        );
+      // Till date
+      setTillDateLogin(String(morning.tillDate?.login ?? ""));
+      setTillDateApprovalLacs(String(morning.tillDate?.approvalLacs ?? ""));
+      setTillDateDisbursalLacs(String(morning.tillDate?.disbursalLacs ?? ""));
+    }
 
-        // Till date
-        setTillDateLogin(
-          morning.tillDate?.login != null
-            ? String(morning.tillDate.login)
-            : '',
-        );
-        setTillDateApprovalLacs(
-          morning.tillDate?.approvalLacs != null
-            ? String(morning.tillDate.approvalLacs)
-            : '',
-        );
-        setTillDateDisbursalLacs(
-          morning.tillDate?.disbursalLacs != null
-            ? String(morning.tillDate.disbursalLacs)
-            : '',
-        );
-      } else {
-        // No morning snapshot -> clear fields
-        setTeamTargetLacs('');
-        setCustomerPhoneConnects('');
-        setOwnLoginCount('');
-        setOwnApprovalLacs('');
-        setOwnDisbursalLacs('');
-        setActiveHeadcount('');
-        setWorkingHeadcount('');
-        setHasInternal(false);
-        setInternalList([]);
-        setHasBanker(false);
-        setBankerList([]);
-        setHasClient(false);
-        setClientList([]);
-        setExpectedLogins('');
-        setExpectedApprovalLacs('');
-        setExpectedDisbursalAmount('');
-        setTillDateLogin('');
-        setTillDateApprovalLacs('');
-        setTillDateDisbursalLacs('');
+    /* -------------- EVENING LOAD ---------------- */
+    if (evening) {
+      setTeamLoginsDone(String(evening.teamLoginsDone ?? ""));
+      setTeamApprovalDoneAmount(String(evening.teamApprovalDoneAmount ?? ""));
+      setTeamDisbursalDoneAmount(String(evening.teamDisbursalDoneAmount ?? ""));
+
+      setCustomerPhoneConnectsDone(
+        String(evening.customerPhoneConnectsDone ?? "")
+      );
+
+      setFilesStuck(
+        (evening.filesStuck || []).map((f: any) => ({
+          location: f.location ?? "",
+          reason: f.reason ?? "",
+        }))
+      );
+
+      setSupportRequired(evening.supportRequired ?? "");
+      setOverallSentiment(evening.overallSentiment ?? "green");
+      setSentimentReason(evening.sentimentReason ?? "");
+    }
+  } catch (err) {
+    console.error("LOAD ERROR:", err);
+  }
+};
+
+
+useEffect(() => {
+  if (!performanceId) {
+    // New create form load data by date
+    loadSnapshot(date);
+    return;
+  }
+
+  // Editing an existing snapshot
+  const fetchById = async () => {
+    try {
+      let res = null;
+
+      // Try RE first
+      try {
+        res = await api.get(`/performance/re/${performanceId}`);
+      } catch (e) {
+        res = null;
       }
 
-      // ------- Evening mapping -------
-      if (evening) {
-        setTeamLoginsDone(
-          evening.teamLoginsDone != null
-            ? String(evening.teamLoginsDone)
-            : '',
-        );
-        setTeamApprovalDoneAmount(
-          evening.teamApprovalDoneAmount != null
-            ? String(evening.teamApprovalDoneAmount)
-            : '',
-        );
-        setTeamDisbursalDoneAmount(
-          evening.teamDisbursalDoneAmount != null
-            ? String(evening.teamDisbursalDoneAmount)
-            : '',
-        );
-
-        // 🔹 NEW: calls done (evening)
-        setCustomerPhoneConnectsDone(
-          evening.customerPhoneConnectsDone != null
-            ? String(evening.customerPhoneConnectsDone)
-            : '',
-        );
-
-        // existing topPerformer string ko abhi ignore kar rahe hain
-        setApprovalTopName('');
-        setApprovalTopAmount('');
-        setDisbursalTopName('');
-        setDisbursalTopAmount('');
-
-        setFilesStuck(
-          (evening.filesStuck || []).map((f) => ({
-            location: f.location || '',
-            reason: f.reason || '',
-          })),
-        );
-
-        setSupportRequired(evening.supportRequired || '');
-        setOverallSentiment(evening.overallSentiment || 'green');
-        setSentimentReason(evening.sentimentReason || '');
-      } else {
-        // No evening snapshot -> clear evening
-        setTeamLoginsDone('');
-        setTeamApprovalDoneAmount('');
-        setTeamDisbursalDoneAmount('');
-        setCustomerPhoneConnectsDone('');
-        setApprovalTopName('');
-        setApprovalTopAmount('');
-        setDisbursalTopName('');
-        setDisbursalTopAmount('');
-        setFilesStuck([]);
-        setSupportRequired('');
-        setOverallSentiment('green');
-        setSentimentReason('');
+      // If not RE → try Manager
+      if (!res) {
+        res = await api.get(`/performance/manager/${performanceId}`);
       }
-    } catch (err: any) {
-      // Reset on error / 404
-      setTeamTargetLacs('');
-      setCustomerPhoneConnects('');
-      setOwnLoginCount('');
-      setOwnApprovalLacs('');
-      setOwnDisbursalLacs('');
-      setActiveHeadcount('');
-      setWorkingHeadcount('');
-      setHasInternal(false);
-      setInternalList([]);
-      setHasBanker(false);
-      setBankerList([]);
-      setHasClient(false);
-      setClientList([]);
-      setExpectedLogins('');
-      setExpectedApprovalLacs('');
-      setExpectedDisbursalAmount('');
-      setTillDateLogin('');
-      setTillDateApprovalLacs('');
-      setTillDateDisbursalLacs('');
 
-      setTeamLoginsDone('');
-      setTeamApprovalDoneAmount('');
-      setTeamDisbursalDoneAmount('');
-      setCustomerPhoneConnectsDone('');
-      setApprovalTopName('');
-      setApprovalTopAmount('');
-      setDisbursalTopName('');
-      setDisbursalTopAmount('');
-      setFilesStuck([]);
-      setSupportRequired('');
-      setOverallSentiment('green');
-      setSentimentReason('');
+      const raw = res.data;
+
+      // Set date
+      setDate(raw.date?.split("T")[0] || todayISO());
+
+      // Decide morning/evening mode
+      if (raw.manager?.evening || raw.re?.evening) {
+        setMode("evening");
+      } else {
+        setMode("morning");
+      }
+
+      // Now load entire snapshot
+      loadSnapshot(raw.date?.split("T")[0]);
+    } catch (err) {
+      console.error("Failed to fetch snapshot by ID:", err);
     }
   };
 
-  useEffect(() => {
-    loadSnapshot(date);
-  }, [date]);
+  fetchById();
+}, [performanceId]);
+
 
   /* -------- Submit handlers (API + snackbar) -------- */
   const saveMorning = async () => {
