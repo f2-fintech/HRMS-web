@@ -150,39 +150,47 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
   }
 
   // -------------------------------------------------------
-  // MANAGER SELECT → DETECT ALL TL UNDER THAT MANAGER
+  // MANAGER SELECT
   // -------------------------------------------------------
   const handleManagerChange = e => {
-    const managerId = e.target.value
     handleChange(e)
-
-    setSelectedEmployees([])
-    setFormData(prev => ({ ...prev, employee_ids: '' }))
-    setShowTlSection(false)
-
-    const detectedTLs = employees
-      .filter(
-        emp =>
-          emp.designation?.toLowerCase() === 'team leader' &&
-          emp.manager_id === managerId
-      )
-      .map(tl => ({
-        tl_id: tl._id,
-        employees: []
-      }))
-
-    setTls(detectedTLs)
   }
 
   // -------------------------------------------------------
-  // EMPLOYEES SELECTED → AUTO OPEN TL SECTION
+  // HELPER: Check if designation is a Team Leader type
+  // -------------------------------------------------------
+  const isTeamLeaderDesignation = (designation?: string): boolean => {
+    if (!designation) return false
+    const d = designation.toLowerCase()
+    return (
+      d === 'team leader' ||
+      d === 'senior team leader' ||
+      d === 'asst. team leader' ||
+      d === 'assistant team leader' ||
+      d.includes('team leader') ||  // Catch any other TL variations
+      d.includes('manager')    // Catch Team Manager variations
+    )
+  }
+
+  // -------------------------------------------------------
+  // EMPLOYEES SELECTED → DETECT TLs & AUTO OPEN TL SECTION
   // -------------------------------------------------------
   const handleEmployeeChange = (_event, value: EmployeeType[]) => {
     const ids = value.map(emp => emp._id).join(',')
     setSelectedEmployees(value)
     setFormData(prev => ({ ...prev, employee_ids: ids }))
 
-    if (value.length > 0) setShowTlSection(true)
+    // Detect Team Leaders from selected employees
+    const detectedTLs = value
+      .filter(emp => isTeamLeaderDesignation(emp.designation))
+      .map(tl => ({
+        tl_id: tl._id,
+        // Preserve existing employee assignments if TL was already in the list
+        employees: tls.find(t => t.tl_id === tl._id)?.employees || []
+      }))
+
+    setTls(detectedTLs)
+    setShowTlSection(detectedTLs.length > 0)
   }
 
   // -------------------------------------------------------
@@ -306,17 +314,21 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
               Team Leaders & Assigned Employees
             </Typography>
 
-            {tls.length === 0 && (
-              <Typography>No Team Leaders under this Manager.</Typography>
-            )}
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              Assign team members to each Team Leader selected above.
+            </Typography>
 
             {tls.map((tl, index) => {
               const tlEmp = employees.find(e => e._id === tl.tl_id)
+              // Filter out all TLs from assignable employees (only non-TL team members)
+              const assignableEmployees = selectedEmployees.filter(
+                emp => !isTeamLeaderDesignation(emp.designation)
+              )
 
               return (
                 <Paper
                   elevation={2}
-                  key={index}
+                  key={tl.tl_id}
                   sx={{
                     p: 2,
                     mt: 2,
@@ -332,13 +344,11 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
                   {/* MULTIPLE EMPLOYEE SELECTION */}
                   <Autocomplete
                     multiple
-                    options={selectedEmployees}   // ⭐ correct → employees of whole team
+                    options={assignableEmployees}
                     getOptionLabel={op => `${op.first_name} ${op.last_name}`}
-                    value={
-                      tl.employees.map(idObj =>
-                        selectedEmployees.find(se => se._id === idObj._id) || null
-                      )
-                    }
+                    value={tl.employees.filter(emp => 
+                      assignableEmployees.some(ae => ae._id === emp._id)
+                    )}
                     onChange={(e, val) => {
                       const copy = [...tls]
                       copy[index].employees = val

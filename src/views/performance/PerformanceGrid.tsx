@@ -11,14 +11,23 @@ import {
   Chip,
   Dialog,
   DialogContent,
+  DialogTitle,
   Divider,
   Drawer,
   Grid,
+  IconButton,
   InputAdornment,
   LinearProgress,
+  MenuItem,
   Paper,
   Skeleton,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
   Tooltip,
@@ -35,6 +44,10 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import CloseIcon from '@mui/icons-material/Close';
+import PeopleIcon from '@mui/icons-material/People';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PaymentsIcon from '@mui/icons-material/Payments';
 
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
@@ -728,6 +741,27 @@ type CodeSummaryRow = {
 
 type ExcelSummary = CodeSummaryRow;
 
+/* -------------------- Team Totals types -------------------- */
+type TeamTotalInfo = {
+  memberCount: number;
+  totalLogins: number;
+  totalApproval: number;
+  totalDisbursal: number;
+  memberCodes: string[];
+  role?: 'manager' | 'team_leader';
+  teamName?: string;
+};
+
+type TeamTotalsMap = Record<string, TeamTotalInfo>;
+
+type TeamBreakdownMember = {
+  code: string;
+  employee_name: string;
+  total_logins: number;
+  approval_amount: number;
+  disbursal_amount: number;
+};
+
 
 const PerformanceCard = ({
   item,
@@ -736,6 +770,8 @@ const PerformanceCard = ({
   mtd,
   canEdit,
   excelSummary,
+  teamTotal,
+  onViewTeamDetails,
 }: {
   item: any;
   onEdit?: (id: string) => void;
@@ -743,6 +779,8 @@ const PerformanceCard = ({
   mtd?: MTD;
   canEdit?: boolean;
   excelSummary?: ExcelSummary;
+  teamTotal?: TeamTotalInfo;
+  onViewTeamDetails?: (code: string) => void;
 }) => {
   const meta = getMeta(item?.status);
   const raw = item.__raw ? item.__raw : item;
@@ -1350,6 +1388,102 @@ const PerformanceCard = ({
         </Box>
       )}
 
+      {/* Team Financial Summary - for Managers/TLs */}
+      {teamTotal && teamTotal.memberCount > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 1.8,
+              borderRadius: 3,
+              background: 'linear-gradient(135deg, #1E3368 0%, #3B5998 100%)',
+              boxShadow: '0 4px 12px rgba(30,51,104,0.3)',
+              border: 'none',
+              transition: '0.25s',
+              '&:hover': {
+                boxShadow: '0 6px 18px rgba(30,51,104,0.4)',
+                transform: 'translateY(-3px)',
+              },
+            }}
+          >
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 900,
+                  fontSize: 12.5,
+                  letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                  color: '#ffffff',
+                  display: 'block',
+                }}
+              >
+                🏆 Team Financial Summary
+              </Typography>
+              <Chip
+                size="small"
+                label={`${teamTotal.memberCount} Members`}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 11,
+                }}
+              />
+            </Stack>
+
+            <Grid container spacing={1}>
+              <Grid item xs={4}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Team Logins
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#fff' }}>
+                  {teamTotal.totalLogins}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={4}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Team Approval
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#fff' }}>
+                  {formatRupeeShort(teamTotal.totalApproval)}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={4}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Team Disbursal
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#fff' }}>
+                  {formatRupeeShort(teamTotal.totalDisbursal)}
+                </Typography>
+              </Grid>
+            </Grid>
+
+            <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => onViewTeamDetails && onViewTeamDetails(item?.employee?.code)}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.95)',
+                  color: '#1E3368',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  '&:hover': {
+                    bgcolor: '#fff',
+                  },
+                }}
+              >
+                View Team Details
+              </Button>
+            </Box>
+          </Paper>
+        </Box>
+      )}
+
       <Box sx={{ mt: 2 }}>
         <Paper
           variant="outlined"
@@ -1588,6 +1722,21 @@ export default function PerformanceGrid() {
   const [codeSummaryMap, setCodeSummaryMap] = useState<
     Record<string, CodeSummaryRow>
   >({});
+
+  // 🔹 Team Totals (for Managers/TLs from Excel data)
+  const [teamTotals, setTeamTotals] = useState<TeamTotalsMap>({});
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [teamBreakdown, setTeamBreakdown] = useState<{
+    code: string;
+    employeeName: string;
+    members: TeamBreakdownMember[];
+    totals: { logins: number; approval: number; disbursal: number };
+  } | null>(null);
+  const [teamBreakdownLoading, setTeamBreakdownLoading] = useState(false);
+
+  // 🔹 Manager/TL Filter
+  const [managerTlFilter, setManagerTlFilter] = useState<string>('all');
+  const [managerTlList, setManagerTlList] = useState<{ code: string; name: string; role: string }[]>([]);
 
   // 🔹 logged-in user ka employee code
   const [myCode, setMyCode] = useState<string | null>(null);
@@ -1956,6 +2105,122 @@ export default function PerformanceGrid() {
     fetchCodeSummary();
   }, []);
 
+  /* -------- Team Totals fetch (for Managers/TLs) -------- */
+  useEffect(() => {
+    const fetchTeamTotals = async () => {
+      try {
+        let company_id: string | undefined;
+
+        if (typeof window !== 'undefined') {
+          const u = JSON.parse(localStorage.getItem('user') || '{}');
+          company_id = localStorage.getItem('company_id') || u?.company_id || undefined;
+        }
+
+        const res = await api.get('/performance-upload/team-totals', {
+          params: { company_id },
+        });
+
+        const data = res.data || {};
+        
+        // Map backend response to frontend expected format
+        const mapped: TeamTotalsMap = {};
+        Object.entries(data).forEach(([code, val]: [string, any]) => {
+          if (val && typeof val === 'object') {
+            mapped[code] = {
+              memberCount: val.memberCount || 0,
+              totalLogins: val.teamTotalLogins || 0,
+              totalApproval: val.teamTotalApproval || 0,
+              totalDisbursal: val.teamTotalDisbursal || 0,
+              memberCodes: val.memberCodes || [],
+              role: val.role,
+              teamName: val.teamName,
+            };
+          }
+        });
+        
+        setTeamTotals(mapped);
+      } catch (e) {
+        console.error('Failed to fetch team totals:', e);
+        setTeamTotals({});
+      }
+    };
+
+    fetchTeamTotals();
+  }, []);
+
+  // Build manager/TL list from teamTotals for filter dropdown
+  useEffect(() => {
+    const list: { code: string; name: string; role: string }[] = [];
+    Object.entries(teamTotals).forEach(([code, info]) => {
+      if (info && code) {
+        list.push({
+          code,
+          name: info.teamName || code,
+          role: info.role === 'manager' ? 'Manager' : 'Team Leader',
+        });
+      }
+    });
+    // Sort by role (Manager first) then name
+    list.sort((a, b) => {
+      if (a.role !== b.role) return a.role === 'Manager' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    setManagerTlList(list);
+  }, [teamTotals]);
+
+  /* -------- Fetch Team Breakdown (for modal) -------- */
+  const fetchTeamBreakdown = async (code: string) => {
+    if (!code) return;
+
+    try {
+      setTeamBreakdownLoading(true);
+
+      let company_id: string | undefined;
+
+      if (typeof window !== 'undefined') {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        company_id = localStorage.getItem('company_id') || u?.company_id || undefined;
+      }
+
+      const res = await api.get(`/performance-upload/team-breakdown/${code}`, {
+        params: { company_id },
+      });
+
+      const data = res.data || {};
+      
+      // Map backend response to frontend format
+      const employeeName = data.employee?.name || code;
+      const members: TeamBreakdownMember[] = (data.memberBreakdown || []).map((m: any) => ({
+        code: m.code || '',
+        employee_name: m.name || '',
+        total_logins: m.logins || 0,
+        approval_amount: m.approval || 0,
+        disbursal_amount: m.disbursal || 0,
+      }));
+      
+      const totals = data.totals || {};
+      
+      setTeamBreakdown({
+        code: data.employee?.code || code,
+        employeeName: employeeName,
+        members: members,
+        totals: {
+          logins: totals.totalLogins || 0,
+          approval: totals.totalApproval || 0,
+          disbursal: totals.totalDisbursal || 0,
+        },
+      });
+      setTeamModalOpen(true);
+    } catch (e) {
+      console.error('Failed to fetch team breakdown:', e);
+      setTeamBreakdown(null);
+    } finally {
+      setTeamBreakdownLoading(false);
+    }
+  };
+
+  
+
   // 🔹 logged-in user ka Excel summary (sirf uska code)
   const myCodeSummary: CodeSummaryRow | undefined = useMemo(() => {
     if (!myCode) return undefined;
@@ -2013,6 +2278,15 @@ export default function PerformanceGrid() {
         });
       }
 
+      // Apply Manager/TL filter
+      if (managerTlFilter && managerTlFilter !== 'all' && teamTotals[managerTlFilter]) {
+        const memberCodes = new Set(teamTotals[managerTlFilter].memberCodes || []);
+        data = (data || []).filter((r: any) => {
+          const empCode = r?.employee?.code || '';
+          return memberCodes.has(empCode);
+        });
+      }
+
       setItems((data || []).map(mapServerToCardItem));
       setTotal(Number(total) || data?.length || 0);
     } finally {
@@ -2039,6 +2313,8 @@ export default function PerformanceGrid() {
     page,
     limit,
     selectedTeamId,
+    managerTlFilter,
+    teamTotals,
   ]);
 
   /* -------- Edit / Details handlers -------- */
@@ -2323,11 +2599,53 @@ export default function PerformanceGrid() {
               />
             </Grid>
           )}
+          
+          {/* Manager/TL Filter Dropdown - visible to Admin only */}
+          {userRole === '1' && managerTlList.length > 0 && (
+            <Grid item xs={12} md={4}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label="Filter by Manager/TL"
+                value={managerTlFilter}
+                onChange={(e) => {
+                  setManagerTlFilter(e.target.value);
+                  setPage(1);
+                }}
+                sx={{
+                  '& .MuiInputBase-input': { py: 1.5 },
+                }}
+              >
+                <MenuItem value="all">
+                  <em>All Employees</em>
+                </MenuItem>
+                {managerTlList.map((item) => (
+                  <MenuItem key={item.code} value={item.code}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip
+                        size="small"
+                        label={item.role}
+                        sx={{
+                          height: 20,
+                          fontSize: 10,
+                          bgcolor: item.role === 'Manager' ? '#dbeafe' : '#dcfce7',
+                          color: item.role === 'Manager' ? '#1e40af' : '#166534',
+                        }}
+                      />
+                      <span>{item.code}</span>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          )}
+          
           <Grid item xs={false} md />
         </Grid>
       </Paper>
     ),
-    [year, month, selectedDate, userRole, uploading, searchName]
+    [year, month, selectedDate, userRole, uploading, searchName, managerTlFilter, managerTlList]
   );
 
   const canEditCards = true;
@@ -2532,8 +2850,12 @@ export default function PerformanceGrid() {
               const empCode = (p?.employee?.code || myCode || '').trim();
 
               const excelSummary = empCode
-                ? codeSummaryMap[empCode]
+                ? codeSummaryMap?.[empCode]
                 : undefined;
+
+              // Get team total for this employee (if they're a manager/TL)
+              const teamTotal = empCode ? teamTotals[empCode] : undefined;
+
               return (
                 <Grid key={p?._id} item xs={12} sm={6} md={6}>
                   <PerformanceCard
@@ -2545,6 +2867,8 @@ export default function PerformanceGrid() {
                     mtd={mtd}
                     canEdit={canEditCards}
                     excelSummary={excelSummary}
+                    teamTotal={teamTotal}
+                    onViewTeamDetails={fetchTeamBreakdown}
                   />
                 </Grid>
               );
@@ -2572,6 +2896,174 @@ export default function PerformanceGrid() {
           sx={{ '& .MuiPagination-ul': { gap: 0.5 } }}
         />
       </Box>
+
+      {/* Team Breakdown Modal */}
+      <Dialog
+        open={teamModalOpen}
+        onClose={() => setTeamModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #1E3368 0%, #3B5998 100%)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            py: 2,
+          }}
+        >
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              🏆 Team Performance Breakdown
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              {teamBreakdown?.employeeName || teamBreakdown?.code || 'Team'}
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setTeamModalOpen(false)} sx={{ color: '#fff' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 3 }}>
+          {teamBreakdownLoading ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography>Loading team data...</Typography>
+            </Box>
+          ) : !teamBreakdown ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography color="text.secondary">No team data available</Typography>
+            </Box>
+          ) : (
+            <>
+              {/* Summary Cards */}
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} sm={4}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: '#fff',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <PeopleIcon sx={{ fontSize: 32, mb: 1 }} />
+                    <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                      {teamBreakdown.totals.logins}
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      Total Team Logins
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                      color: '#fff',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <AccountBalanceWalletIcon sx={{ fontSize: 32, mb: 1 }} />
+                    <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                      {rupee(teamBreakdown.totals.approval)}
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      Total Team Approval
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      background: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
+                      color: '#fff',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <PaymentsIcon sx={{ fontSize: 32, mb: 1 }} />
+                    <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                      {rupee(teamBreakdown.totals.disbursal)}
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      Total Team Disbursal
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {/* Members Table */}
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+                Team Members ({teamBreakdown.members.length})
+              </Typography>
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                      <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Employee Name</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Logins</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Approval (₹)</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Disbursal (₹)</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {teamBreakdown.members.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                          <Typography color="text.secondary">No member data found</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      teamBreakdown.members.map((member, idx) => (
+                        <TableRow key={idx} hover>
+                          <TableCell>
+                            <Chip size="small" label={member.code} variant="outlined" />
+                          </TableCell>
+                          <TableCell>{member.employee_name || '—'}</TableCell>
+                          <TableCell align="right">{member.total_logins}</TableCell>
+                          <TableCell align="right">{rupee(member.approval_amount)}</TableCell>
+                          <TableCell align="right">{rupee(member.disbursal_amount)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                    {/* Totals Row */}
+                    {teamBreakdown.members.length > 0 && (
+                      <TableRow sx={{ bgcolor: '#f0f9ff' }}>
+                        <TableCell colSpan={2} sx={{ fontWeight: 800 }}>
+                          TOTAL
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 800 }}>
+                          {teamBreakdown.totals.logins}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 800 }}>
+                          {rupee(teamBreakdown.totals.approval)}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 800 }}>
+                          {rupee(teamBreakdown.totals.disbursal)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

@@ -136,13 +136,6 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     dispatch(fetchDesignations({ page: 1, limit: 0, keyword: '' }))
     dispatch(fetchCompanies({ page: 1, limit: 0, keyword: '' }))
   }, [])
-    const managerList = employees.filter(
-    (emp) =>
-      emp.role_priority == 2 ||
-      emp.designation === "Founder & CEO" ||
-      emp.designation === "Co-Founder & MD"
-  );
-
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
@@ -941,38 +934,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
 )}
 
 
-{/* ====================== MANAGER SELECT — ONLY IF TL ====================== */}
-{formData.designation === "Team Leader" && (
-  <Grid item xs={12} md={6}>
-    <FormControl fullWidth error={!!errors.manager_id}>
-      <InputLabel>Select Manager</InputLabel>
 
-      <Select
-        name="manager_id"
-        value={formData.manager_id}
-        onChange={handleChange}
-        label="Select Manager"
-      >
-        {employees
-          .filter(
-            emp =>
-              emp.role_priority == 2 ||
-              emp.designation === "Founder & CEO" ||
-              emp.designation === "Co-Founder & MD"
-          )
-          .map(m => (
-            <MenuItem key={m._id} value={m._id}>
-              {m.first_name} {m.last_name}
-            </MenuItem>
-          ))}
-      </Select>
-
-      {errors.manager_id && (
-        <Typography color="error">{errors.manager_id}</Typography>
-      )}
-    </FormControl>
-  </Grid>
-)}
 
         {role === '0' ? (
           <Grid item xs={12} md={6}>

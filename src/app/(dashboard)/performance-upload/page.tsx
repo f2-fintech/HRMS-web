@@ -46,6 +46,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
+import GroupsIcon from '@mui/icons-material/Groups';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 
 /* ---------------- AXIOS ---------------- */
@@ -96,6 +98,45 @@ type SortConfig = {
   direction: SortDirection;
 };
 
+// Team totals type
+type TeamTotalInfo = {
+  role: 'manager' | 'team_leader';
+  teamName: string;
+  teamTotalLogins: number;
+  teamTotalApproval: number;
+  teamTotalDisbursal: number;
+  memberCount: number;
+  memberCodes: string[];
+};
+
+type TeamTotalsMap = Record<string, TeamTotalInfo>;
+
+// Team breakdown type
+type TeamBreakdown = {
+  employee: {
+    _id: string;
+    name: string;
+    code: string;
+    designation: string;
+    role_priority: string;
+  };
+  role: 'manager' | 'team_leader' | 'employee';
+  team: { _id: string; name: string; code: string } | null;
+  totals: {
+    totalLogins: number;
+    totalApproval: number;
+    totalDisbursal: number;
+    memberCount: number;
+  };
+  memberBreakdown: {
+    code: string;
+    name: string;
+    logins: number;
+    approval: number;
+    disbursal: number;
+  }[];
+};
+
 /* ---------------- Helpers ---------------- */
 const rupee = (n: number) =>
   `₹${Intl.NumberFormat('en-IN').format(Number(n || 0))}`;
@@ -138,6 +179,19 @@ export default function PerformanceUploadPage() {
     direction: 'asc',
   });
 
+  // Team totals state
+  const [teamTotals, setTeamTotals] = useState<TeamTotalsMap>({});
+  const [teamTotalsLoading, setTeamTotalsLoading] = useState(false);
+
+  // Team breakdown modal state
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [teamBreakdown, setTeamBreakdown] = useState<TeamBreakdown | null>(null);
+  const [teamBreakdownLoading, setTeamBreakdownLoading] = useState(false);
+
+  // Manager/TL filter state
+  const [managerTlFilter, setManagerTlFilter] = useState<string>('all');
+  const [managerTlList, setManagerTlList] = useState<{ code: string; name: string; role: string }[]>([]);
+
   useEffect(() => {
     const t = setTimeout(
       () => setDebounced(search.trim().toLowerCase()),
@@ -146,6 +200,26 @@ export default function PerformanceUploadPage() {
 
     return () => clearTimeout(t);
   }, [search]);
+
+  // Build manager/TL list from teamTotals for filter dropdown
+  useEffect(() => {
+    const list: { code: string; name: string; role: string }[] = [];
+    Object.entries(teamTotals).forEach(([code, info]) => {
+      if (info && code) {
+        list.push({
+          code,
+          name: info.teamName || code,
+          role: info.role === 'manager' ? 'Manager' : 'Team Leader',
+        });
+      }
+    });
+    // Sort by role (Manager first) then name
+    list.sort((a, b) => {
+      if (a.role !== b.role) return a.role === 'Manager' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    setManagerTlList(list);
+  }, [teamTotals]);
   useEffect(() => {
     const d = q?.get('date');
     setDate(d ? dayjs(d) : dayjs());
@@ -205,6 +279,61 @@ export default function PerformanceUploadPage() {
     if (dateStr) fetchList();
   
   }, [dateStr]);
+
+  // Fetch team totals when rows are loaded
+  const fetchTeamTotals = async () => {
+    try {
+      setTeamTotalsLoading(true);
+      const company_id =
+        localStorage.getItem('company_id') ||
+        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        '';
+
+      const res = await api.get('/performance-upload/team-totals', {
+        params: { company_id },
+      });
+
+      if (res.data && !res.data.error) {
+        setTeamTotals(res.data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch team totals:', e);
+    } finally {
+      setTeamTotalsLoading(false);
+    }
+  };
+
+  // Fetch team totals after rows are loaded
+  useEffect(() => {
+    if (rows.length > 0) {
+      fetchTeamTotals();
+    }
+  }, [rows]);
+
+  // Fetch team breakdown for modal
+  const fetchTeamBreakdown = async (code: string) => {
+    try {
+      setTeamBreakdownLoading(true);
+      setTeamModalOpen(true);
+
+      const company_id =
+        localStorage.getItem('company_id') ||
+        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        '';
+
+      const res = await api.get(`/performance-upload/team-breakdown/${code}`, {
+        params: { company_id },
+      });
+
+      if (res.data && !res.data.error) {
+        setTeamBreakdown(res.data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch team breakdown:', e);
+    } finally {
+      setTeamBreakdownLoading(false);
+    }
+  };
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -364,18 +493,32 @@ export default function PerformanceUploadPage() {
   }, [rows]);
 
   const filteredRows = useMemo(() => {
-    if (!debounced) return rows;
+    let result = rows;
 
-    return rows.filter((r) => {
-      const name = (r.employee_name || '').toLowerCase();
-      const id = (r.employee_id || '').toLowerCase();
-      const code = (r.code || '').toLowerCase();
+    // Apply manager/TL filter first
+    if (managerTlFilter && managerTlFilter !== 'all') {
+      const teamInfo = teamTotals[managerTlFilter];
+      if (teamInfo && teamInfo.memberCodes) {
+        const memberCodes = new Set(teamInfo.memberCodes);
+        result = result.filter((r) => memberCodes.has(r.code || ''));
+      }
+    }
 
-      return (
-        name.includes(debounced) || id.includes(debounced) || code.includes(debounced)
-      );
-    });
-  }, [rows, debounced]);
+    // Then apply search filter
+    if (debounced) {
+      result = result.filter((r) => {
+        const name = (r.employee_name || '').toLowerCase();
+        const id = (r.employee_id || '').toLowerCase();
+        const code = (r.code || '').toLowerCase();
+
+        return (
+          name.includes(debounced) || id.includes(debounced) || code.includes(debounced)
+        );
+      });
+    }
+
+    return result;
+  }, [rows, debounced, managerTlFilter, teamTotals]);
 
 
   const sortedRows: Row[] = useMemo(() => {
@@ -671,6 +814,42 @@ export default function PerformanceUploadPage() {
     ),
   }}
 />
+
+            {/* Manager/TL Filter Dropdown */}
+            <TextField
+              select
+              size="small"
+              label="Filter by Manager/TL"
+              value={managerTlFilter}
+              onChange={(e) => setManagerTlFilter(e.target.value)}
+              sx={{
+                minWidth: 200,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                },
+              }}
+            >
+              <MenuItem value="all">
+                <em>All Employees</em>
+              </MenuItem>
+              {managerTlList.map((item) => (
+                <MenuItem key={item.code} value={item.code}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                      size="small"
+                      label={item.role}
+                      sx={{
+                        height: 20,
+                        fontSize: 10,
+                        bgcolor: item.role === 'Manager' ? '#dbeafe' : '#dcfce7',
+                        color: item.role === 'Manager' ? '#1e40af' : '#166534',
+                      }}
+                    />
+                    <span>{item.code} - {item.name}</span>
+                  </Box>
+                </MenuItem>
+              ))}
+            </TextField>
 
 
 
@@ -1166,20 +1345,43 @@ export default function PerformanceUploadPage() {
                       Disbursal (₹)
                     </TableCell>
 
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>
+                      Team Total
+                    </TableCell>
+
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Actions
                     </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sortedRows.map((r) => (
+                  {sortedRows.map((r) => {
+                    // Check if this employee has team totals (is a manager or TL)
+                    const teamInfo = r.code ? teamTotals[r.code] : null;
+                    
+                    return (
                     <TableRow key={r._id} sx={{ background: rowBg(r) }}>
                       <TableCell>
-                        <Typography
-                          sx={{ fontWeight: 700, color: '#6b21a8' }}
-                        >
-                          {r.employee_name || '-'}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography
+                            sx={{ fontWeight: 700, color: '#6b21a8' }}
+                          >
+                            {r.employee_name || '-'}
+                          </Typography>
+                          {teamInfo && (
+                            <Chip
+                              size="small"
+                              label={teamInfo.role === 'manager' ? 'Manager' : 'TL'}
+                              sx={{
+                                bgcolor: teamInfo.role === 'manager' ? '#FEF3C7' : '#DBEAFE',
+                                color: teamInfo.role === 'manager' ? '#92400E' : '#1E40AF',
+                                fontWeight: 600,
+                                fontSize: '0.65rem',
+                                height: 20,
+                              }}
+                            />
+                          )}
+                        </Box>
                         {r.employee_id && (
                           <Typography
                             variant="caption"
@@ -1248,6 +1450,61 @@ export default function PerformanceUploadPage() {
                           }}
                         />
                       </TableCell>
+
+                      {/* Team Total Column */}
+                      <TableCell align="center">
+                        {teamInfo ? (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                            <Tooltip title={`${teamInfo.memberCount} team members`}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <GroupsIcon sx={{ fontSize: 16, color: '#6b7280' }} />
+                                <Typography variant="caption" sx={{ color: '#6b7280' }}>
+                                  {teamInfo.memberCount}
+                                </Typography>
+                              </Box>
+                            </Tooltip>
+                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                              <Chip
+                                size="small"
+                                label={rupee(teamInfo.teamTotalApproval)}
+                                sx={{
+                                  bgcolor: '#DCFCE7',
+                                  fontWeight: 700,
+                                  color: '#166534',
+                                  fontSize: '0.7rem',
+                                }}
+                              />
+                              <Chip
+                                size="small"
+                                label={rupee(teamInfo.teamTotalDisbursal)}
+                                sx={{
+                                  bgcolor: '#FCE7F3',
+                                  fontWeight: 700,
+                                  color: '#9D174D',
+                                  fontSize: '0.7rem',
+                                }}
+                              />
+                            </Box>
+                            <Tooltip title="View Team Breakdown">
+                              <IconButton
+                                size="small"
+                                onClick={() => fetchTeamBreakdown(r.code!)}
+                                sx={{
+                                  bgcolor: '#EEF2FF',
+                                  '&:hover': { bgcolor: '#C7D2FE' },
+                                }}
+                              >
+                                <VisibilityIcon sx={{ fontSize: 16, color: '#4F46E5' }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            —
+                          </Typography>
+                        )}
+                      </TableCell>
+
                       <TableCell align="right">
                         {isAdmin ? (
                           <Stack
@@ -1311,12 +1568,199 @@ export default function PerformanceUploadPage() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </TableContainer>
           )}
         </Paper>
+
+        {/* ========== Team Breakdown Modal ========== */}
+        <Dialog
+          open={teamModalOpen}
+          onClose={() => {
+            setTeamModalOpen(false);
+            setTeamBreakdown(null);
+          }}
+          fullWidth
+          maxWidth="md"
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              boxShadow: '0 25px 60px rgba(15,23,42,0.35)',
+            },
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <GroupsIcon sx={{ color: '#4F46E5' }} />
+            Team Performance Breakdown
+          </DialogTitle>
+          <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
+            {teamBreakdownLoading ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <LinearProgress />
+                <Typography variant="body2" sx={{ mt: 1 }}>Loading team data...</Typography>
+              </Box>
+            ) : teamBreakdown ? (
+              <Box>
+                {/* Employee Info */}
+                <Paper sx={{ p: 2, mb: 3, bgcolor: '#F8FAFC', borderRadius: 2 }}>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B' }}>
+                        {teamBreakdown.employee.name}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#64748B' }}>
+                        {teamBreakdown.employee.designation} • Code: {teamBreakdown.employee.code}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={teamBreakdown.role === 'manager' ? 'Manager' : teamBreakdown.role === 'team_leader' ? 'Team Leader' : 'Employee'}
+                        sx={{
+                          mt: 1,
+                          bgcolor: teamBreakdown.role === 'manager' ? '#FEF3C7' : '#DBEAFE',
+                          color: teamBreakdown.role === 'manager' ? '#92400E' : '#1E40AF',
+                          fontWeight: 600,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      {teamBreakdown.team && (
+                        <Box sx={{ textAlign: { md: 'right' } }}>
+                          <Typography variant="body2" sx={{ color: '#64748B' }}>Team</Typography>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#4F46E5' }}>
+                            {teamBreakdown.team.name}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Grid>
+                  </Grid>
+                </Paper>
+
+                {/* Team Totals Summary */}
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#DCFCE7', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
+                        Team Members
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
+                        {teamBreakdown.totals.memberCount}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#E0F2FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
+                        Total Logins
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E40AF' }}>
+                        {teamBreakdown.totals.totalLogins.toLocaleString('en-IN')}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#FEF3C7', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#92400E', fontWeight: 600 }}>
+                        Total Approval
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#92400E' }}>
+                        {rupee(teamBreakdown.totals.totalApproval)}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#FCE7F3', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#9D174D', fontWeight: 600 }}>
+                        Total Disbursal
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#9D174D' }}>
+                        {rupee(teamBreakdown.totals.totalDisbursal)}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+
+                {/* Member Breakdown Table */}
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+                  Member-wise Breakdown
+                </Typography>
+                {teamBreakdown.memberBreakdown.length > 0 ? (
+                  <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow sx={{ bgcolor: '#F1F5F9' }}>
+                          <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>Logins</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>Approval</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>Disbursal</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {teamBreakdown.memberBreakdown.map((member, idx) => (
+                          <TableRow key={idx} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+                            <TableCell>
+                              <Typography sx={{ fontWeight: 600, color: '#1E293B' }}>
+                                {member.name}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ color: '#64748B' }}>
+                                {member.code}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={member.logins.toLocaleString('en-IN')}
+                                sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={rupee(member.approval)}
+                                sx={{ bgcolor: '#E0F2FE', color: '#1E40AF', fontWeight: 700 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={rupee(member.disbursal)}
+                                sx={{ bgcolor: '#EDE9FE', color: '#6D28D9', fontWeight: 700 }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                ) : (
+                  <Box sx={{ textAlign: 'center', p: 3, bgcolor: '#F8FAFC', borderRadius: 2 }}>
+                    <Typography color="text.secondary">
+                      No performance data found for team members
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            ) : (
+              <Box sx={{ textAlign: 'center', p: 3 }}>
+                <Typography color="text.secondary">No data available</Typography>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+              onClick={() => {
+                setTeamModalOpen(false);
+                setTeamBreakdown(null);
+              }}
+            >
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* ========== Add/Edit Dialog ========== */}
         <Dialog

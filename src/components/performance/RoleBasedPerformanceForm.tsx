@@ -15,6 +15,20 @@ interface Props {
   onSaved?: () => void;
 }
 
+const isManagerLikeDesignation = (designation?: string) => {
+  if (!designation) return false;
+  const d = designation.trim().toLowerCase();
+
+  if (
+
+    d === 'team leader' ||
+    d.includes('team lead')
+  ) {
+    return true;
+  }
+  return false;
+};
+
 const RoleBasedPerformanceForm: React.FC<Props> = ({
   role,
   handleClose,
@@ -25,17 +39,14 @@ const RoleBasedPerformanceForm: React.FC<Props> = ({
   designation,
   onSaved,
 }) => {
+  console.log('RoleBasedPerformanceForm role:', role);
 
-  /** ROLE PRIORITY FIXED LOGIC:
-   * Manager = 2  → big form
-   * TL = 3       → big form
-   * Employee = 4 → small form
-   */
-  const numericRole = Number(role);
+  const r = String(role);
+  const shouldShowManager =
+    r === '2' || isManagerLikeDesignation(designation);
 
-  const shouldShowManagerForm = numericRole === 2 || numericRole === 3;
 
-  if (shouldShowManagerForm) {
+  if (shouldShowManager) {
     return (
       <ManagerSnapshotForm
         handleClose={handleClose}
