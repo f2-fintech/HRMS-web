@@ -420,26 +420,49 @@ const loadSnapshot = async (selectedDate: string) => {
     }
 
     /* -------------- EVENING LOAD ---------------- */
-    if (evening) {
-      setTeamLoginsDone(String(evening.teamLoginsDone ?? ""));
-      setTeamApprovalDoneAmount(String(evening.teamApprovalDoneAmount ?? ""));
-      setTeamDisbursalDoneAmount(String(evening.teamDisbursalDoneAmount ?? ""));
+   /* -------------- EVENING LOAD ---------------- */
+if (evening) {
+  // Normal values
+  setTeamLoginsDone(String(evening.teamLoginsDone ?? ""));
+  setTeamApprovalDoneAmount(String(evening.teamApprovalDoneAmount ?? ""));
+  setTeamDisbursalDoneAmount(String(evening.teamDisbursalDoneAmount ?? ""));
+  setCustomerPhoneConnectsDone(String(evening.customerPhoneConnectsDone ?? ""));
 
-      setCustomerPhoneConnectsDone(
-        String(evening.customerPhoneConnectsDone ?? "")
-      );
+  // -------------------------
+  //   FIX 1 — Top Performer
+  // -------------------------
+  const topStr = evening.topPerformer?.name || "";
 
-      setFilesStuck(
-        (evening.filesStuck || []).map((f: any) => ({
-          location: f.location ?? "",
-          reason: f.reason ?? "",
-        }))
-      );
+  // Extract approval performer
+  const approvalMatch = topStr.match(/Approval:\s*([^|]+?)\s*\(₹(\d+)\)/);
+  setApprovalTopName(approvalMatch?.[1]?.trim() ?? "");
+  setApprovalTopAmount(approvalMatch?.[2] ?? "");
 
-      setSupportRequired(evening.supportRequired ?? "");
-      setOverallSentiment(evening.overallSentiment ?? "green");
-      setSentimentReason(evening.sentimentReason ?? "");
-    }
+  // Extract disbursal performer
+  const disbursalMatch = topStr.match(/Disbursal:\s*([^|]+?)\s*\(₹(\d+)\)/);
+  setDisbursalTopName(disbursalMatch?.[1]?.trim() ?? "");
+  setDisbursalTopAmount(disbursalMatch?.[2] ?? "");
+
+  // -------------------------
+  //   FIX 2 — Files Stuck
+  // -------------------------
+  // Load description box text
+  setFilesStuckDescription(evening.filesStuckDescription ?? "");
+
+  // Load rows
+  setFilesStuck(
+    (evening.filesStuck || []).map(f => ({
+      location: f.location ?? "",
+      reason: f.reason ?? "",
+    }))
+  );
+
+  // Rest
+  setSupportRequired(evening.supportRequired ?? "");
+  setOverallSentiment(evening.overallSentiment ?? "green");
+  setSentimentReason(evening.sentimentReason ?? "");
+}
+
   } catch (err) {
     console.error("LOAD ERROR:", err);
   }
