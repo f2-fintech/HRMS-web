@@ -67,7 +67,7 @@ import PageSidebar from './PageSidebar';
 // Dynamically import BlockNote components to avoid SSR issues
 const BlockNoteEditor = dynamic(
   () => import('./BlockNoteEditor'),
-  { 
+  {
     ssr: false,
     loading: () => (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 500 }}>
@@ -105,11 +105,11 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   const [charCount, setCharCount] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const editorRef = useRef<any>(null);
-  
+
   // Track which page the current blocks belong to - prevents saving stale data
   const blocksPageIdRef = useRef<string | null>(null);
   const isNavigatingRef = useRef<boolean>(false);
-  
+
   const trigger = useScrollTrigger({
     disableHysteresis: true,
     threshold: 100,
@@ -136,18 +136,18 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   useEffect(() => {
     if (pageId && pageId !== 'new') {
       console.log('Fetching page:', pageId);
-      
+
       // CRITICAL: Mark as navigating to prevent autosave of stale data
       isNavigatingRef.current = true;
       blocksPageIdRef.current = null; // Invalidate current blocks
-      
+
       // Clear local state IMMEDIATELY to prevent stale data being saved
       setTitle('Untitled');
       setIcon(undefined);
       setCoverImage(undefined);
       setBlocks([]);
       setInitialLoadDone(false);
-      
+
       dispatch(fetchPageById(pageId));
     } else if (pageId === 'new') {
       // Reset for new page
@@ -165,37 +165,37 @@ export default function PageEditor({ pageId }: PageEditorProps) {
 
   // Initialize state from currentPage once loaded
   useEffect(() => {
-    console.log('Effect triggered:', { 
-      hasCurrentPage: !!currentPage, 
+    console.log('Effect triggered:', {
+      hasCurrentPage: !!currentPage,
       currentPageId: currentPage?._id,
-      pageId, 
-      initialLoadDone, 
-      userRole, 
+      pageId,
+      initialLoadDone,
+      userRole,
       userId,
       currentPageTitle: currentPage?.title,
       currentPageBlocks: currentPage?.blocks?.length
     });
-    
+
     if (currentPage && pageId && pageId !== 'new' && !initialLoadDone && userRole && userId) {
       // CRITICAL: Verify this is the correct page data (guard against race conditions)
       if (currentPage._id !== pageId) {
         console.log('Page ID mismatch, skipping initialization:', { currentPageId: currentPage._id, pageId });
         return;
       }
-      
+
       console.log('Initializing page data:', currentPage);
-      
+
       setTitle(currentPage.title || 'Untitled');
       setIcon(currentPage.icon);
       setCoverImage(currentPage.cover_image);
-      
+
       // Set blocks from currentPage
-      const pageBlocks = currentPage.blocks && currentPage.blocks.length > 0 
-        ? currentPage.blocks 
+      const pageBlocks = currentPage.blocks && currentPage.blocks.length > 0
+        ? currentPage.blocks
         : [];
       console.log('Setting blocks:', pageBlocks);
       setBlocks(pageBlocks);
-      
+
       // CRITICAL: Mark these blocks as belonging to this page
       blocksPageIdRef.current = pageId;
       isNavigatingRef.current = false; // Navigation complete
@@ -203,15 +203,15 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       // Check if user is admin or page creator
       const isAdmin = userRole === '1';
       // Handle created_by as either string or populated object
-      const creatorId = typeof currentPage.created_by === 'string' 
-        ? currentPage.created_by 
+      const creatorId = typeof currentPage.created_by === 'string'
+        ? currentPage.created_by
         : currentPage.created_by?._id || currentPage.created_by?.id;
       const isCreator = creatorId === userId;
-      
+
       console.log('Permission check:', { isAdmin, creatorId, userId, isCreator });
-      
+
       // Handle shared_with as array of strings or populated objects
-      const sharedWithIds = currentPage.shared_with?.map((sw: any) => 
+      const sharedWithIds = currentPage.shared_with?.map((sw: any) =>
         typeof sw === 'string' ? sw : (sw._id || sw.id)
       ) || [];
       const isShared = sharedWithIds.includes(userId);
@@ -225,13 +225,13 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   const handleAutoSave = useCallback(async () => {
     // CRITICAL GUARDS: Prevent saving stale data
     if (!pageId || pageId === 'new' || isReadOnly) return;
-    
+
     // Don't save if we're navigating between pages
     if (isNavigatingRef.current) {
       console.log('Auto-save skipped: navigation in progress');
       return;
     }
-    
+
     // Don't save if blocks don't belong to this page
     if (blocksPageIdRef.current !== pageId) {
       console.log('Auto-save skipped: blocks belong to different page', {
@@ -284,7 +284,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       // Create new page
       try {
         setSaving(true);
-        
+
         // Get the latest content directly from the editor
         let currentBlocks = blocks;
         if (editorRef.current) {
@@ -294,7 +294,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
             console.warn('Could not get editor topLevelBlocks, using state blocks:', e);
           }
         }
-        
+
         console.log('Creating page with blocks:', currentBlocks);
         const result = await dispatch(
           createPage({
@@ -304,7 +304,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
             blocks: currentBlocks.length > 0 ? currentBlocks : [],
           })
         ).unwrap();
-        
+
         toast.success('Page created successfully');
         // Navigate to the newly created page
         router.push(`/pages/${result._id}`);
@@ -318,7 +318,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       // Update existing page
       try {
         setSaving(true);
-        
+
         // Get the latest content directly from the editor
         let currentBlocks = blocks;
         if (editorRef.current) {
@@ -328,7 +328,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
             console.warn('Could not get editor topLevelBlocks, using state blocks:', e);
           }
         }
-        
+
         console.log('Updating page with blocks:', currentBlocks);
         await dispatch(
           updatePage({
@@ -356,10 +356,10 @@ export default function PageEditor({ pageId }: PageEditorProps) {
     if (pageId !== 'new') {
       return pageId || null;
     }
-    
+
     try {
       setSaving(true);
-      
+
       // Get the latest content directly from the editor
       let currentBlocks = blocks;
       if (editorRef.current) {
@@ -369,7 +369,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
           console.warn('Could not get editor topLevelBlocks, using state blocks:', e);
         }
       }
-      
+
       console.log('Creating parent page with blocks:', currentBlocks);
       const result = await dispatch(
         createPage({
@@ -379,12 +379,12 @@ export default function PageEditor({ pageId }: PageEditorProps) {
           blocks: currentBlocks.length > 0 ? currentBlocks : [],
         })
       ).unwrap();
-      
+
       console.log('Parent page created:', result._id);
-      
+
       // Navigate to the newly created page (URL will update)
       router.push(`/pages/${result._id}`);
-      
+
       // Return the new page ID so child page can be created
       return result._id;
     } catch (error) {
@@ -427,17 +427,17 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       console.log('Block change ignored: navigation in progress');
       return;
     }
-    
+
     console.log('Blocks changed:', newBlocks, 'for page:', pageId);
     // Ensure we always set an array, even if undefined is passed
     const blocksArray = Array.isArray(newBlocks) ? newBlocks : [];
     setBlocks(blocksArray);
-    
+
     // Update blocksPageIdRef to current page since user is actively editing
     if (pageId && pageId !== 'new' && initialLoadDone) {
       blocksPageIdRef.current = pageId;
     }
-    
+
     // Calculate word and character count
     const text = blocksArray
       .map((block: any) => {
@@ -447,7 +447,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
         return '';
       })
       .join(' ');
-    
+
     setCharCount(text.length);
     setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
   }, [pageId, initialLoadDone]);
@@ -481,9 +481,9 @@ export default function PageEditor({ pageId }: PageEditorProps) {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isReadOnly, handleManualSave]);
 
-  if (loading && pageId !== 'new') {
-    return <Loader />;
-  }
+  // if (loading && pageId !== 'new') {
+  //   return <Loader />;
+  // }
 
   const isAdmin = userRole === '1';
   const readingTime = Math.ceil(wordCount / 200); // Average reading speed
@@ -502,6 +502,8 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       {/* Main Content Area */}
       <Box sx={{ flexGrow: 1, overflow: 'auto', position: 'relative' }}>
         {/* Floating Action Button - Save for Mobile */}
+        {/* {loading && pageId !== 'new' && <Loader />} */}
+
         {!isReadOnly && (
           <Zoom in timeout={300}>
             <Fab
@@ -597,61 +599,100 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                     variant="outlined"
                   />
                 )}
-            </Stack>
+              </Stack>
 
-            <Stack direction="row" spacing={1}>
-              {isAdmin && pageId !== 'new' && (
-                <Tooltip title="Share page">
-                  <IconButton onClick={handleShareClick} size="small">
-                    <ShareIcon />
+              <Stack direction="row" spacing={1}>
+                {isAdmin && pageId !== 'new' && (
+                  <Tooltip title="Share page">
+                    <IconButton onClick={handleShareClick} size="small">
+                      <ShareIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <Tooltip title="Page info (Ctrl+K)">
+                  <IconButton onClick={() => setInfoDrawerOpen(true)} size="small">
+                    <InfoIcon />
                   </IconButton>
                 </Tooltip>
-              )}
-              <Tooltip title="Page info (Ctrl+K)">
-                <IconButton onClick={() => setInfoDrawerOpen(true)} size="small">
-                  <InfoIcon />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          </Paper>
-        </Box>
+              </Stack>
+            </Paper>
+          </Box>
 
-        {/* Read-only Banner */}
-        {isReadOnly && (
-          <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-            You are viewing this page in read-only mode. Only the creator or admins can edit this page.
-          </Alert>
-        )}
+          {/* Read-only Banner */}
+          {isReadOnly && (
+            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+              You are viewing this page in read-only mode. Only the creator or admins can edit this page.
+            </Alert>
+          )}
 
-        {/* Cover Image */}
-        <Box sx={{ position: 'relative', mb: 3 }}>
-          {coverImage ? (
-            <Box
-              sx={{
-                height: 300,
-                backgroundImage: `url(${coverImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                borderRadius: 3,
-                position: 'relative',
-                boxShadow: 2,
-              }}
-            >
-              {!isReadOnly && (
-                <Button
-                  component="label"
-                  variant="contained"
-                  size="small"
-                  startIcon={<UploadIcon />}
+          {/* Cover Image */}
+          <Box sx={{ position: 'relative', mb: 3 }}>
+            {coverImage ? (
+              <Box
+                sx={{
+                  height: 300,
+                  backgroundImage: `url(${coverImage})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  borderRadius: 3,
+                  position: 'relative',
+                  boxShadow: 2,
+                }}
+              >
+                {!isReadOnly && (
+                  <Button
+                    component="label"
+                    variant="contained"
+                    size="small"
+                    startIcon={<UploadIcon />}
+                    sx={{
+                      position: 'absolute',
+                      bottom: 16,
+                      right: 16,
+                      borderRadius: 2,
+                    }}
+                    disabled={coverUploading}
+                  >
+                    {coverUploading ? 'Uploading...' : 'Change Cover'}
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleCoverUpload}
+                      disabled={coverUploading}
+                    />
+                  </Button>
+                )}
+              </Box>
+            ) : (
+              !isReadOnly &&
+              pageId !== 'new' && (
+                <Paper
+                  elevation={0}
                   sx={{
-                    position: 'absolute',
-                    bottom: 16,
-                    right: 16,
-                    borderRadius: 2,
+                    height: 150,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px dashed',
+                    borderColor: 'divider',
+                    borderRadius: 3,
+                    bgcolor: 'background.default',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: 'action.hover',
+                    },
                   }}
-                  disabled={coverUploading}
+                  component="label"
                 >
-                  {coverUploading ? 'Uploading...' : 'Change Cover'}
+                  <Stack alignItems="center" spacing={1}>
+                    <UploadIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {coverUploading ? 'Uploading...' : 'Click to add cover image'}
+                    </Typography>
+                  </Stack>
                   <input
                     type="file"
                     hidden
@@ -659,292 +700,252 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                     onChange={handleCoverUpload}
                     disabled={coverUploading}
                   />
-                </Button>
-              )}
-            </Box>
-          ) : (
-            !isReadOnly &&
-            pageId !== 'new' && (
-              <Paper
-                elevation={0}
+                </Paper>
+              )
+            )}
+          </Box>
+
+          {/* Title Bar */}
+          <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+              {/* Icon */}
+              <Box sx={{ position: 'relative' }}>
+                {icon ? (
+                  <Box
+                    sx={{
+                      fontSize: 60,
+                      cursor: !isReadOnly ? 'pointer' : 'default',
+                      transition: 'transform 0.2s',
+                      '&:hover': !isReadOnly ? { transform: 'scale(1.1)' } : {},
+                    }}
+                    onClick={() => !isReadOnly && setEmojiPickerOpen(!emojiPickerOpen)}
+                  >
+                    {icon}
+                  </Box>
+                ) : (
+                  !isReadOnly && (
+                    <Tooltip title="Add icon">
+                      <IconButton
+                        size="large"
+                        onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
+                        sx={{
+                          width: 60,
+                          height: 60,
+                          border: '2px dashed',
+                          borderColor: 'divider',
+                          '&:hover': {
+                            borderColor: 'primary.main',
+                            bgcolor: 'action.hover',
+                          },
+                        }}
+                      >
+                        <EmojiIcon fontSize="large" />
+                      </IconButton>
+                    </Tooltip>
+                  )
+                )}
+                {emojiPickerOpen && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      zIndex: 1000,
+                      top: 70,
+                      left: 0,
+                      boxShadow: 4,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <EmojiPicker onEmojiClick={handleEmojiSelect} />
+                  </Box>
+                )}
+              </Box>
+
+              {/* Title */}
+              <TextField
+                fullWidth
+                value={title}
+                onChange={handleTitleChange}
+                variant="standard"
+                placeholder="Untitled"
+                disabled={isReadOnly}
+                InputProps={{
+                  disableUnderline: true,
+                }}
                 sx={{
-                  height: 150,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px dashed',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  bgcolor: 'background.default',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    bgcolor: 'action.hover',
+                  '& .MuiInputBase-input': {
+                    fontSize: '2.5rem',
+                    fontWeight: 700,
+                    padding: 0,
                   },
                 }}
-                component="label"
-              >
-                <Stack alignItems="center" spacing={1}>
-                  <UploadIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {coverUploading ? 'Uploading...' : 'Click to add cover image'}
-                  </Typography>
-                </Stack>
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={handleCoverUpload}
-                  disabled={coverUploading}
-                />
-              </Paper>
-            )
+              />
+            </Box>
+          </Paper>
+
+          {/* BlockNote Editor */}
+          {mounted && initialLoadDone && pageId && (
+            <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'visible' }}>
+              <BlockNoteEditor
+                key={pageId}
+                initialBlocks={blocks}
+                isReadOnly={isReadOnly}
+                onBlocksChange={handleBlocksChange}
+                editorRef={editorRef}
+                currentPageId={pageId !== 'new' ? pageId : undefined}
+                onImmediateSave={handleManualSave}
+                onCreateParentPage={pageId === 'new' ? handleCreateParentPage : undefined}
+              />
+            </Paper>
           )}
         </Box>
 
-        {/* Title Bar */}
-        <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-            {/* Icon */}
-            <Box sx={{ position: 'relative' }}>
-              {icon ? (
-                <Box
-                  sx={{
-                    fontSize: 60,
-                    cursor: !isReadOnly ? 'pointer' : 'default',
-                    transition: 'transform 0.2s',
-                    '&:hover': !isReadOnly ? { transform: 'scale(1.1)' } : {},
-                  }}
-                  onClick={() => !isReadOnly && setEmojiPickerOpen(!emojiPickerOpen)}
-                >
-                  {icon}
-                </Box>
-              ) : (
-                !isReadOnly && (
-                  <Tooltip title="Add icon">
-                    <IconButton
-                      size="large"
-                      onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
-                      sx={{
-                        width: 60,
-                        height: 60,
-                        border: '2px dashed',
-                        borderColor: 'divider',
-                        '&:hover': {
-                          borderColor: 'primary.main',
-                          bgcolor: 'action.hover',
-                        },
-                      }}
-                    >
-                      <EmojiIcon fontSize="large" />
-                    </IconButton>
-                  </Tooltip>
-                )
-              )}
-              {emojiPickerOpen && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    zIndex: 1000,
-                    top: 70,
-                    left: 0,
-                    boxShadow: 4,
-                    borderRadius: 2,
-                  }}
-                >
-                  <EmojiPicker onEmojiClick={handleEmojiSelect} />
-                </Box>
-              )}
-            </Box>
+        {/* Info Drawer */}
+        <Drawer
+          anchor="right"
+          open={infoDrawerOpen}
+          onClose={() => setInfoDrawerOpen(false)}
+          PaperProps={{
+            sx: { width: { xs: '100%', sm: 400 }, p: 3 },
+          }}
+        >
+          <Stack spacing={3}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6" fontWeight={600}>
+                Page Information
+              </Typography>
+              <IconButton onClick={() => setInfoDrawerOpen(false)}>
+                <InfoIcon />
+              </IconButton>
+            </Stack>
 
-            {/* Title */}
-            <TextField
-              fullWidth
-              value={title}
-              onChange={handleTitleChange}
-              variant="standard"
-              placeholder="Untitled"
-              disabled={isReadOnly}
-              InputProps={{
-                disableUnderline: true,
-              }}
-              sx={{
-                '& .MuiInputBase-input': {
-                  fontSize: '2.5rem',
-                  fontWeight: 700,
-                  padding: 0,
-                },
-              }}
-            />
-          </Box>
-        </Paper>
+            <Divider />
 
-        {/* BlockNote Editor */}
-        {mounted && initialLoadDone && pageId && (
-          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-            <BlockNoteEditor
-              key={pageId}
-              initialBlocks={blocks}
-              isReadOnly={isReadOnly}
-              onBlocksChange={handleBlocksChange}
-              editorRef={editorRef}
-              currentPageId={pageId !== 'new' ? pageId : undefined}
-              onImmediateSave={handleManualSave}
-              onCreateParentPage={pageId === 'new' ? handleCreateParentPage : undefined}
-            />
-          </Paper>
-        )}
-      </Box>
-
-      {/* Info Drawer */}
-      <Drawer
-        anchor="right"
-        open={infoDrawerOpen}
-        onClose={() => setInfoDrawerOpen(false)}
-        PaperProps={{
-          sx: { width: { xs: '100%', sm: 400 }, p: 3 },
-        }}
-      >
-        <Stack spacing={3}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6" fontWeight={600}>
-              Page Information
-            </Typography>
-            <IconButton onClick={() => setInfoDrawerOpen(false)}>
-              <InfoIcon />
-            </IconButton>
-          </Stack>
-
-          <Divider />
-
-          {/* Statistics */}
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Statistics
-            </Typography>
-            <List dense>
-              <ListItem>
-                <ListItemText primary="Words" secondary={wordCount.toLocaleString()} />
-              </ListItem>
-              <ListItem>
-                <ListItemText primary="Characters" secondary={charCount.toLocaleString()} />
-              </ListItem>
-              <ListItem>
-                <ListItemText primary="Reading Time" secondary={`${readingTime} min`} />
-              </ListItem>
-              <ListItem>
-                <ListItemText primary="Blocks" secondary={blocks.length} />
-              </ListItem>
-            </List>
-          </Box>
-
-          <Divider />
-
-          {/* Metadata */}
-          {currentPage && pageId !== 'new' && (
+            {/* Statistics */}
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Metadata
+                Statistics
               </Typography>
               <List dense>
                 <ListItem>
-                  <ListItemIcon>
-                    <ScheduleIcon fontSize="small" />
-                  </ListItemIcon>
+                  <ListItemText primary="Words" secondary={wordCount.toLocaleString()} />
+                </ListItem>
+                <ListItem>
+                  <ListItemText primary="Characters" secondary={charCount.toLocaleString()} />
+                </ListItem>
+                <ListItem>
+                  <ListItemText primary="Reading Time" secondary={`${readingTime} min`} />
+                </ListItem>
+                <ListItem>
+                  <ListItemText primary="Blocks" secondary={blocks.length} />
+                </ListItem>
+              </List>
+            </Box>
+
+            <Divider />
+
+            {/* Metadata */}
+            {currentPage && pageId !== 'new' && (
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Metadata
+                </Typography>
+                <List dense>
+                  <ListItem>
+                    <ListItemIcon>
+                      <ScheduleIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Created"
+                      secondary={new Date(currentPage.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemIcon>
+                      <ScheduleIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Last Modified"
+                      secondary={new Date(currentPage.updatedAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    />
+                  </ListItem>
+                  {currentPage.shared_with && currentPage.shared_with.length > 0 && (
+                    <ListItem>
+                      <ListItemIcon>
+                        <ShareIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary="Shared With"
+                        secondary={`${currentPage.shared_with.length} ${currentPage.shared_with.length === 1 ? 'person' : 'people'
+                          }`}
+                      />
+                    </ListItem>
+                  )}
+                </List>
+              </Box>
+            )}
+
+            <Divider />
+
+            {/* Keyboard Shortcuts */}
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Keyboard Shortcuts
+              </Typography>
+              <List dense>
+                <ListItem>
                   <ListItemText
-                    primary="Created"
-                    secondary={new Date(currentPage.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    primary={
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label={navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} size="small" />
+                        <Typography variant="body2">+</Typography>
+                        <Chip label="S" size="small" />
+                        <Typography variant="body2" color="text.secondary">
+                          Save
+                        </Typography>
+                      </Stack>
+                    }
                   />
                 </ListItem>
                 <ListItem>
-                  <ListItemIcon>
-                    <ScheduleIcon fontSize="small" />
-                  </ListItemIcon>
                   <ListItemText
-                    primary="Last Modified"
-                    secondary={new Date(currentPage.updatedAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    primary={
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label={navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} size="small" />
+                        <Typography variant="body2">+</Typography>
+                        <Chip label="K" size="small" />
+                        <Typography variant="body2" color="text.secondary">
+                          Toggle Info
+                        </Typography>
+                      </Stack>
+                    }
                   />
                 </ListItem>
-                {currentPage.shared_with && currentPage.shared_with.length > 0 && (
-                  <ListItem>
-                    <ListItemIcon>
-                      <ShareIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Shared With"
-                      secondary={`${currentPage.shared_with.length} ${
-                        currentPage.shared_with.length === 1 ? 'person' : 'people'
-                      }`}
-                    />
-                  </ListItem>
-                )}
               </List>
             </Box>
-          )}
+          </Stack>
+        </Drawer>
 
-          <Divider />
-
-          {/* Keyboard Shortcuts */}
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Keyboard Shortcuts
-            </Typography>
-            <List dense>
-              <ListItem>
-                <ListItemText
-                  primary={
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Chip label={navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} size="small" />
-                      <Typography variant="body2">+</Typography>
-                      <Chip label="S" size="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Save
-                      </Typography>
-                    </Stack>
-                  }
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText
-                  primary={
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Chip label={navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} size="small" />
-                      <Typography variant="body2">+</Typography>
-                      <Chip label="K" size="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Toggle Info
-                      </Typography>
-                    </Stack>
-                  }
-                />
-              </ListItem>
-            </List>
-          </Box>
-        </Stack>
-      </Drawer>
-
-      {/* Share Dialog */}
-      {pageId && pageId !== 'new' && (
-        <ShareDialog
-          open={shareDialogOpen}
-          onClose={() => setShareDialogOpen(false)}
-          pageId={pageId}
-          currentSharedWith={currentPage?.shared_with || []}
-        />
-      )}
+        {/* Share Dialog */}
+        {pageId && pageId !== 'new' && (
+          <ShareDialog
+            open={shareDialogOpen}
+            onClose={() => setShareDialogOpen(false)}
+            pageId={pageId}
+            currentSharedWith={currentPage?.shared_with || []}
+          />
+        )}
       </Box>
     </Box>
   );
