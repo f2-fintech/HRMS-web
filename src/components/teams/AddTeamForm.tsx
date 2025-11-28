@@ -2,299 +2,372 @@
 
 import React, { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
 import Autocomplete from '@mui/material/Autocomplete'
 import { useSelector } from 'react-redux'
-import { DriveFileRenameOutlineOutlined } from '@mui/icons-material'
 import CloseIcon from '@mui/icons-material/Close'
 import {
-    Box,
-    Grid,
-    Typography,
-    IconButton,
-    TextField,
-    Button,
-    Select,
-    MenuItem,
-    InputLabel,
-    FormControl,
-    FormHelperText
+  Box,
+  Grid,
+  Typography,
+  IconButton,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  FormHelperText,
+  Collapse,
+  Paper
 } from '@mui/material'
 import type { RootState } from '@/redux/store'
-import { debounce } from 'lodash'
 import { utility } from '@/utility'
-import { apiResponse } from '@/utility/apiResponse/employeesResponse'
 
 interface EmployeeType {
-    _id: string
-    first_name: string
-    last_name: string
-    image?: string
-    designation?: string
-    role_priority?: string
+  _id: string
+  first_name: string
+  last_name: string
+  designation?: string
+  manager_id?: string
 }
 
 interface TeamFormData {
-    manager_id: string
-    employee_ids: string
-    name: string
-    code: string
-    company_id: string
+  manager_id: string
+  employee_ids: string
+  name: string
+  code: string
+  company_id: string
 }
 
-interface AddTeamFormProps {
-    handleClose: () => void
-    team?: string | null
-    debouncedFetch: () => void
-}
+export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
 
-export default function AddTeamForm({ handleClose, team, debouncedFetch }: AddTeamFormProps) {
-    const { company_id } = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user')) : {}
-    const { teams } = useSelector((state: RootState) => state.teams)
-    const { employees } = useSelector((state: RootState) => state.employees)
+  const { company_id } =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user')!) : {}
 
-    const [formData, setFormData] = useState<TeamFormData>({
-        manager_id: '',
-        employee_ids: '',
-        name: '',
-        code: '',
-        company_id: company_id
+  const { teams } = useSelector((state: RootState) => state.teams)
+  const { employees } = useSelector((state: RootState) => state.employees)
+
+  const [formData, setFormData] = useState<TeamFormData>({
+    manager_id: '',
+    employee_ids: '',
+    name: '',
+    code: '',
+    company_id
+  })
+
+  const [errors, setErrors] = useState({
+    name: '',
+    manager_id: '',
+    employee_ids: '',
+    code: ''
+  })
+
+  const [selectedEmployees, setSelectedEmployees] = useState<EmployeeType[]>([])
+  const [tls, setTls] = useState<{ tl_id: string; employees: EmployeeType[] }[]>([])
+
+  const [showTlSection, setShowTlSection] = useState(false)
+  const { capitalizeInput } = utility()
+
+  // -------------------------------------------------------
+  // LOAD TEAM IN EDIT MODE
+  // -------------------------------------------------------
+  useEffect(() => {
+    if (team) {
+      const selected = teams.find(t => t._id === team)
+
+      if (selected) {
+        setFormData({
+          manager_id: selected.manager_id,
+          employee_ids: selected.employee_ids,
+          name: selected.name,
+          code: selected.code,
+          company_id: selected.company_id
+        })
+
+        const selectedEmps = employees.filter(emp =>
+          selected.employee_ids.split(',').includes(emp._id)
+        )
+        setSelectedEmployees(selectedEmps)
+
+        if (selected.tls) {
+          const tlArr = selected.tls.map(t => ({
+            tl_id: t.tl_id,
+            employees: employees.filter(emp =>
+              t.employee_ids.split(',').includes(emp._id)
+            )
+          }))
+          setTls(tlArr)
+        }
+
+        setShowTlSection(true)
+      }
+    }
+  }, [team, teams, employees])
+
+  // -------------------------------------------------------
+  // VALIDATION
+  // -------------------------------------------------------
+  const validateForm = () => {
+    let isValid = true
+
+    const newErrors = {
+      name: '',
+      manager_id: '',
+      employee_ids: '',
+      code: ''
+    }
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Team name is required'
+      isValid = false
+    }
+
+    if (!formData.manager_id) {
+      newErrors.manager_id = 'Manager selection is required'
+      isValid = false
+    }
+
+    if (!formData.employee_ids) {
+      newErrors.employee_ids = 'At least one employee must be selected'
+      isValid = false
+    }
+
+    if (!formData.code.trim()) {
+      newErrors.code = 'Team code is required'
+      isValid = false
+    }
+
+    setErrors(newErrors)
+    return isValid
+  }
+
+  // -------------------------------------------------------
+  // HANDLE CHANGES
+  // -------------------------------------------------------
+  const handleChange = e => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  // -------------------------------------------------------
+  // MANAGER SELECT → DETECT ALL TL UNDER THAT MANAGER
+  // -------------------------------------------------------
+  const handleManagerChange = e => {
+    const managerId = e.target.value
+    handleChange(e)
+
+    setSelectedEmployees([])
+    setFormData(prev => ({ ...prev, employee_ids: '' }))
+    setShowTlSection(false)
+
+    const detectedTLs = employees
+      .filter(
+        emp =>
+          emp.designation?.toLowerCase() === 'team leader' &&
+          emp.manager_id === managerId
+      )
+      .map(tl => ({
+        tl_id: tl._id,
+        employees: []
+      }))
+
+    setTls(detectedTLs)
+  }
+
+  // -------------------------------------------------------
+  // EMPLOYEES SELECTED → AUTO OPEN TL SECTION
+  // -------------------------------------------------------
+  const handleEmployeeChange = (_event, value: EmployeeType[]) => {
+    const ids = value.map(emp => emp._id).join(',')
+    setSelectedEmployees(value)
+    setFormData(prev => ({ ...prev, employee_ids: ids }))
+
+    if (value.length > 0) setShowTlSection(true)
+  }
+
+  // -------------------------------------------------------
+  // SUBMIT TEAM
+  // -------------------------------------------------------
+  const handleSubmit = () => {
+    if (!validateForm()) return
+
+    const method = team ? 'PUT' : 'POST'
+    const url = team
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/teams/update/${team}`
+      : `${process.env.NEXT_PUBLIC_APP_URL}/teams/create`
+
+    const finalTLs = tls.map(tl => ({
+      tl_id: tl.tl_id,
+      employee_ids: tl.employees.map(e => e._id).join(',')
+    }))
+
+    const payload = { ...formData, tls: finalTLs }
+
+    fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     })
+      .then(res => res.json())
+      .then(data => {
+        if (data.message?.includes('success')) toast.success(data.message)
+        else toast.error(data.message || 'Unexpected error')
 
-    const [errors, setErrors] = useState({
-        name: '',
-        manager_id: '',
-        employee_ids: '',
-        code: ''
-    })
+        handleClose()
+        debouncedFetch()
+      })
+      .catch(() => toast.error('Unexpected error'))
+  }
 
-    const [selectedEmployees, setSelectedEmployees] = useState<EmployeeType[]>([])
+  // -------------------------------------------------------
+  // RETURN UI
+  // -------------------------------------------------------
+  return (
+    <Box sx={{ flexGrow: 1, padding: 2 }}>
+      <Box display="flex" justifyContent="space-between" mb={2}>
+        <Typography variant="h5" fontWeight="600">
+          {team ? 'Edit Team' : 'Add Team'}
+        </Typography>
+        <IconButton onClick={handleClose}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
 
-    const { capitalizeInput } = utility()
+      <Grid container spacing={3}>
 
-    useEffect(() => {
-        if (team) {
-            const selected = teams.find(t => t._id === team)
-            if (selected) {
-                setFormData({
-                    manager_id: selected.manager_id,
-                    employee_ids: selected.employee_ids,
-                    name: selected.name,
-                    code: selected.code,
-                    company_id: selected.company_id
-                })
-                const selectedEmps: EmployeeType[] = []
-                selected.employee_ids?.split(',').forEach(id => {
-                    const emp = employees.find(e => e._id === id)
-                    if (emp) selectedEmps.push(emp)
-                })
-                setSelectedEmployees(selectedEmps)
-            }
-        }
-    }, [team, teams, employees])
+        {/* NAME */}
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label="Team Name"
+            name="name"
+            value={formData.name}
+            onChange={e => capitalizeInput(e, handleChange)}
+            error={!!errors.name}
+            helperText={errors.name}
+          />
+        </Grid>
 
-    const validateForm = () => {
-        let isValid = true
+        {/* MANAGER */}
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth error={!!errors.manager_id}>
+            <InputLabel>Select Manager</InputLabel>
+            <Select
+              name="manager_id"
+              value={formData.manager_id}
+              onChange={handleManagerChange}
+            >
+              {employees.map(emp => (
+                <MenuItem key={emp._id} value={emp._id}>
+                  {emp.first_name} {emp.last_name}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>{errors.manager_id}</FormHelperText>
+          </FormControl>
+        </Grid>
 
-        const newErrors = {
-            name: '',
-            manager_id: '',
-            employee_ids: '',
-            code: ''
-        }
+        {/* EMPLOYEES */}
+        <Grid item xs={12} md={6}>
+          <Autocomplete
+            multiple
+            options={employees}
+            getOptionLabel={o => `${o.first_name} ${o.last_name}`}
+            value={selectedEmployees}
+            onChange={handleEmployeeChange}
+            renderInput={params => (
+              <TextField
+                {...params}
+                label="Select Employees"
+                error={!!errors.employee_ids}
+                helperText={errors.employee_ids}
+              />
+            )}
+          />
+        </Grid>
 
-        if (!formData.name.trim()) {
-            newErrors.name = 'Team name is required'
-            isValid = false
-        }
+        {/* CODE */}
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label="Team Code"
+            name="code"
+            value={formData.code}
+            onChange={handleChange}
+            error={!!errors.code}
+            helperText={errors.code}
+          />
+        </Grid>
 
-        if (!formData.manager_id) {
-            newErrors.manager_id = 'Manager selection is required'
-            isValid = false
-        }
+        {/* TL SECTION */}
+        <Grid item xs={12}>
+          <Collapse in={showTlSection}>
+            <Typography variant="h6" fontWeight="600" mt={2}>
+              Team Leaders & Assigned Employees
+            </Typography>
 
-        if (!formData.employee_ids) {
-            newErrors.employee_ids = 'At least one employee must be selected'
-            isValid = false
-        }
+            {tls.length === 0 && (
+              <Typography>No Team Leaders under this Manager.</Typography>
+            )}
 
-        if (!formData.code.trim()) {
-            newErrors.code = 'Team code is required'
-            isValid = false
-        }
+            {tls.map((tl, index) => {
+              const tlEmp = employees.find(e => e._id === tl.tl_id)
 
-        setErrors(newErrors)
+              return (
+                <Paper
+                  elevation={2}
+                  key={index}
+                  sx={{
+                    p: 2,
+                    mt: 2,
+                    borderRadius: 2,
+                    borderLeft: '4px solid #ff902f',
+                    background: '#f2f2f2'
+                  }}
+                >
+                  <Typography fontWeight="bold" mb={1}>
+                    TL: {tlEmp?.first_name} {tlEmp?.last_name}
+                  </Typography>
 
-        return isValid
-    }
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-        const { name, value } = e.target
-        setFormData(prevState => ({
-            ...prevState,
-            [name as string]: value as string
-        }))
-    }
-
-    const handleEmployeeChange = (_event: any, value: EmployeeType[]) => {
-        const employeeIds = value.map(emp => emp._id).join(',')
-        setSelectedEmployees(value)
-        setFormData(prevState => ({
-            ...prevState,
-            employee_ids: employeeIds
-        }))
-    }
-
-    const handleSubmit = () => {
-        if (validateForm()) {
-            const method = team ? 'PUT' : 'POST'
-
-            // For example, if you store the env in .env.local or .env
-            const url = team
-                ? `${process.env.NEXT_PUBLIC_APP_URL}/teams/update/${team}`
-                : `${process.env.NEXT_PUBLIC_APP_URL}/teams/create`
-
-            fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.message) {
-                        if (data.message.includes('success')) {
-                            toast.success(data.message, {
-                                position: 'top-center'
-                            })
-                        } else {
-                            toast.error('Error: ' + data.message, {
-                                position: 'top-center'
-                            })
-                        }
-                    } else {
-                        toast.error('Unexpected error occurred', {
-                            position: 'top-center'
-                        })
+                  {/* MULTIPLE EMPLOYEE SELECTION */}
+                  <Autocomplete
+                    multiple
+                    options={selectedEmployees}   // ⭐ correct → employees of whole team
+                    getOptionLabel={op => `${op.first_name} ${op.last_name}`}
+                    value={
+                      tl.employees.map(idObj =>
+                        selectedEmployees.find(se => se._id === idObj._id) || null
+                      )
                     }
-                    handleClose()
-                    debouncedFetch()
-                })
-                .catch(error => {
-                    toast.error('Unexpected error occurred', {
-                        position: 'top-center'
-                    })
-                })
-        }
-    }
+                    onChange={(e, val) => {
+                      const copy = [...tls]
+                      copy[index].employees = val
+                      setTls(copy)
+                    }}
+                    renderInput={params => (
+                      <TextField {...params} label="Employees under this TL" />
+                    )}
+                  />
 
-    return (
-        <Box sx={{ flexGrow: 1, padding: 2 }}>
-            <Box display='flex' justifyContent='space-between' alignItems='center'>
-                <Typography style={{ fontSize: '2em', color: 'black' }} variant='h5' gutterBottom>
-                    {team ? 'Edit Team' : 'Add Team'}
-                </Typography>
-                <IconButton onClick={handleClose}>
-                    <CloseIcon />
-                </IconButton>
-            </Box>
-            <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                    <TextField
-                        fullWidth
-                        label='Name'
-                        name='name'
-                        value={formData.name}
-                        onChange={e => capitalizeInput(e, handleChange)}
-                        required
-                        error={!!errors.name}
-                        helperText={errors.name}
-                    />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <FormControl fullWidth error={!!errors.manager_id}>
-                        <InputLabel required id='manager-select-label'>
-                            Select Manager
-                        </InputLabel>
-                        <Select
-                            label='Select Manager'
-                            labelId='manager-select-label'
-                            id='manager-select'
-                            name='manager_id'
-                            value={formData.manager_id}
-                            onChange={handleChange}
-                            required
-                        >
-                            {employees
-                                .filter(
-                                    employee =>
-                                        employee.role_priority === '2' ||
-                                        employee.designation === 'Founder & CEO' ||
-                                        employee.designation === 'Co-Founder & MD'
-                                )
-                                .map(employee => (
-                                    <MenuItem key={employee._id} value={employee._id}>
-                                        {employee.first_name} {employee.last_name}
-                                    </MenuItem>
-                                ))}
-                        </Select>
-                        {errors.manager_id && <FormHelperText error>{errors.manager_id}</FormHelperText>}
-                    </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Autocomplete
-                        multiple
-                        id='checkboxes-tags-demo'
-                        options={employees}
-                        disableCloseOnSelect
-                        getOptionLabel={option => `${option.first_name} ${option.last_name}`}
-                        value={selectedEmployees}
-                        onChange={handleEmployeeChange}
-                        renderOption={(props, option) => (
-                            <li {...props}>
-                                {option.first_name} {option.last_name}
-                            </li>
-                        )}
-                        renderInput={params => (
-                            <TextField
-                                {...params}
-                                label='Select Employees'
-                                placeholder='Favorites'
-                                error={!!errors.employee_ids}
-                                helperText={errors.employee_ids}
-                            />
-                        )}
-                    />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <TextField
-                        fullWidth
-                        label='Code'
-                        name='code'
-                        value={formData.code}
-                        onChange={handleChange}
-                        required
-                        error={!!errors.code}
-                        helperText={errors.code}
-                    />
-                </Grid>
-                <Grid item xs={12}>
-                    <Button
-                        style={{
-                            fontSize: '18px',
-                            fontWeight: 600,
-                            color: 'white',
-                            padding: 15,
-                            backgroundColor: '#ff902f',
-                            width: 200
-                        }}
-                        variant='contained'
-                        fullWidth
-                        onClick={handleSubmit}
-                    >
-                        {team ? 'UPDATE TEAM' : 'ADD TEAM'}
-                    </Button>
-                </Grid>
-            </Grid>
-        </Box>
-    )
+                </Paper>
+              )
+            })}
+          </Collapse>
+        </Grid>
+
+        {/* SUBMIT */}
+        <Grid item xs={12}>
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{ p: 2, backgroundColor: '#ff902f' }}
+            onClick={handleSubmit}
+          >
+            {team ? 'UPDATE TEAM' : 'ADD TEAM'}
+          </Button>
+        </Grid>
+
+      </Grid>
+    </Box>
+  )
 }

@@ -298,7 +298,7 @@ const buildPairsForEmployee = (raw: any): Pair[] => {
       done: Number(e.physicalMeetDone || 0),
       unit: 'count',
     },
-    
+
     {
       key: 'login',
       label: 'Logins',
@@ -1384,6 +1384,7 @@ const PerformanceCard = ({
 
 /* ===================== Main ===================== */
 export default function PerformanceGrid() {
+  
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
@@ -1395,6 +1396,7 @@ export default function PerformanceGrid() {
   const [searchName, setSearchName] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const [limit] = useState<number>(12);
+  
 
   const [showForm, setShowForm] = useState(false);
 
@@ -1445,50 +1447,73 @@ export default function PerformanceGrid() {
   const pickDate = (selectedDate ? selectedDate : dayjs()).format(
     'YYYY-MM-DD'
   );
+useEffect(() => {
+  const user =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("user") || "{}")
+      : {};
 
-  useEffect(() => {
-    const user =
-      typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('user') || '{}')
-        : {};
+  const token = localStorage.getItem("token");
 
-    const token =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('token')
-        : null;
+  setUserRole(String(user.role_priority ?? user.role ?? ""));
+  setUserDesignation(String(user.designation ?? ""));
+  setMyCode(user.code || null);
 
-    setUserRole(String(user?.role || ''));
-    setUserDesignation(String(user?.designation || ''));
-    setMyCode(String(user?.code || ''));
+  if (!user?.id || !token) {
+    setLoadingTeams(false);
+    return;
+  }
 
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
-    const url = `${base}/teams/manager-one/${user?.id}`;
+  const base = process.env.NEXT_PUBLIC_APP_URL;
+  const role = Number(user.role_priority ?? user.role);
 
-    const fetchTeamsForUser = async () => {
-      try {
-        if (!user?.id || !token) {
-          setLoadingTeams(false);
+  let url = "";
 
-          return;
+  // ⭐ Manager → manager-one API
+  if (role === 2) {
+    url = `${base}/teams/manager-one/${user.id}`;
+  }
+
+  // ⭐ Team Leader → tl-one API
+  else if (role === 3) {
+    url = `${base}/teams/tl-one/${user.id}`;
+  }
+
+  // ⭐ Employee → no team
+  else {
+    setLoadingTeams(false);
+    return;
+  }
+
+  const fetchTeamsForUser = async () => {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-company-id": user.company_id
         }
+      });
 
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      const raw = await res.json();
+      console.log("TEAM API RESPONSE:", raw);
 
-        const raw = await res.json();
+      setTeams(raw.employees || []);
+      setSelectedTeamId(raw.team_id || null);
 
-        setTeams(raw.employees || []);
-      } catch {
-        setTeams([]);
-        setSelectedTeamId(null);
-      } finally {
-        setLoadingTeams(false);
-      }
-    };
+    } catch (err) {
+      console.log("TEAM FETCH ERROR:", err);
+      setTeams([]);
+      setSelectedTeamId(null);
+    } finally {
+      setLoadingTeams(false);
+    }
+  };
 
-    fetchTeamsForUser();
-  }, []);
+  fetchTeamsForUser();
+}, []);
+
+
+
 
   /* -------- latest snapshot per employee (team dialog) -------- */
   useEffect(() => {
@@ -1779,6 +1804,8 @@ export default function PerformanceGrid() {
 
     fetchCodeSummary();
   }, []);
+
+  
 
   // 🔹 logged-in user ka Excel summary (sirf uska code)
   const myCodeSummary: CodeSummaryRow | undefined = useMemo(() => {
@@ -2078,23 +2105,24 @@ export default function PerformanceGrid() {
                 </Button>
               )}
 
-              {!['1', '3', '4'].includes(String(userRole)) && (
-                <Button
-                  variant="outlined"
-                  startIcon={<GroupIcon />}
-                  onClick={() => setTeamDlgOpen(true)}
-                  sx={{
-                    borderRadius: 2,
-                    fontWeight: 400,
-                    whiteSpace: 'nowrap',
-                    textTransform: 'none',
-                    minWidth: 'auto',
-                  }}
-                  size="small"
-                >
-                  Team Performance
-                </Button>
-              )}
+           {['2', '3'].includes(String(userRole)) && (
+  <Button
+    variant="outlined"
+    startIcon={<GroupIcon />}
+    onClick={() => setTeamDlgOpen(true)}
+    sx={{
+      borderRadius: 2,
+      fontWeight: 400,
+      whiteSpace: 'nowrap',
+      textTransform: 'none',
+      minWidth: 'auto',
+    }}
+    size="small"
+  >
+    Team Performance
+  </Button>
+)}
+
 
               <Button
                 variant="contained"
