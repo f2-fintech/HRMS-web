@@ -1732,6 +1732,7 @@ export default function PerformanceGrid() {
     members: TeamBreakdownMember[];
     totals: { logins: number; approval: number; disbursal: number };
   } | null>(null);
+
   const [teamBreakdownLoading, setTeamBreakdownLoading] = useState(false);
 
   // 🔹 Manager/TL Filter
@@ -1744,7 +1745,9 @@ export default function PerformanceGrid() {
   const router = useRouter();
   const [uploading] = useState(false);
 
-  const pickDate = selectedDate || dayjs().format("YYYY-MM-DD");
+const pickDate = selectedDate
+  ? dayjs(selectedDate).format("YYYY-MM-DD")
+  : dayjs().format("YYYY-MM-DD");
 
   useEffect(() => {
     const user =
@@ -1768,12 +1771,10 @@ export default function PerformanceGrid() {
 
     let url = "";
 
-    // ⭐ Manager → manager-one API
     if (role === 2) {
       url = `${base}/teams/manager-one/${user.id}`;
     }
 
-    // ⭐ Team Leader → tl-one API
     else if (role === 3) {
       url = `${base}/teams/tl-one/${user.id}`;
     }
@@ -2189,6 +2190,7 @@ export default function PerformanceGrid() {
       const data = res.data || {};
       
       // Map backend response to frontend format
+      
       const employeeName = data.employee?.name || code;
       const members: TeamBreakdownMember[] = (data.memberBreakdown || []).map((m: any) => ({
         code: m.code || '',
@@ -2258,10 +2260,11 @@ export default function PerformanceGrid() {
         data = flat;
       }
 
-      data = (data || []).filter(
-        (d: any) =>
-          dayjs(d?.date).format('YYYY-MM-DD') === pickDate
-      );
+   data = (data || []).filter((d: any) => {
+  const rowDate = dayjs(d?.date).format("YYYY-MM-DD");
+  return rowDate === pickDate;
+});
+
 
       const needle = searchName.trim().toLowerCase();
 
@@ -2912,7 +2915,7 @@ export default function PerformanceGrid() {
       >
         <DialogTitle
           sx={{
-            background: 'linear-gradient(135deg, #1E3368 0%, #3B5998 100%)',
+            background:  'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)',
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
@@ -2924,7 +2927,7 @@ export default function PerformanceGrid() {
             <Typography variant="h6" sx={{ fontWeight: 800 }}>
               🏆 Team Performance Breakdown
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            <Typography variant="body1" sx={{ opacity:1,marginLeft:6 }}>
               {teamBreakdown?.employeeName || teamBreakdown?.code || 'Team'}
             </Typography>
           </Box>
@@ -2951,16 +2954,16 @@ export default function PerformanceGrid() {
                     sx={{
                       p: 2,
                       borderRadius: 2,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      background: 'linear-gradient(15deg, #667eea 0%, #764ba2 100%)',
                       color: '#fff',
                       textAlign: 'center',
                     }}
                   >
                     <PeopleIcon sx={{ fontSize: 32, mb: 1 }} />
-                    <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800,color:"#fff" }}>
                       {teamBreakdown.totals.logins}
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    <Typography variant="body2" sx={{ opacity: 0.9 ,color:"black" }}>
                       Total Team Logins
                     </Typography>
                   </Paper>
@@ -2970,16 +2973,16 @@ export default function PerformanceGrid() {
                     sx={{
                       p: 2,
                       borderRadius: 2,
-                      background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                    background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
                       color: '#fff',
                       textAlign: 'center',
                     }}
                   >
                     <AccountBalanceWalletIcon sx={{ fontSize: 32, mb: 1 }} />
-                    <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800 ,color:"#fff" }}>
                       {rupee(teamBreakdown.totals.approval)}
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    <Typography variant="body2" sx={{ opacity: 0.9,color:"black"  }}>
                       Total Team Approval
                     </Typography>
                   </Paper>
@@ -2989,16 +2992,17 @@ export default function PerformanceGrid() {
                     sx={{
                       p: 2,
                       borderRadius: 2,
-                      background: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
+background: 'linear-gradient(135deg, #FDE047 0%, #FACC15 100%)',
+                      
                       color: '#fff',
                       textAlign: 'center',
                     }}
                   >
                     <PaymentsIcon sx={{ fontSize: 32, mb: 1 }} />
-                    <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800 ,color:"#fff" }}>
                       {rupee(teamBreakdown.totals.disbursal)}
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    <Typography variant="body2" sx={{ opacity: 0.9,color:"black"  }}>
                       Total Team Disbursal
                     </Typography>
                   </Paper>
