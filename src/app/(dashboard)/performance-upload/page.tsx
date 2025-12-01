@@ -69,7 +69,7 @@ api.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer token ${token}`.replace(
         'token ',
         'Bearer ',
-      ); 
+      );
     if (companyId) config.headers['x-company-id'] = companyId;
   }
 
@@ -167,10 +167,11 @@ export default function PerformanceUploadPage() {
     total_logins: '',
     approval_lakh: '',
     disbursal_lakh: '',
+    drop_lakh: '',
     code: '',
   });
 
- 
+
   const [amountUnit, setAmountUnit] = useState<'rupees' | 'lakhs'>('rupees');
 
 
@@ -260,6 +261,7 @@ export default function PerformanceUploadPage() {
         login: Number(r.login ?? r.total_logins ?? 0),
         approval: Number(r.approval ?? r.approval_amount ?? 0),
         disbursal: Number(r.disbursal ?? r.disbursal_amount ?? 0),
+        drop: Number(r.drop ?? r.drop_amount ?? 0),
         code:
           typeof r.code === 'string'
             ? r.code.trim()
@@ -277,7 +279,7 @@ export default function PerformanceUploadPage() {
 
   useEffect(() => {
     if (dateStr) fetchList();
-  
+
   }, [dateStr]);
 
   // Fetch team totals when rows are loaded
@@ -374,9 +376,9 @@ export default function PerformanceUploadPage() {
 
   const handleFormChange =
     (field: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-    };
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        setForm((prev) => ({ ...prev, [field]: e.target.value }));
+      };
 
   const resetForm = () => {
     setForm({
@@ -385,6 +387,7 @@ export default function PerformanceUploadPage() {
       total_logins: '',
       approval_lakh: '',
       disbursal_lakh: '',
+      drop_lakh: '',
       code: '',
     });
     setAmountUnit('rupees');
@@ -411,6 +414,8 @@ export default function PerformanceUploadPage() {
 
       const approvalNumber = sanitizeMoney(form.approval_lakh);
       const disbursalNumber = sanitizeMoney(form.disbursal_lakh);
+      const dropNumber = sanitizeMoney(form.drop_lakh);
+
 
       const multiplier = amountUnit === 'lakhs' ? 100000 : 1;
 
@@ -422,6 +427,7 @@ export default function PerformanceUploadPage() {
         total_logins: Number(form.total_logins || 0),
         approval_amount: Math.round(approvalNumber * multiplier),
         disbursal_amount: Math.round(disbursalNumber * multiplier),
+        drop_amount: Math.round(dropNumber * multiplier),
         company_id: company_id || undefined,
       };
 
@@ -569,7 +575,7 @@ export default function PerformanceUploadPage() {
           gap: 3,
         }}
       >
-     
+
         <Paper
           elevation={0}
           sx={{
@@ -580,7 +586,7 @@ export default function PerformanceUploadPage() {
             boxShadow: '0 10px 35px rgba(15,23,42,0.10)',
           }}
         >
-          
+
           <Box
             sx={{
               display: 'flex',
@@ -591,7 +597,7 @@ export default function PerformanceUploadPage() {
               mb: 3,
             }}
           >
-           
+
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <IconButton
                 onClick={() => router.back()}
@@ -626,7 +632,7 @@ export default function PerformanceUploadPage() {
               </Box>
             </Box>
 
-          
+
             <Box
               sx={{
                 display: 'flex',
@@ -755,7 +761,7 @@ export default function PerformanceUploadPage() {
             </Box>
           </Box>
 
-     
+
           <Box
             sx={{
               display: 'flex',
@@ -765,55 +771,55 @@ export default function PerformanceUploadPage() {
               alignItems: { sm: 'center' },
             }}
           >
-   <TextField
-  fullWidth
-  size="small"
-  value={search}
-  onChange={(e) => setSearch(e.target.value)}
-  placeholder="Search employee / id / code..."
-  sx={{
-    '& .MuiOutlinedInput-root': {
-      borderRadius: 3,
-    }
-  }}
-  InputProps={{
-    startAdornment: (
-      <InputAdornment position="start">
-        <SearchIcon
-          fontSize="small"
-          sx={{ color: '#64748b', ml: 1 }}
-        />
-      </InputAdornment>
-    ),
-    endAdornment: search && (
-      <InputAdornment position="end">
-       <IconButton
-  size="small"
-  onClick={() => {
-    setSearch('');
-    setDebounced('');
-  }}
-  sx={{
-    p: 0.2,
-    color: '#475569',
-    bgcolor: 'transparent !important',
-    '&:hover': {
-      bgcolor: 'transparent !important',
-      color: '#1e293b',
-      
-    },
-    '& .MuiTouchRipple-root': {
-      display: 'none', 
-    },
-  }}
->
-  <CloseIcon sx={{ fontSize: 8 }} />
-</IconButton>
+            <TextField
+              fullWidth
+              size="small"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search employee / id / code..."
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon
+                      fontSize="small"
+                      sx={{ color: '#64748b', ml: 1 }}
+                    />
+                  </InputAdornment>
+                ),
+                endAdornment: search && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setSearch('');
+                        setDebounced('');
+                      }}
+                      sx={{
+                        p: 0.2,
+                        color: '#475569',
+                        bgcolor: 'transparent !important',
+                        '&:hover': {
+                          bgcolor: 'transparent !important',
+                          color: '#1e293b',
 
-      </InputAdornment>
-    ),
-  }}
-/>
+                        },
+                        '& .MuiTouchRipple-root': {
+                          display: 'none',
+                        },
+                      }}
+                    >
+                      <CloseIcon sx={{ fontSize: 8 }} />
+                    </IconButton>
+
+                  </InputAdornment>
+                ),
+              }}
+            />
 
             {/* Manager/TL Filter Dropdown */}
             <TextField
@@ -853,7 +859,7 @@ export default function PerformanceUploadPage() {
 
 
 
-            
+
             <Stack
               direction="row"
               spacing={1}
@@ -906,7 +912,7 @@ export default function PerformanceUploadPage() {
         </Paper>
 
         <Grid container spacing={2}>
-        
+
           <Grid item xs={12} md={4}>
             <Paper
               sx={{
@@ -975,7 +981,7 @@ export default function PerformanceUploadPage() {
             </Paper>
           </Grid>
 
-   
+
           <Grid item xs={12} md={4}>
             <Paper
               sx={{
@@ -1113,7 +1119,7 @@ export default function PerformanceUploadPage() {
           </Grid>
         </Grid>
 
-    
+
         {(starPerformers.approval || starPerformers.disbursal) && (
           <Paper
             sx={{
@@ -1344,6 +1350,9 @@ export default function PerformanceUploadPage() {
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Disbursal (₹)
                     </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                      Drop (₹)
+                    </TableCell>
 
                     <TableCell align="center" sx={{ fontWeight: 800 }}>
                       Team Total
@@ -1358,217 +1367,233 @@ export default function PerformanceUploadPage() {
                   {sortedRows.map((r) => {
                     // Check if this employee has team totals (is a manager or TL)
                     const teamInfo = r.code ? teamTotals[r.code] : null;
-                    
+
                     return (
-                    <TableRow key={r._id} sx={{ background: rowBg(r) }}>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography
-                            sx={{ fontWeight: 700, color: '#6b21a8' }}
-                          >
-                            {r.employee_name || '-'}
+                      <TableRow key={r._id} sx={{ background: rowBg(r) }}>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography
+                              sx={{ fontWeight: 700, color: '#6b21a8' }}
+                            >
+                              {r.employee_name || '-'}
+                            </Typography>
+                            {teamInfo && (
+                              <Chip
+                                size="small"
+                                label={teamInfo.role === 'manager' ? 'Manager' : 'TL'}
+                                sx={{
+                                  bgcolor: teamInfo.role === 'manager' ? '#FEF3C7' : '#DBEAFE',
+                                  color: teamInfo.role === 'manager' ? '#92400E' : '#1E40AF',
+                                  fontWeight: 600,
+                                  fontSize: '0.65rem',
+                                  height: 20,
+                                }}
+                              />
+                            )}
+                          </Box>
+                          {r.employee_id && (
+                            <Typography
+                              variant="caption"
+                              sx={{ color: '#6b7280' }}
+                            >
+                              {r.employee_id}
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                            {r.code || '—'}
                           </Typography>
-                          {teamInfo && (
+                        </TableCell>
+
+                        <TableCell>
+                          {r.manager_tl ? (
                             <Chip
                               size="small"
-                              label={teamInfo.role === 'manager' ? 'Manager' : 'TL'}
+                              label={r.manager_tl}
                               sx={{
-                                bgcolor: teamInfo.role === 'manager' ? '#FEF3C7' : '#DBEAFE',
-                                color: teamInfo.role === 'manager' ? '#92400E' : '#1E40AF',
+                                bgcolor: '#F3E8FF',
                                 fontWeight: 600,
-                                fontSize: '0.65rem',
-                                height: 20,
+                                color: '#6b21a8',
                               }}
                             />
+                          ) : (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              —
+                            </Typography>
                           )}
-                        </Box>
-                        {r.employee_id && (
-                          <Typography
-                            variant="caption"
-                            sx={{ color: '#6b7280' }}
-                          >
-                            {r.employee_id}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ color: '#4b5563' }}>
-                          {r.code || '—'}
-                        </Typography>
-                      </TableCell>
-
-                      <TableCell>
-                        {r.manager_tl ? (
+                        </TableCell>
+                        <TableCell align="right">
                           <Chip
                             size="small"
-                            label={r.manager_tl}
+                            label={Number(r.login || 0)}
                             sx={{
-                              bgcolor: '#F3E8FF',
-                              fontWeight: 600,
-                              color: '#6b21a8',
+                              bgcolor: '#DCFCE7',
+                              fontWeight: 800,
+                              color: '#166534',
                             }}
                           />
-                        ) : (
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                          >
-                            —
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Chip
-                          size="small"
-                          label={Number(r.login || 0)}
-                          sx={{
-                            bgcolor: '#DCFCE7',
-                            fontWeight: 800,
-                            color: '#166534',
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Chip
-                          size="small"
-                          label={rupee(Number(r.approval || 0))}
-                          sx={{
-                            bgcolor: '#E0F2FE',
-                            fontWeight: 800,
-                            color: '#1d4ed8',
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Chip
-                          size="small"
-                          label={rupee(Number(r.disbursal || 0))}
-                          sx={{
-                            bgcolor: '#EDE9FE',
-                            fontWeight: 800,
-                            color: '#6d28d9',
-                          }}
-                        />
-                      </TableCell>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={rupee(Number(r.approval || 0))}
+                            sx={{
+                              bgcolor: '#E0F2FE',
+                              fontWeight: 800,
+                              color: '#1d4ed8',
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={rupee(Number(r.disbursal || 0))}
+                            sx={{
+                              bgcolor: '#EDE9FE',
+                              fontWeight: 800,
+                              color: '#6d28d9',
+                            }}
+                          />
+                        </TableCell>
 
-                      {/* Team Total Column */}
-                      <TableCell align="center">
-                        {teamInfo ? (
-                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-                            <Tooltip title={`${teamInfo.memberCount} team members`}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <GroupsIcon sx={{ fontSize: 16, color: '#6b7280' }} />
-                                <Typography variant="caption" sx={{ color: '#6b7280' }}>
-                                  {teamInfo.memberCount}
-                                </Typography>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={rupee(Number(r.drop || r.drop_amount || 0))}
+                            sx={{
+                              bgcolor: '#FFE4E6',
+                              fontWeight: 800,
+                              color: '#BE123C',
+                            }}
+                          />
+                        </TableCell>
+                        {/* Team Total Column */}
+                        <TableCell align="center">
+                          {teamInfo ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                              <Tooltip title={`${teamInfo.memberCount} team members`}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <GroupsIcon sx={{ fontSize: 16, color: '#6b7280' }} />
+                                  <Typography variant="caption" sx={{ color: '#6b7280' }}>
+                                    {teamInfo.memberCount}
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <Chip
+                                  size="small"
+                                  label={rupee(teamInfo.teamTotalApproval)}
+                                  sx={{
+                                    bgcolor: '#DCFCE7',
+                                    fontWeight: 700,
+                                    color: '#166534',
+                                    fontSize: '0.7rem',
+                                  }}
+                                />
+                                <Chip
+                                  size="small"
+                                  label={rupee(teamInfo.teamTotalDisbursal)}
+                                  sx={{
+                                    bgcolor: '#FCE7F3',
+                                    fontWeight: 700,
+                                    color: '#9D174D',
+                                    fontSize: '0.7rem',
+                                  }}
+                                />
                               </Box>
-                            </Tooltip>
-                            <Box sx={{ display: 'flex', gap: 0.5 }}>
-                              <Chip
-                                size="small"
-                                label={rupee(teamInfo.teamTotalApproval)}
-                                sx={{
-                                  bgcolor: '#DCFCE7',
-                                  fontWeight: 700,
-                                  color: '#166534',
-                                  fontSize: '0.7rem',
-                                }}
-                              />
-                              <Chip
-                                size="small"
-                                label={rupee(teamInfo.teamTotalDisbursal)}
-                                sx={{
-                                  bgcolor: '#FCE7F3',
-                                  fontWeight: 700,
-                                  color: '#9D174D',
-                                  fontSize: '0.7rem',
-                                }}
-                              />
+                              <Tooltip title="View Team Breakdown">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => fetchTeamBreakdown(r.code!)}
+                                  sx={{
+                                    bgcolor: '#EEF2FF',
+                                    '&:hover': { bgcolor: '#C7D2FE' },
+                                  }}
+                                >
+                                  <VisibilityIcon sx={{ fontSize: 16, color: '#4F46E5' }} />
+                                </IconButton>
+                              </Tooltip>
                             </Box>
-                            <Tooltip title="View Team Breakdown">
-                              <IconButton
-                                size="small"
-                                onClick={() => fetchTeamBreakdown(r.code!)}
-                                sx={{
-                                  bgcolor: '#EEF2FF',
-                                  '&:hover': { bgcolor: '#C7D2FE' },
-                                }}
-                              >
-                                <VisibilityIcon sx={{ fontSize: 16, color: '#4F46E5' }} />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">
-                            —
-                          </Typography>
-                        )}
-                      </TableCell>
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">
+                              —
+                            </Typography>
+                          )}
+                        </TableCell>
 
-                      <TableCell align="right">
-                        {isAdmin ? (
-                          <Stack
-                            direction="row"
-                            spacing={0.5}
-                            justifyContent="flex-end"
-                          >
-                            <Tooltip title="Edit row">
-                              <IconButton
-                                color="primary"
-                                size="small"
-                                onClick={() => {
-                                  setEditingId(r._id);
+                        <TableCell align="right">
+                          {isAdmin ? (
+                            <Stack
+                              direction="row"
+                              spacing={0.5}
+                              justifyContent="flex-end"
+                            >
+                              <Tooltip title="Edit row">
+                                <IconButton
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => {
+                                    setEditingId(r._id);
 
-                                  if (r.date) {
-                                    setDate(dayjs(r.date));
-                                  }
+                                    if (r.date) {
+                                      setDate(dayjs(r.date));
+                                    }
 
-                                  setForm({
-                                    employee_name: r.employee_name || '',
-                                    manager_tl: r.manager_tl || '',
-                                    total_logins: String(
-                                      r.login ?? r.total_logins ?? 0 || '',
-                                    ),
-                                    approval_lakh: r.approval
-                                      ? Number(
+                                    setForm({
+                                      employee_name: r.employee_name || '',
+                                      manager_tl: r.manager_tl || '',
+                                      total_logins: String(
+                                        r.login ?? r.total_logins ?? 0 || '',
+                                      ),
+                                      approval_lakh: r.approval
+                                        ? Number(
                                           r.approval,
                                         ).toLocaleString('en-IN')
-                                      : '',
-                                    disbursal_lakh: r.disbursal
-                                      ? Number(
+                                        : '',
+                                      disbursal_lakh: r.disbursal
+                                        ? Number(
                                           r.disbursal,
                                         ).toLocaleString('en-IN')
-                                      : '',
-                                    code: r.code || '',
-                                  });
-                                  setAmountUnit('rupees');
-                                  setFormOpen(true);
-                                }}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete row">
-                              <IconButton
-                                color="error"
-                                size="small"
-                                onClick={() => onDelete(r._id)}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Stack>
-                        ) : (
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                          >
-                            —
-                          </Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )})}
+                                        : '',
+                                      drop_lakh: r.drop
+                                        ? Number(r.drop).toLocaleString('en-IN')
+                                        : '',
+
+                                      code: r.code || '',
+                                    });
+                                    setAmountUnit('rupees');
+                                    setFormOpen(true);
+                                  }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete row">
+                                <IconButton
+                                  color="error"
+                                  size="small"
+                                  onClick={() => onDelete(r._id)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Stack>
+                          ) : (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              —
+                            </Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -1693,8 +1718,18 @@ export default function PerformanceUploadPage() {
                           <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 700 }}>Logins</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Approval</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Disbursal</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Approvals (₹)
+                          </TableCell>
+
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Disbursal (₹)
+                          </TableCell>
+
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Drop Amount (₹)
+                          </TableCell>
+
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -1717,6 +1752,7 @@ export default function PerformanceUploadPage() {
                                 sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700 }}
                               />
                             </TableCell>
+
                             <TableCell align="right">
                               <Chip
                                 size="small"
@@ -1731,6 +1767,18 @@ export default function PerformanceUploadPage() {
                                 sx={{ bgcolor: '#EDE9FE', color: '#6D28D9', fontWeight: 700 }}
                               />
                             </TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={rupee(Number(member.drop || 0))}
+                                sx={{
+                                  bgcolor: '#FFE4E6',
+                                  fontWeight: 800,
+                                  color: '#BE123C',
+                                }}
+                              />
+                            </TableCell>
+
                           </TableRow>
                         ))}
                       </TableBody>
@@ -1912,6 +1960,36 @@ export default function PerformanceUploadPage() {
                   size="medium"
                 />
               </Grid>
+              {/* Drop Amount */}
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label={
+                    amountUnit === 'rupees'
+                      ? 'Drop Amount (₹ in Rupees)'
+                      : 'Drop Amount (₹ in Lakhs)'
+                  }
+                  type="text"
+                  value={form.drop_lakh ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^[0-9,]*$/.test(val) || val === '') {
+                      setForm((prev) => ({ ...prev, drop_lakh: val }));
+                    }
+                  }}
+                  onBlur={() => {
+                    const raw = (form.drop_lakh || '').replace(/,/g, '');
+                    if (raw !== '' && !isNaN(Number(raw))) {
+                      setForm((prev) => ({
+                        ...prev,
+                        drop_lakh: Number(raw).toLocaleString('en-IN'),
+                      }));
+                    }
+                  }}
+                  fullWidth
+                  size="medium"
+                />
+              </Grid>
+
             </Grid>
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>

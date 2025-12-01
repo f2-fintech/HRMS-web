@@ -64,13 +64,13 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
 
   const [selectedEmployees, setSelectedEmployees] = useState<EmployeeType[]>([])
   const [tls, setTls] = useState<{ tl_id: string; employees: EmployeeType[] }[]>([])
-
   const [showTlSection, setShowTlSection] = useState(false)
+
   const { capitalizeInput } = utility()
 
-  // -------------------------------------------------------
-  // LOAD TEAM IN EDIT MODE
-  // -------------------------------------------------------
+  /* ------------------------------------------------------------------
+     LOAD TEAM IN EDIT MODE
+  ------------------------------------------------------------------ */
   useEffect(() => {
     if (team) {
       const selected = teams.find(t => t._id === team)
@@ -97,16 +97,15 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
             )
           }))
           setTls(tlArr)
+          setShowTlSection(true)
         }
-
-        setShowTlSection(true)
       }
     }
   }, [team, teams, employees])
 
-  // -------------------------------------------------------
-  // VALIDATION
-  // -------------------------------------------------------
+  /* ------------------------------------------------------------------
+     VALIDATION
+  ------------------------------------------------------------------ */
   const validateForm = () => {
     let isValid = true
 
@@ -121,17 +120,14 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
       newErrors.name = 'Team name is required'
       isValid = false
     }
-
     if (!formData.manager_id) {
       newErrors.manager_id = 'Manager selection is required'
       isValid = false
     }
-
     if (!formData.employee_ids) {
-      newErrors.employee_ids = 'At least one employee must be selected'
+      newErrors.employee_ids = 'Select at least one employee'
       isValid = false
     }
-
     if (!formData.code.trim()) {
       newErrors.code = 'Team code is required'
       isValid = false
@@ -141,61 +137,37 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
     return isValid
   }
 
-  // -------------------------------------------------------
-  // HANDLE CHANGES
-  // -------------------------------------------------------
+  /* ------------------------------------------------------------------
+     HANDLE CHANGES
+  ------------------------------------------------------------------ */
   const handleChange = e => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  // -------------------------------------------------------
-  // MANAGER SELECT
-  // -------------------------------------------------------
   const handleManagerChange = e => {
     handleChange(e)
   }
 
-  // -------------------------------------------------------
-  // HELPER: Check if designation is a Team Leader type
-  // -------------------------------------------------------
-  const isTeamLeaderDesignation = (designation?: string): boolean => {
-    if (!designation) return false
-    const d = designation.toLowerCase()
-    return (
-      d === 'team leader' ||
-      d === 'senior team leader' ||
-      d === 'asst. team leader' ||
-      d === 'assistant team leader' ||
-      d.includes('team leader') ||  // Catch any other TL variations
-      d.includes('manager')    // Catch Team Manager variations
-    )
-  }
-
-  // -------------------------------------------------------
-  // EMPLOYEES SELECTED → DETECT TLs & AUTO OPEN TL SECTION
-  // -------------------------------------------------------
+  /* ------------------------------------------------------------------
+     EMPLOYEES SELECT → UPDATE TEAM MEMBERS
+  ------------------------------------------------------------------ */
   const handleEmployeeChange = (_event, value: EmployeeType[]) => {
     const ids = value.map(emp => emp._id).join(',')
     setSelectedEmployees(value)
     setFormData(prev => ({ ...prev, employee_ids: ids }))
 
-    // Detect Team Leaders from selected employees
-    const detectedTLs = value
-      .filter(emp => isTeamLeaderDesignation(emp.designation))
-      .map(tl => ({
-        tl_id: tl._id,
-        // Preserve existing employee assignments if TL was already in the list
-        employees: tls.find(t => t.tl_id === tl._id)?.employees || []
-      }))
-
-    setTls(detectedTLs)
-    setShowTlSection(detectedTLs.length > 0)
+    /** ❌ Remove ALL previous TLs if they are no longer selected */
+    const filteredTLs = tls.filter(tl =>
+      value.some(v => v._id === tl.tl_id)
+    )
+    setTls(filteredTLs)
+    setShowTlSection(filteredTLs.length > 0)
   }
 
-  // -------------------------------------------------------
-  // SUBMIT TEAM
-  // -------------------------------------------------------
+  /* ------------------------------------------------------------------
+     SUBMIT TEAM
+  ------------------------------------------------------------------ */
   const handleSubmit = () => {
     if (!validateForm()) return
 
@@ -227,9 +199,9 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
       .catch(() => toast.error('Unexpected error'))
   }
 
-  // -------------------------------------------------------
-  // RETURN UI
-  // -------------------------------------------------------
+  /* ==================================================================
+     UI STARTS HERE
+  ================================================================== */
   return (
     <Box sx={{ flexGrow: 1, padding: 2 }}>
       <Box display="flex" justifyContent="space-between" mb={2}>
@@ -243,7 +215,7 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
 
       <Grid container spacing={3}>
 
-        {/* NAME */}
+        {/* TEAM NAME */}
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
@@ -307,6 +279,28 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
           />
         </Grid>
 
+        {/* NEW: MANUAL TL SELECTOR */}
+        {selectedEmployees.length > 0 && (
+          <Grid item xs={12}>
+            <Autocomplete
+              multiple
+              options={selectedEmployees}
+              getOptionLabel={op => `${op.first_name} ${op.last_name}`}
+              onChange={(e, val) => {
+                const newTLs = val.map(tl => ({
+                  tl_id: tl._id,
+                  employees: []
+                }))
+                setTls(newTLs)
+                setShowTlSection(newTLs.length > 0)
+              }}
+              renderInput={params => (
+                <TextField {...params} label="Select Team Leaders (TL)" />
+              )}
+            />
+          </Grid>
+        )}
+
         {/* TL SECTION */}
         <Grid item xs={12}>
           <Collapse in={showTlSection}>
@@ -314,15 +308,12 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
               Team Leaders & Assigned Employees
             </Typography>
 
-            <Typography variant="body2" color="text.secondary" mb={2}>
-              Assign team members to each Team Leader selected above.
-            </Typography>
-
             {tls.map((tl, index) => {
               const tlEmp = employees.find(e => e._id === tl.tl_id)
-              // Filter out all TLs from assignable employees (only non-TL team members)
+
+              /** Only non-TLs employees are assignable */
               const assignableEmployees = selectedEmployees.filter(
-                emp => !isTeamLeaderDesignation(emp.designation)
+                emp => !tls.some(t => t.tl_id === emp._id)
               )
 
               return (
@@ -341,14 +332,11 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
                     TL: {tlEmp?.first_name} {tlEmp?.last_name}
                   </Typography>
 
-                  {/* MULTIPLE EMPLOYEE SELECTION */}
                   <Autocomplete
                     multiple
                     options={assignableEmployees}
                     getOptionLabel={op => `${op.first_name} ${op.last_name}`}
-                    value={tl.employees.filter(emp => 
-                      assignableEmployees.some(ae => ae._id === emp._id)
-                    )}
+                    value={tl.employees}
                     onChange={(e, val) => {
                       const copy = [...tls]
                       copy[index].employees = val
@@ -358,7 +346,6 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
                       <TextField {...params} label="Employees under this TL" />
                     )}
                   />
-
                 </Paper>
               )
             })}
@@ -376,7 +363,6 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
             {team ? 'UPDATE TEAM' : 'ADD TEAM'}
           </Button>
         </Grid>
-
       </Grid>
     </Box>
   )
