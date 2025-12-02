@@ -34,7 +34,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
-
+import StarIcon from '@mui/icons-material/Star';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -161,6 +161,7 @@ export default function PerformanceUploadPage() {
   const [formSaving, setFormSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+
   const [form, setForm] = useState({
     employee_name: '',
     manager_tl: '',
@@ -168,6 +169,7 @@ export default function PerformanceUploadPage() {
     approval_lakh: '',
     disbursal_lakh: '',
     drop_lakh: '',
+    Cashback_lakh: '',
     code: '',
   });
 
@@ -262,6 +264,7 @@ export default function PerformanceUploadPage() {
         approval: Number(r.approval ?? r.approval_amount ?? 0),
         disbursal: Number(r.disbursal ?? r.disbursal_amount ?? 0),
         drop: Number(r.drop ?? r.drop_amount ?? 0),
+        cashback: Number(r.cashback ?? r.cashback_amount ?? 0),
         code:
           typeof r.code === 'string'
             ? r.code.trim()
@@ -388,6 +391,7 @@ export default function PerformanceUploadPage() {
       approval_lakh: '',
       disbursal_lakh: '',
       drop_lakh: '',
+      cashback_lakh: '',
       code: '',
     });
     setAmountUnit('rupees');
@@ -415,6 +419,7 @@ export default function PerformanceUploadPage() {
       const approvalNumber = sanitizeMoney(form.approval_lakh);
       const disbursalNumber = sanitizeMoney(form.disbursal_lakh);
       const dropNumber = sanitizeMoney(form.drop_lakh);
+      const cashbackNumber = sanitizeMoney(form.cashback_lakh);
 
 
       const multiplier = amountUnit === 'lakhs' ? 100000 : 1;
@@ -428,6 +433,8 @@ export default function PerformanceUploadPage() {
         approval_amount: Math.round(approvalNumber * multiplier),
         disbursal_amount: Math.round(disbursalNumber * multiplier),
         drop_amount: Math.round(dropNumber * multiplier),
+        cashback_amount: Math.round(cashbackNumber * multiplier),
+
         company_id: company_id || undefined,
       };
 
@@ -450,7 +457,7 @@ export default function PerformanceUploadPage() {
   };
 
   /* ------------ Totals ------------ */
-  const totals = useMemo(() => {
+const totals = useMemo(() => {
     const sum = (k: 'login' | 'approval' | 'disbursal') =>
       rows.reduce((a, r) => a + Number(r[k] || 0), 0);
 
@@ -484,6 +491,8 @@ export default function PerformanceUploadPage() {
 
     return { approval, disbursal };
   }, [rows]);
+
+
 
 
   const managerOptions = useMemo(() => {
@@ -545,6 +554,10 @@ export default function PerformanceUploadPage() {
   }, [filteredRows, sortConfig]);
 
 
+
+ 
+
+
   const rowBg = (r: Row) => {
     const hasAny =
       (Number(r.login) || 0) > 0 ||
@@ -555,6 +568,11 @@ export default function PerformanceUploadPage() {
       ? 'linear-gradient(90deg, rgba(34,197,94,0.08) 0%, transparent 100%)'
       : 'transparent';
   };
+  const showStar = (value: number) => {
+    return Number(value || 0) > 0;
+  };
+
+
 
   return (
     <Box
@@ -632,7 +650,7 @@ export default function PerformanceUploadPage() {
               </Box>
             </Box>
 
-
+           
             <Box
               sx={{
                 display: 'flex',
@@ -975,7 +993,8 @@ export default function PerformanceUploadPage() {
                     color: '#fff',
                   }}
                 >
-                  {totals.logins.toLocaleString('en-IN')}
+                   {totals.logins.toLocaleString('en-IN')}
+
                 </Typography>
               </Box>
             </Paper>
@@ -1045,6 +1064,7 @@ export default function PerformanceUploadPage() {
                   }}
                 >
                   {rupee(totals.approvals)}
+
                 </Typography>
               </Box>
             </Paper>
@@ -1113,6 +1133,7 @@ export default function PerformanceUploadPage() {
                   }}
                 >
                   {rupee(totals.disbursal)}
+
                 </Typography>
               </Box>
             </Paper>
@@ -1334,6 +1355,7 @@ export default function PerformanceUploadPage() {
                         'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)',
                     }}
                   >
+                    <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Employee</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Code</TableCell>
 
@@ -1353,6 +1375,9 @@ export default function PerformanceUploadPage() {
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Drop (₹)
                     </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                      Cashback (₹)
+                    </TableCell>
 
                     <TableCell align="center" sx={{ fontWeight: 800 }}>
                       Team Total
@@ -1371,12 +1396,31 @@ export default function PerformanceUploadPage() {
                     return (
                       <TableRow key={r._id} sx={{ background: rowBg(r) }}>
                         <TableCell>
+                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                            {r.date ? dayjs(r.date).format("DD-MM-YYYY") : '—'}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography
-                              sx={{ fontWeight: 700, color: '#6b21a8' }}
-                            >
+                            <Typography sx={{ fontWeight: 700, color: '#6b21a8' }}>
                               {r.employee_name || '-'}
                             </Typography>
+
+                            {showStar(r.drop) && (
+                              <Tooltip title={`Drop Amount: ${rupee(r.drop)}`} arrow>
+                                <span style={{ color: "#E11D48", fontSize: "16px", cursor: "pointer" }}>★</span>
+                              </Tooltip>
+                            )}
+
+                            {showStar(r.cashback) && (
+                              <Tooltip title={`Cashback Amount: ${rupee(r.cashback)}`} arrow>
+                                <span style={{ color: "#1D4ED8", fontSize: "16px", cursor: "pointer" }}>#
+
+                                </span>
+                              </Tooltip>
+                            )}
+
                             {teamInfo && (
                               <Chip
                                 size="small"
@@ -1391,15 +1435,14 @@ export default function PerformanceUploadPage() {
                               />
                             )}
                           </Box>
+
                           {r.employee_id && (
-                            <Typography
-                              variant="caption"
-                              sx={{ color: '#6b7280' }}
-                            >
+                            <Typography variant="caption" sx={{ color: '#6b7280' }}>
                               {r.employee_id}
                             </Typography>
                           )}
                         </TableCell>
+
                         <TableCell>
                           <Typography variant="body2" sx={{ color: '#4b5563' }}>
                             {r.code || '—'}
@@ -1470,6 +1513,18 @@ export default function PerformanceUploadPage() {
                               color: '#BE123C',
                             }}
                           />
+
+                        </TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={rupee(Number(r.cashback || r.cashback_amount || 0))}
+                            sx={{
+                              bgcolor: '#FFE4E6',
+                              fontWeight: 800,
+                              color: '#BE123C',
+                            }}
+                          />
                         </TableCell>
                         {/* Team Total Column */}
                         <TableCell align="center">
@@ -1526,6 +1581,7 @@ export default function PerformanceUploadPage() {
                         </TableCell>
 
                         <TableCell align="right">
+
                           {isAdmin ? (
                             <Stack
                               direction="row"
@@ -1561,6 +1617,9 @@ export default function PerformanceUploadPage() {
                                         : '',
                                       drop_lakh: r.drop
                                         ? Number(r.drop).toLocaleString('en-IN')
+                                        : '',
+                                      cashback_lakh: r.cashback
+                                        ? Number(r.cashback).toLocaleString('en-IN')
                                         : '',
 
                                       code: r.code || '',
@@ -1730,6 +1789,10 @@ export default function PerformanceUploadPage() {
                             Drop Amount (₹)
                           </TableCell>
 
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Cashback Amount (₹)
+                          </TableCell>
+
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -1771,6 +1834,17 @@ export default function PerformanceUploadPage() {
                               <Chip
                                 size="small"
                                 label={rupee(Number(member.drop || 0))}
+                                sx={{
+                                  bgcolor: '#FFE4E6',
+                                  fontWeight: 800,
+                                  color: '#BE123C',
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={rupee(Number(member.cashback || 0))}
                                 sx={{
                                   bgcolor: '#FFE4E6',
                                   fontWeight: 800,
@@ -1989,6 +2063,35 @@ export default function PerformanceUploadPage() {
                   size="medium"
                 />
               </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label={
+                    amountUnit === 'rupees'
+                      ? 'Cashback Amount (₹ in Rupees)'
+                      : 'Cashback Amount (₹ in Lakhs)'
+                  }
+                  type="text"
+                  value={form.cashback_lakh ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^[0-9,]*$/.test(val) || val === '') {
+                      setForm((prev) => ({ ...prev, cashback_lakh: val }));
+                    }
+                  }}
+                  onBlur={() => {
+                    const raw = (form.cashback_lakh || '').replace(/,/g, '');
+                    if (raw !== '' && !isNaN(Number(raw))) {
+                      setForm((prev) => ({
+                        ...prev,
+                        cashback_lakh: Number(raw).toLocaleString('en-IN'),
+                      }));
+                    }
+                  }}
+                  fullWidth
+                  size="medium"
+                />
+              </Grid>
+
 
             </Grid>
           </DialogContent>
