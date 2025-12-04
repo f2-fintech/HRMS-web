@@ -814,8 +814,6 @@ const PerformanceCard = ({
     mgrMorning.customerPhoneConnects ?? 0
   );
 
-
-
   const eveningManagerPhoneConnects = asNum(
     mgrEvening.customerPhoneConnectsDone ?? 0
   );
@@ -1511,8 +1509,15 @@ const PerformanceCard = ({
             {[
               {
                 label: 'Connected Calls',
-                morning: morningPhoneConnects,
-                evening: eveningPhoneConnects,
+                morning:
+                  role === "manager"
+                    ? morningManagerPhoneConnects
+                    : morningPhoneConnects,
+
+                evening:
+                  role === "manager"
+                    ? eveningManagerPhoneConnects
+                    : eveningPhoneConnects,
               },
               {
                 label: 'Login',
@@ -1700,6 +1705,21 @@ export default function PerformanceGrid() {
 
   const [mtdMap, setMtdMap] = useState<Record<string, MTD>>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // 🔥 Missing Uploads State (FULL)
+  const [totalEmployees, setTotalEmployees] = useState(0);
+  const [submittedCount, setSubmittedCount] = useState(0);
+  const [missingCount, setMissingCount] = useState(0);
+
+  const [missingList, setMissingList] = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]);
+
+  const [missingPage, setMissingPage] = useState(1);
+  const [missingLimit, setMissingLimit] = useState(10);
+  const [missingKeyword, setMissingKeyword] = useState("");
+  const [missingTotal, setMissingTotal] = useState(0);
+
+  const [missingLoading, setMissingLoading] = useState(false);
+  const [missingOpen, setMissingOpen] = useState(false);
 
 
   const [empPerf, setEmpPerf] = useState<
@@ -1745,9 +1765,9 @@ export default function PerformanceGrid() {
   const router = useRouter();
   const [uploading] = useState(false);
 
-const pickDate = selectedDate
-  ? dayjs(selectedDate).format("YYYY-MM-DD")
-  : dayjs().format("YYYY-MM-DD");
+  const pickDate = selectedDate
+    ? dayjs(selectedDate).format("YYYY-MM-DD")
+    : dayjs().format("YYYY-MM-DD");
 
   useEffect(() => {
     const user =
@@ -2122,7 +2142,7 @@ const pickDate = selectedDate
         });
 
         const data = res.data || {};
-        
+
         // Map backend response to frontend expected format
         const mapped: TeamTotalsMap = {};
         Object.entries(data).forEach(([code, val]: [string, any]) => {
@@ -2138,7 +2158,7 @@ const pickDate = selectedDate
             };
           }
         });
-        
+
         setTeamTotals(mapped);
       } catch (e) {
         console.error('Failed to fetch team totals:', e);
@@ -2188,9 +2208,9 @@ const pickDate = selectedDate
       });
 
       const data = res.data || {};
-      
+
       // Map backend response to frontend format
-      
+
       const employeeName = data.employee?.name || code;
       const members: TeamBreakdownMember[] = (data.memberBreakdown || []).map((m: any) => ({
         code: m.code || '',
@@ -2199,9 +2219,9 @@ const pickDate = selectedDate
         approval_amount: m.approval || 0,
         disbursal_amount: m.disbursal || 0,
       }));
-      
+
       const totals = data.totals || {};
-      
+
       setTeamBreakdown({
         code: data.employee?.code || code,
         employeeName: employeeName,
@@ -2220,8 +2240,43 @@ const pickDate = selectedDate
       setTeamBreakdownLoading(false);
     }
   };
+  const fetchMissing = async (kw = "") => {
+    try {
+      setMissingLoading(true);
 
-  
+      const res = await api.get("/performance/missing/list", {
+        params: { date: pickDate, keyword: kw }
+      });
+
+      console.log("🔥 FULL RESPONSE:", res.data);
+
+      setTotalEmployees(res.data.totalEmployees);
+      setSubmittedCount(res.data.submittedCount);
+      setMissingCount(res.data.missingCount);
+
+      setMissingList(res.data.missingEmployees || []);
+
+      setMissingOpen(true);
+
+    } catch (err) {
+      console.error("🚨 Missing fetch error:", err);
+      setMissingList([]);
+      setMissingOpen(true);
+    } finally {
+      setMissingLoading(false);
+    }
+  };
+
+
+
+
+
+
+
+  useEffect(() => {
+    console.log("Updated Missing List:", missingList);
+  }, [missingList]);
+
 
   // 🔹 logged-in user ka Excel summary (sirf uska code)
   const myCodeSummary: CodeSummaryRow | undefined = useMemo(() => {
@@ -2242,6 +2297,7 @@ const pickDate = selectedDate
       if (selectedTeamId) params.team_id = selectedTeamId;
 
       const res = await api.get('/performance/list', { params });
+      console.log(res, "res is:::::")
       let { data, total } = res.data || { data: [], total: 0 };
 
       if (
@@ -2260,10 +2316,10 @@ const pickDate = selectedDate
         data = flat;
       }
 
-   data = (data || []).filter((d: any) => {
-  const rowDate = dayjs(d?.date).format("YYYY-MM-DD");
-  return rowDate === pickDate;
-});
+      data = (data || []).filter((d: any) => {
+        const rowDate = dayjs(d?.date).format("YYYY-MM-DD");
+        return rowDate === pickDate;
+      });
 
 
       const needle = searchName.trim().toLowerCase();
@@ -2494,7 +2550,7 @@ const pickDate = selectedDate
           >
             <Stack
               direction="row"
-              spacing={1}
+              spacing={0.5}
               sx={{ flexWrap: 'nowrap', alignItems: 'center' }}
             >
               <Button
@@ -2510,6 +2566,24 @@ const pickDate = selectedDate
               >
                 View Performance
               </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<BlockIcon />}
+                onClick={fetchMissing}
+                size="small"
+                sx={{
+                  px: 1.2,
+                  minWidth: "auto",
+                  borderRadius: 1,
+                  fontWeight: 600,
+                  textTransform: "none",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                Missing Upload
+              </Button>
+
 
               {String(userRole) !== '1' && (
                 <Button
@@ -2602,7 +2676,7 @@ const pickDate = selectedDate
               />
             </Grid>
           )}
-          
+
           {/* Manager/TL Filter Dropdown - visible to Admin only */}
           {userRole === '1' && managerTlList.length > 0 && (
             <Grid item xs={12} md={4}>
@@ -2643,7 +2717,7 @@ const pickDate = selectedDate
               </TextField>
             </Grid>
           )}
-          
+
           <Grid item xs={false} md />
         </Grid>
       </Paper>
@@ -2915,7 +2989,7 @@ const pickDate = selectedDate
       >
         <DialogTitle
           sx={{
-            background:  'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)',
+            background: 'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)',
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
@@ -2927,7 +3001,7 @@ const pickDate = selectedDate
             <Typography variant="h6" sx={{ fontWeight: 800 }}>
               🏆 Team Performance Breakdown
             </Typography>
-            <Typography variant="body1" sx={{ opacity:1,marginLeft:6 }}>
+            <Typography variant="body1" sx={{ opacity: 1, marginLeft: 6 }}>
               {teamBreakdown?.employeeName || teamBreakdown?.code || 'Team'}
             </Typography>
           </Box>
@@ -2960,10 +3034,10 @@ const pickDate = selectedDate
                     }}
                   >
                     <PeopleIcon sx={{ fontSize: 32, mb: 1 }} />
-                    <Typography variant="h4" sx={{ fontWeight: 800,color:"#fff" }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: "#fff" }}>
                       {teamBreakdown.totals.logins}
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9 ,color:"black" }}>
+                    <Typography variant="body2" sx={{ opacity: 0.9, color: "black" }}>
                       Total Team Logins
                     </Typography>
                   </Paper>
@@ -2973,16 +3047,16 @@ const pickDate = selectedDate
                     sx={{
                       p: 2,
                       borderRadius: 2,
-                    background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                      background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
                       color: '#fff',
                       textAlign: 'center',
                     }}
                   >
                     <AccountBalanceWalletIcon sx={{ fontSize: 32, mb: 1 }} />
-                    <Typography variant="h4" sx={{ fontWeight: 800 ,color:"#fff" }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: "#fff" }}>
                       {rupee(teamBreakdown.totals.approval)}
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9,color:"black"  }}>
+                    <Typography variant="body2" sx={{ opacity: 0.9, color: "black" }}>
                       Total Team Approval
                     </Typography>
                   </Paper>
@@ -2992,17 +3066,17 @@ const pickDate = selectedDate
                     sx={{
                       p: 2,
                       borderRadius: 2,
-background: 'linear-gradient(135deg, #FDE047 0%, #FACC15 100%)',
-                      
+                      background: 'linear-gradient(135deg, #FDE047 0%, #FACC15 100%)',
+
                       color: '#fff',
                       textAlign: 'center',
                     }}
                   >
                     <PaymentsIcon sx={{ fontSize: 32, mb: 1 }} />
-                    <Typography variant="h4" sx={{ fontWeight: 800 ,color:"#fff" }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: "#fff" }}>
                       {rupee(teamBreakdown.totals.disbursal)}
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9,color:"black"  }}>
+                    <Typography variant="body2" sx={{ opacity: 0.9, color: "black" }}>
                       Total Team Disbursal
                     </Typography>
                   </Paper>
@@ -3068,6 +3142,49 @@ background: 'linear-gradient(135deg, #FDE047 0%, #FACC15 100%)',
           )}
         </DialogContent>
       </Dialog>
+      <Dialog
+        key={missingList.length}
+        open={missingOpen}
+        onClose={() => setMissingOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Missing Performance – {pickDate}</DialogTitle>
+
+        <DialogContent dividers>
+          {missingLoading ? (
+            <Typography>Loading...</Typography>
+          ) : missingList.length === 0 ? (
+            <Typography color="success.main">
+              All employees submitted performance 🎉
+            </Typography>
+          ) : (
+            <>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                ❌ Missing Employees ({missingCount})
+              </Typography>
+
+              <Stack spacing={1}>
+                {missingList.map((emp) => (
+                  <Paper
+                    key={emp.id}
+                    sx={{ p: 1.5, borderRadius: 2, border: "1px solid #ddd" }}
+                  >
+                    <Typography fontWeight={700}>{emp.name}</Typography>
+                    <Typography variant="caption">
+                      Code: {emp.code} • {emp.designation}
+                    </Typography>
+                  </Paper>
+                ))}
+              </Stack>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+
+
+
     </Box>
   );
 }
