@@ -1246,9 +1246,6 @@ const PerformanceCard = ({
         </>
       )}
 
-
-
-
       <Box sx={{ mt: 2 }}>
         <Paper
           variant="outlined"
@@ -1705,20 +1702,16 @@ export default function PerformanceGrid() {
 
   const [mtdMap, setMtdMap] = useState<Record<string, MTD>>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  // 🔥 Missing Uploads State (FULL)
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [submittedCount, setSubmittedCount] = useState(0);
   const [missingCount, setMissingCount] = useState(0);
 
   const [missingList, setMissingList] = useState([]);
-  const [allEmployees, setAllEmployees] = useState([]);
 
-  const [missingPage, setMissingPage] = useState(1);
-  const [missingLimit, setMissingLimit] = useState(10);
-  const [missingKeyword, setMissingKeyword] = useState("");
-  const [missingTotal, setMissingTotal] = useState(0);
 
   const [missingLoading, setMissingLoading] = useState(false);
+  const [missingSearch, setMissingSearch] = useState("");
+
   const [missingOpen, setMissingOpen] = useState(false);
 
 
@@ -1734,8 +1727,6 @@ export default function PerformanceGrid() {
       }
     >
   >({});
-
-  // 🔹 Code summary (Excel) + map
   const [codeSummary, setCodeSummary] = useState<CodeSummaryRow[]>([]);
   const [codeSummaryLoading, setCodeSummaryLoading] = useState(false);
 
@@ -1743,7 +1734,7 @@ export default function PerformanceGrid() {
     Record<string, CodeSummaryRow>
   >({});
 
-  // 🔹 Team Totals (for Managers/TLs from Excel data)
+  
   const [teamTotals, setTeamTotals] = useState<TeamTotalsMap>({});
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [teamBreakdown, setTeamBreakdown] = useState<{
@@ -2245,15 +2236,29 @@ export default function PerformanceGrid() {
       setMissingLoading(true);
 
       const res = await api.get("/performance/missing/list", {
-        params: { date: pickDate, keyword: kw }
+        params: {
+          date: pickDate,
+          keyword: kw
+        }
       });
 
       console.log("🔥 FULL RESPONSE:", res.data);
 
+      // ⭐ Log Morning / Evening Status for each employee
+      console.log("===== MISSING EMPLOYEES DETAIL =====");
+      (res.data.missingEmployees || []).forEach(emp => {
+        console.log(
+          `👤 ${emp.name} | Code: ${emp.code} | Morning: ${emp.filledMorning ? "✔️" : "❌"} | Evening: ${emp.filledEvening ? "✔️" : "❌"}`
+        );
+      });
+      console.log("====================================");
+
+      // Update counts
       setTotalEmployees(res.data.totalEmployees);
       setSubmittedCount(res.data.submittedCount);
       setMissingCount(res.data.missingCount);
 
+      // ⭐ Correct missing list key
       setMissingList(res.data.missingEmployees || []);
 
       setMissingOpen(true);
@@ -2266,6 +2271,7 @@ export default function PerformanceGrid() {
       setMissingLoading(false);
     }
   };
+
 
 
 
@@ -3142,46 +3148,81 @@ export default function PerformanceGrid() {
           )}
         </DialogContent>
       </Dialog>
-      <Dialog
-        key={missingList.length}
-        open={missingOpen}
-        onClose={() => setMissingOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Missing Performance – {pickDate}</DialogTitle>
+<Dialog
+  key={missingList.length}
+  open={missingOpen}
+  onClose={() => setMissingOpen(false)}
+  maxWidth="sm"
+  fullWidth
+>
+  <DialogTitle>
+    Missing Performance – {pickDate}
+  </DialogTitle>
 
-        <DialogContent dividers>
-          {missingLoading ? (
-            <Typography>Loading...</Typography>
-          ) : missingList.length === 0 ? (
-            <Typography color="success.main">
-              All employees submitted performance 🎉
-            </Typography>
-          ) : (
-            <>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                ❌ Missing Employees ({missingCount})
+  <DialogContent dividers>
+
+    {/* 🔍 Search Box */}
+    <TextField
+      size="small"
+      fullWidth
+      placeholder="Search employee..."
+      value={missingSearch}
+      onChange={(e) => {
+        setMissingSearch(e.target.value);
+        fetchMissing(e.target.value);
+      }}
+      sx={{ mb: 2 }}
+    />
+
+    {/* ❌ Loading हटाया गया */}
+
+    {!missingList || missingList.length === 0 ? (
+      <Typography color="success.main">
+        All employees submitted performance 🎉
+      </Typography>
+    ) : (
+      <>
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          ❌ Missing Evening Employees ({missingCount}) || Submitted Morning Employees ({submittedCount})
+        </Typography>
+
+        <Stack spacing={1.5}>
+          {missingList.map((emp) => (
+            <Paper
+              key={emp.id}
+              sx={{
+                p: 1.5,
+                borderRadius: 2,
+                border: "1px solid #ddd",
+              }}
+            >
+              <Typography fontWeight={700}>{emp.name}</Typography>
+              <Typography variant="caption">
+                Code: {emp.code} • {emp.designation}
               </Typography>
 
-              <Stack spacing={1}>
-                {missingList.map((emp) => (
-                  <Paper
-                    key={emp.id}
-                    sx={{ p: 1.5, borderRadius: 2, border: "1px solid #ddd" }}
-                  >
-                    <Typography fontWeight={700}>{emp.name}</Typography>
-                    <Typography variant="caption">
-                      Code: {emp.code} • {emp.designation}
-                    </Typography>
-                  </Paper>
-                ))}
-              </Stack>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <Chip
+                  label={emp.filledMorning ? "Morning ✓" : "Morning ✗"}
+                  size="small"
+                  color={emp.filledMorning ? "success" : "error"}
+                  variant={emp.filledMorning ? "outlined" : "filled"}
+                />
 
+                <Chip
+                  label={emp.filledEvening ? "Evening ✓" : "Evening ✗"}
+                  size="small"
+                  color={emp.filledEvening ? "success" : "error"}
+                  variant={emp.filledEvening ? "outlined" : "filled"}
+                />
+              </Stack>
+            </Paper>
+          ))}
+        </Stack>
+      </>
+    )}
+  </DialogContent>
+</Dialog>
 
 
 
