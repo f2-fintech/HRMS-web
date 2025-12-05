@@ -1734,7 +1734,7 @@ export default function PerformanceGrid() {
     Record<string, CodeSummaryRow>
   >({});
 
-  
+
   const [teamTotals, setTeamTotals] = useState<TeamTotalsMap>({});
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [teamBreakdown, setTeamBreakdown] = useState<{
@@ -3148,81 +3148,105 @@ export default function PerformanceGrid() {
           )}
         </DialogContent>
       </Dialog>
-<Dialog
-  key={missingList.length}
-  open={missingOpen}
-  onClose={() => setMissingOpen(false)}
-  maxWidth="sm"
-  fullWidth
->
-  <DialogTitle>
-    Missing Performance – {pickDate}
-  </DialogTitle>
+      <Dialog
+        key={missingList.length}
+        open={missingOpen}
+        onClose={() => setMissingOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Missing Performance – {pickDate}
+        </DialogTitle>
 
-  <DialogContent dividers>
+        <DialogContent dividers>
 
-    {/* 🔍 Search Box */}
-    <TextField
-      size="small"
-      fullWidth
-      placeholder="Search employee..."
-      value={missingSearch}
-      onChange={(e) => {
-        setMissingSearch(e.target.value);
-        fetchMissing(e.target.value);
-      }}
-      sx={{ mb: 2 }}
-    />
+          {/* 🔍 Search Box */}
+          <TextField
+            size="small"
+            fullWidth
+            placeholder="Search employee..."
+            value={missingSearch}
+            onChange={(e) => {
+              setMissingSearch(e.target.value);
+              fetchMissing(e.target.value);
+            }}
+            sx={{ mb: 2 }}
+          />
 
-    {/* ❌ Loading हटाया गया */}
+         
+          {(() => {
+            const allowedDesignations = [
+              "Relationship Executive",
+              "Asst. Team Leader",
+              "Team Leader",
+              "Branch Manager",
+              "Manager",
+              "Senior Team Leader",
+              "Sales Manager",
+              "Relationship Manager",
+              "Growth Manager",
+              "Assistant Growth Manager"
+            ];
 
-    {!missingList || missingList.length === 0 ? (
-      <Typography color="success.main">
-        All employees submitted performance 🎉
-      </Typography>
-    ) : (
-      <>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          ❌ Missing Evening Employees ({missingCount}) || Submitted Morning Employees ({submittedCount})
-        </Typography>
+            // Filter employees here inside dialog
+            const filteredList = missingList?.filter(emp =>
+              allowedDesignations.includes(emp.designation)
+            );
 
-        <Stack spacing={1.5}>
-          {missingList.map((emp) => (
-            <Paper
-              key={emp.id}
-              sx={{
-                p: 1.5,
-                borderRadius: 2,
-                border: "1px solid #ddd",
-              }}
-            >
-              <Typography fontWeight={700}>{emp.name}</Typography>
-              <Typography variant="caption">
-                Code: {emp.code} • {emp.designation}
-              </Typography>
+            // Show message if empty
+            if (!filteredList || filteredList.length === 0) {
+              return (
+                <Typography color="success.main">
+                  All employees submitted performance 🎉
+                </Typography>
+              );
+            }
 
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                <Chip
-                  label={emp.filledMorning ? "Morning ✓" : "Morning ✗"}
-                  size="small"
-                  color={emp.filledMorning ? "success" : "error"}
-                  variant={emp.filledMorning ? "outlined" : "filled"}
-                />
+            return (
+              <>
+                <Typography variant="h6" sx={{ mb: 1 }}>
+                  ❌ Missing Evening Employees ({filteredList.length}) || Submitted Morning Employees ({submittedCount})
+                </Typography>
 
-                <Chip
-                  label={emp.filledEvening ? "Evening ✓" : "Evening ✗"}
-                  size="small"
-                  color={emp.filledEvening ? "success" : "error"}
-                  variant={emp.filledEvening ? "outlined" : "filled"}
-                />
-              </Stack>
-            </Paper>
-          ))}
-        </Stack>
-      </>
-    )}
-  </DialogContent>
-</Dialog>
+                <Stack spacing={1.5}>
+                  {filteredList.map((emp) => (
+                    <Paper
+                      key={emp.id}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        border: "1px solid #ddd",
+                      }}
+                    >
+                      <Typography fontWeight={700}>{emp.name}</Typography>
+                      <Typography variant="caption">
+                        Code: {emp.code} • {emp.designation}
+                      </Typography>
+
+                      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                        <Chip
+                          label={emp.filledMorning ? "Morning ✓" : "Morning ✗"}
+                          size="small"
+                          color={emp.filledMorning ? "success" : "error"}
+                          variant={emp.filledMorning ? "outlined" : "filled"}
+                        />
+
+                        <Chip
+                          label={emp.filledEvening ? "Evening ✓" : "Evening ✗"}
+                          size="small"
+                          color={emp.filledEvening ? "success" : "error"}
+                          variant={emp.filledEvening ? "outlined" : "filled"}
+                        />
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Stack>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
 
 
