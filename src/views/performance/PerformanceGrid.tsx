@@ -3186,15 +3186,15 @@ export default function PerformanceGrid() {
               "Sales Manager",
               "Relationship Manager",
               "Growth Manager",
-              "Assistant Growth Manager"
+              "Assistant Growth Manager",
+              
             ];
 
-            // Filter employees here inside dialog
+          
             const filteredList = missingList?.filter(emp =>
               allowedDesignations.includes(emp.designation)
             );
-
-            // Show message if empty
+        
             if (!filteredList || filteredList.length === 0) {
               return (
                 <Typography color="success.main">
