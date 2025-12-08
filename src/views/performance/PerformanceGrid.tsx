@@ -2231,52 +2231,80 @@ export default function PerformanceGrid() {
       setTeamBreakdownLoading(false);
     }
   };
-  const fetchMissing = async (kw = "") => {
+  const fetchTodayLeaves = async () => {
     try {
-      setMissingLoading(true);
+      console.log("🔥 Fetching Today's Leaves...");
 
-      const res = await api.get("/performance/missing/list", {
-        params: {
-          date: pickDate,
-          keyword: kw
+      // ⭐ FIX — company_id FE se load kiya
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const company_id = localStorage.getItem("company_id") || user.company_id || "";
+
+      const url = `${process.env.NEXT_PUBLIC_APP_URL}/attendence/today-leaves?company_id=${company_id}`;
+
+
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "x-company-id": company_id
         }
       });
 
-      console.log("🔥 FULL RESPONSE:", res.data);
+      const data = await response.json();
 
-      // ⭐ Log Morning / Evening Status for each employee
-      console.log("===== MISSING EMPLOYEES DETAIL =====");
-      (res.data.missingEmployees || []).forEach(emp => {
-        console.log(
-          `👤 ${emp.name} | Code: ${emp.code} | Morning: ${emp.filledMorning ? "✔️" : "❌"} | Evening: ${emp.filledEvening ? "✔️" : "❌"}`
-        );
-      });
-      console.log("====================================");
 
-      // Update counts
-      setTotalEmployees(res.data.totalEmployees);
-      setSubmittedCount(res.data.submittedCount);
-      setMissingCount(res.data.missingCount);
-
-      // ⭐ Correct missing list key
-      setMissingList(res.data.missingEmployees || []);
-
-      setMissingOpen(true);
+      return (data.employees || []).map((item) =>
+        String(item?.employee?.code || "")
+          .trim()
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .toLowerCase()
+      );
 
     } catch (err) {
-      console.error("🚨 Missing fetch error:", err);
-      setMissingList([]);
-      setMissingOpen(true);
-    } finally {
-      setMissingLoading(false);
+      console.error("❌ Error in fetchTodayLeaves:", err);
+      return [];
     }
   };
 
 
 
+  const fetchMissing = async (kw = "") => {
+    try {
+
+      setMissingLoading(true);
 
 
+      const res = await api.get("/performance/missing/list", {
+        params: { date: pickDate, keyword: kw }
+      });
 
+      const missing = res.data.missingEmployees || [];
+
+
+      const submitted = res.data.submittedCount || 0;
+      setSubmittedCount(submitted);
+      const leaveCodes = await fetchTodayLeaves();
+
+
+      const finalList = missing.filter((emp) => {
+        const cleanCode = String(emp.code || "")
+          .trim()
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .toLowerCase();
+
+        return !leaveCodes.includes(cleanCode);
+      });
+
+      setMissingList(finalList);
+      setMissingCount(finalList.length);
+      setMissingOpen(true);
+
+    } catch (err) {
+      console.error("❌ Missing fetch error:", err);
+    } finally {
+      setMissingLoading(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -3174,7 +3202,7 @@ export default function PerformanceGrid() {
             sx={{ mb: 2 }}
           />
 
-         
+
           {(() => {
             const allowedDesignations = [
               "Relationship Executive",
@@ -3187,14 +3215,14 @@ export default function PerformanceGrid() {
               "Relationship Manager",
               "Growth Manager",
               "Assistant Growth Manager",
-              
+
             ];
 
-          
+
             const filteredList = missingList?.filter(emp =>
               allowedDesignations.includes(emp.designation)
             );
-        
+
             if (!filteredList || filteredList.length === 0) {
               return (
                 <Typography color="success.main">
