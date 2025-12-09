@@ -60,8 +60,28 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const loading = useSelector((state: RootState) => state.punches.loading)
     const error = useSelector((state: RootState) => state.punches.error)
     const [userData, setUserData] = useState(null)
+    const [isMobileDevice, setIsMobileDevice] = useState(false);
 
     const { settings } = useSettings()
+
+    const detectMobileDevice = () => {
+        if (typeof window === 'undefined') return false;
+
+        const isFinePointer = window.matchMedia('(pointer: fine)').matches;
+        const isLargeScreen = window.innerWidth >= 1024;
+
+      
+        if (isFinePointer && isLargeScreen) return false;
+
+        return true; 
+    };
+
+    useEffect(() => {
+        const checkDevice = () => setIsMobileDevice(detectMobileDevice());
+        checkDevice();
+        window.addEventListener('resize', checkDevice);
+        return () => window.removeEventListener('resize', checkDevice);
+    }, []);
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -218,6 +238,11 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchIn = async () => {
+        if (isMobileDevice) {
+            alert('🚫 PUNCH IN BLOCKED\n\nPunch In is allowed only from Laptop/Desktop.\nPlease use a computer.');
+            return;
+        }
+
         const now = new Date()
 
         const startTime = now.toLocaleTimeString('en-US', {
@@ -246,13 +271,17 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         })
 
         // Dispatch the punch action
-        await dispatch(addPunch(punchData)).unwrap()
+        await dispatch(addPunch(punchData)).unwrap();
 
         // Start the punch-in timer
         startPunchInTimer(now.getTime())
     }
 
     const handlePunchOut = async () => {
+        if (isMobileDevice) {
+            alert('🚫 PUNCH OUT BLOCKED\n\nPunch Out is allowed only on Laptop/Desktop.');
+            return;
+        }
         const now = new Date()
 
         const endTime = now.toLocaleTimeString('en-US', {
@@ -404,14 +433,15 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     <div className="text-center">
                         <button
                             onClick={handlePunchIn}
-                            disabled={(!isButtonEnabledOnPhone && isSmallScreen) || punchState.isPunchInDisabled || disablePunch}
-                            className={`mb-2 px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${(!isButtonEnabledOnPhone && isSmallScreen) || punchState.isPunchInDisabled || disablePunch
+                            disabled={isMobileDevice || punchState.isPunchInDisabled || disablePunch}
+                            className={`mb-2 px-4 py-2 rounded-lg ${isMobileDevice || punchState.isPunchInDisabled
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-green-500 hover:bg-green-600 text-white'
                                 }`}
                         >
                             Punch In
                         </button>
+
                         {punchState.startTime && (
                             <div className="text-sm text-white">
                                 {punchState.startTime}
@@ -428,14 +458,15 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     <div className="text-center">
                         <button
                             onClick={handlePunchOut}
-                            disabled={(!isButtonEnabledOnPhone && isSmallScreen) || punchState.isPunchOutDisabled || disablePunch}
-                            className={`mb-2 px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${(!isButtonEnabledOnPhone && isSmallScreen) || punchState.isPunchOutDisabled || disablePunch
+                            disabled={isMobileDevice || punchState.isPunchOutDisabled || disablePunch}
+                            className={`mb-2 px-4 py-2 rounded-lg ${isMobileDevice || punchState.isPunchOutDisabled
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-red-500 hover:bg-red-600 text-white'
                                 }`}
                         >
                             Punch Out
                         </button>
+
                         {punchState.endTime && (
                             <div className="text-sm text-white">
                                 {punchState.endTime}
