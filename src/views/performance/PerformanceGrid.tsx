@@ -2600,6 +2600,7 @@ export default function PerformanceGrid() {
               >
                 View Performance
               </Button>
+               {String(userRole) == '1' && (
               <Button
                 variant="outlined"
                 color="error"
@@ -2616,10 +2617,10 @@ export default function PerformanceGrid() {
                 }}
               >
                 Missing Upload
-              </Button>
+              </Button>)}
 
 
-              {String(userRole) !== '1' && (
+              {/* {String(userRole) == '1' && (
                 <Button
                   variant="contained"
                   color="warning"
@@ -2639,7 +2640,7 @@ export default function PerformanceGrid() {
                 >
                   Add Performance
                 </Button>
-              )}
+              )} */}
 
               {['2', '3'].includes(String(userRole)) && (
                 <Button
@@ -3211,9 +3212,9 @@ export default function PerformanceGrid() {
               "Team Leader",
               "Branch Manager",
               "Area Head",
-              "Channel Partner",
               "Manager",
               "Senior Team Leader",
+              "Channel Partnership & Operations Executive",
               "Sales Manager",
               "Relationship Manager",
               "Financial Sales Intern",
