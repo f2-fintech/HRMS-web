@@ -71,7 +71,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     // Check if user is whitelisted
     const isWhitelistedUser = WHITELIST_EMPLOYEE_IDS.includes(employeeId);
 
-    // Enhanced mobile detection function
+    // Enhanced mobile detection function - detects even with Desktop Mode enabled
     const detectMobileDevice = () => {
         if (typeof navigator === "undefined" || typeof window === "undefined") return false;
 
@@ -80,17 +80,64 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         const ua = navigator.userAgent.toLowerCase();
 
-        // Check for mobile user agents
-        const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(ua);
+        // Check for mobile user agents (including when desktop mode is on)
+        const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
         
-        // Check for touch device
-        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        // Check for tablet specifically
+        const isTablet = /ipad|tablet|playbook|silk/i.test(ua) || 
+                        (ua.includes('android') && !ua.includes('mobile'));
         
-        // Check screen size (mobile typically < 768px)
-        const isSmallScreen = window.innerWidth < 768;
+        // Check for touch device (most reliable for mobile even in desktop mode)
+        const isTouchDevice = ('ontouchstart' in window) || 
+                             (navigator.maxTouchPoints > 0) || 
+                             (navigator.msMaxTouchPoints > 0);
+        
+        // Check for mobile platform
+        const isMobilePlatform = /android|iphone|ipad|ipod|windows phone/i.test(navigator.platform || '');
+        
+        // Check vendor for iOS devices
+        const isAppleDevice = /apple/i.test(navigator.vendor || '');
+        const isIOSDevice = isAppleDevice && isTouchDevice;
+        
+        // Screen characteristics (physical screen, not viewport)
+        const screenWidth = window.screen.width;
+        const screenHeight = window.screen.height;
+        const smallPhysicalScreen = Math.min(screenWidth, screenHeight) <= 768;
+        
+        // Device memory (mobile devices typically have less memory)
+        const lowMemoryDevice = (navigator as any).deviceMemory ? (navigator as any).deviceMemory <= 4 : false;
+        
+        // Check for mobile network connection
+        const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+        const isMobileConnection = connection?.type ? /cellular|wimax/i.test(connection.type) : false;
 
-        // Consider it mobile if it matches user agent OR (is touch device AND small screen)
-        return isMobileUA || (isTouchDevice && isSmallScreen);
+        // CRITICAL: If it's a touch device with small physical screen, it's definitely mobile
+        // This catches desktop mode on mobile browsers
+        if (isTouchDevice && smallPhysicalScreen) {
+            return true;
+        }
+
+        // If iOS device detected, always consider it mobile
+        if (isIOSDevice) {
+            return true;
+        }
+
+        // If Android or mobile UA detected
+        if (isMobileUA || isTablet) {
+            return true;
+        }
+
+        // If mobile platform detected
+        if (isMobilePlatform) {
+            return true;
+        }
+
+        // Additional checks: touch device + (low memory OR mobile connection)
+        if (isTouchDevice && (lowMemoryDevice || isMobileConnection)) {
+            return true;
+        }
+
+        return false;
     };
 
     // Detect mobile device on mount and when employeeId changes
@@ -264,7 +311,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const handlePunchIn = async () => {
         // Mobile device check - block if not whitelisted
         if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Please use a Laptop or Desktop computer.');
+            alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Please use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
             return;
         }
 
