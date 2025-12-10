@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-
 import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
 import {
     addPunch,
@@ -23,6 +22,7 @@ interface PunchInOutProps {
 const WHITELIST_EMPLOYEE_IDS = [
     '66bca8d72f1270380b77ab12',
     '66bca6192f1270380b77aac5',
+    '66c881fe269ecefff3411649',
 ];
 
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
@@ -68,7 +68,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const { settings } = useSettings()
 
-   
+
     const isWhitelistedUser = WHITELIST_EMPLOYEE_IDS.includes(employeeId);
 
     const detectMobileDevice = () => {
@@ -89,7 +89,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         checkDevice();
         window.addEventListener('resize', checkDevice);
         return () => window.removeEventListener('resize', checkDevice);
-    }, [isWhitelistedUser]); 
+    }, [isWhitelistedUser]);
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -239,14 +239,11 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchIn = async () => {
-        // ⭐ Whitelist users ke liye mobile restriction nahi
         if (isMobileDevice && !isWhitelistedUser) {
             alert('🚫 PUNCH IN BLOCKED\n\nPunch In is allowed only from Laptop/Desktop.\nPlease use a computer.');
             return;
         }
-
         const now = new Date()
-
         const startTime = now.toLocaleTimeString('en-US', {
             hour12: false,
             hour: '2-digit',
@@ -400,11 +397,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     </div>
                 )}
 
-                {isWhitelistedUser && (
-                    <div className="text-xs text-green-300 bg-green-900/30 px-2 py-1 rounded">
-                        ✓ Authorized for all devices
-                    </div>
-                )}
+
 
                 <div className="relative group cursor-pointer" onClick={() => navigateToProfile(userData?._id)}>
                     <img
