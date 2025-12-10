@@ -3206,13 +3206,17 @@ export default function PerformanceGrid() {
           {(() => {
             const allowedDesignations = [
               "Relationship Executive",
+              "Relationship Manager",
               "Asst. Team Leader",
               "Team Leader",
               "Branch Manager",
+              "Area Head",
+              "Channel Partner",
               "Manager",
               "Senior Team Leader",
               "Sales Manager",
               "Relationship Manager",
+              "Financial Sales Intern",
               "Growth Manager",
               "Assistant Growth Manager",
 
