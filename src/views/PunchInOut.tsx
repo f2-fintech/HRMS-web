@@ -68,28 +68,51 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const { settings } = useSettings()
 
-
+    // Check if user is whitelisted
     const isWhitelistedUser = WHITELIST_EMPLOYEE_IDS.includes(employeeId);
 
+    // Enhanced mobile detection function
     const detectMobileDevice = () => {
-        if (typeof window === 'undefined') return false;
+        if (typeof navigator === "undefined" || typeof window === "undefined") return false;
 
+        // Whitelist users can use any device
         if (isWhitelistedUser) return false;
 
-        const isFinePointer = window.matchMedia('(pointer: fine)').matches;
-        const isLargeScreen = window.innerWidth >= 1024;
+        const ua = navigator.userAgent.toLowerCase();
 
-        if (isFinePointer && isLargeScreen) return false;
+        // Check for mobile user agents
+        const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(ua);
+        
+        // Check for touch device
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        
+        // Check screen size (mobile typically < 768px)
+        const isSmallScreen = window.innerWidth < 768;
 
-        return true;
+        // Consider it mobile if it matches user agent OR (is touch device AND small screen)
+        return isMobileUA || (isTouchDevice && isSmallScreen);
     };
 
+    // Detect mobile device on mount and when employeeId changes
     useEffect(() => {
-        const checkDevice = () => setIsMobileDevice(detectMobileDevice());
+        const checkDevice = () => {
+            const isMobile = detectMobileDevice();
+            setIsMobileDevice(isMobile);
+            console.log('Device Detection:', {
+                isMobile,
+                isWhitelisted: isWhitelistedUser,
+                userAgent: navigator.userAgent,
+                screenWidth: window.innerWidth
+            });
+        };
+
         checkDevice();
+
+        // Re-check on window resize
         window.addEventListener('resize', checkDevice);
+        
         return () => window.removeEventListener('resize', checkDevice);
-    }, [isWhitelistedUser]);
+    }, [isWhitelistedUser, employeeId]);
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -239,10 +262,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchIn = async () => {
+        // Mobile device check - block if not whitelisted
         if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH IN BLOCKED\n\nPunch In is allowed only from Laptop/Desktop.\nPlease use a computer.');
+            alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Please use a Laptop or Desktop computer.');
             return;
         }
+
         const now = new Date()
         const startTime = now.toLocaleTimeString('en-US', {
             hour12: false,
@@ -274,9 +299,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchOut = async () => {
-        // ⭐ Whitelist users ke liye mobile restriction nahi
+        // Mobile device check - block if not whitelisted
         if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH OUT BLOCKED\n\nPunch Out is allowed only on Laptop/Desktop.');
+            alert('🚫 PUNCH OUT BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch Out.\n✅ Please use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
             return;
         }
 
@@ -374,6 +399,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const currentPunch = punch.length > 0 ? punch[currentPunchIndex] : null
 
+    // Check if punch buttons should be disabled due to mobile device
+    const isPunchDisabledDueToMobile = isMobileDevice && !isWhitelistedUser;
+
     if (isMinimalView) {
         const punchInTime = punchState.startTime ? new Date(`1970-01-01T${punchState.startTime}`) : null;
         const referenceTime9AM = new Date('1970-01-01T09:00:00');
@@ -391,13 +419,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         return (
             <div className={`flex flex-col items-center justify-center gap-4 p-6 rounded-xl shadow-lg mt-4 mx-auto ${settings.mode === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-r from-indigo-900 to-blue-700'}`}>
+                {/* Mobile Warning Message */}
+                {isPunchDisabledDueToMobile && (
+                    <div className="text-center font-bold text-red-300 bg-red-900/40 p-3 rounded-lg w-full mb-2 border border-red-500">
+                        🚫 Mobile devices cannot Punch In/Out. Please use Desktop/Laptop.
+                    </div>
+                )}
+
                 {punchMessage && (
                     <div className="text-center font-bold text-yellow-300 bg-black/20 p-3 rounded-lg w-full mb-4">
                         {punchMessage}
                     </div>
                 )}
-
-
 
                 <div className="relative group cursor-pointer" onClick={() => navigateToProfile(userData?._id)}>
                     <img
@@ -419,11 +452,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     <div className="text-center">
                         <button
                             onClick={handlePunchIn}
-                            disabled={punchState.isPunchInDisabled || disablePunch}
-                            className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchInDisabled || disablePunch
+                            disabled={punchState.isPunchInDisabled || disablePunch || isPunchDisabledDueToMobile}
+                            className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchInDisabled || disablePunch || isPunchDisabledDueToMobile
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-green-500 hover:bg-green-600 text-white'
                                 }`}
+                            title={isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop." : ""}
                         >
                             Punch In
                         </button>
@@ -442,11 +476,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     <div className="text-center">
                         <button
                             onClick={handlePunchOut}
-                            disabled={punchState.isPunchOutDisabled || disablePunch}
-                            className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchOutDisabled || disablePunch
+                            disabled={punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile}
+                            className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-red-500 hover:bg-red-600 text-white'
                                 }`}
+                            title={isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop." : ""}
                         >
                             Punch Out
                         </button>
@@ -465,6 +500,14 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     return (
         <div className="max-w-6xl mx-auto py-4">
             <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+                {/* Mobile Warning Banner for Desktop View */}
+                {isPunchDisabledDueToMobile && (
+                    <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 text-center">
+                        <p className="font-bold">🚫 Mobile Device Detected</p>
+                        <p className="text-sm">Punch In/Out is only allowed from Desktop or Laptop computers. Please switch to a computer to continue.</p>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2">
                     <div className="bg-gray-100 flex flex-col items-center justify-center p-8">
                         <div className="relative w-32 h-32 rounded-full border border-gray-300 bg-white shadow-md">
@@ -537,13 +580,15 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         <div className="flex gap-4">
                             <button
                                 onClick={handlePunchIn}
-                                disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || (!isLargeScreen && !isWhitelistedUser)}
-                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchInDisabled || disablePunch || !isCurrentDate || (!isLargeScreen && !isWhitelistedUser)
+                                disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || isPunchDisabledDueToMobile}
+                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchInDisabled || disablePunch || !isCurrentDate || isPunchDisabledDueToMobile
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-green-500 hover:bg-green-600 text-white'
                                     }`}
                                 title={
-                                    disablePunch
+                                    isPunchDisabledDueToMobile
+                                        ? "Mobile devices not allowed. Use Desktop/Laptop."
+                                        : disablePunch
                                         ? "Managers can't punch in for team members."
                                         : !isCurrentDate
                                             ? "Punch-In available for today only."
@@ -558,12 +603,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
                             <button
                                 onClick={handlePunchOut}
-                                disabled={punchState.isPunchOutDisabled || disablePunch || (!isLargeScreen && !isWhitelistedUser)}
-                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchOutDisabled || disablePunch || (!isLargeScreen && !isWhitelistedUser)
+                                disabled={punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile}
+                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-red-500 hover:bg-red-600 text-white'
                                     }`}
-                                title={disablePunch ? "Managers can't punch out for team members." : ''}
+                                title={
+                                    isPunchDisabledDueToMobile
+                                        ? "Mobile devices not allowed. Use Desktop/Laptop."
+                                        : disablePunch
+                                        ? "Managers can't punch out for team members."
+                                        : ''
+                                }
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
@@ -629,7 +680,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         </div>
                     </div>
                 </div>
-
                 <div className="bg-[#1a237e]  p-6 text-center">
                     <h3 className="text-gray-200 text-lg font-semibold mb-2">
                         Total Working Hours of {selectedDate}
