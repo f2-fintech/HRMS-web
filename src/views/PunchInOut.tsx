@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import Link from 'next/link';
 import { useDispatch, useSelector } from 'react-redux'
 
 import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
@@ -20,6 +19,11 @@ interface PunchInOutProps {
     selectedEmployeeId?: string
     disablePunch?: boolean
 }
+
+const WHITELIST_EMPLOYEE_IDS = [
+    '66bca8d72f1270380b77ab12',
+    '66bca6192f1270380b77aac5',
+];
 
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     selectedDate,
@@ -64,16 +68,20 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const { settings } = useSettings()
 
+   
+    const isWhitelistedUser = WHITELIST_EMPLOYEE_IDS.includes(employeeId);
+
     const detectMobileDevice = () => {
         if (typeof window === 'undefined') return false;
+
+        if (isWhitelistedUser) return false;
 
         const isFinePointer = window.matchMedia('(pointer: fine)').matches;
         const isLargeScreen = window.innerWidth >= 1024;
 
-      
         if (isFinePointer && isLargeScreen) return false;
 
-        return true; 
+        return true;
     };
 
     useEffect(() => {
@@ -81,7 +89,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         checkDevice();
         window.addEventListener('resize', checkDevice);
         return () => window.removeEventListener('resize', checkDevice);
-    }, []);
+    }, [isWhitelistedUser]); 
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -128,7 +136,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         return () => clearInterval(timerInterval)
     }, [])
 
-    // To get clock logo from account-settings
     useEffect(() => {
         const getConfiguration = async () => {
             try {
@@ -145,7 +152,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         getConfiguration();
     }, []);
 
-    // Update the useEffect hook that handles punch data fetching and timer setup
     useEffect(() => {
         if (employeeId && selectedDate) {
             dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
@@ -154,7 +160,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     if (punchData.length > 0) {
                         const latestPunch = punchData[punchData.length - 1]
 
-                        // Stop any existing timer first
                         stopPunchTimer()
 
                         if (!latestPunch.punchOut) {
@@ -169,11 +174,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             })
                             setStartTimestamp(punchInTimestamp)
 
-                            // Only start the timer if this is the current user's data or if viewing today's data
                             if (!selectedEmployeeId || isCurrentDate) {
                                 startPunchInTimer(punchInTimestamp)
                             } else {
-                                // For other employees on non-current dates, just display their total time
                                 setTimer(latestPunch.totalTime || '00h 00m 00s')
                             }
                         } else {
@@ -187,7 +190,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             })
                         }
                     } else {
-                        // Reset states if no punch data found
                         setPunchState({
                             isPunchIn: false,
                             startTime: '',
@@ -206,7 +208,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }, [dispatch, employeeId, selectedDate, isCurrentDate])
 
     useEffect(() => {
-        // Clean up any existing timer when employeeId changes
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current)
@@ -238,7 +239,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchIn = async () => {
-        if (isMobileDevice) {
+        // ⭐ Whitelist users ke liye mobile restriction nahi
+        if (isMobileDevice && !isWhitelistedUser) {
             alert('🚫 PUNCH IN BLOCKED\n\nPunch In is allowed only from Laptop/Desktop.\nPlease use a computer.');
             return;
         }
@@ -261,7 +263,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             company_id: company_id
         }
 
-        // Immediately update local state
         setPunchState({
             ...punchState,
             isPunchIn: true,
@@ -270,18 +271,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             isPunchOutDisabled: false
         })
 
-        // Dispatch the punch action
         await dispatch(addPunch(punchData)).unwrap();
 
-        // Start the punch-in timer
         startPunchInTimer(now.getTime())
     }
 
     const handlePunchOut = async () => {
-        if (isMobileDevice) {
+        // ⭐ Whitelist users ke liye mobile restriction nahi
+        if (isMobileDevice && !isWhitelistedUser) {
             alert('🚫 PUNCH OUT BLOCKED\n\nPunch Out is allowed only on Laptop/Desktop.');
             return;
         }
+
         const now = new Date()
 
         const endTime = now.toLocaleTimeString('en-US', {
@@ -297,10 +298,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             return
         }
 
-        // Stop the punch-in timer
         stopPunchTimer()
 
-        // Immediately update local state
         setPunchState({
             isPunchIn: false,
             startTime: '',
@@ -315,15 +314,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             totalTime: timer
         }
 
-        // Dispatch the punch-out action
         await dispatch(updatePunch({ employeeId, punchData })).unwrap()
 
-        // Fetch updated data from Redux
         dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
         dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
     }
 
-    // Sync local state with Redux state
     useEffect(() => {
         if (punch.length > 0) {
             const latestPunch = punch[punch.length - 1]
@@ -347,7 +343,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 })
             }
         }
-    }, [punch, employeeId]) // Listen for changes in the Redux state
+    }, [punch, employeeId])
 
     useEffect(() => {
         return () => {
@@ -381,12 +377,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const currentPunch = punch.length > 0 ? punch[currentPunchIndex] : null
 
-    // Dashboard minimal view for punch in/out
     if (isMinimalView) {
-        const isButtonEnabledOnPhone =
-            userDesg === 'Co-Founder & MD' || userDesg === 'Founder & CEO' || userDesg === 'Full Stack Developer';
-
-        // Get current punch-in time
         const punchInTime = punchState.startTime ? new Date(`1970-01-01T${punchState.startTime}`) : null;
         const referenceTime9AM = new Date('1970-01-01T09:00:00');
         const referenceTime10_15AM = new Date('1970-01-01T10:15:00');
@@ -403,14 +394,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         return (
             <div className={`flex flex-col items-center justify-center gap-4 p-6 rounded-xl shadow-lg mt-4 mx-auto ${settings.mode === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-r from-indigo-900 to-blue-700'}`}>
-                {/* Punch Message */}
                 {punchMessage && (
                     <div className="text-center font-bold text-yellow-300 bg-black/20 p-3 rounded-lg w-full mb-4">
                         {punchMessage}
                     </div>
                 )}
 
-                {/* User Image */}
+                {isWhitelistedUser && (
+                    <div className="text-xs text-green-300 bg-green-900/30 px-2 py-1 rounded">
+                        ✓ Authorized for all devices
+                    </div>
+                )}
+
                 <div className="relative group cursor-pointer" onClick={() => navigateToProfile(userData?._id)}>
                     <img
                         alt={userData?.first_name || 'User'}
@@ -423,18 +418,16 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     </div>
                 </div>
 
-                {/* Current Day */}
                 <h2 className="font-bold text-center mb-6 text-white text-xl">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
                 </h2>
 
                 <div className="flex justify-around items-center w-full gap-4">
-                    {/* Punch In Section */}
                     <div className="text-center">
                         <button
                             onClick={handlePunchIn}
-                            disabled={isMobileDevice || punchState.isPunchInDisabled || disablePunch}
-                            className={`mb-2 px-4 py-2 rounded-lg ${isMobileDevice || punchState.isPunchInDisabled
+                            disabled={punchState.isPunchInDisabled || disablePunch}
+                            className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchInDisabled || disablePunch
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-green-500 hover:bg-green-600 text-white'
                                 }`}
@@ -449,17 +442,15 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         )}
                     </div>
 
-                    {/* Date Display */}
                     <div className="text-white font-bold text-sm text-center">
                         {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </div>
 
-                    {/* Punch Out Section */}
                     <div className="text-center">
                         <button
                             onClick={handlePunchOut}
-                            disabled={isMobileDevice || punchState.isPunchOutDisabled || disablePunch}
-                            className={`mb-2 px-4 py-2 rounded-lg ${isMobileDevice || punchState.isPunchOutDisabled
+                            disabled={punchState.isPunchOutDisabled || disablePunch}
+                            className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchOutDisabled || disablePunch
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-red-500 hover:bg-red-600 text-white'
                                 }`}
@@ -482,28 +473,23 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         <div className="max-w-6xl mx-auto py-4">
             <div className="bg-white rounded-xl shadow-xl overflow-hidden">
                 <div className="grid grid-cols-1 md:grid-cols-2">
-                    {/* Time and Current Date Section */}
                     <div className="bg-gray-100 flex flex-col items-center justify-center p-8">
                         <div className="relative w-32 h-32 rounded-full border border-gray-300 bg-white shadow-md">
-                            {/* Hour Hand */}
                             <div
                                 className="absolute w-1 h-10 bg-black top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
                                 style={{ transform: `translateY(-100%) rotate(${(currentDateTime.getHours() % 12) * 30 + currentDateTime.getMinutes() / 2}deg)` }}
                             ></div>
 
-                            {/* Minute Hand */}
                             <div
                                 className="absolute w-0.5 h-14 bg-black top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
                                 style={{ transform: `translateY(-100%) rotate(${currentDateTime.getMinutes() * 6}deg)` }}
                             ></div>
 
-                            {/* Second Hand */}
                             <div
                                 className="absolute w-0.5 h-16 bg-red-500 top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
                                 style={{ transform: `translateY(-100%) rotate(${currentDateTime.getSeconds() * 6}deg)` }}
                             ></div>
 
-                            {/* Company logo inside Clock */}
                             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full overflow-hidden opacity-60">
                                 <img
                                     src={logoUrl}
@@ -512,7 +498,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 />
                             </div>
 
-                            {/* Clock Numbers */}
                             {Array.from({ length: 12 }).map((_, index) => {
                                 const angle = (index + 1) * 30
                                 const x = 50 + 38 * Math.cos((angle - 90) * (Math.PI / 180))
@@ -542,7 +527,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         </h3>
                     </div>
 
-                    {/* Punch In/Out and Timer Section */}
                     <div className="bg-blue-50 flex flex-col items-center justify-center p-8">
                         <div className="text-blue-600 mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -560,8 +544,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         <div className="flex gap-4">
                             <button
                                 onClick={handlePunchIn}
-                                disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || !isLargeScreen}
-                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchInDisabled || disablePunch || !isCurrentDate || !isLargeScreen
+                                disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || (!isLargeScreen && !isWhitelistedUser)}
+                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchInDisabled || disablePunch || !isCurrentDate || (!isLargeScreen && !isWhitelistedUser)
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-green-500 hover:bg-green-600 text-white'
                                     }`}
@@ -581,8 +565,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
                             <button
                                 onClick={handlePunchOut}
-                                disabled={punchState.isPunchOutDisabled || disablePunch || !isLargeScreen}
-                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchOutDisabled || disablePunch || !isLargeScreen
+                                disabled={punchState.isPunchOutDisabled || disablePunch || (!isLargeScreen && !isWhitelistedUser)}
+                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchOutDisabled || disablePunch || (!isLargeScreen && !isWhitelistedUser)
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-red-500 hover:bg-red-600 text-white'
                                     }`}
@@ -596,7 +580,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         </div>
                     </div>
 
-                    {/* Punch Records and Total Working Hours Section */}
                     <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 border-t border-gray-200">
                         <h2 className="text-xl font-semibold text-gray-800 mb-6">
                             Attendance Logs
@@ -654,7 +637,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     </div>
                 </div>
 
-                {/* Total Working Hours Footer */}
                 <div className="bg-[#1a237e]  p-6 text-center">
                     <h3 className="text-gray-200 text-lg font-semibold mb-2">
                         Total Working Hours of {selectedDate}
