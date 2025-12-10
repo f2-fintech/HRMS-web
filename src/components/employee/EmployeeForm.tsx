@@ -60,6 +60,9 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     email: '',
     work_email: '',
     contact: '',
+    emergencycontact: '',
+    relation_name: '',
+    relation: '',
     role_priority: '',
     dob: '',
     gender: '',
@@ -73,7 +76,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     code: '',
     location: '',
     company_id: '',
-    manager_id:''
+    manager_id: ''
   })
 
   const [imageFocus, setImageFocus] = useState(false)
@@ -101,6 +104,9 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
           email: selected.email,
           work_email: selected.work_email,
           contact: selected.contact,
+          emergencycontact: selected.emergencycontact,
+          relation_name: selected.relation_name,
+          relation: selected.relation,
           role_priority: selected.role_priority,
           dob: selected.dob,
           gender: selected.gender,
@@ -114,7 +120,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
           code: selected.code,
           location: selected.location,
           company_id: selected.company_id,
-            manager_id: selected.manager_id || ''   
+          manager_id: selected.manager_id || ''
         })
         setImagePreviewUrl(selected.image)
       }
@@ -500,18 +506,79 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth error={!!errors.contact}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 400 }}
+            >
+              Employee Contact
+            </Typography>
+            <PhoneInput
+              international
+              defaultCountry="IN"
+              value={
+                formData.contact
+                  ? (formData.contact.startsWith("91")
+                    ? `+91 ${formData.contact.slice(2)}`
+                    : `+91 ${formData.contact}`)
+                  : "+91 "
+              }
+              onChange={value => {
+                setFormData({
+                  ...formData,
+                  contact: value.replace(/^(\+91|91)/, "")
+                })
+              }}
+              inputProps={{
+                name: "contact",
+                placeholder: "Employee Contact",   // ✅ Correct placeholder
+                required: true
+              }}
+              containerStyle={{
+                display: "flex",
+                alignItems: "center",
+                borderRadius: "4px",
+                padding: "10px",
+                backgroundColor: settings.mode === "dark" ? "#444" : "#fff"
+              }}
+              inputStyle={{
+                paddingLeft: "40px",
+                height: "40px",
+                fontSize: "16px",
+                width: "100%",
+                backgroundColor: settings.mode === "dark" ? "#444" : "#fff",
+                color: settings.mode === "dark" ? "white" : "#000"
+              }}
+              dropdownStyle={{
+                backgroundColor: settings.mode === "dark" ? "#333" : "#fff",
+                color: settings.mode === "dark" ? "#fff" : "#000"
+              }}
+            />
+            {errors.contact && (
+              <Typography color="error">{errors.contact}</Typography>
+            )}
+          </FormControl>
+
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth error={!!errors.emergencycontact}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 400 }}
+            >
+              Emergency Contact
+            </Typography>
             <PhoneInput
               international
               defaultCountry='IN' // Corrected to use the two-letter country code for India (IN)
-              value={formData.contact ? (formData.contact.startsWith('91') ? `+91 ${formData.contact.slice(2)}` : `+91 ${formData.contact}`) : '+91 '} // Format the value correctly
+              value={formData.emergencycontact ? (formData.emergencycontact.startsWith('91') ? `+91 ${formData.emergencycontact.slice(2)}` : `+91 ${formData.emergencycontact}`) : '+91 '} // Format the value correctly
               onChange={value => {
                 // Remove +91 or 91 from the value before storing it
-                setFormData({ ...formData, contact: value.replace(/^(\+91|91)/, '') }); // Save the number without +91
+                setFormData({ ...formData, emergencycontact: value.replace(/^(\+91|91)/, '') }); // Save the number without +91
               }}
-              label='Contact'
+              label='Emergencycontact'
               required
-              error={!!errors.contact} // Show error if validation fails
-              helperText={errors.contact} // Show the error message under the input
+              error={!!errors.emergencycontact} // Show error if validation fails
+              helperText={errors.emergencycontact} // Show the error message under the input
               containerStyle={{
                 display: 'flex',
                 alignItems: 'center',
@@ -533,10 +600,85 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 color: settings.mode === 'dark' ? '#fff' : '#000', // Set text color for dropdown
               }}
             />
-            {errors.contact && <Typography color='error'>{errors.contact}</Typography>} {/* Display error */}
+            {errors.emergencycontact && <Typography color='error'>{errors.emergencycontact}</Typography>} {/* Display error */}
           </FormControl>
         </Grid>
-
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label='Relative Name'
+            name='relation_name'
+            value={formData.relation_name}
+            onChange={e => capitalizeInput(e, handleChange)}
+            required
+            error={!!errors.relation_name}
+            helperText={errors.relation_name}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position='start'>
+                  <PersonIcon color='action' />
+                </InputAdornment>
+              )
+            }}
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: 'textColor '
+              },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: 'textColor '
+                },
+                '&:hover fieldset': {
+                  borderColor: 'textColor '
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'textColor '
+                }
+              },
+              '& .MuiInputBase-input': {
+                color: 'textColor '
+              }
+            }}
+          />
+        </Grid>
+    <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label='Relation'
+            name='relation'
+            value={formData.relation}
+            onChange={e => capitalizeInput(e, handleChange)}
+            required
+            error={!!errors.relation}
+            helperText={errors.relation}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position='start'>
+                  <PersonIcon color='action' />
+                </InputAdornment>
+              )
+            }}
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: 'textColor '
+              },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: 'textColor '
+                },
+                '&:hover fieldset': {
+                  borderColor: 'textColor '
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'textColor '
+                }
+              },
+              '& .MuiInputBase-input': {
+                color: 'textColor '
+              }
+            }}
+          />
+        </Grid>
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
@@ -593,6 +735,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             }}
           />
         </Grid>
+
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
@@ -893,45 +1036,45 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             {errors.role_priority && <Typography color='error'>{errors.role_priority}</Typography>}
           </FormControl>
         </Grid>
-      {/* ====================== DESIGNATION SELECT ====================== */}
-{role > 0 && (
-  <Grid item xs={12} md={6}>
-    <FormControl fullWidth error={!!errors.designation}>
-      <Autocomplete
-        id="designation-select"
-        options={designations
-          .map(d => d.title)
-          .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
-        }
-        value={formData.designation}
-        getOptionLabel={option => option}
-        onChange={(e, value) => {
-          handleChange({
-            target: { name: "designation", value: value }
-          })
-        }}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Select Designation"
-            InputProps={{
-              ...params.InputProps,
-              startAdornment: (
-                <InputAdornment position="start">
-                  <BadgeIcon color="action" />
-                </InputAdornment>
-              )
-            }}
-          />
-        )}
-      />
+        {/* ====================== DESIGNATION SELECT ====================== */}
+        {role > 0 && (
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth error={!!errors.designation}>
+              <Autocomplete
+                id="designation-select"
+                options={designations
+                  .map(d => d.title)
+                  .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+                }
+                value={formData.designation}
+                getOptionLabel={option => option}
+                onChange={(e, value) => {
+                  handleChange({
+                    target: { name: "designation", value: value }
+                  })
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Designation"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <BadgeIcon color="action" />
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                )}
+              />
 
-      {errors.designation && (
-        <Typography color="error">{errors.designation}</Typography>
-      )}
-    </FormControl>
-  </Grid>
-)}
+              {errors.designation && (
+                <Typography color="error">{errors.designation}</Typography>
+              )}
+            </FormControl>
+          </Grid>
+        )}
 
 
 
@@ -952,7 +1095,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               {errors.company_id && <Typography color='error'>{errors.company_id}</Typography>}
             </FormControl>
           </Grid>
-          
+
         ) : null}
         {role > 0 && (
           <Grid item xs={12} md={6}>

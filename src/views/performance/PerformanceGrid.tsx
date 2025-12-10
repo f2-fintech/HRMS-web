@@ -2600,24 +2600,24 @@ export default function PerformanceGrid() {
               >
                 View Performance
               </Button>
-               {String(userRole) == '1' && (
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<BlockIcon />}
-                onClick={fetchMissing}
-                size="small"
-                sx={{
-                  px: 1.2,
-                  minWidth: "auto",
-                  borderRadius: 1,
-                  fontWeight: 600,
-                  textTransform: "none",
-                  whiteSpace: "nowrap"
-                }}
-              >
-                Missing Upload
-              </Button>)}
+              {String(userRole) == '1' && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<BlockIcon />}
+                  onClick={fetchMissing}
+                  size="small"
+                  sx={{
+                    px: 1.2,
+                    minWidth: "auto",
+                    borderRadius: 1,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  Missing Upload
+                </Button>)}
 
 
               {/* {String(userRole) == '1' && (
@@ -3239,7 +3239,7 @@ export default function PerformanceGrid() {
             return (
               <>
                 <Typography variant="h6" sx={{ mb: 1 }}>
-                  ❌ Missing Evening Employees ({filteredList.length}) || Submitted Morning Employees ({submittedCount})
+                ✔️ Submitted Morning Employees ({submittedCount}) || ❌ Missing Evening Employees ({filteredList.length})
                 </Typography>
 
                 <Stack spacing={1.5}>
