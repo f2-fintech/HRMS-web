@@ -20,7 +20,7 @@ import AwardForm from '@/components/performer/AwardForm'
 import { formatAmount } from '@/utility/formatAmount/formatAmount'
 import useRouterWithMount from '@/utility/useRouterWithMount'
 import { Tooltip } from '@mui/material'
-import { useSettings } from '@core/hooks/useSettings'  // Import useSettings for dark/light mode
+import { useSettings } from '@core/hooks/useSettings' // Import useSettings for dark/light mode
 
 // Define interfaces for type safety
 interface Employee {
@@ -37,6 +37,8 @@ interface Award {
   employee: Employee | string
   amount: number
   awardTitle: string
+  approved?: string | number
+  total?: string | number
 }
 
 interface User {
@@ -49,22 +51,25 @@ const LocationWisePerformer = () => {
   const dispatch: AppDispatch = useDispatch()
   const { awards } = useSelector((state: RootState) => state.awards)
 
+  // Sort awards by amount (desc)
+  const sortedAwards = [...awards].sort(
+    (a, b) => (b.amount || 0) - (a.amount || 0)
+  )
+
   // State declarations
-  const [selectedAwardIndex, setSelectedAwardIndex] = useState<number | null>(null)
+  const [selectedAwardId, setSelectedAwardId] = useState<string | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const [employees, setEmployees] = useState<Employee[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [amount, setAmount] = useState<string>('')
   const [awardTitle, setAwardTitle] = useState('')
-  const [approved, setApproved] = useState('');
-  const [total, setTotal] = useState('');
+  const [approved, setApproved] = useState('')
+  const [total, setTotal] = useState('')
   const [user, setUser] = useState<User | null>(null)
 
   const { navigateToProfile } = useRouterWithMount()
-
   const { capitalizeFirstLetter } = utility()
-
-  const { settings } = useSettings()  // Access settings for dark/light mode
+  const { settings } = useSettings() // Access settings for dark/light mode
 
   const getStatusStyles = (status: string | undefined) => {
     if (!status) {
@@ -116,42 +121,55 @@ const LocationWisePerformer = () => {
     dispatch(fetchAwards())
   }, [dispatch])
 
-  // Handle menu click for editing
-  const handleMenuClick = (index: number) => {
-    setSelectedAwardIndex(index)
+  // Handle menu click for editing (use award instead of index)
+  const handleMenuClick = (award: Award) => {
+    setSelectedAwardId(award._id)
+    setIsEditMode(true)
 
-    if (awards[index]) {
-      setIsEditMode(true)
-      const award = awards[index]
+    const employeeId =
+      typeof award.employee === 'string'
+        ? award.employee
+        : award.employee?._id
 
-      const employee = employees.find(
-        (emp) => emp._id === (award.employee?._id || award.employee)
-      )
+    const employee = employees.find(emp => emp._id === employeeId)
 
-      setSelectedEmployee(employee || null)
-      setAmount(award.amount?.toString() || '')
-      setAwardTitle(award.awardTitle || '')
-    } else {
-      setIsEditMode(false)
-      setSelectedEmployee(null)
-      setAmount('')
-      setAwardTitle('')
-      setApproved('')
-      setTotal('')
-    }
+    setSelectedEmployee(employee || null)
+    setAmount(
+      award.amount !== null && award.amount !== undefined
+        ? award.amount.toString()
+        : ''
+    )
+    setAwardTitle(award.awardTitle || '')
+    setApproved(
+      award.approved !== undefined && award.approved !== null
+        ? String(award.approved)
+        : ''
+    )
+    setTotal(
+      award.total !== undefined && award.total !== null
+        ? String(award.total)
+        : ''
+    )
   }
 
   // Handle form submission
-  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault()
 
     try {
-      const url =
-        isEditMode && selectedAwardIndex !== null
-          ? `${process.env.NEXT_PUBLIC_APP_URL}/awards/${awards[selectedAwardIndex]._id}`
-          : `${process.env.NEXT_PUBLIC_APP_URL}/awards`
+      const editingAward = selectedAwardId
+        ? awards.find(a => a._id === selectedAwardId)
+        : null
 
-      const method = isEditMode && selectedAwardIndex !== null ? 'PUT' : 'POST'
+      const isEdit = Boolean(editingAward)
+
+      const url = isEdit
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/awards/${editingAward!._id}`
+        : `${process.env.NEXT_PUBLIC_APP_URL}/awards`
+
+      const method = isEdit ? 'PUT' : 'POST'
 
       const response = await fetch(url, {
         method,
@@ -160,10 +178,10 @@ const LocationWisePerformer = () => {
         },
         body: JSON.stringify({
           employee: selectedEmployee ? selectedEmployee._id : '',
-          amount: amount,
-          awardTitle: awardTitle,
-          approved: approved,
-          total: total
+          amount,
+          awardTitle,
+          approved,
+          total
         })
       })
 
@@ -173,28 +191,32 @@ const LocationWisePerformer = () => {
 
       const newAward = await response.json()
 
-      if (isEditMode) {
+      if (isEdit) {
+        // Refetch to get latest sorted data
         dispatch(fetchAwards())
       } else {
+        // Add new award to store
         dispatch(addAward({ ...newAward, employee: selectedEmployee }))
       }
     } catch (error) {
       console.error('Error saving award:', error)
     }
 
-    setSelectedAwardIndex(null)
+    setSelectedAwardId(null)
+    setIsEditMode(false)
   }
 
   // Handle form close
   const handleCloseForm = () => {
-    setSelectedAwardIndex(null)
+    setSelectedAwardId(null)
+    setIsEditMode(false)
   }
 
   return (
     <Box
       position='relative'
       sx={{
-        minHeight: '100vh',
+        minHeight: '100vh'
       }}
     >
       <motion.div
@@ -203,108 +225,119 @@ const LocationWisePerformer = () => {
         transition={{ duration: 0.5 }}
       >
         <Box display='flex' flexDirection='column' gap={4}>
-          {[...awards, ...new Array(3 - awards.length).fill(null)].map(
-            (award, index) => (
-              <motion.div
-                key={award ? award._id : index}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: index * 0.1 }}
-                // NEW: Align card left or right based on index
-                style={{
-                  display: 'flex',
-                  justifyContent: index % 2 === 0 ? 'flex-start' : 'flex-end'
-                }}
-              >
-                {/* Card */}
-                {award && (
-                  <Card
-                    sx={{
-                      width: { xs: '100%', sm: '100%' },
-                      borderRadius: '16px',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                      transition: 'all 0.3s ease',
-                      position: 'relative',
-                      bgcolor: settings.mode === 'dark' ? '#333' : 'white',  // Background color depending on the mode
-                      color: settings.mode === 'dark' ? '#fff' : 'inherit',  // Text color depending on the mode
-                      overflow: 'hidden',
-                      '&:hover': {
-                        transform: 'translateY(-10px)',
-                        boxShadow: '0 12px 48px rgba(0,0,0,0.15)',
-                        '& .edit-button': {
-                          opacity: 1,
-                          visibility: 'visible'
-                        }
+          {[
+            ...sortedAwards,
+            ...new Array(Math.max(0, 3 - sortedAwards.length)).fill(null)
+          ].map((award: Award | null, index: number) => (
+            <motion.div
+              key={award ? award._id : index}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: index * 0.1 }}
+              style={{
+                display: 'flex',
+                justifyContent: index % 2 === 0 ? 'flex-start' : 'flex-end'
+              }}
+            >
+              {/* Card */}
+              {award && (
+                <Card
+                  sx={{
+                    width: { xs: '100%', sm: '100%' },
+                    borderRadius: '16px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    bgcolor: settings.mode === 'dark' ? '#333' : 'white', // Background color depending on the mode
+                    color: settings.mode === 'dark' ? '#fff' : 'inherit', // Text color depending on the mode
+                    overflow: 'hidden',
+                    '&:hover': {
+                      transform: 'translateY(-10px)',
+                      boxShadow: '0 12px 48px rgba(0,0,0,0.15)',
+                      '& .edit-button': {
+                        opacity: 1,
+                        visibility: 'visible'
                       }
-                    }}
-                  >
-                    {/* Edit Button */}
-                    {(user?.designation === 'Sr. Operation Manager' ||
-                      user?.role === '1') && (
-                        <IconButton
-                          className='edit-button'
-                          onClick={() => handleMenuClick(index)}
-                          sx={{
-                            position: 'absolute',
-                            top: 2,
-                            right: 2,
-                            zIndex: 2,
-                            p: 1,
-                            backgroundColor: 'transparent',
-                            boxShadow: 'none',
-                            '&:hover': {
-                              backgroundColor: settings.mode === 'dark' ? '#444' : '#ffffff',  // Button background color
-                              boxShadow: settings.mode === 'dark' ? '0px 2px 8px rgba(0,0,0,0.2)' : '0px 2px 8px rgba(0,0,0,0.2)'
-                            }
-                          }}
-                        >
-                          <MoreVertIcon sx={{ color: settings.mode === 'dark' ? '#fff' : '#333' }} />
-                        </IconButton>
-                      )}
-
-                    {/* Blue Header section */}
-                    <Box
+                    }
+                  }}
+                >
+                  {/* Edit Button */}
+                  {(user?.designation === 'Sr. Operation Manager' ||
+                    user?.role === '1') && (
+                    <IconButton
+                      className='edit-button'
+                      onClick={() => handleMenuClick(award)}
                       sx={{
-                        background: 'linear-gradient(135deg, #1a237e 60%, #4957e2 40%)',
-                        height: '80px',
-                        position: 'relative',
-                        mb: 8,
-                        display: 'flex',
-                        alignItems: 'flex-end',
-                        px: 3
+                        position: 'absolute',
+                        top: 2,
+                        right: 2,
+                        zIndex: 2,
+                        p: 1,
+                        backgroundColor: 'transparent',
+                        boxShadow: 'none',
+                        '&:hover': {
+                          backgroundColor:
+                            settings.mode === 'dark' ? '#444' : '#ffffff', // Button background color
+                          boxShadow:
+                            settings.mode === 'dark'
+                              ? '0px 2px 8px rgba(0,0,0,0.2)'
+                              : '0px 2px 8px rgba(0,0,0,0.2)'
+                        }
                       }}
                     >
-                      {/* Trophy icon */}
-                      <Box
+                      <MoreVertIcon
                         sx={{
-                          position: 'absolute',
-                          top: 16,
-                          right: 30,
-                          display: 'flex',
-                          alignItems: 'center'
+                          color: settings.mode === 'dark' ? '#fff' : '#333'
                         }}
-                      >
-                        <motion.img
-                          src='/images/pages/trophy.png'
-                          alt='trophy'
-                          style={{
-                            height: 50,
-                            opacity: 0.9
-                          }}
-                          initial={{ scale: 0.8 }}
-                          animate={{
-                            rotate: [0, -5, 0, 5, 0],
-                            transition: {
-                              duration: 2,
-                              repeat: Infinity,
-                              ease: 'easeInOut'
-                            }
-                          }}
-                        />
-                      </Box>
+                      />
+                    </IconButton>
+                  )}
 
-                      {/* Employee image */}
-                      {typeof award.employee !== 'string' && award.employee?.image && (
+                  {/* Blue Header section */}
+                  <Box
+                    sx={{
+                      background:
+                        'linear-gradient(135deg, #1a237e 60%, #4957e2 40%)',
+                      height: '80px',
+                      position: 'relative',
+                      mb: 8,
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      px: 3
+                    }}
+                  >
+                    {/* Trophy icon */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 16,
+                        right: 30,
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <motion.img
+                        src='/images/pages/trophy.png'
+                        alt='trophy'
+                        style={{
+                          height: 50,
+                          opacity: 0.9
+                        }}
+                        initial={{ scale: 0.8 }}
+                        animate={{
+                          rotate: [0, -5, 0, 5, 0],
+                          transition: {
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: 'easeInOut'
+                          }
+                        }}
+                      />
+                    </Box>
+
+                    {/* Employee image */}
+                    {typeof award.employee !== 'string' &&
+                      award.employee?.image && (
                         <motion.div
                           initial={{ y: 30, opacity: 0 }}
                           animate={{ y: 40, opacity: 1 }}
@@ -325,7 +358,7 @@ const LocationWisePerformer = () => {
                               overflow: 'hidden'
                             }}
                           >
-                            <Tooltip title="View Profile" arrow>
+                            <Tooltip title='View Profile' arrow>
                               <img
                                 src={award.employee.image}
                                 alt={`${award.employee.first_name} ${award.employee.last_name}`}
@@ -335,222 +368,238 @@ const LocationWisePerformer = () => {
                                   objectFit: 'cover',
                                   cursor: 'pointer'
                                 }}
-                                onClick={() => navigateToProfile(award.employee?._id)}
+                                onClick={() =>
+                                  navigateToProfile(award.employee?._id)
+                                }
                               />
                             </Tooltip>
                           </Box>
                         </motion.div>
                       )}
-                    </Box>
+                  </Box>
 
-                    {/* Content area */}
-                    <Box sx={{ px: 3, pb: 3 }}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          mb: 2
-                        }}
-                      >
-                        {/* Name and Role */}
-                        <Box>
-                          <Typography
-                            variant='h5'
-                            sx={{
-                              fontWeight: 600,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                              // fontFamily: "'Pacifico', cursive",
-                              fontSize: '1.5rem',
-                              color: settings.mode === 'dark' ? '#fff' : 'black',  // Adjust text color based on mode
-                              textShadow: settings.mode === 'dark' ? '1px 1px 2px rgba(0, 0, 0, 0.2)' : 'none'
-                            }}
-                          >
-                            {typeof award.employee !== 'string' && award.employee ? (
-                              <>
-                                {capitalizeFirstLetter(award.employee.first_name || '')}{' '}
-                                {capitalizeFirstLetter(award.employee.last_name || '')}
-                                <span>✨</span>
-                              </>
-                            ) : (
-                              'No Award Data'
-                            )}
-
-                          </Typography>
-                          {typeof award.employee !== 'string' && (
-                            <Typography
-                              sx={{
-                                color: '#64748B',
-                                mt: 0.5,
-                                fontWeight: 500
-                              }}
-                            >
-                              {award.employee?.designation}
-                            </Typography>
-                          )}
-                        </Box>
-
-                        {/* Location badge */}
-                        <Box
+                  {/* Content area */}
+                  <Box sx={{ px: 3, pb: 3 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        mb: 2
+                      }}
+                    >
+                      {/* Name and Role */}
+                      <Box>
+                        <Typography
+                          variant='h5'
                           sx={{
+                            fontWeight: 600,
                             display: 'flex',
                             alignItems: 'center',
                             gap: 1,
-                            background: 'rgba(74,144,226,0.1)',
-                            px: 2,
-                            py: 1,
-                            borderRadius: '20px'
+                            fontSize: '1.5rem',
+                            color:
+                              settings.mode === 'dark' ? '#fff' : 'black', // Adjust text color based on mode
+                            textShadow:
+                              settings.mode === 'dark'
+                                ? '1px 1px 2px rgba(0, 0, 0, 0.2)'
+                                : 'none'
                           }}
                         >
-                          <LocationOnIcon
-                            sx={{ color: '#4A90E2', fontSize: '1rem' }}
+                          {typeof award.employee !== 'string' &&
+                          award.employee ? (
+                            <>
+                              {capitalizeFirstLetter(
+                                award.employee.first_name || ''
+                              )}{' '}
+                              {capitalizeFirstLetter(
+                                award.employee.last_name || ''
+                              )}
+                              <span>✨</span>
+                            </>
+                          ) : (
+                            'No Award Data'
+                          )}
+                        </Typography>
+                        {typeof award.employee !== 'string' && (
+                          <Typography
+                            sx={{
+                              color: '#64748B',
+                              mt: 0.5,
+                              fontWeight: 500
+                            }}
+                          >
+                            {award.employee?.designation}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Location badge */}
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          background: 'rgba(74,144,226,0.1)',
+                          px: 2,
+                          py: 1,
+                          borderRadius: '20px'
+                        }}
+                      >
+                        <LocationOnIcon
+                          sx={{ color: '#4A90E2', fontSize: '1rem' }}
+                        />
+                        <Typography
+                          sx={{
+                            color: '#4A90E2',
+                            fontWeight: 600,
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {typeof award.employee !== 'string'
+                            ? award.employee?.location.toUpperCase()
+                            : '---'}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Disbursed Amount Section */}
+                    <Box sx={{ mt: 4 }}>
+                      <Typography
+                        sx={{
+                          color:
+                            settings.mode === 'dark' ? '#ddd' : '#64748B',
+                          fontWeight: 500,
+                          mb: 1
+                        }}
+                      >
+                        Disbursed Amount
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <Typography
+                          variant='h4'
+                          sx={{
+                            color:
+                              settings.mode === 'dark' ? '#fff' : '#1a237e',
+                            fontWeight: 700
+                          }}
+                        >
+                          ₹{award?.amount || 'N/A'}
+                        </Typography>
+                      </Box>
+
+                      {award?.approved && (
+                        <Typography
+                          variant='h6'
+                          sx={{ color: '#5c6bc0', marginTop: '1rem' }}
+                        >
+                          Approved: ₹{award.approved}
+                        </Typography>
+                      )}
+
+                      {award?.total && (
+                        <Typography
+                          variant='h6'
+                          sx={{ color: '#5c6bc0', marginTop: '1rem' }}
+                        >
+                          Total: ₹{award.total}
+                        </Typography>
+                      )}
+
+                      {/* Progress bar */}
+                      <Box
+                        sx={{
+                          mt: 2,
+                          width: '100%',
+                          height: '6px',
+                          background: '#1a237e',
+                          borderRadius: '3px',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: '100%',
+                            background:
+                              'linear-gradient(90deg, #4A90E2 0%, #357ABD 100%)',
+                            borderRadius: '3px',
+                            animation: 'pulse 2s infinite'
+                          }}
+                        />
+                      </Box>
+
+                      {/* Status Section */}
+                      <Box
+                        sx={{
+                          mt: 3,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            px: 2,
+                            py: 1,
+                            borderRadius: '16px',
+                            background: getStatusStyles(award?.awardTitle)
+                              .background,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: '50%',
+                              background: getStatusStyles(award?.awardTitle)
+                                .pulseColor,
+                              animation: 'pulse 2s infinite'
+                            }}
                           />
                           <Typography
                             sx={{
-                              color: '#4A90E2',
+                              color: getStatusStyles(award?.awardTitle)
+                                .textColor,
                               fontWeight: 600,
                               fontSize: '0.875rem'
                             }}
                           >
-                            {typeof award.employee !== 'string'
-                              ? award.employee?.location.toUpperCase()
-                              : '---'}
+                            {award?.awardTitle
+                              ? award.awardTitle.toUpperCase()
+                              : 'N/A'}
                           </Typography>
                         </Box>
-                      </Box>
-
-                      {/* Disbursed Amount Section */}
-                      <Box sx={{ mt: 4 }}>
-
                         <Typography
                           sx={{
-                            color: settings.mode === 'dark' ? '#ddd' : '#64748B',
-                            fontWeight: 500,
-                            mb: 1
+                            color:
+                              settings.mode === 'dark' ? '#ddd' : '#64748B',
+                            fontSize: '0.875rem'
                           }}
                         >
-                          Disbursed Amount
+                          Achievement Unlocked
                         </Typography>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                          }}
-                        >
-                          <Typography
-                            variant='h4'
-                            sx={{
-                              color: settings.mode === 'dark' ? '#fff' : '#1a237e',
-                              fontWeight: 700
-                            }}
-                          >
-                            ₹{award?.amount || 'N/A'}
-                          </Typography>
-                        </Box>
-
-                        {award?.approved && (
-                          <Typography variant='h6' sx={{ color: '#5c6bc0', marginTop: '1rem' }}>
-                            Approved: ₹{award.approved}
-                          </Typography>
-                        )}
-
-                        {award?.total && (
-                          <Typography variant='h6' sx={{ color: '#5c6bc0', marginTop: '1rem' }}>
-                            Total: ₹{award.total}
-                          </Typography>
-                        )}
-
-                        {/* Progress bar */}
-                        <Box
-                          sx={{
-                            mt: 2,
-                            width: '100%',
-                            height: '6px',
-                            background: '#1a237e',
-                            borderRadius: '3px',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              width: '100%',
-                              height: '100%',
-                              background:
-                                'linear-gradient(90deg, #4A90E2 0%, #357ABD 100%)',
-                              borderRadius: '3px',
-                              animation: 'pulse 2s infinite'
-                            }}
-                          />
-                        </Box>
-
-                        {/* Status Section */}
-                        <Box
-                          sx={{
-                            mt: 3,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 2
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              px: 2,
-                              py: 1,
-                              borderRadius: '16px',
-                              background: getStatusStyles(award?.awardTitle)
-                                .background,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                background: getStatusStyles(award?.awardTitle)
-                                  .pulseColor,
-                                animation: 'pulse 2s infinite'
-                              }}
-                            />
-                            <Typography
-                              sx={{
-                                color: getStatusStyles(award?.awardTitle)
-                                  .textColor,
-                                fontWeight: 600,
-                                fontSize: '0.875rem'
-                              }}
-                            >
-                              {award?.awardTitle
-                                ? award.awardTitle.toUpperCase()
-                                : 'N/A'}
-                            </Typography>
-                          </Box>
-                          <Typography
-                            sx={{
-                              color: settings.mode === 'dark' ? '#ddd' : '#64748B',
-                              fontSize: '0.875rem'
-                            }}
-                          >
-                            Achievement Unlocked
-                          </Typography>
-                        </Box>
                       </Box>
                     </Box>
-                  </Card>
-                )}
-              </motion.div>
-            )
-          )}
+                  </Box>
+                </Card>
+              )}
+            </motion.div>
+          ))}
         </Box>
       </motion.div>
 
       {/* Award form */}
-      {selectedAwardIndex !== null && (
+      {selectedAwardId !== null && (
         <AwardForm
           employees={employees}
           selectedEmployee={selectedEmployee}
