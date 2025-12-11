@@ -2620,7 +2620,7 @@ export default function PerformanceGrid() {
                 </Button>)}
 
 
-              {/* {String(userRole) == '1' && (
+              {String(userRole) !== '1' && (
                 <Button
                   variant="contained"
                   color="warning"
@@ -2640,7 +2640,7 @@ export default function PerformanceGrid() {
                 >
                   Add Performance
                 </Button>
-              )} */}
+              )}
 
               {['2', '3'].includes(String(userRole)) && (
                 <Button
@@ -3239,7 +3239,7 @@ export default function PerformanceGrid() {
             return (
               <>
                 <Typography variant="h6" sx={{ mb: 1 }}>
-                ✔️ Submitted Morning Employees ({submittedCount}) || ❌ Missing Evening Employees ({filteredList.length})
+                  ✔️ Submitted Morning Employees ({submittedCount}) || ❌ Missing Evening Employees ({filteredList.length})
                 </Typography>
 
                 <Stack spacing={1.5}>
