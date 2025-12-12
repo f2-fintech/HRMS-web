@@ -155,6 +155,8 @@ export default function PerformanceUploadPage() {
   // search (with debounce)
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
+  const [isFallbackDate, setIsFallbackDate] = useState(false); 
+
 
   // Manual form dialog state
   const [formOpen, setFormOpen] = useState(false);
@@ -241,44 +243,71 @@ export default function PerformanceUploadPage() {
   const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
 
 
-  const fetchList = async () => {
-    try {
-      setLoading(true);
 
-      const company_id =
-        localStorage.getItem('company_id') ||
-        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
-        '';
+const fetchList = async () => {
+  try {
+    setLoading(true);
+    setIsFallbackDate(false); 
 
-      const res = await api.get('/performance-upload/get-performance', {
-        params: { company_id },
-      });
+    const company_id =
+      localStorage.getItem('company_id') ||
+      JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+      '';
 
-      const raw: any[] = Array.isArray(res.data)
-        ? res.data
-        : res.data?.data || [];
+    const todayStr = dayjs().format('YYYY-MM-DD');
 
-      const normalized: Row[] = raw.map((r) => ({
-        ...r,
-        login: Number(r.login ?? r.total_logins ?? 0),
-        approval: Number(r.approval ?? r.approval_amount ?? 0),
-        disbursal: Number(r.disbursal ?? r.disbursal_amount ?? 0),
-        drop: Number(r.drop ?? r.drop_amount ?? 0),
-        cashback: Number(r.cashback ?? r.cashback_amount ?? 0),
-        code:
-          typeof r.code === 'string'
-            ? r.code.trim()
-            : (r.code ?? '').toString().trim(),
-      }));
+    const res = await api.get('/performance-upload/get-performance', {
+      params: { company_id, date: dateStr },
+    });
 
-      setRows(normalized);
-    } catch (e) {
-      console.error(e);
-      setRows([]);
-    } finally {
-      setLoading(false);
+    const raw: any[] = Array.isArray(res.data)
+      ? res.data
+      : res.data?.data || [];
+
+    const normalized: Row[] = raw.map((r) => ({
+      ...r,
+      login: Number(r.login ?? r.total_logins ?? 0),
+      approval: Number(r.approval ?? r.approval_amount ?? 0),
+      disbursal: Number(r.disbursal ?? r.disbursal_amount ?? 0),
+      drop: Number(r.drop ?? r.drop_amount ?? 0),
+      cashback: Number(r.cashback ?? r.cashback_amount ?? 0),
+      code:
+        typeof r.code === 'string'
+          ? r.code.trim()
+          : (r.code ?? '').toString().trim(),
+    }));
+
+    setRows(normalized);
+
+    if (!raw.length && dateStr === todayStr) {
+      try {
+        const datesRes = await api.get('/performance-upload/dates', {
+          params: { company_id },
+        });
+
+        const data = datesRes.data;
+       
+        const latestDate =
+          data?.latest?.date ||
+          (Array.isArray(data) && data.length ? data[0].date : null);
+
+        if (latestDate && latestDate !== dateStr) {
+          setIsFallbackDate(true);        // UI ko pata chale ki fallback hua
+          setDate(dayjs(latestDate));     // ye useEffect → fetchList fir se call karega
+        }
+      } catch (err) {
+        console.error('Failed to fetch latest date list', err);
+      }
     }
-  };
+  } catch (e) {
+    console.error(e);
+    setRows([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   useEffect(() => {
     if (dateStr) fetchList();
@@ -457,7 +486,7 @@ export default function PerformanceUploadPage() {
   };
 
   /* ------------ Totals ------------ */
-const totals = useMemo(() => {
+  const totals = useMemo(() => {
     const sum = (k: 'login' | 'approval' | 'disbursal') =>
       rows.reduce((a, r) => a + Number(r[k] || 0), 0);
 
@@ -555,7 +584,7 @@ const totals = useMemo(() => {
 
 
 
- 
+
 
 
   const rowBg = (r: Row) => {
@@ -650,7 +679,7 @@ const totals = useMemo(() => {
               </Box>
             </Box>
 
-           
+
             <Box
               sx={{
                 display: 'flex',
@@ -838,6 +867,18 @@ const totals = useMemo(() => {
                 ),
               }}
             />
+            <TextField
+              type="date"
+              size="small"
+              label="Date"
+              value={dateStr}
+              onChange={(e) => setDate(dayjs(e.target.value))}
+              sx={{
+                minWidth: 160,
+                '& .MuiOutlinedInput-root': { borderRadius: 3 },
+              }}
+            />
+
 
             {/* Manager/TL Filter Dropdown */}
             <TextField
@@ -993,7 +1034,7 @@ const totals = useMemo(() => {
                     color: '#fff',
                   }}
                 >
-                   {totals.logins.toLocaleString('en-IN')}
+                  {totals.logins.toLocaleString('en-IN')}
 
                 </Typography>
               </Box>
