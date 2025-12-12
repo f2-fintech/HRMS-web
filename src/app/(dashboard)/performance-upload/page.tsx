@@ -155,7 +155,7 @@ export default function PerformanceUploadPage() {
   // search (with debounce)
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [isFallbackDate, setIsFallbackDate] = useState(false); 
+  const [isFallbackDate, setIsFallbackDate] = useState(false);
 
 
   // Manual form dialog state
@@ -244,68 +244,68 @@ export default function PerformanceUploadPage() {
 
 
 
-const fetchList = async () => {
-  try {
-    setLoading(true);
-    setIsFallbackDate(false); 
+  const fetchList = async () => {
+    try {
+      setLoading(true);
+      setIsFallbackDate(false);
 
-    const company_id =
-      localStorage.getItem('company_id') ||
-      JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
-      '';
+      const company_id =
+        localStorage.getItem('company_id') ||
+        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        '';
 
-    const todayStr = dayjs().format('YYYY-MM-DD');
+      const todayStr = dayjs().format('YYYY-MM-DD');
 
-    const res = await api.get('/performance-upload/get-performance', {
-      params: { company_id, date: dateStr },
-    });
+      const res = await api.get('/performance-upload/get-performance', {
+        params: { company_id, date: dateStr },
+      });
 
-    const raw: any[] = Array.isArray(res.data)
-      ? res.data
-      : res.data?.data || [];
+      const raw: any[] = Array.isArray(res.data)
+        ? res.data
+        : res.data?.data || [];
 
-    const normalized: Row[] = raw.map((r) => ({
-      ...r,
-      login: Number(r.login ?? r.total_logins ?? 0),
-      approval: Number(r.approval ?? r.approval_amount ?? 0),
-      disbursal: Number(r.disbursal ?? r.disbursal_amount ?? 0),
-      drop: Number(r.drop ?? r.drop_amount ?? 0),
-      cashback: Number(r.cashback ?? r.cashback_amount ?? 0),
-      code:
-        typeof r.code === 'string'
-          ? r.code.trim()
-          : (r.code ?? '').toString().trim(),
-    }));
+      const normalized: Row[] = raw.map((r) => ({
+        ...r,
+        login: Number(r.login ?? r.total_logins ?? 0),
+        approval: Number(r.approval ?? r.approval_amount ?? 0),
+        disbursal: Number(r.disbursal ?? r.disbursal_amount ?? 0),
+        drop: Number(r.drop ?? r.drop_amount ?? 0),
+        cashback: Number(r.cashback ?? r.cashback_amount ?? 0),
+        code:
+          typeof r.code === 'string'
+            ? r.code.trim()
+            : (r.code ?? '').toString().trim(),
+      }));
 
-    setRows(normalized);
+      setRows(normalized);
 
-    if (!raw.length && dateStr === todayStr) {
-      try {
-        const datesRes = await api.get('/performance-upload/dates', {
-          params: { company_id },
-        });
+      if (!raw.length && dateStr === todayStr) {
+        try {
+          const datesRes = await api.get('/performance-upload/dates', {
+            params: { company_id },
+          });
 
-        const data = datesRes.data;
-       
-        const latestDate =
-          data?.latest?.date ||
-          (Array.isArray(data) && data.length ? data[0].date : null);
+          const data = datesRes.data;
 
-        if (latestDate && latestDate !== dateStr) {
-          setIsFallbackDate(true);        // UI ko pata chale ki fallback hua
-          setDate(dayjs(latestDate));     // ye useEffect → fetchList fir se call karega
+          const latestDate =
+            data?.latest?.date ||
+            (Array.isArray(data) && data.length ? data[0].date : null);
+
+          if (latestDate && latestDate !== dateStr) {
+            setIsFallbackDate(true);        // UI ko pata chale ki fallback hua
+            setDate(dayjs(latestDate));     // ye useEffect → fetchList fir se call karega
+          }
+        } catch (err) {
+          console.error('Failed to fetch latest date list', err);
         }
-      } catch (err) {
-        console.error('Failed to fetch latest date list', err);
       }
+    } catch (e) {
+      console.error(e);
+      setRows([]);
+    } finally {
+      setLoading(false);
     }
-  } catch (e) {
-    console.error(e);
-    setRows([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
 
@@ -1396,6 +1396,8 @@ const fetchList = async () => {
                         'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)',
                     }}
                   >
+                    <TableCell sx={{ fontWeight: 800 }}>S.No.</TableCell>   {/* 👈 NEW */}
+
                     <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Employee</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Code</TableCell>
@@ -1430,12 +1432,16 @@ const fetchList = async () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sortedRows.map((r) => {
-                    // Check if this employee has team totals (is a manager or TL)
+                  {sortedRows.map((r, index) => {
                     const teamInfo = r.code ? teamTotals[r.code] : null;
 
                     return (
                       <TableRow key={r._id} sx={{ background: rowBg(r) }}>
+                        <TableCell>
+                          <Typography sx={{ fontWeight: 700, color: 'black' }}>
+                            {index + 1}
+                          </Typography>
+                        </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ color: '#4b5563' }}>
                             {r.date ? dayjs(r.date).format("DD-MM-YYYY") : '—'}
