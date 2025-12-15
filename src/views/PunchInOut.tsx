@@ -21,7 +21,6 @@ interface PunchInOutProps {
 
 const WHITELIST_EMPLOYEE_IDS = [
     '66bca8d72f1270380b77ab12',
-    '66bca6192f1270380b77aac5',
     '66c881fe269ecefff3411649',
 ];
 
@@ -82,31 +81,31 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         // Check for mobile user agents (including when desktop mode is on)
         const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
-        
+
         // Check for tablet specifically
-        const isTablet = /ipad|tablet|playbook|silk/i.test(ua) || 
-                        (ua.includes('android') && !ua.includes('mobile'));
-        
+        const isTablet = /ipad|tablet|playbook|silk/i.test(ua) ||
+            (ua.includes('android') && !ua.includes('mobile'));
+
         // Check for touch device (most reliable for mobile even in desktop mode)
-        const isTouchDevice = ('ontouchstart' in window) || 
-                             (navigator.maxTouchPoints > 0) || 
-                             (navigator.msMaxTouchPoints > 0);
-        
+        const isTouchDevice = ('ontouchstart' in window) ||
+            (navigator.maxTouchPoints > 0) ||
+            (navigator.msMaxTouchPoints > 0);
+
         // Check for mobile platform
         const isMobilePlatform = /android|iphone|ipad|ipod|windows phone/i.test(navigator.platform || '');
-        
+
         // Check vendor for iOS devices
         const isAppleDevice = /apple/i.test(navigator.vendor || '');
         const isIOSDevice = isAppleDevice && isTouchDevice;
-        
+
         // Screen characteristics (physical screen, not viewport)
         const screenWidth = window.screen.width;
         const screenHeight = window.screen.height;
         const smallPhysicalScreen = Math.min(screenWidth, screenHeight) <= 768;
-        
+
         // Device memory (mobile devices typically have less memory)
         const lowMemoryDevice = (navigator as any).deviceMemory ? (navigator as any).deviceMemory <= 4 : false;
-        
+
         // Check for mobile network connection
         const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
         const isMobileConnection = connection?.type ? /cellular|wimax/i.test(connection.type) : false;
@@ -157,7 +156,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         // Re-check on window resize
         window.addEventListener('resize', checkDevice);
-        
+
         return () => window.removeEventListener('resize', checkDevice);
     }, [isWhitelistedUser, employeeId]);
 
@@ -636,10 +635,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                     isPunchDisabledDueToMobile
                                         ? "Mobile devices not allowed. Use Desktop/Laptop."
                                         : disablePunch
-                                        ? "Managers can't punch in for team members."
-                                        : !isCurrentDate
-                                            ? "Punch-In available for today only."
-                                            : ''
+                                            ? "Managers can't punch in for team members."
+                                            : !isCurrentDate
+                                                ? "Punch-In available for today only."
+                                                : ''
                                 }
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -659,8 +658,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                     isPunchDisabledDueToMobile
                                         ? "Mobile devices not allowed. Use Desktop/Laptop."
                                         : disablePunch
-                                        ? "Managers can't punch out for team members."
-                                        : ''
+                                            ? "Managers can't punch out for team members."
+                                            : ''
                                 }
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
