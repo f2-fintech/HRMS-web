@@ -151,6 +151,8 @@ export default function PerformanceUploadPage() {
   const [uploading, setUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const [user, setUser] = useState<any>(null);
+
 
   // search (with debounce)
   const [search, setSearch] = useState('');
@@ -241,6 +243,19 @@ export default function PerformanceUploadPage() {
   }, []);
 
   const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
+  useEffect(() => {
+    const u =
+      typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('user') || '{}')
+        : {};
+
+    setUser(u);
+    setIsAdmin(String(u?.role) === '1');
+  }, []);
+  const isAsstOpsManager = user?.designation === 'Asst. Ops Manager';
+
+  const canUpload = isAdmin || isAsstOpsManager;
+  const canAddRow = isAdmin || isAsstOpsManager;
 
 
 
@@ -749,7 +764,7 @@ export default function PerformanceUploadPage() {
                 Export
               </Button>
 
-              {isAdmin && (
+              {canAddRow && (
                 <>
                   <Button
                     size="small"
@@ -783,26 +798,27 @@ export default function PerformanceUploadPage() {
                     onChange={onUpload}
                   />
 
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<UploadFileIcon sx={{ fontSize: 18 }} />}
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    sx={{
-                      borderRadius: 999,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      px: 2.5,
-                      bgcolor: '#f97316',
-                      boxShadow: '0 8px 20px rgba(234,88,12,0.35)',
-                      '&:hover': {
-                        bgcolor: '#ea580c',
-                      },
-                    }}
-                  >
-                    {uploading ? 'Uploading…' : 'Upload'}
-                  </Button>
+                  {canUpload && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<UploadFileIcon sx={{ fontSize: 18 }} />}
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      sx={{
+                        borderRadius: 999,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        px: 2.5,
+                        bgcolor: '#f97316',
+                        boxShadow: '0 8px 20px rgba(234,88,12,0.35)',
+                        '&:hover': { bgcolor: '#ea580c' },
+                      }}
+                    >
+                      {uploading ? 'Uploading…' : 'Upload'}
+                    </Button>
+                  )}
+
                 </>
               )}
             </Box>
