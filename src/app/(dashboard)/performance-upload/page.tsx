@@ -194,6 +194,7 @@ export default function PerformanceUploadPage() {
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [teamBreakdown, setTeamBreakdown] = useState<TeamBreakdown | null>(null);
   const [teamBreakdownLoading, setTeamBreakdownLoading] = useState(false);
+  
 
   // Manager/TL filter state
   const [managerTlFilter, setManagerTlFilter] = useState<string>('all');
@@ -322,6 +323,15 @@ export default function PerformanceUploadPage() {
     }
   };
 
+const latestUploadedDate = useMemo(() => {
+  if (!rows.length) return null;
+
+  return rows
+    .map(r => r.date)
+    .filter(Boolean)
+    .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())[0];
+}, [rows]);
+const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
 
 
   useEffect(() => {
@@ -818,13 +828,10 @@ export default function PerformanceUploadPage() {
                       {uploading ? 'Uploading…' : 'Upload'}
                     </Button>
                   )}
-
                 </>
               )}
             </Box>
           </Box>
-
-
           <Box
             sx={{
               display: 'flex',
@@ -1593,6 +1600,7 @@ export default function PerformanceUploadPage() {
                         <TableCell align="center">
                           {teamInfo ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                              
                               <Tooltip title={`${teamInfo.memberCount} team members`}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                   <GroupsIcon sx={{ fontSize: 16, color: '#6b7280' }} />
@@ -1601,7 +1609,7 @@ export default function PerformanceUploadPage() {
                                   </Typography>
                                 </Box>
                               </Tooltip>
-                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                              {/* <Box sx={{ display: 'flex', gap: 0.5 }}>
                                 <Chip
                                   size="small"
                                   label={rupee(teamInfo.teamTotalApproval)}
@@ -1622,7 +1630,7 @@ export default function PerformanceUploadPage() {
                                     fontSize: '0.7rem',
                                   }}
                                 />
-                              </Box>
+                              </Box> */}
                               <Tooltip title="View Team Breakdown">
                                 <IconButton
                                   size="small"
