@@ -1427,7 +1427,7 @@ const PerformanceCard = ({
               />
             </Stack>
 
-            <Grid container spacing={1}>
+            {/* <Grid container spacing={1}>
               <Grid item xs={4}>
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                   Team Logins
@@ -1454,7 +1454,7 @@ const PerformanceCard = ({
                   {formatRupeeShort(teamTotal.totalDisbursal)}
                 </Typography>
               </Grid>
-            </Grid>
+            </Grid> */}
 
             <Box sx={{ mt: 1.5, textAlign: 'center' }}>
               <Button
