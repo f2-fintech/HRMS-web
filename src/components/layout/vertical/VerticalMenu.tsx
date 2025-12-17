@@ -190,8 +190,11 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               <MenuItem href={`/fine`} icon={<GavelIcon />}>
                 Fine
               </MenuItem>
-               <MenuItem href={`/performance`} icon={<AssessmentIcon />}>
+              <MenuItem href={`/performance`} icon={<AssessmentIcon />}>
                 Performance
+              </MenuItem>
+              <MenuItem href={`/departmentPerformance`} icon={<AssessmentIcon />}>
+                Dep. performance
               </MenuItem>
               <MenuItem href={`/pages`} icon={<ArticleIcon />}>
                 Pages
