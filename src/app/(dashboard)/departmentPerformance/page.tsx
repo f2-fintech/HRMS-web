@@ -1,7 +1,9 @@
-import DepartmentPerformanceGrid from '@/views/departmentperformance/DepartmentPerformanceGrid';
+'use client';
 
-const DepartmentPerformancePage = () => {
-  return <DepartmentPerformanceGrid />;
+import DepartmentPerformance from '@/components/department-performance/department';
+
+const DepartmentPerformanceGrid = () => {
+  return <DepartmentPerformance />;
 };
 
-export default DepartmentPerformancePage;
+export default DepartmentPerformanceGrid;
