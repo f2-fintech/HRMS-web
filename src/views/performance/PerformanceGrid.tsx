@@ -1316,7 +1316,7 @@ const PerformanceCard = ({
           </Grid>
         </Paper>
       </Box>
-      {excelSummary && (
+      {/* {excelSummary && (
         <Box sx={{ mt: 2 }}>
           <Paper
             variant="outlined"
@@ -1381,7 +1381,7 @@ const PerformanceCard = ({
             </Grid>
           </Paper>
         </Box>
-      )}
+      )} */}
 
       {/* Team Financial Summary - for Managers/TLs */}
       {teamTotal && teamTotal.memberCount > 0 && (

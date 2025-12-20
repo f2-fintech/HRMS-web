@@ -50,6 +50,37 @@ export async function fetchOneDaily(owner_id: string, date: string) {
   );
   return resp?.data?.[0] || null;
 }
+export async function apiUpload(path: string, formData: FormData) {
+  const token = localStorage.getItem('token') || '';
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const companyId = localStorage.getItem('company_id') || user.company_id || '';
+
+  const res = await fetch(`${baseUrl()}${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: token ? `Bearer ${token}` : '',
+      'x-company-id': companyId,
+      // ✅ multipart ke liye Content-Type mat set karo
+    },
+    body: formData,
+  });
+
+  // safer parsing
+  const text = await res.text();
+  let data: any = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { raw: text };
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.message || text || 'Upload failed');
+  }
+
+  return data; // { ok: true, url: "..." }
+}
+
 
 export async function fetchOneMonthly(owner_id: string, month: string) {
   const resp = await apiGet<{ data: any[] }>(
