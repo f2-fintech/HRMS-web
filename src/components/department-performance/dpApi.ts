@@ -1,42 +1,95 @@
+// dpApi.ts
 export const baseUrl = () =>
   process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 
-export const getAuthHeaders = () => {
+type HeadersOpts = { json?: boolean };
+
+export const getAuthHeaders = (opts: HeadersOpts = { json: true }) => {
   const token = localStorage.getItem('token') || '';
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const companyId = localStorage.getItem('company_id') || user.company_id || '';
 
-  return {
+  const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     'x-company-id': companyId,
-    'Content-Type': 'application/json',
   };
+
+  // ✅ JSON requests ke liye Content-Type set
+  if (opts.json !== false) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return headers;
 };
 
+async function parseResponse(res: Response) {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${baseUrl()}${path}`, { headers: getAuthHeaders() });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const res = await fetch(`${baseUrl()}${path}`, {
+    headers: getAuthHeaders({ json: true }),
+  });
+
+  if (!res.ok) {
+    const data: any = await parseResponse(res);
+    throw new Error(data?.message || data?.raw || 'Request failed');
+  }
+
+  return (await parseResponse(res)) as T;
 }
 
 export async function apiPost<T>(path: string, body: any): Promise<T> {
   const res = await fetch(`${baseUrl()}${path}`, {
     method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(body),
+    headers: getAuthHeaders({ json: true }),
+    body: JSON.stringify(body ?? {}),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+
+  if (!res.ok) {
+    const data: any = await parseResponse(res);
+    throw new Error(data?.message || data?.raw || 'Request failed');
+  }
+
+  return (await parseResponse(res)) as T;
 }
 
 export async function apiPatch<T>(path: string, body: any): Promise<T> {
   const res = await fetch(`${baseUrl()}${path}`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(body),
+    headers: getAuthHeaders({ json: true }),
+    body: JSON.stringify(body ?? {}),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+
+  if (!res.ok) {
+    const data: any = await parseResponse(res);
+    throw new Error(data?.message || data?.raw || 'Request failed');
+  }
+
+  return (await parseResponse(res)) as T;
+}
+
+// ✅ multipart/form-data upload (image + fields)
+export async function apiUpload<T = any>(path: string, formData: FormData): Promise<T> {
+  const res = await fetch(`${baseUrl()}${path}`, {
+    method: 'POST',
+    headers: getAuthHeaders({ json: false }), // ✅ Content-Type mat set karo
+    body: formData,
+  });
+
+  const data: any = await parseResponse(res);
+
+  if (!res.ok) {
+    throw new Error(data?.message || data?.raw || 'Upload failed');
+  }
+
+  return data as T;
 }
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -50,37 +103,6 @@ export async function fetchOneDaily(owner_id: string, date: string) {
   );
   return resp?.data?.[0] || null;
 }
-export async function apiUpload(path: string, formData: FormData) {
-  const token = localStorage.getItem('token') || '';
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const companyId = localStorage.getItem('company_id') || user.company_id || '';
-
-  const res = await fetch(`${baseUrl()}${path}`, {
-    method: 'POST',
-    headers: {
-      Authorization: token ? `Bearer ${token}` : '',
-      'x-company-id': companyId,
-      // ✅ multipart ke liye Content-Type mat set karo
-    },
-    body: formData,
-  });
-
-  // safer parsing
-  const text = await res.text();
-  let data: any = {};
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = { raw: text };
-  }
-
-  if (!res.ok) {
-    throw new Error(data?.message || text || 'Upload failed');
-  }
-
-  return data; // { ok: true, url: "..." }
-}
-
 
 export async function fetchOneMonthly(owner_id: string, month: string) {
   const resp = await apiGet<{ data: any[] }>(
