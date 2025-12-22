@@ -29,7 +29,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '@/redux/store';
 import { fetchEmployees } from '@/redux/features/employees/employeesSlice';
 
-import { apiPatch, apiPost, fetchOneDaily, fetchOneMonthly, monthISO, todayISO } from './dpApi';
+import { apiPatch, apiUpload, fetchOneDaily, fetchOneMonthly, monthISO, todayISO } from './dpApi';
 
 type TeamApi = {
   _id: string;
@@ -91,6 +91,12 @@ export default function PerformanceManager() {
   const [myPlanForThisMonth, setMyPlanForThisMonth] = useState('');
   const [myCompletedThisMonth, setMyCompletedThisMonth] = useState('');
   const [savingMine, setSavingMine] = useState(false);
+
+  // ✅ IMPORTANT: Morning/Evening/Plan/Completed images ALAG-ALAG (as you asked)
+  const [myMorningImage, setMyMorningImage] = useState<File | null>(null);
+  const [myEveningImage, setMyEveningImage] = useState<File | null>(null);
+  const [myMonthPlanImage, setMyMonthPlanImage] = useState<File | null>(null);
+  const [myMonthCompletedImage, setMyMonthCompletedImage] = useState<File | null>(null);
 
   // ✅ myId
   const myId = useMemo(() => {
@@ -233,17 +239,62 @@ export default function PerformanceManager() {
     setShowMyForm(true);
   };
 
-  // ✅ Daily: Morning only
+  const resetMyFiles = () => {
+    setMyMorningImage(null);
+    setMyEveningImage(null);
+    setMyMonthPlanImage(null);
+    setMyMonthCompletedImage(null);
+  };
+
+  const FilePicker = ({
+    label,
+    file,
+    onPick,
+  }: {
+    label: string;
+    file: File | null;
+    onPick: (f: File | null) => void;
+  }) => (
+    <Stack spacing={0.5}>
+      <Button component="label" variant="outlined" sx={{ alignSelf: 'flex-start', borderRadius: 2 }}>
+        {label}
+        <input
+          hidden
+          type="file"
+          accept="image/*"
+          onChange={(e) => onPick(e.target.files?.[0] || null)}
+        />
+      </Button>
+
+      {file ? (
+        <Typography variant="caption" color="text.secondary">
+          Selected: {file.name}
+        </Typography>
+      ) : (
+        <Typography variant="caption" color="text.secondary">
+          No image selected
+        </Typography>
+      )}
+    </Stack>
+  );
+
+  // ✅ Daily: Morning only (+ myMorningImage)
   const saveMyMorning = async () => {
     try {
       setSavingMine(true);
-      await apiPost(`/department-performance/daily`, {
-        date: filterDate,
-        whatDoneToday: myWhatDoneToday,
-      });
+
+      const fd = new FormData();
+      fd.append('date', filterDate);
+      fd.append('whatDoneToday', myWhatDoneToday.trim());
+      if (myMorningImage) fd.append('image', myMorningImage);
+
+      await apiUpload(`/department-performance/daily`, fd);
+
       alert('✅ Morning saved');
       if (selectedEmployeeId === myId) loadRecord();
       setShowMyForm(false);
+      setMyWhatDoneToday('');
+      setMyMorningImage(null);
     } catch (e: any) {
       alert(`❌ ${e?.message || 'Error'}`);
     } finally {
@@ -251,17 +302,23 @@ export default function PerformanceManager() {
     }
   };
 
-  // ✅ Daily: Evening only
+  // ✅ Daily: Evening only (+ myEveningImage)
   const saveMyEvening = async () => {
     try {
       setSavingMine(true);
-      await apiPost(`/department-performance/daily`, {
-        date: filterDate,
-        whatCompletedToday: myWhatCompletedToday,
-      });
+
+      const fd = new FormData();
+      fd.append('date', filterDate);
+      fd.append('whatCompletedToday', myWhatCompletedToday.trim());
+      if (myEveningImage) fd.append('image', myEveningImage);
+
+      await apiUpload(`/department-performance/daily`, fd);
+
       alert('✅ Evening saved');
       if (selectedEmployeeId === myId) loadRecord();
       setShowMyForm(false);
+      setMyWhatCompletedToday('');
+      setMyEveningImage(null);
     } catch (e: any) {
       alert(`❌ ${e?.message || 'Error'}`);
     } finally {
@@ -269,17 +326,23 @@ export default function PerformanceManager() {
     }
   };
 
-  // ✅ Monthly: Plan only
+  // ✅ Monthly: Plan only (+ myMonthPlanImage)
   const saveMyMonthlyPlan = async () => {
     try {
       setSavingMine(true);
-      await apiPost(`/department-performance/monthly`, {
-        month: filterMonth,
-        planForThisMonth: myPlanForThisMonth,
-      });
+
+      const fd = new FormData();
+      fd.append('month', filterMonth);
+      fd.append('planForThisMonth', myPlanForThisMonth.trim());
+      if (myMonthPlanImage) fd.append('image', myMonthPlanImage);
+
+      await apiUpload(`/department-performance/monthly`, fd);
+
       alert('✅ Monthly plan saved');
       if (selectedEmployeeId === myId) loadRecord();
       setShowMyForm(false);
+      setMyPlanForThisMonth('');
+      setMyMonthPlanImage(null);
     } catch (e: any) {
       alert(`❌ ${e?.message || 'Error'}`);
     } finally {
@@ -287,17 +350,23 @@ export default function PerformanceManager() {
     }
   };
 
-  // ✅ Monthly: Completed only
+  // ✅ Monthly: Completed only (+ myMonthCompletedImage)
   const saveMyMonthlyCompleted = async () => {
     try {
       setSavingMine(true);
-      await apiPost(`/department-performance/monthly`, {
-        month: filterMonth,
-        completedThisMonth: myCompletedThisMonth,
-      });
+
+      const fd = new FormData();
+      fd.append('month', filterMonth);
+      fd.append('completedThisMonth', myCompletedThisMonth.trim());
+      if (myMonthCompletedImage) fd.append('image', myMonthCompletedImage);
+
+      await apiUpload(`/department-performance/monthly`, fd);
+
       alert('✅ Monthly completed saved');
       if (selectedEmployeeId === myId) loadRecord();
       setShowMyForm(false);
+      setMyCompletedThisMonth('');
+      setMyMonthCompletedImage(null);
     } catch (e: any) {
       alert(`❌ ${e?.message || 'Error'}`);
     } finally {
@@ -305,7 +374,7 @@ export default function PerformanceManager() {
     }
   };
 
-  // ✅ Review submit (block self)
+  // ✅ Review submit (block self) - JSON only
   const submitReview = async () => {
     if (isMeSelected) {
       alert("❌ You can't review yourself");
@@ -495,7 +564,10 @@ export default function PerformanceManager() {
                 <Button
                   size="small"
                   variant={showMyForm ? 'outlined' : 'contained'}
-                  onClick={() => setShowMyForm((p) => !p)}
+                  onClick={() => {
+                    setShowMyForm((p) => !p);
+                    if (!showMyForm) resetMyFiles();
+                  }}
                   sx={{ borderRadius: 999, fontWeight: 900, textTransform: 'none' }}
                 >
                   {showMyForm ? 'Close Form' : tab === 'daily' ? 'Create My Daily' : 'Create My Monthly'}
@@ -507,75 +579,122 @@ export default function PerformanceManager() {
               <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mb: 2 }}>
                 {tab === 'daily' ? (
                   <Stack spacing={2}>
-                    <TextField
-                      label="Morning: What you have done / plan for today"
-                      value={myWhatDoneToday}
-                      onChange={(e) => setMyWhatDoneToday(e.target.value)}
-                      multiline
-                      minRows={3}
-                    />
-                    <Button
-                      disabled={savingMine || !myWhatDoneToday.trim()}
-                      variant="contained"
-                      onClick={saveMyMorning}
-                      sx={{ alignSelf: 'flex-start', borderRadius: 2, fontWeight: 900, textTransform: 'none' }}
-                    >
-                      Save Morning
-                    </Button>
+                 
 
-                    <Divider />
+                      <TextField
+                        label="Morning: What you have done / plan for today"
+                        value={myWhatDoneToday}
+                        onChange={(e) => setMyWhatDoneToday(e.target.value)}
+                        multiline
+                        minRows={3}
+                      />
 
-                    <TextField
-                      label="Evening: What completed today"
-                      value={myWhatCompletedToday}
-                      onChange={(e) => setMyWhatCompletedToday(e.target.value)}
-                      multiline
-                      minRows={3}
-                    />
-                    <Button
-                      disabled={savingMine || !myWhatCompletedToday.trim()}
-                      variant="contained"
-                      onClick={saveMyEvening}
-                      sx={{ alignSelf: 'flex-start', borderRadius: 2, fontWeight: 900, textTransform: 'none' }}
-                    >
-                      Save Evening
-                    </Button>
+                      <Box sx={{ mt: 1.5 }}>
+                        <FilePicker
+                          label="Upload Morning Image (optional)"
+                          file={myMorningImage}
+                          onPick={setMyMorningImage}
+                        />
+                      </Box>
+
+                      <Button
+                        disabled={savingMine || !myWhatDoneToday.trim()}
+                        variant="contained"
+                        onClick={saveMyMorning}
+                        sx={{ mt: 1.5, alignSelf: 'flex-start', borderRadius: 2, fontWeight: 900, textTransform: 'none' }}
+                      >
+                        Save Morning
+                      </Button>
+                   <Divider />
+
+                    
+                      <TextField
+                        label="Evening: What completed today"
+                        value={myWhatCompletedToday}
+                        onChange={(e) => setMyWhatCompletedToday(e.target.value)}
+                        multiline
+                        minRows={3}
+                      />
+
+                      <Box sx={{ mt: 1.5 }}>
+                        <FilePicker
+                          label="Upload Evening Image (optional)"
+                          file={myEveningImage}
+                          onPick={setMyEveningImage}
+                        />
+                      </Box>
+
+                      <Button
+                        disabled={savingMine || !myWhatCompletedToday.trim()}
+                        variant="contained"
+                        onClick={saveMyEvening}
+                        sx={{ mt: 1.5, alignSelf: 'flex-start', borderRadius: 2, fontWeight: 900, textTransform: 'none' }}
+                      >
+                        Save Evening
+                      </Button>
+                 
                   </Stack>
                 ) : (
                   <Stack spacing={2}>
-                    <TextField
-                      label="Monthly Plan (what you have to do)"
-                      value={myPlanForThisMonth}
-                      onChange={(e) => setMyPlanForThisMonth(e.target.value)}
-                      multiline
-                      minRows={3}
-                    />
-                    <Button
-                      disabled={savingMine || !myPlanForThisMonth.trim()}
-                      variant="contained"
-                      onClick={saveMyMonthlyPlan}
-                      sx={{ alignSelf: 'flex-start', borderRadius: 2, fontWeight: 900, textTransform: 'none' }}
-                    >
-                      Save Plan
-                    </Button>
+                    {/* ✅ Monthly Plan */}
+                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                      <Typography sx={{ fontWeight: 900, mb: 1 }}>Monthly Plan</Typography>
 
-                    <Divider />
+                      <TextField
+                        label="Monthly Plan (what you have to do)"
+                        value={myPlanForThisMonth}
+                        onChange={(e) => setMyPlanForThisMonth(e.target.value)}
+                        multiline
+                        minRows={3}
+                      />
 
-                    <TextField
-                      label="Monthly Completed"
-                      value={myCompletedThisMonth}
-                      onChange={(e) => setMyCompletedThisMonth(e.target.value)}
-                      multiline
-                      minRows={3}
-                    />
-                    <Button
-                      disabled={savingMine || !myCompletedThisMonth.trim()}
-                      variant="contained"
-                      onClick={saveMyMonthlyCompleted}
-                      sx={{ alignSelf: 'flex-start', borderRadius: 2, fontWeight: 900, textTransform: 'none' }}
-                    >
-                      Save Completed
-                    </Button>
+                      <Box sx={{ mt: 1.5 }}>
+                        <FilePicker
+                          label="Upload Plan Image (optional)"
+                          file={myMonthPlanImage}
+                          onPick={setMyMonthPlanImage}
+                        />
+                      </Box>
+
+                      <Button
+                        disabled={savingMine || !myPlanForThisMonth.trim()}
+                        variant="contained"
+                        onClick={saveMyMonthlyPlan}
+                        sx={{ mt: 1.5, alignSelf: 'flex-start', borderRadius: 2, fontWeight: 900, textTransform: 'none' }}
+                      >
+                        Save Plan
+                      </Button>
+                    </Paper>
+
+                    {/* ✅ Monthly Completed */}
+                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                      <Typography sx={{ fontWeight: 900, mb: 1 }}>Monthly Completed</Typography>
+
+                      <TextField
+                        label="Monthly Completed"
+                        value={myCompletedThisMonth}
+                        onChange={(e) => setMyCompletedThisMonth(e.target.value)}
+                        multiline
+                        minRows={3}
+                      />
+
+                      <Box sx={{ mt: 1.5 }}>
+                        <FilePicker
+                          label="Upload Completed Image (optional)"
+                          file={myMonthCompletedImage}
+                          onPick={setMyMonthCompletedImage}
+                        />
+                      </Box>
+
+                      <Button
+                        disabled={savingMine || !myCompletedThisMonth.trim()}
+                        variant="contained"
+                        onClick={saveMyMonthlyCompleted}
+                        sx={{ mt: 1.5, alignSelf: 'flex-start', borderRadius: 2, fontWeight: 900, textTransform: 'none' }}
+                      >
+                        Save Completed
+                      </Button>
+                    </Paper>
                   </Stack>
                 )}
               </Paper>
@@ -697,6 +816,25 @@ export default function PerformanceManager() {
                         </>
                       )}
 
+                     
+                      {Array.isArray(record.attachments) && record.attachments.length > 0 ? (
+                        <>
+                          <Divider />
+                          <Box>
+                            <Typography variant="caption" sx={{ fontWeight: 900 }}>
+                              Attachments
+                            </Typography>
+                            <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                              {record.attachments.map((url: string, idx: number) => (
+                                <a key={idx} href={url} target="_blank" rel="noreferrer">
+                                  {url}
+                                </a>
+                              ))}
+                            </Stack>
+                          </Box>
+                        </>
+                      ) : null}
+
                       <Divider />
 
                       {/* Review card */}
@@ -705,9 +843,7 @@ export default function PerformanceManager() {
                         sx={{
                           p: 2,
                           borderRadius: 2,
-                          bgcolor: hasSavedReview
-                            ? 'rgba(34,197,94,0.06)'
-                            : 'rgba(99,102,241,0.06)',
+                          bgcolor: hasSavedReview ? 'rgba(34,197,94,0.06)' : 'rgba(99,102,241,0.06)',
                           borderColor: hasSavedReview ? 'rgba(34,197,94,0.35)' : 'divider',
                         }}
                       >
