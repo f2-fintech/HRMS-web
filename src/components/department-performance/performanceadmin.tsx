@@ -45,8 +45,7 @@ type Employee = {
     code?: string;
 };
 
-const fullName = (e?: Employee | null) =>
-    `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || '—';
+const fullName = (e?: Employee | null) => `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || '—';
 
 const splitIds = (csv?: string) =>
     String(csv || '')
@@ -57,19 +56,45 @@ const splitIds = (csv?: string) =>
 // ✅ only real mongo ids
 const isMongoId = (v: any) => /^[a-f\d]{24}$/i.test(String(v || '').trim());
 
-
 const ALLOWED_TEAM_IDS: string[] = [
     '680789b86a3572ff9478bcd2',
     '68078bdd6a3572ff9478bd50',
     '68078c506a3572ff9478bd6c',
     '693d0c7f5c4e2f15ce95cf0b',
-    '68e8feb4fa8c01760efccf87'
+    '68e8feb4fa8c01760efccf87',
 ];
 
 const ALLOWED_TEAM_CODES: string[] = [
     // 'SALES',
     // 'HR',
 ];
+
+/** ✅ helpers: filename + preview (same as employee) */
+const getFileNameFromUrl = (url: string) => {
+    try {
+        const clean = String(url || '').split('?')[0];
+        const last = clean.substring(clean.lastIndexOf('/') + 1);
+        return decodeURIComponent(last || url);
+    } catch {
+        return url;
+    }
+};
+
+const prettyFileName = (url: string) => {
+    const name = getFileNameFromUrl(url);
+    return name.replace(/^\d{10,}-/, ''); // remove leading timestamp-
+};
+
+const isImageUrl = (url: string) => /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
+
+/** ✅ in case backend returns relative paths like "/uploads/xx.jpg" */
+const normalizeUrl = (url: string) => {
+    const u = String(url || '');
+    if (!u) return '';
+    if (/^https?:\/\//i.test(u)) return u;
+    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
+    return `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+};
 
 export default function PerformanceAdmin() {
     const dispatch: AppDispatch = useDispatch();
@@ -168,10 +193,7 @@ export default function PerformanceAdmin() {
         });
     }, [teams, teamSearch]);
 
-    const selectedTeam = useMemo(
-        () => teams.find((t) => t._id === selectedTeamId) || null,
-        [teams, selectedTeamId],
-    );
+    const selectedTeam = useMemo(() => teams.find((t) => t._id === selectedTeamId) || null, [teams, selectedTeamId]);
 
     // ✅ Remove invalid employee ids + skip ids not present in employee map (no “—” cards)
     const teamMemberIds = useMemo(() => {
@@ -278,9 +300,7 @@ export default function PerformanceAdmin() {
                                         bgcolor: active ? 'rgba(44,60,227,0.06)' : 'transparent',
                                     }}
                                 >
-                                    <Typography sx={{ fontWeight: 900 }}>
-                                        {t.name || '—'} 
-                                    </Typography>
+                                    <Typography sx={{ fontWeight: 900 }}>{t.name || '—'}</Typography>
                                     <Typography variant="caption" color="text.secondary">
                                         Team ID: {t._id}
                                     </Typography>
@@ -296,9 +316,6 @@ export default function PerformanceAdmin() {
                 <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
                     <Box sx={{ minWidth: 0 }}>
                         <Typography sx={{ fontWeight: 900 }}>Admin Dashboard</Typography>
-                        {/* <Typography variant="caption" color="text.secondary">
-                            Team wise performance + review
-                        </Typography> */}
                     </Box>
 
                     <Button
@@ -328,15 +345,12 @@ export default function PerformanceAdmin() {
                                         sx={{
                                             bgcolor: 'primary.main',
                                             color: '#fff',
-                                            marginLeft: "5px",
+                                            marginLeft: '5px',
                                             fontWeight: 900,
                                             '& .MuiChip-icon': { color: '#fff' },
                                         }}
                                     />
-
                                 </Typography>
-
-
                             </Box>
 
                             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ minHeight: 36 }}>
@@ -356,12 +370,9 @@ export default function PerformanceAdmin() {
                                     InputLabelProps={{ shrink: true }}
                                     sx={{
                                         maxWidth: 210,
-                                        '& .MuiInputBase-root': {
-                                            height: 36,
-                                        },
+                                        '& .MuiInputBase-root': { height: 36 },
                                     }}
                                 />
-
                             ) : (
                                 <TextField
                                     type="month"
@@ -372,16 +383,6 @@ export default function PerformanceAdmin() {
                                     sx={{ maxWidth: 240 }}
                                 />
                             )}
-
-                            {/* <Chip
-                                label={
-                                    selectedEmployeeId
-                                        ? `Selected: ${fullName(empMap.get(selectedEmployeeId) || null)}`
-                                        : 'Select employee'
-                                }
-                                variant="outlined"
-                                sx={{ fontWeight: 900 }}
-                            /> */}
                         </Box>
 
                         <Divider sx={{ my: 2 }} />
@@ -395,7 +396,7 @@ export default function PerformanceAdmin() {
                                 <Stack spacing={1} sx={{ mt: 1 }}>
                                     {teamMemberIds.map((id) => {
                                         const emp = empMap.get(id) || null;
-                                        if (!emp) return null; // ✅ no empty “—” cards
+                                        if (!emp) return null;
 
                                         const active = selectedEmployeeId === id;
 
@@ -419,7 +420,7 @@ export default function PerformanceAdmin() {
                                                             {fullName(emp)}
                                                         </Typography>
                                                         <Typography variant="caption" color="text.secondary" noWrap>
-                                                            {emp?.designation || '—'} 
+                                                            {emp?.designation || '—'}
                                                         </Typography>
                                                     </Box>
                                                 </Stack>
@@ -454,9 +455,7 @@ export default function PerformanceAdmin() {
                                                         <Typography variant="caption" sx={{ fontWeight: 900 }}>
                                                             What done today
                                                         </Typography>
-                                                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>
-                                                            {record.whatDoneToday || '—'}
-                                                        </Typography>
+                                                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.whatDoneToday || '—'}</Typography>
                                                     </Box>
                                                     <Box>
                                                         <Typography variant="caption" sx={{ fontWeight: 900 }}>
@@ -473,9 +472,7 @@ export default function PerformanceAdmin() {
                                                         <Typography variant="caption" sx={{ fontWeight: 900 }}>
                                                             Plan for this month
                                                         </Typography>
-                                                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>
-                                                            {record.planForThisMonth || '—'}
-                                                        </Typography>
+                                                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.planForThisMonth || '—'}</Typography>
                                                     </Box>
                                                     <Box>
                                                         <Typography variant="caption" sx={{ fontWeight: 900 }}>
@@ -487,6 +484,85 @@ export default function PerformanceAdmin() {
                                                     </Box>
                                                 </>
                                             )}
+
+                                            {/* ✅ Attachments (Admin - NO URL) */}
+                                            {Array.isArray(record.attachments) && record.attachments.length > 0 ? (
+                                                <>
+                                                    <Divider />
+                                                    <Box>
+                                                        <Typography variant="caption" sx={{ fontWeight: 900 }}>
+                                                            Attachments
+                                                        </Typography>
+
+                                                        <Stack spacing={1} sx={{ mt: 1 }}>
+                                                            {record.attachments.map((rawUrl: string, idx: number) => {
+                                                                const url = normalizeUrl(rawUrl);
+                                                                const name = prettyFileName(rawUrl);
+                                                                const img = isImageUrl(rawUrl);
+
+                                                                return (
+                                                                    <Paper
+                                                                        key={idx}
+                                                                        variant="outlined"
+                                                                        sx={{
+                                                                            p: 1,
+                                                                            borderRadius: 2,
+                                                                            cursor: 'pointer',
+                                                                            transition: '0.15s',
+                                                                            '&:hover': { bgcolor: 'rgba(44,60,227,0.06)' },
+                                                                        }}
+                                                                        onClick={() => window.open(url, '_blank')}
+                                                                    >
+                                                                        <Stack direction="row" spacing={1.2} alignItems="center">
+                                                                            {img ? (
+                                                                                <Box
+                                                                                    component="img"
+                                                                                    src={url}
+                                                                                    alt={name}
+                                                                                    sx={{
+                                                                                        width: 48,
+                                                                                        height: 48,
+                                                                                        borderRadius: 2,
+                                                                                        objectFit: 'cover',
+                                                                                        flexShrink: 0,
+                                                                                        border: '1px solid',
+                                                                                        borderColor: 'divider',
+                                                                                    }}
+                                                                                    onError={(e: any) => (e.currentTarget.style.display = 'none')}
+                                                                                />
+                                                                            ) : (
+                                                                                <Box
+                                                                                    sx={{
+                                                                                        width: 48,
+                                                                                        height: 48,
+                                                                                        borderRadius: 2,
+                                                                                        flexShrink: 0,
+                                                                                        border: '1px solid',
+                                                                                        borderColor: 'divider',
+                                                                                        display: 'grid',
+                                                                                        placeItems: 'center',
+                                                                                        fontWeight: 900,
+                                                                                        color: 'text.secondary',
+                                                                                    }}
+                                                                                >
+                                                                                    F
+                                                                                </Box>
+                                                                            )}
+
+                                                                            <Box sx={{ minWidth: 0 }}>
+                                                                                <Typography sx={{ fontWeight: 900 }} noWrap title={name}>
+                                                                                    {name}
+                                                                                </Typography>
+                                                                            </Box>
+                                                                        </Stack>
+                                                                    </Paper>
+                                                                );
+                                                            })}
+                                                        </Stack>
+                                                    </Box>
+                                                </>
+                                            ) : null}
+
 
                                             <Divider />
 
