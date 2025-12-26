@@ -1,4 +1,3 @@
-// dpApi.ts
 export const baseUrl = () =>
   process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 
@@ -14,7 +13,6 @@ export const getAuthHeaders = (opts: HeadersOpts = { json: true }) => {
     'x-company-id': companyId,
   };
 
-  // ✅ JSON requests ke liye Content-Type set
   if (opts.json !== false) {
     headers['Content-Type'] = 'application/json';
   }
@@ -75,11 +73,10 @@ export async function apiPatch<T>(path: string, body: any): Promise<T> {
   return (await parseResponse(res)) as T;
 }
 
-// ✅ multipart/form-data upload (image + fields)
 export async function apiUpload<T = any>(path: string, formData: FormData): Promise<T> {
   const res = await fetch(`${baseUrl()}${path}`, {
     method: 'POST',
-    headers: getAuthHeaders({ json: false }), // ✅ Content-Type mat set karo
+    headers: getAuthHeaders({ json: false }),
     body: formData,
   });
 

@@ -40,6 +40,10 @@ import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Me
 // Style Imports
 import menuItemStyles from '@core/styles/vertical/menuItemStyles'
 import menuSectionStyles from '@core/styles/vertical/menuSectionStyles'
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
+import SupportAgentIcon from '@mui/icons-material/SupportAgent'
+import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
+
 
 type RenderExpandIconProps = {
   open?: boolean
@@ -190,7 +194,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               <MenuItem href={`/fine`} icon={<GavelIcon />}>
                 Fine
               </MenuItem>
-              <MenuItem href={`/performance`} icon={<AssessmentIcon />}>
+              <MenuItem href={`/performance`} icon={<HeadsetMicIcon/>}>
                 Performance
               </MenuItem>
               <MenuItem href={`/departmentPerformance`} icon={<AssessmentIcon />}>
@@ -201,6 +205,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               </MenuItem>
               <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
                 Query
+              </MenuItem>
+              <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
+                Expense Tracker
               </MenuItem>
 
               <MenuItem href={`/assests`} icon={<InventoryIcon />}>

@@ -14,20 +14,15 @@ export default function DepartmentPerformance() {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-    // role_priority / role can be number OR string
     const rp = user?.role_priority;
     const r = user?.role;
 
     const rolePriorityNum = Number(rp);
     const roleNum = Number(r);
-
-    // fallback string matching
     const raw = String(rp ?? r ?? user?.designation ?? user?.user_type ?? '')
       .toLowerCase()
       .trim();
 
-    // ✅ Most robust mapping:
     // 1 => Admin
     // 2 => Manager/TL
     // else => Employee

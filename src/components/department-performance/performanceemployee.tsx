@@ -23,25 +23,41 @@ import EditIcon from '@mui/icons-material/Edit';
 
 import { apiUpload, fetchOneDaily, fetchOneMonthly, monthISO, todayISO } from './dpApi';
 
+// ✅ helpers: filename + preview
+const getFileNameFromUrl = (url: string) => {
+  try {
+    const clean = String(url || '').split('?')[0];
+    const last = clean.substring(clean.lastIndexOf('/') + 1);
+    return decodeURIComponent(last || url);
+  } catch {
+    return url;
+  }
+};
+
+const prettyFileName = (url: string) => {
+  const name = getFileNameFromUrl(url);
+  return name.replace(/^\d{10,}-/, ''); // remove leading timestamp-
+};
+
+const isImageUrl = (url: string) => /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
+
 export default function PerformanceEmployee() {
   const [tab, setTab] = useState<'daily' | 'monthly'>('daily');
 
-  // ✅ create/edit form toggle
   const [openForm, setOpenForm] = useState(false);
 
-  // ✅ filters
   const [dailyDate, setDailyDate] = useState(todayISO());
   const [month, setMonth] = useState(monthISO());
 
-  // ✅ Daily fields (separate)
+  // ✅ Daily fields
   const [morningPlan, setMorningPlan] = useState('');
   const [eveningCompleted, setEveningCompleted] = useState('');
 
-  // ✅ Monthly fields (separate)
+  // ✅ Monthly fields
   const [monthPlan, setMonthPlan] = useState('');
   const [monthCompleted, setMonthCompleted] = useState('');
 
-  // ✅ Separate images (as you asked)
+  // ✅ Separate images
   const [morningImage, setMorningImage] = useState<File | null>(null);
   const [eveningImage, setEveningImage] = useState<File | null>(null);
   const [monthPlanImage, setMonthPlanImage] = useState<File | null>(null);
@@ -86,7 +102,7 @@ export default function PerformanceEmployee() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, dailyDate, month, myId]);
 
-  // ✅ Edit (prefill form from existing record)
+  // ✅ Edit (prefill form)
   const openEditForm = () => {
     if (!record) {
       setOpenForm(true);
@@ -116,12 +132,7 @@ export default function PerformanceEmployee() {
     <Stack spacing={0.5}>
       <Button component="label" variant="outlined" sx={{ alignSelf: 'flex-start', borderRadius: 2 }}>
         {label}
-        <input
-          hidden
-          type="file"
-          accept="image/*"
-          onChange={(e) => onPick(e.target.files?.[0] || null)}
-        />
+        <input hidden type="file" accept="image/*" onChange={(e) => onPick(e.target.files?.[0] || null)} />
       </Button>
 
       {file ? (
@@ -136,7 +147,6 @@ export default function PerformanceEmployee() {
     </Stack>
   );
 
-  // ✅ Save Morning (ONLY whatDoneToday) + morningImage
   const saveMorning = async () => {
     try {
       setSavingMorning(true);
@@ -160,7 +170,6 @@ export default function PerformanceEmployee() {
     }
   };
 
-  // ✅ Save Evening (ONLY whatCompletedToday) + eveningImage
   const saveEvening = async () => {
     try {
       setSavingEvening(true);
@@ -184,7 +193,6 @@ export default function PerformanceEmployee() {
     }
   };
 
-  // ✅ Save Monthly Plan (ONLY planForThisMonth) + monthPlanImage
   const saveMonthlyPlan = async () => {
     try {
       setSavingMonthPlan(true);
@@ -208,7 +216,6 @@ export default function PerformanceEmployee() {
     }
   };
 
-  // ✅ Save Monthly Completed (ONLY completedThisMonth) + monthCompletedImage
   const saveMonthlyCompleted = async () => {
     try {
       setSavingMonthCompleted(true);
@@ -320,10 +327,7 @@ export default function PerformanceEmployee() {
           {tab === 'daily' ? (
             <Stack spacing={2}>
               {/* Morning */}
-              <Paper
-                variant="outlined"
-                sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,193,7,0.08)' }}
-              >
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,193,7,0.08)' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                   <WbSunnyIcon sx={{ color: '#f59e0b' }} />
                   <Typography sx={{ fontWeight: 900 }}>Morning</Typography>
@@ -338,23 +342,14 @@ export default function PerformanceEmployee() {
                     minRows={3}
                   />
 
-                  <FilePicker
-                    label="Upload Morning Image (optional)"
-                    file={morningImage}
-                    onPick={setMorningImage}
-                  />
+                  <FilePicker label="Upload Morning Image (optional)" file={morningImage} onPick={setMorningImage} />
 
                   <Button
                     onClick={saveMorning}
                     disabled={savingMorning || !morningPlan.trim()}
                     variant="contained"
                     startIcon={<SaveIcon />}
-                    sx={{
-                      borderRadius: 2,
-                      fontWeight: 900,
-                      textTransform: 'none',
-                      alignSelf: 'flex-start',
-                    }}
+                    sx={{ borderRadius: 2, fontWeight: 900, textTransform: 'none', alignSelf: 'flex-start' }}
                   >
                     Save Morning
                   </Button>
@@ -362,10 +357,7 @@ export default function PerformanceEmployee() {
               </Paper>
 
               {/* Evening */}
-              <Paper
-                variant="outlined"
-                sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(59,130,246,0.08)' }}
-              >
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(59,130,246,0.08)' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                   <NightsStayIcon sx={{ color: '#3b82f6' }} />
                   <Typography sx={{ fontWeight: 900 }}>Evening</Typography>
@@ -380,23 +372,14 @@ export default function PerformanceEmployee() {
                     minRows={3}
                   />
 
-                  <FilePicker
-                    label="Upload Evening Image (optional)"
-                    file={eveningImage}
-                    onPick={setEveningImage}
-                  />
+                  <FilePicker label="Upload Evening Image (optional)" file={eveningImage} onPick={setEveningImage} />
 
                   <Button
                     onClick={saveEvening}
                     disabled={savingEvening || !eveningCompleted.trim()}
                     variant="contained"
                     startIcon={<SaveIcon />}
-                    sx={{
-                      borderRadius: 2,
-                      fontWeight: 900,
-                      textTransform: 'none',
-                      alignSelf: 'flex-start',
-                    }}
+                    sx={{ borderRadius: 2, fontWeight: 900, textTransform: 'none', alignSelf: 'flex-start' }}
                   >
                     Save Evening
                   </Button>
@@ -406,10 +389,7 @@ export default function PerformanceEmployee() {
           ) : (
             <Stack spacing={2}>
               {/* Monthly */}
-              <Paper
-                variant="outlined"
-                sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(99,102,241,0.06)' }}
-              >
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(99,102,241,0.06)' }}>
                 <Typography sx={{ fontWeight: 900, mb: 1 }}>Monthly</Typography>
 
                 <Stack spacing={2}>
@@ -432,12 +412,7 @@ export default function PerformanceEmployee() {
                     disabled={savingMonthPlan || !monthPlan.trim()}
                     variant="contained"
                     startIcon={<SaveIcon />}
-                    sx={{
-                      borderRadius: 2,
-                      fontWeight: 900,
-                      textTransform: 'none',
-                      alignSelf: 'flex-start',
-                    }}
+                    sx={{ borderRadius: 2, fontWeight: 900, textTransform: 'none', alignSelf: 'flex-start' }}
                   >
                     Save Plan
                   </Button>
@@ -463,12 +438,7 @@ export default function PerformanceEmployee() {
                     disabled={savingMonthCompleted || !monthCompleted.trim()}
                     variant="contained"
                     startIcon={<SaveIcon />}
-                    sx={{
-                      borderRadius: 2,
-                      fontWeight: 900,
-                      textTransform: 'none',
-                      alignSelf: 'flex-start',
-                    }}
+                    sx={{ borderRadius: 2, fontWeight: 900, textTransform: 'none', alignSelf: 'flex-start' }}
                   >
                     Save Completed
                   </Button>
@@ -512,9 +482,7 @@ export default function PerformanceEmployee() {
                   <Typography variant="caption" sx={{ fontWeight: 900 }}>
                     Evening (Completed)
                   </Typography>
-                  <Typography sx={{ whiteSpace: 'pre-wrap' }}>
-                    {record.whatCompletedToday || '—'}
-                  </Typography>
+                  <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.whatCompletedToday || '—'}</Typography>
                 </Box>
               </>
             ) : (
@@ -530,14 +498,12 @@ export default function PerformanceEmployee() {
                   <Typography variant="caption" sx={{ fontWeight: 900 }}>
                     Completed this month
                   </Typography>
-                  <Typography sx={{ whiteSpace: 'pre-wrap' }}>
-                    {record.completedThisMonth || '—'}
-                  </Typography>
+                  <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.completedThisMonth || '—'}</Typography>
                 </Box>
               </>
             )}
 
-          
+            {/* ✅ Attachments (fixed) */}
             {Array.isArray(record.attachments) && record.attachments.length > 0 ? (
               <>
                 <Divider />
@@ -545,12 +511,35 @@ export default function PerformanceEmployee() {
                   <Typography variant="caption" sx={{ fontWeight: 900 }}>
                     Attachments
                   </Typography>
-                  <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                    {record.attachments.map((url: string, idx: number) => (
-                      <a key={idx} href={url} target="_blank" rel="noreferrer">
-                        {url}
-                      </a>
-                    ))}
+
+                  <Stack spacing={1} sx={{ mt: 1 }}>
+                    {record.attachments.map((url: string, idx: number) => {
+                      const name = prettyFileName(url);
+                      const img = isImageUrl(url);
+
+                      return (
+                        <Paper key={idx} variant="outlined" sx={{ p: 1, borderRadius: 2 }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            {img ? (
+                              <img
+                                src={url}
+                                alt={name}
+                                style={{ width: 46, height: 46, borderRadius: 8, objectFit: 'cover' }}
+                              />
+                            ) : null}
+
+                            <Box sx={{ minWidth: 0 }}>
+                              <a href={url} target="_blank" rel="noreferrer" style={{ fontWeight: 700 }}>
+                                {name}
+                              </a>
+                              <Typography variant="caption" color="text.secondary" noWrap>
+                                {url}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Paper>
+                      );
+                    })}
                   </Stack>
                 </Box>
               </>
@@ -558,7 +547,7 @@ export default function PerformanceEmployee() {
 
             <Divider />
 
-          
+            {/* Manager Review */}
             <Typography sx={{ fontWeight: 900 }}>Manager Review</Typography>
 
             <Stack direction="row" alignItems="center" spacing={1}>
