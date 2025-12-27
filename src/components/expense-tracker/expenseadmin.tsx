@@ -3,13 +3,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '@/redux/store';
+import { Snackbar, Alert } from '@mui/material';
 
-import { adminVerifyExpense, listExpenses } from './expenseApi';
+import {
+  createExpense,
+  listExpenses,
+  todayISO,
+  adminVerifyExpense,
+  updateExpense,
+  softDeleteExpense,
+} from './expenseApi';
 import { fetchEmployees } from '@/redux/features/employees/employeesSlice';
 
-/** =========================
- *  ✅ Helpers (Invoices UI)
- *  ========================= */
+// -------- helpers ----------
 const getFileNameFromUrl = (url: string) => {
   try {
     const clean = String(url || '').split('?')[0];
@@ -28,108 +34,121 @@ const prettyFileName = (url: string) => {
 const isImageUrl = (url: string) =>
   /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
 
-/** =========================
- *  ✅ Types
- *  ========================= */
-type TeamApi = {
-  _id: string;
-  name: string;
-  code?: string;
-};
+// -------- options (SAME as ExpenseEmployee) ----------
+const companyAdminOptions = [
+  { label: 'Cake', value: 'cake' },
+  { label: 'Stationary', value: 'stationary' },
+  { label: 'Water', value: 'water' },
+  { label: 'Tea', value: 'tea' },
+  { label: 'Internet', value: 'internet' },
+  { label: 'Lease Line', value: 'lease_line' },
+  { label: 'Dialer', value: 'dialer' },
+  { label: 'SIM', value: 'sim' },
+  { label: 'Cloud / AI', value: 'cloud_ai' },
+  { label: 'AWS Server', value: 'aws_server' },
+  { label: 'Rent - Bareilly', value: 'rent_bareilly' },
+  { label: 'Rent - Noida First Floor', value: 'rent_noida_first_floor' },
+  { label: 'Rent - Noida Ground Floor', value: 'rent_noida_ground_floor' },
+  { label: 'System Rent', value: 'system_rent' },
+  { label: 'Decor', value: 'decor' },
+  { label: 'Gifting', value: 'gifting' },
+  { label: 'Company Outing', value: 'company_outing' },
+  { label: 'Company Get Together', value: 'company_parties' },
+  { label: 'IT Consultancy', value: 'it_consultancy' },
+  { label: 'Headphones', value: 'headphones' },
+  { label: 'Mouse', value: 'mouse' },
+  { label: 'Repairs', value: 'repairs' },
+  { label: 'Electricity', value: 'electricity' },
+  { label: 'Maintenance', value: 'maintenance' },
+  { label: 'convince & Petrol', value: 'conveyance_petrol' },
+  { label: 'Cab', value: 'cab' },
+  { label: 'Travel & Reimbursement', value: 'travel_reimbursement' },
+  { label: 'Food & Beverages', value: 'food_beverages' },
+  { label: 'Community Building Expense', value: 'community_building_expense' },
+  { label: 'Collab Events & Marketing', value: 'collab_events_marketing' },
+  { label: 'Advertisement', value: 'advertisement' },
+  { label: 'Overtime', value: 'overtime' },
+  { label: 'Bonus', value: 'bonus' },
+  { label: 'Incentives', value: 'incentives' },
+  { label: 'Contests', value: 'contests' },
+  { label: 'Other', value: 'other' },
+] as const;
 
-const ALLOWED_TEAM_IDS: string[] = [];
-const ALLOWED_TEAM_CODES: string[] = [];
+type CompanyAdminValue = (typeof companyAdminOptions)[number]['value'];
+
+const companyApprovalOptions = [
+  { label: 'Company Approved Expenses', value: 'company_approval' },
+  { label: 'Channel Partner Payment', value: 'expense_channel' },
+  { label: 'Gift/Consultancy to a Customer', value: 'cashback_to_customer' },
+  { label: 'Referral Partner Payment', value: 'referral_partner' },
+  { label: 'Leave Encashment', value: 'leave_encashment' },
+  { label: 'Data Purchase', value: 'data_purchase' },
+  { label: 'Advance From Company', value: 'data_purchase' },
+  { label: 'HR Admin Expense', value: 'managementabhinav' },
+  { label: 'Management Expense(Harpreet Singh)', value: 'management' },
+  { label: 'Management Expense(Abhinav Awal)', value: 'managementabhinav' },
+] as const;
+
+type CompanyApprovalValue = (typeof companyApprovalOptions)[number]['value'];
 
 type EmployeeType = {
-  _id?: string;
-  id?: string;
-  first_name?: string;
-  last_name?: string;
-  image?: string;
-  profile_pic?: string;
-  code?: string;
-  designation?: string;
-};
-
-type EmpInfo = {
-  name: string;
-  avatar?: string;
-  code?: string;
-  designation?: string;
+  _id: string;
+  first_name: string;
+  last_name: string;
 };
 
 type UserLS = {
+  _id?: string;
+  id?: string;
   role?: number | string;
   role_id?: number | string;
   user_role?: number | string;
   employee_role?: number | string;
 };
 
-// 🔹 Status chip helper
-const renderStatusChip = (status: string | undefined) => {
-  const s = String(status || '').toLowerCase();
+// 🆕 payment mode type
+type PaymentMode = 'account' | 'upi' | 'qr';
 
-  let bg = '#e5e7eb';
-  let color = '#374151';
-  let label = status || '-';
-
-  if (s === 'approved') {
-    bg = 'rgba(16, 185, 129, 0.12)';
-    color = '#047857';
-    label = 'Approved';
-  } else if (s === 'rejected') {
-    bg = 'rgba(239, 68, 68, 0.12)';
-    color = '#b91c1c';
-    label = 'Rejected';
-  } else if (s === 'pending') {
-    bg = 'rgba(234, 179, 8, 0.12)';
-    color = '#92400e';
-    label = 'Pending';
-  }
-
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '3px 10px',
-        borderRadius: 999,
-        fontSize: 11,
-        fontWeight: 600,
-        background: bg,
-        color,
-        textTransform: 'capitalize',
-      }}
-    >
-      {label}
-    </span>
-  );
+// -------- shared UI styles (SAME) ----------
+const fieldLabelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: '#55657a',
 };
 
-// 🔹 Shared button styles
+const fieldInputStyle: React.CSSProperties = {
+  padding: '9px 10px',
+  borderRadius: 10,
+  border: '1px solid #dde2eb',
+  fontSize: 13,
+  outline: 'none',
+  background: '#fdfdfd',
+};
+
 const pillButtonPrimary: React.CSSProperties = {
   padding: '8px 16px',
   borderRadius: 999,
   border: 'none',
-  background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-  color: '#ffffff',
+  background: 'linear-gradient(135deg, #0aa674, #068f63)',
+  color: '#fff',
   fontSize: 13,
   fontWeight: 600,
   cursor: 'pointer',
+  boxShadow: '0 6px 16px rgba(6, 143, 99, 0.25)',
   display: 'inline-flex',
   alignItems: 'center',
   gap: 6,
-  boxShadow: '0 6px 16px rgba(37,99,235,0.35)',
 };
 
 const pillButtonGhost: React.CSSProperties = {
-  padding: '8px 14px',
+  padding: '8px 16px',
   borderRadius: 999,
-  border: '1px solid #d1d5db',
-  background: '#ffffff',
+  border: '1px solid #dde2eb',
+  background: '#f8fafc',
   color: '#4b5563',
-  fontSize: 12,
+  fontSize: 13,
   fontWeight: 500,
   cursor: 'pointer',
   display: 'inline-flex',
@@ -140,23 +159,44 @@ const pillButtonGhost: React.CSSProperties = {
 export default function ExpenseAdmin() {
   const dispatch = useDispatch<AppDispatch>();
 
-  /** ========= USER ROLE (ONLY ADMIN = 1) ========= */
-  const { isAdmin, roleNum } = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return { isAdmin: false, roleNum: 0 };
-    }
+  const defaultDate = useMemo(() => todayISO(), []);
 
+  // 🆕 Snackbar state
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<
+    'success' | 'error' | 'info' | 'warning'
+  >('success');
+
+  const showSnackbar = (
+    message: string,
+    severity: 'success' | 'error' | 'info' | 'warning' = 'success',
+  ) => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
+
+  const handleCloseSnackbar = (
+    _event?: React.SyntheticEvent | Event,
+    reason?: string,
+  ) => {
+    if (reason === 'clickaway') return;
+    setOpenSnackbar(false);
+  };
+
+  // ===== USER (ADMIN CHECK) =====
+  const { isAdmin } = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return { isAdmin: false };
+    }
     const user: UserLS = JSON.parse(localStorage.getItem('user') || '{}');
     const rRaw = user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
     const r = Number(rRaw) || 0;
-
-    // ✅ ADMIN = role 1
-    const admin = r === 1;
-
-    return { isAdmin: admin, roleNum: r };
+    return { isAdmin: r === 1 };
   }, []);
 
-  /** ========= Employees map ========= */
+  // ===== EMPLOYEES for name mapping =====
   const employees = useSelector(
     (state: RootState) => (state as any)?.employees?.employees || [],
   ) as EmployeeType[];
@@ -169,183 +209,388 @@ export default function ExpenseAdmin() {
   }, []);
 
   const empMap = useMemo(() => {
-    const m = new Map<string, EmpInfo>();
-
+    const m = new Map<string, string>();
     (employees || []).forEach((e) => {
-      const key = String(e._id || (e as any).id || '').trim();
-      if (!key) return;
-
-      const fn = String(e.first_name || '').trim();
-      const ln = String(e.last_name || '').trim();
-      const name = `${fn} ${ln}`.trim() || 'Unknown';
-
-      const avatar = e.image || e.profile_pic || undefined;
-
-      m.set(key, {
-        name,
-        avatar,
-        code: e.code,
-        designation: e.designation,
-      });
+      if (!e?._id) return;
+      m.set(String(e._id), `${e.first_name} ${e.last_name}`.trim());
     });
-
     return m;
   }, [employees]);
 
-  const getEmpInfo = (idOrObj: any): EmpInfo => {
-    const empty: EmpInfo = {
-      name: '-',
-      avatar: undefined,
-      code: undefined,
-      designation: undefined,
-    };
-
-    if (!idOrObj) return empty;
-
+  const getEmpName = (idOrObj: any) => {
+    if (!idOrObj) return '-';
     if (typeof idOrObj === 'object') {
-      const _id = String(idOrObj?._id || idOrObj?.id || '').trim();
-
+      const _id = idOrObj?._id;
       if (_id && empMap.has(_id)) return empMap.get(_id)!;
-
-      const fn = String(idOrObj?.first_name || '').trim();
-      const ln = String(idOrObj?.last_name || '').trim();
-      const name = `${fn} ${ln}`.trim() || _id || '-';
-
-      const avatar = idOrObj.image || idOrObj.profile_pic || undefined;
-      const code = idOrObj.code;
-      const designation = idOrObj.designation;
-
-      return { name, avatar, code, designation };
+      if (idOrObj?.first_name)
+        return `${idOrObj.first_name} ${idOrObj.last_name || ''}`.trim();
+      return _id || '-';
     }
-
-    const id = String(idOrObj).trim();
-    if (empMap.has(id)) return empMap.get(id)!;
-
-    return {
-      name: id || '-',
-      avatar: undefined,
-      code: undefined,
-      designation: undefined,
-    };
+    return empMap.get(String(idOrObj)) || String(idOrObj);
   };
 
-  /** ========= Team state (Admin) ========= */
-  const [teams, setTeams] = useState<TeamApi[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const [loadingTeams, setLoadingTeams] = useState(false);
+  // ---------- CREATE / EDIT FORM STATES ----------
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!isAdmin) return; // non-admin ke liye teams bhi mat lao
+  // 🆕 track which expense is being edited
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-    const run = async () => {
-      const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
-      const token = localStorage.getItem('token') || '';
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const companyId = localStorage.getItem('company_id') || user.company_id || '';
+  const [date, setDate] = useState(defaultDate);
+  const [expectedPaymentDate, setExpectedPaymentDate] = useState<string>('');
 
-      try {
-        setLoadingTeams(true);
-        const res = await fetch(`${base}/teams/get-all-teams`, {
-          headers: { Authorization: `Bearer ${token}`, 'x-company-id': companyId },
-        });
-        const data = await res.json();
+  const [companyAdmin, setCompanyAdmin] = useState<CompanyAdminValue>('cake');
+  const [customCategory, setCustomCategory] = useState('');
 
-        const list: TeamApi[] = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.teams)
-          ? data.teams
-          : Array.isArray(data?.data)
-          ? data.data
-          : [];
+  const [companyApproval, setCompanyApproval] =
+    useState<CompanyApprovalValue>('company_approval');
 
-        const hasAllowList = ALLOWED_TEAM_IDS.length > 0 || ALLOWED_TEAM_CODES.length > 0;
+  const [paidAmount, setPaidAmount] = useState<string>('');
+  const [description, setDescription] = useState('');
+  const [invoices, setInvoices] = useState<File[]>([]);
 
-        const filteredList = hasAllowList
-          ? list.filter((t) => {
-              const id = String(t._id || '');
-              const code = String(t.code || '').toUpperCase();
-              const byId = ALLOWED_TEAM_IDS.includes(id);
-              const byCode = ALLOWED_TEAM_CODES.map((x) => String(x).toUpperCase()).includes(
-                code,
-              );
-              return byId || byCode;
-            })
-          : list;
+  const [managerId] = useState<string>(''); // optional backend field
 
-        setTeams(filteredList);
-        if (filteredList.length > 0) setSelectedTeamId(filteredList[0]._id);
-        else setSelectedTeamId(null);
-      } catch (e) {
-        console.log('❌ get-all-teams error', e);
-        setTeams([]);
-        setSelectedTeamId(null);
-      } finally {
-        setLoadingTeams(false);
-      }
-    };
-    run();
-  }, [isAdmin]);
+  const [expenseChannel, setExpenseChannel] = useState('');
+  const [cashbackToCustomer, setCashbackToCustomer] = useState(false);
+  const [referralPartner, setReferralPartner] = useState('');
 
-  /** ========= Expenses list state ========= */
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('account');
+  const [accountHolder, setAccountHolder] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [ifsc, setIfsc] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [qrNote, setQrNote] = useState('');
+  const [qrFile, setQrFile] = useState<File | null>(null);
+
+  const isOther = companyAdmin === 'other';
+
+  const resetForm = () => {
+    setDate(defaultDate);
+    setExpectedPaymentDate('');
+    setCompanyAdmin('cake');
+    setCustomCategory('');
+    setCompanyApproval('company_approval');
+    setPaidAmount('');
+    setDescription('');
+    setInvoices([]);
+    setExpenseChannel('');
+    setCashbackToCustomer(false);
+    setReferralPartner('');
+    setPaymentMode('account');
+    setAccountHolder('');
+    setBankName('');
+    setAccountNumber('');
+    setIfsc('');
+    setUpiId('');
+    setQrNote('');
+    setQrFile(null);
+    setEditingId(null); // 🆕 reset edit mode
+  };
+
+  // ---------- LIST STATES ----------
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
-
-  const [note, setNote] = useState('');
-  const [selectedId, setSelectedId] = useState<string>('');
   const [loadingList, setLoadingList] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / 10));
 
-  async function load() {
-    if (!isAdmin) {
-      setRows([]);
-      setTotal(0);
-      return;
-    }
+  // admin verify
+  const [note, setNote] = useState('');
+  const [selectedId, setSelectedId] = useState<string>('');
 
+  // payment preview dialog
+  const [paymentPreview, setPaymentPreview] = useState<string | null>(null);
+
+  const showCategory = (r: any) =>
+    r?.company_admin === 'other' ? r?.custom_category || 'Other' : r?.company_admin;
+
+  // ---------- LOAD LIST (ADMIN = all) ----------
+  const load = async () => {
     try {
       setLoadingList(true);
+      if (!isAdmin) {
+        setRows([]);
+        setTotal(0);
+        return;
+      }
 
       const res = await listExpenses({
         page,
         limit: 10,
-        // future: team_id: selectedTeamId || undefined,
       });
 
-      setRows(res?.data || []);
-      setTotal(res?.total || 0);
-    } catch (e) {
-      setRows([]);
-      setTotal(0);
+      const data = Array.isArray(res?.data) ? res.data : [];
+      setRows(data);
+      setTotal(res?.total || data.length);
     } finally {
       setLoadingList(false);
     }
-  }
+  };
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin]);
 
+  // ---------- ADMIN VERIFY ----------
   async function verify(id: string, status: 'approved' | 'rejected') {
     try {
-      if (!isAdmin) {
-        alert('Only admin can verify (role 1 required)');
-        return;
-      }
+      if (!isAdmin) return;
 
       await adminVerifyExpense(id, { status, note });
+
       setSelectedId('');
       setNote('');
       await load();
-      alert('Admin verification done ✅');
+
+      const msg =
+        status === 'approved'
+          ? 'Expense approved successfully ✅'
+          : 'Expense rejected successfully ❌';
+
+      const severity = status === 'approved' ? 'success' : 'error';
+
+      showSnackbar(msg, severity);
     } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Error');
+      showSnackbar(
+        err?.response?.data?.message || err?.message || 'Error while verifying',
+        'error',
+      );
     }
   }
 
-  /** ========= NON-ADMIN VIEW ========= */
+  // ---------- START EDIT ----------
+const startEdit = (row: any) => {
+  setOpen(true);
+  setEditingId(row._id || null);
+
+  // Basic fields
+  setDate(row.date?.slice(0, 10) || defaultDate);
+  setExpectedPaymentDate(
+    row.expected_payment_date ? String(row.expected_payment_date).slice(0, 10) : '',
+  );
+
+  setCompanyAdmin((row.company_admin as CompanyAdminValue) || 'cake');
+  setCustomCategory(row.custom_category || '');
+  setCompanyApproval(
+    (row.company_approval as CompanyApprovalValue) || 'company_approval',
+  );
+
+  setPaidAmount(row.paid_amount != null ? String(row.paid_amount) : '');
+  setDescription(row.description || '');
+
+  setExpenseChannel(row.expense_channel || '');
+  setCashbackToCustomer(!!row.cashback_to_customer);
+  setReferralPartner(row.referral_partner || '');
+
+  // 🆕 PAYMENT DETAILS FROM row.payment
+  const p: string = (row.payment || '').toString().trim();
+
+  let mode: PaymentMode = 'account';
+  let accHolder = '';
+  let bank = '';
+  let accNo = '';
+  let ifsc = '';
+  let upi = '';
+  let qrNote = '';
+
+  if (p.startsWith('Account Transfer')) {
+    mode = 'account';
+    const parts = p.split('|').map((s) => s.trim());
+
+    const namePart = parts.find((s) => s.startsWith('Name:'));
+    if (namePart) accHolder = namePart.replace('Name:', '').trim();
+
+    const bankPart = parts.find((s) => s.startsWith('Bank:'));
+    if (bankPart) bank = bankPart.replace('Bank:', '').trim();
+
+    const accPart = parts.find((s) => s.startsWith('A/c:'));
+    if (accPart) accNo = accPart.replace('A/c:', '').trim();
+
+    const ifscPart = parts.find((s) => s.startsWith('IFSC:'));
+    if (ifscPart) ifsc = ifscPart.replace('IFSC:', '').trim();
+  } else if (p.startsWith('UPI')) {
+    mode = 'upi';
+    const parts = p.split('|').map((s) => s.trim());
+    const idPart = parts.find((s) => s.startsWith('ID:'));
+    if (idPart) upi = idPart.replace('ID:', '').trim();
+  } else if (p.startsWith('QR Payment')) {
+    mode = 'qr';
+    const parts = p.split('|').map((s) => s.trim());
+    if (parts[1]) qrNote = parts[1];
+  } else {
+    // unknown / empty -> default
+    mode = 'account';
+  }
+
+  setPaymentMode(mode);
+  setAccountHolder(accHolder);
+  setBankName(bank);
+  setAccountNumber(accNo);
+  setIfsc(ifsc);
+  setUpiId(upi);
+  setQrNote(qrNote);
+  setQrFile(null);
+  setInvoices([]);
+
+  if (typeof window !== 'undefined') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
+
+
+
+  const handleDelete = async (id: string) => {
+    try {
+      if (typeof window !== 'undefined') {
+        const ok = window.confirm('Are you sure you want to delete this expense?');
+        if (!ok) return;
+      }
+
+      await softDeleteExpense(id);
+      showSnackbar('Expense deleted successfully 🗑️', 'success');
+      await load();
+    } catch (err: any) {
+      showSnackbar(
+        err?.response?.data?.message || err?.message || 'Error while deleting expense',
+        'error',
+      );
+    }
+  };
+
+
+  // ---------- SUBMIT CREATE / UPDATE ----------
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 🔴 VALIDATIONS via Snackbar
+    if (!date) {
+      showSnackbar('Submission date required', 'error');
+      return;
+    }
+    if (!companyAdmin) {
+      showSnackbar('Company Admin required', 'error');
+      return;
+    }
+    if (isOther && !customCategory.trim()) {
+      showSnackbar('Please enter Other expense name', 'error');
+      return;
+    }
+    if (!companyApproval) {
+      showSnackbar('More Expense Type required', 'error');
+      return;
+    }
+    if (!paidAmount.trim()) {
+      showSnackbar('Paid amount required', 'error');
+      return;
+    }
+
+    const amt = Number(paidAmount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      showSnackbar('Paid amount must be valid number', 'error');
+      return;
+    }
+
+    if (companyApproval === 'expense_channel' && !expenseChannel.trim()) {
+      showSnackbar('Expense Channel required', 'error');
+      return;
+    }
+    if (companyApproval === 'referral_partner' && !referralPartner.trim()) {
+      showSnackbar('Referral Partner required', 'error');
+      return;
+    }
+
+    // Payment string build
+    let payment: string | undefined;
+
+    if (paymentMode === 'account') {
+      if (
+        !accountHolder.trim() ||
+        !bankName.trim() ||
+        !accountNumber.trim() ||
+        !ifsc.trim()
+      ) {
+        showSnackbar(
+          'Account Holder, Bank Name, Account Number & IFSC are required for Account payment',
+          'error',
+        );
+        return;
+      }
+      const parts = [
+        'Account Transfer',
+        `Name: ${accountHolder.trim()}`,
+        `Bank: ${bankName.trim()}`,
+        `A/c: ${accountNumber.trim()}`,
+        `IFSC: ${ifsc.trim()}`,
+      ];
+      payment = parts.join(' | ');
+    } else if (paymentMode === 'upi') {
+      if (!upiId.trim()) {
+        showSnackbar('UPI ID is required', 'error');
+        return;
+      }
+      payment = `UPI | ID: ${upiId.trim()}`;
+    } else if (paymentMode === 'qr') {
+      payment = `QR Payment${qrNote.trim() ? ' | ' + qrNote.trim() : ''}`;
+      // QR file alag se invoices me add hoga
+    }
+
+    const allFiles: File[] = [...invoices, ...(qrFile ? [qrFile] : [])];
+
+   const payload: any = {
+  date,
+  expected_payment_date: expectedPaymentDate || undefined,
+  manager_id: managerId || undefined,
+  company_admin: companyAdmin as any,
+  custom_category: isOther ? customCategory.trim() : undefined,
+  company_approval: companyApproval as any,
+  paid_amount: amt,
+  description,
+  expense_channel: companyApproval === 'expense_channel' ? expenseChannel : undefined,
+  cashback_to_customer:
+    companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
+  referral_partner: companyApproval === 'referral_partner' ? referralPartner : undefined,
+  payment,
+
+  // 🆕 structured fields
+  payment_mode: paymentMode,
+  account_holder: paymentMode === 'account' ? accountHolder.trim() : undefined,
+  bank_name: paymentMode === 'account' ? bankName.trim() : undefined,
+  account_number: paymentMode === 'account' ? accountNumber.trim() : undefined,
+  ifsc: paymentMode === 'account' ? ifsc.trim() : undefined,
+  upi_id: paymentMode === 'upi' ? upiId.trim() : undefined,
+  qr_note: paymentMode === 'qr' ? qrNote.trim() : undefined,
+};
+
+
+    try {
+      setSaving(true);
+
+      if (editingId) {
+        // 🆕 UPDATE
+        await updateExpense(editingId, payload, allFiles);
+        showSnackbar('Expense updated successfully ✅', 'success');
+      } else {
+        // CREATE
+        await createExpense(payload, allFiles);
+        showSnackbar('Expense created successfully ✅', 'success');
+        setPage(1);
+      }
+
+      resetForm();
+      setOpen(false);
+      await load();
+    } catch (err: any) {
+      showSnackbar(err?.message || 'Error while saving expense', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ========= NON ADMIN VIEW =========
   if (!isAdmin) {
     return (
       <div
@@ -374,463 +619,1037 @@ export default function ExpenseAdmin() {
             Access Restricted
           </h3>
           <p style={{ margin: 0, marginBottom: 12, fontSize: 13, color: '#6b7280' }}>
-            Only users with <b>Admin (role = 1)</b> can view and verify expenses on this page.
-          </p>
-          <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>
-            Please login with an admin account if you need approval access.
+            Only users with <b>Admin (role = 1)</b> can view and manage expenses on this
+            page.
           </p>
         </div>
       </div>
     );
   }
 
-  /** ========= ADMIN VIEW ========= */
+  // ========= ADMIN VIEW =========
   return (
     <div
       style={{
         padding: 16,
         maxWidth: 1200,
         margin: '0 auto',
-        minHeight: '100vh',
         background: '#f3f5fb',
+        minHeight: '100vh',
       }}
     >
       {/* Header */}
       <div
         style={{
-          marginBottom: 14,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 12,
+          marginBottom: 2,
         }}
       >
-        <div>
-          <h2 style={{ margin: 0, fontSize: 20, color: '#111827' }}>
-            Admin – Expense Approvals
-          </h2>
-          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
-            Logged in as <b>Admin</b> (role: {roleNum})
-          </div>
-        </div>
+        <h2 style={{ margin: 0, fontSize: 20, color: '#111827' }}>Company Expenses</h2>
 
-        <button
-          onClick={load}
-          disabled={loadingList}
-          style={{
-            ...pillButtonGhost,
-            padding: '6px 12px',
-            fontSize: 12,
-            opacity: loadingList ? 0.7 : 1,
-          }}
-        >
-          {loadingList ? 'Refreshing…' : 'Refresh'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <button
+            onClick={() => {
+              if (open) {
+                resetForm();
+              } else {
+                setEditingId(null);
+              }
+              setOpen((v) => !v);
+            }}
+            style={{
+              ...pillButtonPrimary,
+              boxShadow: '0 8px 18px rgba(14, 116, 144, 0.3)',
+              background: open
+                ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
+                : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+              padding: '6px 14px',
+              fontSize: 12,
+            }}
+          >
+            {open ? 'Close Form' : '+ Create Expense'}
+          </button>
+        </div>
       </div>
 
-      {/* ✅ Expenses Table */}
-      <div
-        style={{
-          overflowX: 'auto',
-          borderRadius: 16,
-          background: '#ffffff',
-          boxShadow: '0 16px 40px rgba(15,23,42,0.12)',
-          border: '1px solid #e5e7eb',
-        }}
-      >
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              {[
-                'Date',
-                'Employee',
-                'Category',
-                'Amount To Be Paid',
-                'Mgr Status',
-                'Admin Status',
-                'Invoices',
-                'Action',
-              ].map((h) => (
-                <th
-                  key={h}
+      {/* CREATE / EDIT EXPENSE FORM */}
+      {open && (
+        <form
+          onSubmit={onSubmit}
+          style={{
+            marginTop: 8,
+            borderRadius: 18,
+            background: '#ffffff',
+            boxShadow: '0 18px 50px rgba(15, 23, 42, 0.12)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Card header strip */}
+          <div
+            style={{
+              padding: '10px 16px',
+              borderBottom: '1px solid #e5e7eb',
+              background:
+                'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.05))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>
+              {editingId ? 'Edit Company Expense' : 'Create Company Expense'}
+            </div>
+          </div>
+
+          <div style={{ padding: 16 }}>
+            {/* Section 1: Basic Details */}
+            <div style={{ marginBottom: 14 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                  gap: 12,
+                }}
+              >
+                {/* Date */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={fieldLabelStyle}>Expense Date</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    required
+                    style={fieldInputStyle}
+                  />
+                </div>
+
+                {/* Expected Payment Date */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={fieldLabelStyle}>Expected Payment Date</label>
+                  <input
+                    type="date"
+                    value={expectedPaymentDate}
+                    onChange={(e) => setExpectedPaymentDate(e.target.value)}
+                    style={fieldInputStyle}
+                  />
+                </div>
+
+                {/* Category */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={fieldLabelStyle}>Expense Category</label>
+                  <select
+                    value={companyAdmin}
+                    onChange={(e) => setCompanyAdmin(e.target.value as CompanyAdminValue)}
+                    style={fieldInputStyle}
+                  >
+                    {companyAdminOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Custom Category */}
+                {isOther && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>Other Expense Name</label>
+                    <input
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      placeholder="Enter expense name"
+                      style={fieldInputStyle}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Section 2: Expense Type & Amount */}
+            <div style={{ marginBottom: 14 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                  gap: 12,
+                }}
+              >
+                {/* Expense Type */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={fieldLabelStyle}>Expense Type</label>
+                  <select
+                    value={companyApproval}
+                    onChange={(e) =>
+                      setCompanyApproval(e.target.value as CompanyApprovalValue)
+                    }
+                    style={fieldInputStyle}
+                  >
+                    {companyApprovalOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Conditional fields */}
+                {companyApproval === 'expense_channel' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>Expense Channel</label>
+                    <input
+                      value={expenseChannel}
+                      onChange={(e) => setExpenseChannel(e.target.value)}
+                      style={fieldInputStyle}
+                      placeholder="Enter channel name"
+                    />
+                  </div>
+                )}
+
+                {companyApproval === 'referral_partner' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>Referral Partner</label>
+                    <input
+                      value={referralPartner}
+                      onChange={(e) => setReferralPartner(e.target.value)}
+                      style={fieldInputStyle}
+                      placeholder="Enter partner name"
+                    />
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={fieldLabelStyle}>Amount To Be Pay</label>
+                  <input
+                    type="number"
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(e.target.value)}
+                    required
+                    style={fieldInputStyle}
+                    placeholder="₹0"
+                  />
+                </div>
+              </div>
+
+              {companyApproval === 'cashback_to_customer' && (
+                <div
                   style={{
-                    borderBottom: '1px solid #e5e7eb',
-                    padding: 10,
-                    textAlign: 'left',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginTop: 10,
+                    padding: '8px 10px',
+                    borderRadius: 10,
                     background: '#f9fafb',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#4b5563',
+                    border: '1px dashed #d1d5db',
                   }}
                 >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
+                  <input
+                    id="cashback_to_customer_admin"
+                    type="checkbox"
+                    checked={cashbackToCustomer}
+                    onChange={(e) => setCashbackToCustomer(e.target.checked)}
+                  />
+                  <label htmlFor="cashback_to_customer_admin" style={{ fontSize: 12 }}>
+                    Cashback given to customer
+                  </label>
+                </div>
+              )}
+            </div>
 
-          <tbody>
-            {!loadingList &&
-              rows.map((r) => {
-                const canVerify = r.admin_status === 'pending';
+            {/* Section 3: Description & Invoices */}
+            <div style={{ marginBottom: 4 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1.1fr)',
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={fieldLabelStyle}>Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    style={{
+                      ...fieldInputStyle,
+                      resize: 'vertical',
+                      minHeight: 72,
+                    }}
+                    placeholder="Describe what this expense is for..."
+                  />
+                </div>
 
-                const empInfo = getEmpInfo(r.owner_id);
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={fieldLabelStyle}>Upload Invoices</label>
+                  <div
+                    style={{
+                      borderRadius: 10,
+                      border: '1px dashed #cbd5e1',
+                      padding: 10,
+                      background: '#f9fafb',
+                    }}
+                  >
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => setInvoices(Array.from(e.target.files || []))}
+                    />
+                    {invoices.length > 0 && (
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+                        {invoices.length} file(s) selected
+                      </div>
+                    )}
+                    <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
+                      PDF / Image upload karein – bills, receipts etc.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                return (
-                  <tr key={r._id}>
-                    {/* Date */}
-                    <td
+            {/* Section 4: Payment Mode + QR Upload */}
+            <div style={{ marginTop: 12 }}>
+              <label style={fieldLabelStyle}>Payment Mode</label>
+
+              {/* dropdown */}
+              <div
+                style={{
+                  marginTop: 6,
+                  display: 'flex',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ flex: '0 0 230px', maxWidth: 260 }}>
+                  <select
+                    value={paymentMode}
+                    onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
+                    style={fieldInputStyle}
+                  >
+                    <option value="account">Bank Account Transfer</option>
+                    <option value="upi">UPI</option>
+                    <option value="qr">QR Payment</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* ACCOUNT MODE */}
+              {paymentMode === 'account' && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>Account Holder Name</label>
+                    <input
+                      value={accountHolder}
+                      onChange={(e) => setAccountHolder(e.target.value)}
+                      style={fieldInputStyle}
+                      placeholder="Account holder name"
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>Bank Name</label>
+                    <input
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      style={fieldInputStyle}
+                      placeholder="HDFC, ICICI..."
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>Account Number</label>
+                    <input
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      style={fieldInputStyle}
+                      placeholder="1234 5678 9012"
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>IFSC</label>
+                    <input
+                      value={ifsc}
+                      onChange={(e) => setIfsc(e.target.value.toUpperCase())}
+                      style={fieldInputStyle}
+                      placeholder="HDFC0001234"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* UPI MODE */}
+              {paymentMode === 'upi' && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>UPI ID</label>
+                    <input
+                      value={upiId}
+                      onChange={(e) => setUpiId(e.target.value)}
+                      style={fieldInputStyle}
+                      placeholder="98xxxxxx@ybl"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* QR MODE */}
+              {paymentMode === 'qr' && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                    gap: 12,
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  {/* QR Note */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>QR Note (optional)</label>
+                    <input
+                      value={qrNote}
+                      onChange={(e) => setQrNote(e.target.value)}
+                      style={fieldInputStyle}
+                      placeholder="Example: Paid via Harpreet Ji QR"
+                    />
+                  </div>
+
+                  {/* QR Upload */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={fieldLabelStyle}>Upload QR Image</label>
+                    <div
                       style={{
-                        borderBottom: '1px solid #f3f4f6',
+                        borderRadius: 10,
+                        border: '1px dashed #cbd5e1',
                         padding: 10,
-                        fontSize: 12,
-                        whiteSpace: 'nowrap',
+                        background: '#f9fafb',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                        maxWidth: 260,
                       }}
                     >
-                      {r.date}
-                    </td>
-
-                    {/* Employee */}
-                    <td
-                      style={{
-                        borderBottom: '1px solid #f3f4f6',
-                        padding: 10,
-                        fontSize: 12,
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {empInfo.avatar ? (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setQrFile(file);
+                        }}
+                      />
+                      {qrFile && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                        >
                           <img
-                            src={empInfo.avatar}
-                            alt={empInfo.name}
+                            src={URL.createObjectURL(qrFile)}
+                            alt="QR Preview"
                             style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: '50%',
+                              width: 40, // 🧾 smaller preview
+                              height: 40,
+                              borderRadius: 8,
                               objectFit: 'cover',
                               border: '1px solid #e5e7eb',
                             }}
                           />
-                        ) : (
+                          <div style={{ fontSize: 11, color: '#4b5563' }}>
+                            {qrFile.name}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                marginTop: 12,
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  setOpen(false);
+                }}
+                style={pillButtonGhost}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={saving}
+                style={{
+                  ...pillButtonPrimary,
+                  opacity: saving ? 0.7 : 1,
+                }}
+              >
+                {saving
+                  ? 'Saving...'
+                  : editingId
+                    ? 'Update Expense'
+                    : 'Submit Expense'}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* LIST */}
+      <div style={{ marginTop: 18 }}>
+        <div
+          style={{
+            marginTop: 40,
+            overflowX: 'auto',
+            border: '1px solid #e5e7eb',
+            borderRadius: 14,
+            background: '#ffffff',
+          }}
+        >
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                {[
+                  'Date',
+                  'Employee',
+                  'Manager',
+                  'Category',
+                  'Paid',
+                  'Payment Details',
+                  'Admin Status',
+                  'Invoices',
+                  'Action',
+                ].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      textAlign: 'left',
+                      fontSize: 12,
+                      padding: 10,
+                      borderBottom: '1px solid #e5e7eb',
+                      background: '#f9fafb',
+                      color: '#4b5563',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {!loadingList &&
+                rows.map((r) => {
+                  const canVerify = r.admin_status === 'pending';
+                  const canEdit = r.admin_status === 'pending'; // agar approved/rejected ke baad edit lock rakhna hai
+                  const canDelete = r.admin_status === 'pending';
+
+                  return (
+                    <tr key={r._id}>
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {r.date?.slice(0, 10)}
+                      </td>
+
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                        }}
+                      >
+                        {getEmpName(r.owner_id)}
+                      </td>
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                        }}
+                      >
+                        {getEmpName(r.manager_id)}
+                      </td>
+
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                        }}
+                      >
+                        {showCategory(r)}
+                      </td>
+
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                        }}
+                      >
+                        {r.paid_amount}
+                      </td>
+
+                      {/* Payment Details */}
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                          maxWidth: 260,
+                        }}
+                      >
+                        {r.payment ? (
                           <div
                             style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: '50%',
-                              background: '#e5e7eb',
                               display: 'flex',
                               alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: 12,
-                              fontWeight: 600,
-                              color: '#4b5563',
+                              gap: 8,
                             }}
                           >
-                            {empInfo.name?.[0] || 'E'}
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: 180,
+                              }}
+                              title={r.payment}
+                            >
+                              {r.payment}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => setPaymentPreview(r.payment)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 999,
+                                border: '1px solid #d1d5db',
+                                background: '#f9fafb',
+                                fontSize: 11,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              View
+                            </button>
                           </div>
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
                         )}
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontWeight: 600, fontSize: 13 }}>
-                            {empInfo.name}
-                          </span>
-                          <span style={{ fontSize: 11, color: '#6b7280' }}>
-                            {empInfo.code || empInfo.designation || ''}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Category */}
-                    <td
-                      style={{
-                        borderBottom: '1px solid #f3f4f6',
-                        padding: 10,
-                        fontSize: 12,
-                      }}
-                    >
-                      {r.company_admin === 'other'
-                        ? r.custom_category || 'Other'
-                        : r.company_admin}
-                    </td>
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {r.admin_status}
+                      </td>
 
-                    {/* Paid amount */}
-                    <td
-                      style={{
-                        borderBottom: '1px solid #f3f4f6',
-                        padding: 10,
-                        fontSize: 12,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {r.paid_amount}
-                    </td>
+                      {/* 🧾 INVOICES (SMALL THUMBNAIL + CLICK TO OPEN) */}
+                      <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1' }}>
+                        {Array.isArray(r.invoices) && r.invoices.length > 0 ? (
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: 8,
+                            }}
+                          >
+                            {r.invoices.map((url: string, idx: number) => {
+                              const name = prettyFileName(url);
+                              const img = isImageUrl(url);
 
-                    {/* Status */}
-                    <td
-                      style={{
-                        borderBottom: '1px solid #f3f4f6',
-                        padding: 10,
-                        fontSize: 12,
-                      }}
-                    >
-                      {renderStatusChip(r.manager_status)}
-                    </td>
-                    <td
-                      style={{
-                        borderBottom: '1px solid #f3f4f6',
-                        padding: 10,
-                        fontSize: 12,
-                      }}
-                    >
-                      {renderStatusChip(r.admin_status)}
-                    </td>
-
-                    {/* Invoices */}
-                    <td
-                      style={{
-                        borderBottom: '1px solid #f3f4f6',
-                        padding: 10,
-                        fontSize: 12,
-                      }}
-                    >
-                      {Array.isArray(r.invoices) && r.invoices.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {r.invoices.map((url: string, idx: number) => {
-                            const name = prettyFileName(url);
-                            const img = isImageUrl(url);
-
-                            return (
-                              <div
-                                key={idx}
-                                style={{
-                                  border: '1px solid #e5e7eb',
-                                  borderRadius: 10,
-                                  padding: 8,
-                                  display: 'flex',
-                                  gap: 10,
-                                  alignItems: 'center',
-                                  background: '#f9fafb',
-                                  maxWidth: 420,
-                                }}
-                              >
-                                {img ? (
-                                  <img
-                                    src={url}
-                                    alt={name}
-                                    style={{
-                                      width: 40,
-                                      height: 40,
-                                      borderRadius: 8,
-                                      objectFit: 'cover',
-                                    }}
-                                  />
-                                ) : null}
-
-                                <div style={{ minWidth: 0 }}>
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{
-                                      fontWeight: 600,
-                                      fontSize: 12,
-                                      color: '#1d4ed8',
-                                      textDecoration: 'none',
-                                    }}
-                                  >
-                                    {name || `Invoice ${idx + 1}`}
-                                  </a>
-                                  <div
+                              return (
+                                <a
+                                  key={idx}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{
+                                    textDecoration: 'none',
+                                    borderRadius: 10,
+                                    border: '1px solid #e5e7eb',
+                                    padding: 4,
+                                    background: '#f9fafb',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    maxWidth: 160,
+                                  }}
+                                  title={name}
+                                >
+                                  {img && (
+                                    <img
+                                      src={url}
+                                      alt={name}
+                                      style={{
+                                        width: 26, // 🧾 smaller image
+                                        height: 26,
+                                        borderRadius: 6,
+                                        objectFit: 'cover',
+                                      }}
+                                    />
+                                  )}
+                                  <span
                                     style={{
                                       fontSize: 11,
-                                      color: '#6b7280',
+                                      color: '#1d4ed8',
+                                      fontWeight: 600,
                                       whiteSpace: 'nowrap',
                                       overflow: 'hidden',
                                       textOverflow: 'ellipsis',
-                                      maxWidth: 300,
                                     }}
                                   >
-                                    {url}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: 11, color: '#9ca3af' }}>No invoice</span>
-                      )}
-                    </td>
+                                    {name || `Invoice ${idx + 1}`}
+                                  </span>
+                                </a>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>No invoice</span>
+                        )}
+                      </td>
 
-                    {/* Verify button */}
-                    <td
-                      style={{
-                        borderBottom: '1px solid #f3f4f6',
-                        padding: 10,
-                        fontSize: 12,
-                      }}
-                    >
-                      <button
-                        disabled={!canVerify}
-                        onClick={() => setSelectedId(r._id)}
+                      {/* ACTION CELL */}
+                      <td
                         style={{
-                          padding: '7px 14px',
-                          borderRadius: 999,
-                          border: 'none',
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
                           fontSize: 12,
-                          fontWeight: 600,
-                          cursor: canVerify ? 'pointer' : 'not-allowed',
-                          background: canVerify ? '#1f7ae0' : '#cfd6e3',
-                          color: canVerify ? '#ffffff' : '#6f7a8a',
-                          boxShadow: canVerify
-                            ? '0 4px 10px rgba(31,122,224,.25)'
-                            : 'none',
-                          transition: 'all .25s ease',
+                          whiteSpace: 'nowrap',
                         }}
                       >
-                        ✓ Verify
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 6,
+                          }}
+                        >
+                          <button
+                            type="button"
+                            disabled={!canEdit}
+                            onClick={() => startEdit(r)}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 999,
+                              border: 'none',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: canEdit ? 'pointer' : 'not-allowed',
+                              background: canEdit ? '#0ea5e9' : '#e5e7eb',
+                              color: canEdit ? '#ffffff' : '#9ca3af',
+                            }}
+                          >
+                            Edit
+                          </button>
 
-            {loadingList && (
-              <tr>
-                <td colSpan={9} style={{ padding: 12, fontSize: 12 }}>
-                  Loading...
-                </td>
-              </tr>
-            )}
+                          <button
+                            type="button"
+                            disabled={!canDelete}
+                            onClick={() => handleDelete(r._id)}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 999,
+                              border: 'none',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: canDelete ? 'pointer' : 'not-allowed',
+                              background: canDelete ? '#ef4444' : '#e5e7eb',
+                              color: canDelete ? '#ffffff' : '#9ca3af',
+                            }}
+                          >
+                            Del
+                          </button>
 
-            {!loadingList && rows.length === 0 && (
-              <tr>
-                <td colSpan={9} style={{ padding: 12, fontSize: 12 }}>
-                  No records
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                          <button
+                            type="button"
+                            disabled={!canVerify}
+                            onClick={() => setSelectedId(r._id)}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 999,
+                              border: 'none',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: canVerify ? 'pointer' : 'not-allowed',
+                              background: canVerify ? '#1d4ed8' : '#e5e7eb',
+                              color: canVerify ? '#ffffff' : '#9ca3af',
+                              boxShadow: canVerify
+                                ? '0 3px 10px rgba(37, 99, 235, 0.35)'
+                                : 'none',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            Verify
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
 
-      {/* ✅ Admin Verify Box */}
-      {selectedId && (
-        <div
-          style={{
-            marginTop: 16,
-            border: '1px solid #e5e7eb',
-            padding: 14,
-            borderRadius: 14,
-            background: '#ffffff',
-            maxWidth: 600,
-            boxShadow: '0 12px 30px rgba(15,23,42,0.12)',
-          }}
-        >
-          <h4 style={{ marginTop: 0, marginBottom: 4, fontSize: 14, color: '#111827' }}>
-            Admin Verify Expense
-          </h4>
-          <p style={{ margin: 0, fontSize: 11, color: '#6b7280' }}>
-            Add a note for this approval / rejection (optional but recommended).
-          </p>
-          <textarea
-            style={{
-              width: '100%',
-              padding: 10,
-              marginTop: 8,
-              borderRadius: 10,
-              border: '1px solid #d1d5db',
-              fontSize: 12,
-              resize: 'vertical',
-              minHeight: 70,
-            }}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={3}
-            placeholder="Write a short note…"
-          />
+              {loadingList && (
+                <tr>
+                  <td colSpan={10} style={{ padding: 12, fontSize: 12 }}>
+                    Loading...
+                  </td>
+                </tr>
+              )}
+
+              {!loadingList && rows.length === 0 && (
+                <tr>
+                  <td colSpan={10} style={{ padding: 12, fontSize: 12 }}>
+                    No expenses found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ADMIN VERIFY BOX */}
+        {selectedId && (
           <div
             style={{
-              display: 'flex',
-              gap: 10,
-              marginTop: 10,
-              justifyContent: 'flex-end',
+              marginTop: 14,
+              border: '1px solid #e5e7eb',
+              padding: 12,
+              borderRadius: 12,
+              background: '#ffffff',
+              boxShadow: '0 10px 30px rgba(15,23,42,0.08)',
             }}
           >
-            <button
-              onClick={() => verify(selectedId, 'approved')}
+            <h4 style={{ marginTop: 0, marginBottom: 6, fontSize: 14 }}>
+              Admin Verify Expense
+            </h4>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
               style={{
-                ...pillButtonPrimary,
-                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                boxShadow: '0 6px 14px rgba(34,197,94,0.35)',
+                width: '100%',
+                padding: 10,
+                borderRadius: 10,
+                border: '1px solid #dde2eb',
+                fontSize: 12,
               }}
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => verify(selectedId, 'rejected')}
-              style={{
-                ...pillButtonPrimary,
-                background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                boxShadow: '0 6px 14px rgba(239,68,68,0.35)',
-              }}
-            >
-              Reject
-            </button>
-            <button
-              onClick={() => {
-                setSelectedId('');
-                setNote('');
-              }}
-              style={{
-                ...pillButtonGhost,
-                background: '#f9fafb',
-              }}
-            >
-              Cancel
-            </button>
+              placeholder="Add a note for approval / rejection..."
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+              <button
+                onClick={() => verify(selectedId, 'approved')}
+                style={{
+                  ...pillButtonPrimary,
+                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  boxShadow: '0 8px 18px rgba(34, 197, 94, 0.3)',
+                }}
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => verify(selectedId, 'rejected')}
+                style={{
+                  ...pillButtonPrimary,
+                  background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                  boxShadow: '0 8px 18px rgba(239, 68, 68, 0.3)',
+                }}
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedId('');
+                  setNote('');
+                }}
+                style={pillButtonGhost}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Pagination */}
-      <div
-        style={{
-          marginTop: 14,
-          display: 'flex',
-          gap: 10,
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <button
-          disabled={page <= 1}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
+        {/* PAYMENT DETAILS DIALOG */}
+        {paymentPreview && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15,23,42,0.45)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 50,
+            }}
+          >
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: 18,
+                maxWidth: 520,
+                width: '90%',
+                padding: 16,
+                boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 8,
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 600 }}>Payment Details</div>
+                <button
+                  type="button"
+                  onClick={() => setPaymentPreview(null)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontSize: 18,
+                    lineHeight: 1,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div
+                style={{
+                  fontSize: 12,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  lineHeight: 1.5,
+                  padding: '6px 0 4px',
+                }}
+              >
+                {paymentPreview}
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  marginTop: 12,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setPaymentPreview(null)}
+                  style={pillButtonPrimary}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* pagination */}
+        <div
           style={{
-            ...pillButtonGhost,
-            padding: '6px 12px',
-            opacity: page <= 1 ? 0.6 : 1,
-            cursor: page <= 1 ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            gap: 10,
+            alignItems: 'center',
+            marginTop: 12,
+            justifyContent: 'flex-end',
           }}
         >
-          Prev
-        </button>
-        <span style={{ fontSize: 12 }}>
-          Page <b>{page}</b> / <b>{totalPages}</b>
-        </span>
-        <button
-          disabled={page >= totalPages}
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          style={{
-            ...pillButtonGhost,
-            padding: '6px 12px',
-            opacity: page >= totalPages ? 0.6 : 1,
-            cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-          }}
-        >
-          Next
-        </button>
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            style={{
+              ...pillButtonGhost,
+              padding: '6px 12px',
+              fontSize: 12,
+              opacity: page <= 1 ? 0.6 : 1,
+            }}
+          >
+            Prev
+          </button>
+
+          <div style={{ fontSize: 12 }}>
+            Page <b>{page}</b> / <b>{totalPages}</b>
+          </div>
+
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            style={{
+              ...pillButtonGhost,
+              padding: '6px 12px',
+              fontSize: 12,
+              opacity: page >= totalPages ? 0.6 : 1,
+            }}
+          >
+            Next
+          </button>
+        </div>
       </div>
+
+      {/* 🆕 Global Snackbar */}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ mt: 2 }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

@@ -74,6 +74,19 @@ export async function apiPatch<T>(path: string, body: any): Promise<T> {
 
     return (await parseResponse(res)) as T;
 }
+export async function apiDelete<T>(path: string): Promise<T> {
+    const res = await fetch(`${baseUrl()}${path}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders({ json: true }),
+    });
+
+    if (!res.ok) {
+        const data: any = await parseResponse(res);
+        throw new Error(data?.message || data?.raw || 'Request failed');
+    }
+
+    return (await parseResponse(res)) as T;
+}
 
 export async function apiUpload<T = any>(path: string, formData: FormData): Promise<T> {
     const res = await fetch(`${baseUrl()}${path}`, {
@@ -202,10 +215,11 @@ export async function adminVerifyExpense(id: string, payload: VerifyPayload) {
     return await apiPatch<any>(`/expense-tracker/${encodeURIComponent(id)}/admin-verify`, payload);
 }
 
-// ✅ Soft delete
 export async function softDeleteExpense(id: string) {
-    return await apiPatch<any>(`/expense-tracker/${encodeURIComponent(id)}/delete`, {});
+    return await apiDelete<any>(`/expense-tracker/${encodeURIComponent(id)}`);
 }
-
+export async function deleteExpense(id: string) {
+    return softDeleteExpense(id);
+}
 // helpers
 export const todayISO = () => new Date().toISOString().slice(0, 10);
