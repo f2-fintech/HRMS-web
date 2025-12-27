@@ -1,6 +1,6 @@
 // =======================================
 // ✅ ExpenseEmployee.tsx
-// (STRICT EMP VIEW + FRONTEND SAFETY FILTER + PAYMENT DROPDOWN + QR UPLOAD + PAYMENT DIALOG)
+// (STRICT EMP VIEW + FRONTEND SAFETY FILTER + PAYMENT DROPDOWN + QR UPLOAD + PAYMENT DIALOG + EDIT/DELETE)
 // =======================================
 'use client';
 
@@ -74,13 +74,15 @@ type CompanyAdminValue = (typeof companyAdminOptions)[number]['value'];
 const companyApprovalOptions = [
   { label: 'Company Approved Expenses', value: 'company_approval' },
   { label: 'Channel Partner Payment', value: 'expense_channel' },
-  { label: 'Cashback to a Customer', value: 'cashback_to_customer' },
+  { label: 'Gift/Consultancy to a Customer', value: 'cashback_to_customer' },
   { label: 'Referral Partner Payment', value: 'referral_partner' },
   { label: 'Leave Encashment', value: 'leave_encashment' },
-  { label: 'Management Expense(Harpreet Singh)', value: 'management' },
-  { label: 'Management Expense(Abhinav Awal)', value: 'managementabhinav' },
+
   { label: 'Data Purchase', value: 'data_purchase' },
   { label: 'Advance From Company', value: 'data_purchase' },
+  { label: 'HR Admin Expense', value: 'managementabhinav' },
+  { label: 'Management Expense(Harpreet Singh)', value: 'management' },
+  { label: 'Management Expense(Abhinav Awal)', value: 'managementabhinav' },
 ] as const;
 
 type CompanyApprovalValue = (typeof companyApprovalOptions)[number]['value'];
@@ -151,6 +153,67 @@ const pillButtonGhost: React.CSSProperties = {
   gap: 6,
 };
 
+// 🆕 Local API helpers for UPDATE + SOFT DELETE (multipart)
+async function updateExpenseRequest(id: string, body: Record<string, any>, files: File[]) {
+  const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
+  const user = typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem('user') || '{}')
+    : {};
+  const companyId =
+    (typeof window !== 'undefined' && (localStorage.getItem('company_id') || user.company_id)) ||
+    '';
+
+  const fd = new FormData();
+  Object.entries(body).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === '') return;
+    fd.append(k, String(v));
+  });
+  files.forEach((f) => fd.append('invoices', f));
+
+  const res = await fetch(`${base}/expense-tracker/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'x-company-id': companyId,
+    } as any,
+    body: fd,
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || 'Failed to update expense');
+  }
+
+  return res.json();
+}
+
+async function softDeleteExpenseRequest(id: string) {
+  const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
+  const user = typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem('user') || '{}')
+    : {};
+  const companyId =
+    (typeof window !== 'undefined' && (localStorage.getItem('company_id') || user.company_id)) ||
+    '';
+
+  const res = await fetch(`${base}/expense-tracker/${encodeURIComponent(id)}/delete`, {
+    method: 'Delete',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'x-company-id': companyId,
+    } as any,
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || 'Failed to delete expense');
+  }
+
+  return res.json();
+}
+
 export default function ExpenseEmployee() {
   const defaultDate = useMemo(() => todayISO(), []);
 
@@ -201,6 +264,7 @@ export default function ExpenseEmployee() {
 
   // ---------- form states ----------
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null); // 🆕 currently editing
 
   const [saving, setSaving] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
@@ -294,9 +358,9 @@ export default function ExpenseEmployee() {
       const safeRows = isAdmin
         ? data
         : data.filter((r: any) => {
-            const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
-            return myIds.includes(oid);
-          });
+          const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
+          return myIds.includes(oid);
+        });
 
       setRows(safeRows);
       setTotal(isAdmin ? (res?.total || 0) : safeRows.length);
@@ -317,8 +381,8 @@ export default function ExpenseEmployee() {
     if (!companyAdmin) return alert('Company Admin required');
     if (isOther && !customCategory.trim()) return alert('Please enter Other expense name');
     if (!companyApproval) return alert('More Expense Type required');
-
     if (!paidAmount.trim()) return alert('Paid amount required');
+
     const amt = Number(paidAmount);
     if (!Number.isFinite(amt) || amt <= 0) return alert('Paid amount must be valid number');
 
@@ -360,32 +424,51 @@ export default function ExpenseEmployee() {
     // 🧾 Invoices + QR file merge
     const allFiles: File[] = [...invoices, ...(qrFile ? [qrFile] : [])];
 
+    const payload: any = {
+      date,
+      expected_payment_date: expectedPaymentDate || undefined,
+      manager_id: managerId || undefined,
+      company_admin: companyAdmin as any,
+      custom_category: isOther ? customCategory.trim() : undefined,
+      company_approval: companyApproval as any,
+      paid_amount: amt,
+      description,
+      expense_channel: companyApproval === 'expense_channel' ? expenseChannel : undefined,
+      cashback_to_customer:
+        companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
+      referral_partner: companyApproval === 'referral_partner' ? referralPartner : undefined,
+
+      // 🧾 Text summary jo tum list me dikha rahe ho
+      payment,
+
+      // 🆕 Structured payment fields (yehi edit pe wapas aayenge)
+      payment_mode: paymentMode, // 'account' | 'upi' | 'qr'
+
+      account_holder: paymentMode === 'account' ? accountHolder.trim() : undefined,
+      bank_name: paymentMode === 'account' ? bankName.trim() : undefined,
+      account_number: paymentMode === 'account' ? accountNumber.trim() : undefined,
+      ifsc: paymentMode === 'account' ? ifsc.trim() : undefined,
+
+      upi_id: paymentMode === 'upi' ? upiId.trim() : undefined,
+      qr_note: paymentMode === 'qr' ? qrNote.trim() : undefined,
+    };
+
+
     try {
       setSaving(true);
 
-      await createExpense(
-        {
-          date,
-          expected_payment_date: expectedPaymentDate || undefined,
-          manager_id: managerId || undefined,
-          company_admin: companyAdmin as any,
-          custom_category: isOther ? customCategory.trim() : undefined,
-          company_approval: companyApproval as any,
-          paid_amount: amt,
-          description,
-          expense_channel:
-            companyApproval === 'expense_channel' ? expenseChannel : undefined,
-          cashback_to_customer:
-            companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
-          referral_partner:
-            companyApproval === 'referral_partner' ? referralPartner : undefined,
-          payment,
-        } as any,
-        allFiles,
-      );
+      if (editingId) {
+        // 🆕 UPDATE FLOW
+        await updateExpenseRequest(editingId, payload, allFiles);
+        alert('Expense updated ✅');
+      } else {
+        // CREATE FLOW
+        await createExpense(payload, allFiles);
+        alert('Expense created ✅');
+      }
 
-      alert('Expense created ✅');
       resetForm();
+      setEditingId(null);
       setOpen(false);
       setPage(1);
       await load();
@@ -412,6 +495,103 @@ export default function ExpenseEmployee() {
     }
   }
 
+  // 🆕 Load row into form for EDIT
+  const handleEdit = (r: any) => {
+    setEditingId(r._id);
+    setOpen(true);
+
+    setDate(r.date || defaultDate);
+    setExpectedPaymentDate(r.expected_payment_date || '');
+    setCompanyAdmin((r.company_admin as CompanyAdminValue) || 'cake');
+    setCustomCategory(r.custom_category || '');
+    setCompanyApproval((r.company_approval as CompanyApprovalValue) || 'company_approval');
+    setPaidAmount(String(r.paid_amount || ''));
+    setDescription(r.description || '');
+    setExpenseChannel(r.expense_channel || '');
+    setCashbackToCustomer(!!r.cashback_to_customer);
+    setReferralPartner(r.referral_partner || '');
+
+    // Reset uploads (existing invoices server pe hi rahenge)
+    setInvoices([]);
+    setQrFile(null);
+
+    // 🧠 Payment string se mode + fields parse karenge
+    const p = String(r.payment || '').trim();
+
+    // Defaults
+    let mode: PaymentMode = 'account';
+    let accHolder = '';
+    let bank = '';
+    let accNo = '';
+    let ifscVal = '';
+    let upi = '';
+    let qrN = '';
+
+    if (p.startsWith('Account Transfer')) {
+      mode = 'account';
+
+      // "Account Transfer | Name: X | Bank: Y | A/c: Z | IFSC: W"
+      const parts = p.split('|').map((s) => s.trim());
+
+      parts.forEach((part) => {
+        if (part.startsWith('Name:')) {
+          accHolder = part.replace('Name:', '').trim();
+        } else if (part.startsWith('Bank:')) {
+          bank = part.replace('Bank:', '').trim();
+        } else if (part.startsWith('A/c:')) {
+          accNo = part.replace('A/c:', '').trim();
+        } else if (part.startsWith('IFSC:')) {
+          ifscVal = part.replace('IFSC:', '').trim();
+        }
+      });
+    } else if (p.startsWith('UPI')) {
+      mode = 'upi';
+
+      // "UPI | ID: something@upi"
+      const parts = p.split('|').map((s) => s.trim());
+      const idPart = parts.find((x) => x.startsWith('ID:'));
+      if (idPart) {
+        upi = idPart.replace('ID:', '').trim();
+      }
+    } else if (p.startsWith('QR Payment')) {
+      mode = 'qr';
+
+      // "QR Payment | Some note"
+      const parts = p.split('|').map((s) => s.trim());
+      if (parts.length > 1) {
+        qrN = parts.slice(1).join(' | ');
+      }
+    }
+
+    // 🔁 Ab state me set karo
+    setPaymentMode(mode);
+    setAccountHolder(accHolder);
+    setBankName(bank);
+    setAccountNumber(accNo);
+    setIfsc(ifscVal);
+    setUpiId(upi);
+    setQrNote(qrN);
+  };
+
+
+  // 🆕 Delete (soft delete)
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this expense?')) return;
+
+    try {
+      await softDeleteExpenseRequest(id);
+      if (editingId === id) {
+        resetForm();
+        setEditingId(null);
+        setOpen(false);
+      }
+      await load();
+      alert('Expense deleted ✅');
+    } catch (err: any) {
+      alert(err?.message || 'Error');
+    }
+  };
+
   return (
     <div
       style={{
@@ -437,7 +617,14 @@ export default function ExpenseEmployee() {
         </h2>
 
         <button
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => {
+            if (open && editingId) {
+              // Agar edit mode me tha aur close kara to reset bhi
+              resetForm();
+              setEditingId(null);
+            }
+            setOpen((v) => !v);
+          }}
           style={{
             ...pillButtonPrimary,
             boxShadow: '0 8px 18px rgba(14, 116, 144, 0.3)',
@@ -446,11 +633,11 @@ export default function ExpenseEmployee() {
               : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
           }}
         >
-          {open ? 'Close Form' : '+ Create Expense'}
+          {open ? (editingId ? 'Cancel Edit' : 'Close Form') : '+ Create Expense'}
         </button>
       </div>
 
-      {/* CREATE EXPENSE FORM */}
+      {/* CREATE / EDIT EXPENSE FORM */}
       {open && (
         <form
           onSubmit={onSubmit}
@@ -476,7 +663,7 @@ export default function ExpenseEmployee() {
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>
-              New Expense Request
+              {editingId ? 'Edit Expense' : 'New Expense Request'}
             </div>
           </div>
 
@@ -692,7 +879,7 @@ export default function ExpenseEmployee() {
             <div style={{ marginTop: 12 }}>
               <label style={fieldLabelStyle}>Payment Mode</label>
 
-              {/* 👉 Row 1: Only dropdown, full width but limited max-width */}
+              {/* Row 1: dropdown */}
               <div
                 style={{
                   marginTop: 6,
@@ -713,8 +900,6 @@ export default function ExpenseEmployee() {
                   </select>
                 </div>
               </div>
-
-              {/* 👉 Row 2: Mode-wise details, neatly aligned */}
 
               {/* ACCOUNT MODE */}
               {paymentMode === 'account' && (
@@ -877,6 +1062,7 @@ export default function ExpenseEmployee() {
                 type="button"
                 onClick={() => {
                   resetForm();
+                  setEditingId(null);
                   setOpen(false);
                 }}
                 style={pillButtonGhost}
@@ -892,7 +1078,13 @@ export default function ExpenseEmployee() {
                   opacity: saving ? 0.7 : 1,
                 }}
               >
-                {saving ? 'Saving...' : 'Submit Expense'}
+                {saving
+                  ? editingId
+                    ? 'Updating...'
+                    : 'Saving...'
+                  : editingId
+                    ? 'Update Expense'
+                    : 'Submit Expense'}
               </button>
             </div>
           </div>
@@ -909,8 +1101,7 @@ export default function ExpenseEmployee() {
             gap: 10,
           }}
         >
-         
-        
+          {/* yahan future filters aa sakte hain */}
         </div>
 
         <div
@@ -934,7 +1125,7 @@ export default function ExpenseEmployee() {
                   'Mgr Status',
                   'Admin Status',
                   'Invoices',
-                  ...(isAdmin ? (['Action'] as const) : ([] as const)),
+                  'Action', // 🆕 always show Action column
                 ].map((h) => (
                   <th
                     key={h}
@@ -1155,14 +1346,16 @@ export default function ExpenseEmployee() {
                         )}
                       </td>
 
-                      {isAdmin ? (
-                        <td
-                          style={{
-                            padding: 10,
-                            borderBottom: '1px solid #f1f1f1',
-                            fontSize: 12,
-                          }}
-                        >
+                      {/* ACTION CELL */}
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {isAdmin ? (
                           <button
                             disabled={!canVerify}
                             onClick={() => setSelectedId(r._id)}
@@ -1183,15 +1376,47 @@ export default function ExpenseEmployee() {
                           >
                             Verify
                           </button>
-                        </td>
-                      ) : null}
+                        ) : (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(r)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 999,
+                                border: '1px solid #93c5fd',
+                                background: '#eff6ff',
+                                fontSize: 11,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(r._id)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 999,
+                                border: '1px solid #fecaca',
+                                background: '#fef2f2',
+                                fontSize: 11,
+                                cursor: 'pointer',
+                                color: '#b91c1c',
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
 
               {loadingList && (
                 <tr>
-                  <td colSpan={isAdmin ? 10 : 7} style={{ padding: 12, fontSize: 12 }}>
+                  <td colSpan={isAdmin ? 10 : 8} style={{ padding: 12, fontSize: 12 }}>
                     Loading...
                   </td>
                 </tr>
@@ -1199,7 +1424,7 @@ export default function ExpenseEmployee() {
 
               {!loadingList && rows.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 10 : 7} style={{ padding: 12, fontSize: 12 }}>
+                  <td colSpan={isAdmin ? 10 : 8} style={{ padding: 12, fontSize: 12 }}>
                     No expenses found
                   </td>
                 </tr>
