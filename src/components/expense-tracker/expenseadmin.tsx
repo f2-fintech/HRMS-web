@@ -42,6 +42,7 @@ const companyAdminOptions = [
   { label: 'Tea', value: 'tea' },
   { label: 'Internet', value: 'internet' },
   { label: 'Lease Line', value: 'lease_line' },
+  { label: 'Leave Encasement', value: 'leave_encashment' },
   { label: 'Dialer', value: 'dialer' },
   { label: 'SIM', value: 'sim' },
   { label: 'Cloud / AI', value: 'cloud_ai' },
@@ -363,83 +364,83 @@ export default function ExpenseAdmin() {
   }
 
   // ---------- START EDIT ----------
-const startEdit = (row: any) => {
-  setOpen(true);
-  setEditingId(row._id || null);
+  const startEdit = (row: any) => {
+    setOpen(true);
+    setEditingId(row._id || null);
 
-  // Basic fields
-  setDate(row.date?.slice(0, 10) || defaultDate);
-  setExpectedPaymentDate(
-    row.expected_payment_date ? String(row.expected_payment_date).slice(0, 10) : '',
-  );
+    // Basic fields
+    setDate(row.date?.slice(0, 10) || defaultDate);
+    setExpectedPaymentDate(
+      row.expected_payment_date ? String(row.expected_payment_date).slice(0, 10) : '',
+    );
 
-  setCompanyAdmin((row.company_admin as CompanyAdminValue) || 'cake');
-  setCustomCategory(row.custom_category || '');
-  setCompanyApproval(
-    (row.company_approval as CompanyApprovalValue) || 'company_approval',
-  );
+    setCompanyAdmin((row.company_admin as CompanyAdminValue) || 'cake');
+    setCustomCategory(row.custom_category || '');
+    setCompanyApproval(
+      (row.company_approval as CompanyApprovalValue) || 'company_approval',
+    );
 
-  setPaidAmount(row.paid_amount != null ? String(row.paid_amount) : '');
-  setDescription(row.description || '');
+    setPaidAmount(row.paid_amount != null ? String(row.paid_amount) : '');
+    setDescription(row.description || '');
 
-  setExpenseChannel(row.expense_channel || '');
-  setCashbackToCustomer(!!row.cashback_to_customer);
-  setReferralPartner(row.referral_partner || '');
+    setExpenseChannel(row.expense_channel || '');
+    setCashbackToCustomer(!!row.cashback_to_customer);
+    setReferralPartner(row.referral_partner || '');
 
-  // 🆕 PAYMENT DETAILS FROM row.payment
-  const p: string = (row.payment || '').toString().trim();
+    // 🆕 PAYMENT DETAILS FROM row.payment
+    const p: string = (row.payment || '').toString().trim();
 
-  let mode: PaymentMode = 'account';
-  let accHolder = '';
-  let bank = '';
-  let accNo = '';
-  let ifsc = '';
-  let upi = '';
-  let qrNote = '';
+    let mode: PaymentMode = 'account';
+    let accHolder = '';
+    let bank = '';
+    let accNo = '';
+    let ifsc = '';
+    let upi = '';
+    let qrNote = '';
 
-  if (p.startsWith('Account Transfer')) {
-    mode = 'account';
-    const parts = p.split('|').map((s) => s.trim());
+    if (p.startsWith('Account Transfer')) {
+      mode = 'account';
+      const parts = p.split('|').map((s) => s.trim());
 
-    const namePart = parts.find((s) => s.startsWith('Name:'));
-    if (namePart) accHolder = namePart.replace('Name:', '').trim();
+      const namePart = parts.find((s) => s.startsWith('Name:'));
+      if (namePart) accHolder = namePart.replace('Name:', '').trim();
 
-    const bankPart = parts.find((s) => s.startsWith('Bank:'));
-    if (bankPart) bank = bankPart.replace('Bank:', '').trim();
+      const bankPart = parts.find((s) => s.startsWith('Bank:'));
+      if (bankPart) bank = bankPart.replace('Bank:', '').trim();
 
-    const accPart = parts.find((s) => s.startsWith('A/c:'));
-    if (accPart) accNo = accPart.replace('A/c:', '').trim();
+      const accPart = parts.find((s) => s.startsWith('A/c:'));
+      if (accPart) accNo = accPart.replace('A/c:', '').trim();
 
-    const ifscPart = parts.find((s) => s.startsWith('IFSC:'));
-    if (ifscPart) ifsc = ifscPart.replace('IFSC:', '').trim();
-  } else if (p.startsWith('UPI')) {
-    mode = 'upi';
-    const parts = p.split('|').map((s) => s.trim());
-    const idPart = parts.find((s) => s.startsWith('ID:'));
-    if (idPart) upi = idPart.replace('ID:', '').trim();
-  } else if (p.startsWith('QR Payment')) {
-    mode = 'qr';
-    const parts = p.split('|').map((s) => s.trim());
-    if (parts[1]) qrNote = parts[1];
-  } else {
-    // unknown / empty -> default
-    mode = 'account';
-  }
+      const ifscPart = parts.find((s) => s.startsWith('IFSC:'));
+      if (ifscPart) ifsc = ifscPart.replace('IFSC:', '').trim();
+    } else if (p.startsWith('UPI')) {
+      mode = 'upi';
+      const parts = p.split('|').map((s) => s.trim());
+      const idPart = parts.find((s) => s.startsWith('ID:'));
+      if (idPart) upi = idPart.replace('ID:', '').trim();
+    } else if (p.startsWith('QR Payment')) {
+      mode = 'qr';
+      const parts = p.split('|').map((s) => s.trim());
+      if (parts[1]) qrNote = parts[1];
+    } else {
+      // unknown / empty -> default
+      mode = 'account';
+    }
 
-  setPaymentMode(mode);
-  setAccountHolder(accHolder);
-  setBankName(bank);
-  setAccountNumber(accNo);
-  setIfsc(ifsc);
-  setUpiId(upi);
-  setQrNote(qrNote);
-  setQrFile(null);
-  setInvoices([]);
+    setPaymentMode(mode);
+    setAccountHolder(accHolder);
+    setBankName(bank);
+    setAccountNumber(accNo);
+    setIfsc(ifsc);
+    setUpiId(upi);
+    setQrNote(qrNote);
+    setQrFile(null);
+    setInvoices([]);
 
-  if (typeof window !== 'undefined') {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-};
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
 
 
@@ -540,30 +541,30 @@ const startEdit = (row: any) => {
 
     const allFiles: File[] = [...invoices, ...(qrFile ? [qrFile] : [])];
 
-   const payload: any = {
-  date,
-  expected_payment_date: expectedPaymentDate || undefined,
-  manager_id: managerId || undefined,
-  company_admin: companyAdmin as any,
-  custom_category: isOther ? customCategory.trim() : undefined,
-  company_approval: companyApproval as any,
-  paid_amount: amt,
-  description,
-  expense_channel: companyApproval === 'expense_channel' ? expenseChannel : undefined,
-  cashback_to_customer:
-    companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
-  referral_partner: companyApproval === 'referral_partner' ? referralPartner : undefined,
-  payment,
+    const payload: any = {
+      date,
+      expected_payment_date: expectedPaymentDate || undefined,
+      manager_id: managerId || undefined,
+      company_admin: companyAdmin as any,
+      custom_category: isOther ? customCategory.trim() : undefined,
+      company_approval: companyApproval as any,
+      paid_amount: amt,
+      description,
+      expense_channel: companyApproval === 'expense_channel' ? expenseChannel : undefined,
+      cashback_to_customer:
+        companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
+      referral_partner: companyApproval === 'referral_partner' ? referralPartner : undefined,
+      payment,
 
-  // 🆕 structured fields
-  payment_mode: paymentMode,
-  account_holder: paymentMode === 'account' ? accountHolder.trim() : undefined,
-  bank_name: paymentMode === 'account' ? bankName.trim() : undefined,
-  account_number: paymentMode === 'account' ? accountNumber.trim() : undefined,
-  ifsc: paymentMode === 'account' ? ifsc.trim() : undefined,
-  upi_id: paymentMode === 'upi' ? upiId.trim() : undefined,
-  qr_note: paymentMode === 'qr' ? qrNote.trim() : undefined,
-};
+      // 🆕 structured fields
+      payment_mode: paymentMode,
+      account_holder: paymentMode === 'account' ? accountHolder.trim() : undefined,
+      bank_name: paymentMode === 'account' ? bankName.trim() : undefined,
+      account_number: paymentMode === 'account' ? accountNumber.trim() : undefined,
+      ifsc: paymentMode === 'account' ? ifsc.trim() : undefined,
+      upi_id: paymentMode === 'upi' ? upiId.trim() : undefined,
+      qr_note: paymentMode === 'qr' ? qrNote.trim() : undefined,
+    };
 
 
     try {
@@ -1638,7 +1639,6 @@ const startEdit = (row: any) => {
         </div>
       </div>
 
-      {/* 🆕 Global Snackbar */}
       <Snackbar
         open={openSnackbar}
         autoHideDuration={4000}
