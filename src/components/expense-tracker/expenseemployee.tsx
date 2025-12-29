@@ -37,6 +37,7 @@ const companyAdminOptions = [
   { label: 'Tea', value: 'tea' },
   { label: 'Internet', value: 'internet' },
   { label: 'Lease Line', value: 'lease_line' },
+  { label: 'Leave Encasement', value: 'leave_encashment' },
   { label: 'Dialer', value: 'dialer' },
   { label: 'SIM', value: 'sim' },
   { label: 'Cloud / AI', value: 'cloud_ai' },
