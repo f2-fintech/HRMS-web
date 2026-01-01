@@ -215,7 +215,7 @@ export default function EmployeeGrid() {
                 }
               }}
             >
-              Deleted Employees
+              Ex Employees
             </Button>}
           </Box>
 

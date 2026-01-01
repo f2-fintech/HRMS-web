@@ -28,7 +28,7 @@ import axios from 'axios';
 import { apiResponse } from '../../utility/apiResponse/employeesResponse';
 
 interface QueryFormProps {
-  onSubmit?: (queryData: any) => void; // ab optional + API ke baad callback ke liye
+  onSubmit?: (queryData: any) => void; // optional + API ke baad callback
   query?: any;
   userRole: string;
   onClose: () => void;
@@ -43,12 +43,30 @@ interface QueryFormData {
   company_id?: string;
 }
 
-
-
 const statuses = ['Pending', 'Resolved', 'On Process'];
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
+
+// 🔥 Yahan decide karo kaun-kaun se teams dikhani hain
+
+// 1) Agar tum _id se filter karna chahte ho (recommended):
+const ALLOWED_TEAM_IDS: string[] = [
+  '674abf5e2cb3ff920ea4a898',
+  '680789b86a3572ff9478bcd2',
+  '68078bdd6a3572ff9478bd50',
+  '68078c506a3572ff9478bd6c',
+  '68e8feb4fa8c01760efccf87',
+  '693d0c7f5c4e2f15ce95cf0b'
+];
+
+const ALLOWED_TEAM_NAMES: string[] = [
+  'HR TEAM',
+  'MARKETING TEAM',
+  'IT TEAM',
+  'Credit Team',
+  'Ops Team',
+];
 
 const QueryForm: React.FC<QueryFormProps> = ({
   onSubmit,
@@ -154,8 +172,25 @@ const QueryForm: React.FC<QueryFormProps> = ({
         });
 
         const json = await resp.json();
-        const teamArr = Array.isArray(json) ? json : json.teams || [];
-        setTeams(teamArr);
+        const teamArr: any[] = Array.isArray(json) ? json : json.teams || [];
+
+        // 🔥 filter logic: sirf selected teams rakho
+        let filteredTeams = teamArr;
+
+        if (ALLOWED_TEAM_IDS.length || ALLOWED_TEAM_NAMES.length) {
+          filteredTeams = teamArr.filter((t: any) => {
+            const idAllowed = ALLOWED_TEAM_IDS.length
+              ? ALLOWED_TEAM_IDS.includes(t._id)
+              : false;
+            const nameAllowed = ALLOWED_TEAM_NAMES.length
+              ? ALLOWED_TEAM_NAMES.includes(t.name)
+              : false;
+            // agar dono arrays empty hain, sab allowed; warna koi ek true to allowed
+            return ALLOWED_TEAM_IDS.length || ALLOWED_TEAM_NAMES.length
+              ? idAllowed || nameAllowed
+              : true;
+          });
+        }
 
         // edit mode pre-fill
         if (query) {
@@ -180,11 +215,20 @@ const QueryForm: React.FC<QueryFormProps> = ({
               ) || null;
 
             if (teamOfEmp) {
+              // ensure employee ka team list me ho, chahe allowed list me na bhi ho
+              if (
+                !filteredTeams.some((t: any) => t._id === teamOfEmp._id)
+              ) {
+                filteredTeams = [...filteredTeams, teamOfEmp];
+              }
+
               setSelectedTeam(teamOfEmp);
               filterEmployeesByTeam(teamOfEmp, empData);
             }
           }
         }
+
+        setTeams(filteredTeams);
       } catch (err) {
         console.error('Error loading teams/employees', err);
       } finally {
@@ -212,7 +256,6 @@ const QueryForm: React.FC<QueryFormProps> = ({
       toQuery: value ? value._id : '',
     }));
   };
-
 
   const handleStatusChange = (event: any, value: string | null) => {
     setFormData(prev => ({ ...prev, status: value || 'Pending' }));
@@ -253,7 +296,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
 
       // DTO ke hisaab se payload
       const payload = {
-        toQuery: formData.toQuery,           // 👈 employee _id string
+        toQuery: formData.toQuery, // employee _id string
         queryType: formData.queryType,
         description: formData.description,
         status: formData.status || 'Pending',
@@ -277,7 +320,6 @@ const QueryForm: React.FC<QueryFormProps> = ({
 
       console.log('Query API success:', res.data);
 
-      // Parent ko agar kuch karna ho (list refresh / snackbar)
       if (onSubmit) {
         onSubmit(res.data);
       }
@@ -287,7 +329,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
       console.error('Submission error:', err?.response?.data || err.message);
       alert(
         err?.response?.data?.message ||
-          'Error while creating/updating query. Please try again.',
+        'Error while creating/updating query. Please try again.',
       );
     } finally {
       setSubmitting(false);
@@ -332,7 +374,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
         >
           <Box display="flex" alignItems="center">
             <AssignmentIcon sx={{ mr: 2, fontSize: 32 }} />
-            <Typography variant="h5" fontWeight="bold">
+            <Typography variant="h4" fontWeight="bold" color="inherit">
               {query ? 'Edit Query' : 'Create a New Query'}
             </Typography>
           </Box>
@@ -398,7 +440,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
               </Grid>
             )}
 
-            {/* Team */}
+            {/* Department / Team */}
             <Grid item xs={12} md={6}>
               <Autocomplete
                 options={teams}
@@ -409,8 +451,8 @@ const QueryForm: React.FC<QueryFormProps> = ({
                 renderInput={params => (
                   <TextField
                     {...params}
-                    label="Team"
-                    placeholder="Select Team"
+                    label="Department"
+                    placeholder="Select Department"
                     InputProps={{
                       ...params.InputProps,
                       startAdornment: (
@@ -477,37 +519,6 @@ const QueryForm: React.FC<QueryFormProps> = ({
                 )}
               />
             </Grid>
-
-            {/* Department */}
-            {/* <Grid item xs={12} md={6}>
-              <Autocomplete
-                options={departments}
-                value={
-                  departments.find(d => d === formData.department) ||
-                  null
-                }
-                onChange={(_, value) =>
-                  handleDepartmentChange(_, value || '')
-                }
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    label="Department"
-                    error={!!errors.department}
-                    helperText={errors.department}
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <WorkIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                    disabled={isEditMode && isAgainstQuery}
-                  />
-                )}
-              />
-            </Grid> */}
 
             {/* Query Type */}
             <Grid item xs={12} md={6}>
