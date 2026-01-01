@@ -659,7 +659,7 @@ const Query = () => {
                 />
             </Box>
 
-            {/* Snackbar */}
+            
             <Snackbar
                 open={openSnackbar}
                 autoHideDuration={4000}
