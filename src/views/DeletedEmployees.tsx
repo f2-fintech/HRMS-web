@@ -191,7 +191,7 @@ export default function DeletedEmployeeGrid() {
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                     <Box>
                         <Typography style={{ fontSize: '2em' }} variant="h5" gutterBottom>
-                            Deleted Employees
+                            Ex Employees
                         </Typography>
                     </Box>
                 </Box>
