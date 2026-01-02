@@ -19,7 +19,6 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PersonIcon from '@mui/icons-material/Person';
-import WorkIcon from '@mui/icons-material/Work';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import GroupIcon from '@mui/icons-material/Group';
@@ -48,16 +47,15 @@ const statuses = ['Pending', 'Resolved', 'On Process'];
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 
-// 🔥 Yahan decide karo kaun-kaun se teams dikhani hain
-
-// 1) Agar tum _id se filter karna chahte ho (recommended):
+// Teams filter (optional)
 const ALLOWED_TEAM_IDS: string[] = [
   '674abf5e2cb3ff920ea4a898',
   '680789b86a3572ff9478bcd2',
   '68078bdd6a3572ff9478bd50',
   '68078c506a3572ff9478bd6c',
   '68e8feb4fa8c01760efccf87',
-  '693d0c7f5c4e2f15ce95cf0b'
+  '693d0c7f5c4e2f15ce95cf0b',
+  '6957a5422381863817eb481d'
 ];
 
 const ALLOWED_TEAM_NAMES: string[] = [
@@ -66,6 +64,8 @@ const ALLOWED_TEAM_NAMES: string[] = [
   'IT TEAM',
   'Credit Team',
   'Ops Team',
+  'IT & Infra'
+
 ];
 
 const QueryForm: React.FC<QueryFormProps> = ({
@@ -103,6 +103,11 @@ const QueryForm: React.FC<QueryFormProps> = ({
 
   const isEditMode = !!query;
   const isAgainstQuery = queryType === 'against';
+
+  // 🔹 Replies state
+  const [replies, setReplies] = useState<any[]>(query?.replies || []);
+  const [replyText, setReplyText] = useState('');
+  const [replySubmitting, setReplySubmitting] = useState(false);
 
   // =========================
   // helper: team.employee_ids -> [id1, id2, ...]
@@ -195,7 +200,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
         // edit mode pre-fill
         if (query) {
           setFormData({
-            toQuery: query.toQuery?._id || '',
+            toQuery: query.toQuery?._id || query.toQuery || '',
             queryType: query.queryType || '',
             description: query.description || '',
             status: query.status || 'Pending',
@@ -226,6 +231,8 @@ const QueryForm: React.FC<QueryFormProps> = ({
               filterEmployeesByTeam(teamOfEmp, empData);
             }
           }
+
+          setReplies(query.replies || []);
         }
 
         setTeams(filteredTeams);
@@ -333,6 +340,73 @@ const QueryForm: React.FC<QueryFormProps> = ({
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // =========================
+  // reply: sirf admin + assignee
+  // =========================
+
+  const toQueryIdFromQuery =
+    query &&
+    (query.toQuery?._id ||
+      query.toQuery?.id ||
+      (typeof query.toQuery === 'string' ? query.toQuery : ''));
+
+  const canReply =
+    !!query &&
+    (userRole === '1' ||
+      (user?.id && String(toQueryIdFromQuery) === String(user.id)));
+
+  const handleAddReply = async () => {
+    if (!replyText.trim() || !query?._id || !canReply) return;
+
+    try {
+      setReplySubmitting(true);
+
+      const token = localStorage.getItem('token') || '';
+      const companyId =
+        localStorage.getItem('company_id') || company_id || '';
+
+      const payload = {
+        query_id: query._id,
+        message: replyText.trim(),
+        company_id: companyId,
+      };
+
+      const res = await axios.post(
+        `${API_BASE_URL}/queries/reply`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      const newReply =
+        res.data?.reply ||
+        res.data || {
+          message: replyText.trim(),
+          createdAt: new Date().toISOString(),
+          employee: {
+            first_name: user?.first_name,
+            last_name: user?.last_name,
+            image: user?.image,
+          },
+        };
+
+      setReplies(prev => [...prev, newReply]);
+      setReplyText('');
+    } catch (err: any) {
+      console.error('Reply error:', err?.response?.data || err.message);
+      alert(
+        err?.response?.data?.message ||
+        'Reply send karte waqt error aaya. Please try again.',
+      );
+    } finally {
+      setReplySubmitting(false);
     }
   };
 
@@ -597,6 +671,89 @@ const QueryForm: React.FC<QueryFormProps> = ({
                 }}
               />
             </Grid>
+
+            {/* 🔥 Replies Section (only edit mode) */}
+            {query && (
+              <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                  Replies / Discussion
+                </Typography>
+
+                {/* Existing replies list */}
+                <Box
+                  sx={{
+                    maxHeight: 220,
+                    overflowY: 'auto',
+                    mb: 2,
+                    pr: 1,
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 2,
+                    p: 1.5,
+                    backgroundColor: '#fafafa',
+                  }}
+                >
+                  {replies && replies.length > 0 ? (
+                    replies.map((r: any, idx: number) => (
+                      <Box
+                        key={r._id || idx}
+                        sx={{
+                          mb: 1.5,
+                          pb: 1,
+                          borderBottom:
+                            idx !== replies.length - 1
+                              ? '1px solid #e5e7eb'
+                              : 'none',
+                        }}
+                      >
+                        <Typography fontWeight={600} variant="subtitle2">
+                          {r?.employee
+                            ? `${r.employee.first_name || ''} ${r.employee.last_name || ''
+                              }`.trim()
+                            : 'User'}
+                        </Typography>
+                        <Typography variant="body2">
+                          {r?.message}
+                        </Typography>
+                      </Box>
+                    ))
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No replies till now
+                    </Typography>
+                  )}
+                </Box>
+
+                {/* Add new reply (sirf admin + assignee) */}
+                <Box display="flex" gap={1} alignItems="flex-start">
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    maxRows={4}
+                    placeholder={
+                      canReply
+                        ? 'Type Your Reply'
+                        : 'Sirf admin ya jisko query assigned hai, wahi reply kar sakta hai'
+                    }
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
+                    disabled={!canReply}
+                  />
+                  <Button
+                    variant="contained"
+                    sx={{
+                      minWidth: 100, height: '10%',     
+                      alignSelf: 'center', mt: '7px'
+                    }}
+                    disabled={replySubmitting || !replyText.trim() || !canReply}
+                    onClick={handleAddReply}
+                  >
+                    {replySubmitting ? 'Sending…' : 'Reply'}
+                  </Button>
+                </Box>
+              </Grid>
+            )}
 
             {/* Submit */}
             <Grid item xs={12}>

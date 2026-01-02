@@ -77,7 +77,7 @@ const NewYearWidget = ({ companyDetails, loading }: { companyDetails: any; loadi
                         }}
                     >
                         <LocalFireDepartment sx={{ color: "#ff6b6b", animation: "spin 2s infinite" }} />
-                        🎉 Welcome 2025 Team! 🎊
+                        🎉 Welcome 2026 Team! 🎊
                         <LocalFireDepartment sx={{ color: "#ff6b6b", animation: "spin 2s infinite" }} />
                     </Typography>
                 </Box>
