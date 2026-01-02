@@ -734,7 +734,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
                     placeholder={
                       canReply
                         ? 'Type Your Reply'
-                        : 'Sirf admin ya jisko query assigned hai, wahi reply kar sakta hai'
+                        : 'Sirf admin ya "Only the admin or the person to whom the query is assigned can reply.'
                     }
                     value={replyText}
                     onChange={e => setReplyText(e.target.value)}
@@ -743,7 +743,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
                   <Button
                     variant="contained"
                     sx={{
-                      minWidth: 100, height: '10%',     
+                      minWidth: 100, height: '10%',
                       alignSelf: 'center', mt: '7px'
                     }}
                     disabled={replySubmitting || !replyText.trim() || !canReply}
