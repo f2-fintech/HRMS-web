@@ -75,6 +75,8 @@ type CompanyAdminValue = (typeof companyAdminOptions)[number]['value'];
 const companyApprovalOptions = [
   { label: 'Company Approved Expenses', value: 'company_approval' },
   { label: 'Channel Partner Payment', value: 'expense_channel' },
+  { label: 'Payout', value: 'payout' },
+
   { label: 'Gift/Consultancy to a Customer', value: 'cashback_to_customer' },
   { label: 'Referral Partner Payment', value: 'referral_partner' },
   { label: 'Leave Encashment', value: 'leave_encashment' },

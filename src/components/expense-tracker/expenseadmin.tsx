@@ -80,6 +80,7 @@ type CompanyAdminValue = (typeof companyAdminOptions)[number]['value'];
 const companyApprovalOptions = [
   { label: 'Company Approved Expenses', value: 'company_approval' },
   { label: 'Channel Partner Payment', value: 'expense_channel' },
+  { label: 'Payout', value: 'payout' },
   { label: 'Gift/Consultancy to a Customer', value: 'cashback_to_customer' },
   { label: 'Referral Partner Payment', value: 'referral_partner' },
   { label: 'Leave Encashment', value: 'leave_encashment' },
@@ -192,7 +193,8 @@ export default function ExpenseAdmin() {
       return { isAdmin: false };
     }
     const user: UserLS = JSON.parse(localStorage.getItem('user') || '{}');
-    const rRaw = user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
+    const rRaw =
+      user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
     const r = Number(rRaw) || 0;
     return { isAdmin: r === 1 };
   }, []);
@@ -301,6 +303,7 @@ export default function ExpenseAdmin() {
   // admin verify
   const [note, setNote] = useState('');
   const [selectedId, setSelectedId] = useState<string>('');
+  const [verifyingId, setVerifyingId] = useState<string>(''); // 🆕 verify loading state
 
   // payment preview dialog
   const [paymentPreview, setPaymentPreview] = useState<string | null>(null);
@@ -341,6 +344,8 @@ export default function ExpenseAdmin() {
     try {
       if (!isAdmin) return;
 
+      setVerifyingId(id);
+
       await adminVerifyExpense(id, { status, note });
 
       setSelectedId('');
@@ -349,8 +354,8 @@ export default function ExpenseAdmin() {
 
       const msg =
         status === 'approved'
-          ? 'Expense approved successfully ✅'
-          : 'Expense rejected successfully ❌';
+          ? 'Expense approved successfully'
+          : 'Expense rejected successfully';
 
       const severity = status === 'approved' ? 'success' : 'error';
 
@@ -360,6 +365,8 @@ export default function ExpenseAdmin() {
         err?.response?.data?.message || err?.message || 'Error while verifying',
         'error',
       );
+    } finally {
+      setVerifyingId('');
     }
   }
 
@@ -394,9 +401,9 @@ export default function ExpenseAdmin() {
     let accHolder = '';
     let bank = '';
     let accNo = '';
-    let ifsc = '';
+    let ifscVal = '';
     let upi = '';
-    let qrNote = '';
+    let qrNoteVal = '';
 
     if (p.startsWith('Account Transfer')) {
       mode = 'account';
@@ -412,7 +419,7 @@ export default function ExpenseAdmin() {
       if (accPart) accNo = accPart.replace('A/c:', '').trim();
 
       const ifscPart = parts.find((s) => s.startsWith('IFSC:'));
-      if (ifscPart) ifsc = ifscPart.replace('IFSC:', '').trim();
+      if (ifscPart) ifscVal = ifscPart.replace('IFSC:', '').trim();
     } else if (p.startsWith('UPI')) {
       mode = 'upi';
       const parts = p.split('|').map((s) => s.trim());
@@ -421,7 +428,7 @@ export default function ExpenseAdmin() {
     } else if (p.startsWith('QR Payment')) {
       mode = 'qr';
       const parts = p.split('|').map((s) => s.trim());
-      if (parts[1]) qrNote = parts[1];
+      if (parts[1]) qrNoteVal = parts[1];
     } else {
       // unknown / empty -> default
       mode = 'account';
@@ -431,9 +438,9 @@ export default function ExpenseAdmin() {
     setAccountHolder(accHolder);
     setBankName(bank);
     setAccountNumber(accNo);
-    setIfsc(ifsc);
+    setIfsc(ifscVal);
     setUpiId(upi);
-    setQrNote(qrNote);
+    setQrNote(qrNoteVal);
     setQrFile(null);
     setInvoices([]);
 
@@ -441,8 +448,6 @@ export default function ExpenseAdmin() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-
-
 
   const handleDelete = async (id: string) => {
     try {
@@ -461,7 +466,6 @@ export default function ExpenseAdmin() {
       );
     }
   };
-
 
   // ---------- SUBMIT CREATE / UPDATE ----------
   const onSubmit = async (e: React.FormEvent) => {
@@ -550,10 +554,12 @@ export default function ExpenseAdmin() {
       company_approval: companyApproval as any,
       paid_amount: amt,
       description,
-      expense_channel: companyApproval === 'expense_channel' ? expenseChannel : undefined,
+      expense_channel:
+        companyApproval === 'expense_channel' ? expenseChannel : undefined,
       cashback_to_customer:
         companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
-      referral_partner: companyApproval === 'referral_partner' ? referralPartner : undefined,
+      referral_partner:
+        companyApproval === 'referral_partner' ? referralPartner : undefined,
       payment,
 
       // 🆕 structured fields
@@ -565,7 +571,6 @@ export default function ExpenseAdmin() {
       upi_id: paymentMode === 'upi' ? upiId.trim() : undefined,
       qr_note: paymentMode === 'qr' ? qrNote.trim() : undefined,
     };
-
 
     try {
       setSaving(true);
@@ -1175,9 +1180,15 @@ export default function ExpenseAdmin() {
             <tbody>
               {!loadingList &&
                 rows.map((r) => {
-                  const canVerify = r.admin_status === 'pending';
-                  const canEdit = r.admin_status === 'pending'; // agar approved/rejected ke baad edit lock rakhna hai
+                  // Edit/Delete sirf pending pe
+                  const canEdit = r.admin_status === 'pending';
                   const canDelete = r.admin_status === 'pending';
+
+                  // sirf yeh row abhi verify ho rahi hai?
+                  const isRowVerifying = verifyingId === r._id;
+
+                  // ✅ admin ho to hamesha status change allowed
+                  const canVerify = isAdmin;
 
                   return (
                     <tr key={r._id}>
@@ -1355,7 +1366,9 @@ export default function ExpenseAdmin() {
                             })}
                           </div>
                         ) : (
-                          <span style={{ fontSize: 11, color: '#9ca3af' }}>No invoice</span>
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                            No invoice
+                          </span>
                         )}
                       </td>
 
@@ -1413,24 +1426,38 @@ export default function ExpenseAdmin() {
 
                           <button
                             type="button"
-                            disabled={!canVerify}
-                            onClick={() => setSelectedId(r._id)}
+                            disabled={!canVerify || isRowVerifying}
+                            onClick={() => {
+                              if (!canVerify || isRowVerifying) return;
+                              setSelectedId(r._id);
+                              setNote(''); // har baar fresh note
+                            }}
                             style={{
                               padding: '5px 10px',
                               borderRadius: 999,
                               border: 'none',
                               fontSize: 11,
                               fontWeight: 600,
-                              cursor: canVerify ? 'pointer' : 'not-allowed',
-                              background: canVerify ? '#1d4ed8' : '#e5e7eb',
-                              color: canVerify ? '#ffffff' : '#9ca3af',
-                              boxShadow: canVerify
-                                ? '0 3px 10px rgba(37, 99, 235, 0.35)'
-                                : 'none',
+                              cursor:
+                                !canVerify || isRowVerifying ? 'not-allowed' : 'pointer',
+                              background:
+                                canVerify && !isRowVerifying ? '#1d4ed8' : '#e5e7eb',
+                              color:
+                                canVerify && !isRowVerifying ? '#ffffff' : '#9ca3af',
+                              boxShadow:
+                                canVerify && !isRowVerifying
+                                  ? '0 3px 10px rgba(37, 99, 235, 0.35)'
+                                  : 'none',
                               transition: 'all 0.2s ease',
                             }}
                           >
-                            Verify
+                            {r.admin_status === 'pending'
+                              ? isRowVerifying
+                                ? 'Verifying...'
+                                : 'Verify'
+                              : isRowVerifying
+                                ? 'Updating...'
+                                : 'Change Status'}
                           </button>
                         </div>
                       </td>
@@ -1457,64 +1484,123 @@ export default function ExpenseAdmin() {
           </table>
         </div>
 
-        {/* ADMIN VERIFY BOX */}
+        {/* ✅ ADMIN VERIFY DIALOG */}
         {selectedId && (
           <div
             style={{
-              marginTop: 14,
-              border: '1px solid #e5e7eb',
-              padding: 12,
-              borderRadius: 12,
-              background: '#ffffff',
-              boxShadow: '0 10px 30px rgba(15,23,42,0.08)',
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15,23,42,0.45)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 60,
             }}
           >
-            <h4 style={{ marginTop: 0, marginBottom: 6, fontSize: 14 }}>
-              Admin Verify Expense
-            </h4>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
+            <div
               style={{
-                width: '100%',
-                padding: 10,
-                borderRadius: 10,
-                border: '1px solid #dde2eb',
-                fontSize: 12,
+                background: '#ffffff',
+                borderRadius: 18,
+                maxWidth: 520,
+                width: '90%',
+                padding: 16,
+                boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
               }}
-              placeholder="Add a note for approval / rejection..."
-            />
-            <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-              <button
-                onClick={() => verify(selectedId, 'approved')}
+            >
+              <div
                 style={{
-                  ...pillButtonPrimary,
-                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                  boxShadow: '0 8px 18px rgba(34, 197, 94, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 8,
                 }}
               >
-                Approve
-              </button>
-              <button
-                onClick={() => verify(selectedId, 'rejected')}
+                <div style={{ fontSize: 14, fontWeight: 600 }}>
+                  Admin Verify Expense
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedId('');
+                    setNote('');
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontSize: 18,
+                    lineHeight: 1,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+                Please add a note and choose <b>Approve</b> or <b>Reject</b> for this
+                expense.
+              </div>
+
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
                 style={{
-                  ...pillButtonPrimary,
-                  background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                  boxShadow: '0 8px 18px rgba(239, 68, 68, 0.3)',
+                  width: '100%',
+                  padding: 10,
+                  borderRadius: 10,
+                  border: '1px solid #dde2eb',
+                  fontSize: 12,
+                  resize: 'vertical',
+                  minHeight: 80,
+                }}
+                placeholder="Add a note for approval / rejection..."
+              />
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  marginTop: 12,
+                  justifyContent: 'flex-end',
+                  flexWrap: 'wrap',
                 }}
               >
-                Reject
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedId('');
-                  setNote('');
-                }}
-                style={pillButtonGhost}
-              >
-                Cancel
-              </button>
+                <button
+                  disabled={verifyingId === selectedId}
+                  onClick={() => verify(selectedId, 'approved')}
+                  style={{
+                    ...pillButtonPrimary,
+                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                    boxShadow: '0 8px 18px rgba(34, 197, 94, 0.3)',
+                    opacity: verifyingId === selectedId ? 0.6 : 1,
+                  }}
+                >
+                  {verifyingId === selectedId ? 'Approving…' : 'Approve'}
+                </button>
+                <button
+                  disabled={verifyingId === selectedId}
+                  onClick={() => verify(selectedId, 'rejected')}
+                  style={{
+                    ...pillButtonPrimary,
+                    background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                    boxShadow: '0 8px 18px rgba(239, 68, 68, 0.3)',
+                    opacity: verifyingId === selectedId ? 0.6 : 1,
+                  }}
+                >
+                  {verifyingId === selectedId ? 'Rejecting…' : 'Reject'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedId('');
+                    setNote('');
+                  }}
+                  style={pillButtonGhost}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1646,7 +1732,11 @@ export default function ExpenseAdmin() {
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{ mt: 2 }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
           {snackbarMessage}
         </Alert>
       </Snackbar>

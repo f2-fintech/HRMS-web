@@ -74,6 +74,7 @@ export async function apiPatch<T>(path: string, body: any): Promise<T> {
 
     return (await parseResponse(res)) as T;
 }
+
 export async function apiDelete<T>(path: string): Promise<T> {
     const res = await fetch(`${baseUrl()}${path}`, {
         method: 'DELETE',
@@ -111,6 +112,8 @@ export type CompanyAdminCategory = 'cake' | 'stationary' | 'water' | 'tea';
 
 export type CompanyApprovalDropdown =
     | 'company_approval'
+    | 'company_approval'
+    | 'payout'
     | 'expense_channel'
     | 'payment_partners'
     | 'cashback_to_customer'
@@ -132,6 +135,7 @@ export type CreateExpensePayload = {
 
     expense_channel?: string;
     payment_partners?: string;
+    payout?: string;
     cashback_to_customer?: boolean;
     referral_partner?: string;
     payment?: string;
