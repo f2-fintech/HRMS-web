@@ -67,11 +67,11 @@ const ALLOWED_TEAM_IDS: string[] = [
 ];
 
 const ALLOWED_TEAM_CODES: string[] = [
-    // 'SALES',
+    'Product ',
     // 'HR',
+
 ];
 
-/** ✅ helpers: filename + preview (same as employee) */
 const getFileNameFromUrl = (url: string) => {
     try {
         const clean = String(url || '').split('?')[0];
@@ -84,12 +84,11 @@ const getFileNameFromUrl = (url: string) => {
 
 const prettyFileName = (url: string) => {
     const name = getFileNameFromUrl(url);
-    return name.replace(/^\d{10,}-/, ''); // remove leading timestamp-
+    return name.replace(/^\d{10,}-/, ''); 
 };
 
 const isImageUrl = (url: string) => /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
 
-/** ✅ in case backend returns relative paths like "/uploads/xx.jpg" */
 const normalizeUrl = (url: string) => {
     const u = String(url || '');
     if (!u) return '';
@@ -121,14 +120,14 @@ export default function PerformanceAdmin() {
     const [reviewRating, setReviewRating] = useState<number | null>(null);
     const [reviewText, setReviewText] = useState('');
 
-    // ✅ employees
+  
     useEffect(() => {
         if (!employees || employees.length === 0) {
             dispatch(fetchEmployees({ page: 1, limit: 0, search: '', designation: '' }));
         }
     }, [dispatch, employees?.length]);
 
-    // ✅ teams
+    
     useEffect(() => {
         const run = async () => {
             const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
