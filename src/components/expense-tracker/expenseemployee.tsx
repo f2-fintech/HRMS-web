@@ -156,15 +156,25 @@ const pillButtonGhost: React.CSSProperties = {
   gap: 6,
 };
 
+// small helper: get label from options
+function getOptionLabel(
+  value: string | undefined,
+  options: readonly { label: string; value: string }[],
+): string | undefined {
+  if (!value) return undefined;
+  const found = options.find((o) => o.value === value);
+  return found?.label;
+}
+
 // 🆕 Local API helpers for UPDATE + SOFT DELETE (multipart)
 async function updateExpenseRequest(id: string, body: Record<string, any>, files: File[]) {
   const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
-  const user = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('user') || '{}')
-    : {};
+  const user =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const companyId =
-    (typeof window !== 'undefined' && (localStorage.getItem('company_id') || user.company_id)) ||
+    (typeof window !== 'undefined' &&
+      (localStorage.getItem('company_id') || user.company_id)) ||
     '';
 
   const fd = new FormData();
@@ -194,20 +204,23 @@ async function updateExpenseRequest(id: string, body: Record<string, any>, files
 async function softDeleteExpenseRequest(id: string) {
   const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
-  const user = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('user') || '{}')
-    : {};
+  const user =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const companyId =
-    (typeof window !== 'undefined' && (localStorage.getItem('company_id') || user.company_id)) ||
+    (typeof window !== 'undefined' &&
+      (localStorage.getItem('company_id') || user.company_id)) ||
     '';
 
-  const res = await fetch(`${base}/expense-tracker/${encodeURIComponent(id)}/delete`, {
-    method: 'Delete',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'x-company-id': companyId,
-    } as any,
-  });
+  const res = await fetch(
+    `${base}/expense-tracker/${encodeURIComponent(id)}/delete`,
+    {
+      method: 'Delete',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'x-company-id': companyId,
+      } as any,
+    },
+  );
 
   if (!res.ok) {
     const txt = await res.text();
@@ -238,7 +251,8 @@ export default function ExpenseEmployee() {
       .filter(Boolean)
       .map((x) => String(x).trim());
 
-    const rRaw = user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
+    const rRaw =
+      user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
     const r = Number(rRaw) || 0;
 
     return { myIds: Array.from(new Set(ids)), roleNum: r, isAdmin: r === 1 };
@@ -314,6 +328,7 @@ export default function ExpenseEmployee() {
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / 10));
   const isOther = companyAdmin === 'other';
+  const isLeaveEncashmentFlow = companyApproval === 'leave_encashment';
 
   const resetForm = () => {
     setDate(defaultDate);
@@ -361,12 +376,12 @@ export default function ExpenseEmployee() {
       const safeRows = isAdmin
         ? data
         : data.filter((r: any) => {
-          const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
-          return myIds.includes(oid);
-        });
+            const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
+            return myIds.includes(oid);
+          });
 
       setRows(safeRows);
-      setTotal(isAdmin ? (res?.total || 0) : safeRows.length);
+      setTotal(isAdmin ? res?.total || 0 : safeRows.length);
     } finally {
       setLoadingList(false);
     }
@@ -377,17 +392,35 @@ export default function ExpenseEmployee() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin, myIds.join('|')]);
 
+  // 🔁 Category & Expense Type (Leave Encashment sync)
+  function handleCompanyApprovalChange(val: CompanyApprovalValue) {
+    setCompanyApproval(val);
+
+    if (val === 'leave_encashment') {
+      // Type = Leave Encashment → Category bhi same
+      setCompanyAdmin('leave_encashment');
+    } else {
+      // Agar pehle category leave_encashment thi aur ab user ne type change kar diya,
+      // to category ko default pe wapas laa do (ya jo default chahiye ho)
+      if (companyAdmin === 'leave_encashment') {
+        setCompanyAdmin('cake');
+      }
+    }
+  }
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!date) return alert('Submission date required');
     if (!companyAdmin) return alert('Company Admin required');
-    if (isOther && !customCategory.trim()) return alert('Please enter Other expense name');
+    if (isOther && !customCategory.trim())
+      return alert('Please enter Other expense name');
     if (!companyApproval) return alert('More Expense Type required');
     if (!paidAmount.trim()) return alert('Paid amount required');
 
     const amt = Number(paidAmount);
-    if (!Number.isFinite(amt) || amt <= 0) return alert('Paid amount must be valid number');
+    if (!Number.isFinite(amt) || amt <= 0)
+      return alert('Paid amount must be valid number');
 
     if (companyApproval === 'expense_channel' && !expenseChannel.trim())
       return alert('Expense Channel required');
@@ -436,10 +469,14 @@ export default function ExpenseEmployee() {
       company_approval: companyApproval as any,
       paid_amount: amt,
       description,
-      expense_channel: companyApproval === 'expense_channel' ? expenseChannel : undefined,
+      expense_channel:
+        companyApproval === 'expense_channel' ? expenseChannel : undefined,
       cashback_to_customer:
-        companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
-      referral_partner: companyApproval === 'referral_partner' ? referralPartner : undefined,
+        companyApproval === 'cashback_to_customer'
+          ? cashbackToCustomer
+          : undefined,
+      referral_partner:
+        companyApproval === 'referral_partner' ? referralPartner : undefined,
 
       // 🧾 Text summary jo tum list me dikha rahe ho
       payment,
@@ -455,7 +492,6 @@ export default function ExpenseEmployee() {
       upi_id: paymentMode === 'upi' ? upiId.trim() : undefined,
       qr_note: paymentMode === 'qr' ? qrNote.trim() : undefined,
     };
-
 
     try {
       setSaving(true);
@@ -482,8 +518,35 @@ export default function ExpenseEmployee() {
     }
   };
 
-  const showCategory = (r: any) =>
-    r?.company_admin === 'other' ? r?.custom_category || 'Other' : r?.company_admin;
+  // 🔍 Category display logic (UI) – yahi Category column me dikh raha hai
+  const showCategory = (r: any) => {
+    const adminCat: string | undefined = r?.company_admin;
+    const type: string | undefined = r?.company_approval;
+    const custom: string | undefined = r?.custom_category;
+
+    // 1) Agar "Other" hai to custom category dikhao
+    if (adminCat === 'other') {
+      return custom || 'Other';
+    }
+
+    // 2) Agar category empty / default "cake" hai,
+    //    lekin type set hai (jaise payout, referral, etc) to type dikhayo
+    if ((!adminCat || adminCat === 'cake') && type) {
+      return getOptionLabel(type, companyApprovalOptions) || type;
+    }
+
+    // 3) Normal case – category value ka label
+    if (adminCat) {
+      return getOptionLabel(adminCat, companyAdminOptions) || adminCat;
+    }
+
+    // 4) Fallback – agar category hi nahi aur type hai to type ka label
+    if (type) {
+      return getOptionLabel(type, companyApprovalOptions) || type;
+    }
+
+    return '-';
+  };
 
   async function verify(id: string, status: 'approved' | 'rejected') {
     try {
@@ -507,7 +570,9 @@ export default function ExpenseEmployee() {
     setExpectedPaymentDate(r.expected_payment_date || '');
     setCompanyAdmin((r.company_admin as CompanyAdminValue) || 'cake');
     setCustomCategory(r.custom_category || '');
-    setCompanyApproval((r.company_approval as CompanyApprovalValue) || 'company_approval');
+    setCompanyApproval(
+      (r.company_approval as CompanyApprovalValue) || 'company_approval',
+    );
     setPaidAmount(String(r.paid_amount || ''));
     setDescription(r.description || '');
     setExpenseChannel(r.expense_channel || '');
@@ -575,7 +640,6 @@ export default function ExpenseEmployee() {
     setUpiId(upi);
     setQrNote(qrN);
   };
-
 
   // 🆕 Delete (soft delete)
   const handleDelete = async (id: string) => {
@@ -705,11 +769,18 @@ export default function ExpenseEmployee() {
 
                 {/* Category */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={fieldLabelStyle}>Expense Category</label>
+                  <label style={fieldLabelStyle}>
+                    {isLeaveEncashmentFlow
+                      ? 'Expense Category (auto: Leave Encashment)'
+                      : 'Expense Category'}
+                  </label>
                   <select
                     value={companyAdmin}
-                    onChange={(e) => setCompanyAdmin(e.target.value as CompanyAdminValue)}
+                    onChange={(e) =>
+                      setCompanyAdmin(e.target.value as CompanyAdminValue)
+                    }
                     style={fieldInputStyle}
+                    disabled={isLeaveEncashmentFlow}
                   >
                     {companyAdminOptions.map((o) => (
                       <option key={o.value} value={o.value}>
@@ -749,7 +820,9 @@ export default function ExpenseEmployee() {
                   <select
                     value={companyApproval}
                     onChange={(e) =>
-                      setCompanyApproval(e.target.value as CompanyApprovalValue)
+                      handleCompanyApprovalChange(
+                        e.target.value as CompanyApprovalValue,
+                      )
                     }
                     style={fieldInputStyle}
                   >
@@ -863,14 +936,20 @@ export default function ExpenseEmployee() {
                     <input
                       type="file"
                       multiple
-                      onChange={(e) => setInvoices(Array.from(e.target.files || []))}
+                      onChange={(e) =>
+                        setInvoices(Array.from(e.target.files || []))
+                      }
                     />
                     {invoices.length > 0 && (
-                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+                      <div
+                        style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}
+                      >
                         {invoices.length} file(s) selected
                       </div>
                     )}
-                    <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
+                    <div
+                      style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}
+                    >
                       PDF / Image upload karein – bills, receipts etc.
                     </div>
                   </div>
@@ -894,7 +973,9 @@ export default function ExpenseEmployee() {
                 <div style={{ flex: '0 0 230px', maxWidth: 260 }}>
                   <select
                     value={paymentMode}
-                    onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
+                    onChange={(e) =>
+                      setPaymentMode(e.target.value as PaymentMode)
+                    }
                     style={fieldInputStyle}
                   >
                     <option value="account">Bank Account Transfer</option>
@@ -910,7 +991,8 @@ export default function ExpenseEmployee() {
                   style={{
                     marginTop: 10,
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                    gridTemplateColumns:
+                      'repeat(auto-fit, minmax(230px, 1fr))',
                     gap: 12,
                   }}
                 >
@@ -948,7 +1030,9 @@ export default function ExpenseEmployee() {
                     <label style={fieldLabelStyle}>IFSC</label>
                     <input
                       value={ifsc}
-                      onChange={(e) => setIfsc(e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        setIfsc(e.target.value.toUpperCase())
+                      }
                       style={fieldInputStyle}
                       placeholder="HDFC0001234"
                     />
@@ -962,7 +1046,8 @@ export default function ExpenseEmployee() {
                   style={{
                     marginTop: 10,
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                    gridTemplateColumns:
+                      'repeat(auto-fit, minmax(230px, 1fr))',
                     gap: 12,
                   }}
                 >
@@ -984,7 +1069,8 @@ export default function ExpenseEmployee() {
                   style={{
                     marginTop: 10,
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                    gridTemplateColumns:
+                      'repeat(auto-fit, minmax(230px, 1fr))',
                     gap: 12,
                     alignItems: 'flex-start',
                   }}
@@ -1042,7 +1128,11 @@ export default function ExpenseEmployee() {
                               border: '1px solid #e5e7eb',
                             }}
                           />
-                          <div style={{ fontSize: 11, color: '#4b5563' }}>{qrFile.name}</div>
+                          <div
+                            style={{ fontSize: 11, color: '#4b5563' }}
+                          >
+                            {qrFile.name}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1086,8 +1176,8 @@ export default function ExpenseEmployee() {
                     ? 'Updating...'
                     : 'Saving...'
                   : editingId
-                    ? 'Update Expense'
-                    : 'Submit Expense'}
+                  ? 'Update Expense'
+                  : 'Submit Expense'}
               </button>
             </div>
           </div>
@@ -1125,7 +1215,7 @@ export default function ExpenseEmployee() {
                   'Category',
                   'Paid',
                   'Payment Details',
-                  'Mgr Status',
+                  // 'Mgr Status',
                   'Admin Status',
                   'Invoices',
                   'Action', // 🆕 always show Action column
@@ -1258,7 +1348,7 @@ export default function ExpenseEmployee() {
                           <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
                         )}
                       </td>
-
+                      {/* 
                       <td
                         style={{
                           padding: 10,
@@ -1268,7 +1358,7 @@ export default function ExpenseEmployee() {
                         }}
                       >
                         {r.manager_status}
-                      </td>
+                      </td> */}
                       <td
                         style={{
                           padding: 10,
@@ -1280,9 +1370,20 @@ export default function ExpenseEmployee() {
                         {r.admin_status}
                       </td>
 
-                      <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1' }}>
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                        }}
+                      >
                         {Array.isArray(r.invoices) && r.invoices.length > 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 8,
+                            }}
+                          >
                             {r.invoices.map((url: string, idx: number) => {
                               const name = prettyFileName(url);
                               const img = isImageUrl(url);
@@ -1345,7 +1446,9 @@ export default function ExpenseEmployee() {
                             })}
                           </div>
                         ) : (
-                          <span style={{ fontSize: 11, color: '#9ca3af' }}>No invoice</span>
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                            No invoice
+                          </span>
                         )}
                       </td>
 
@@ -1419,7 +1522,10 @@ export default function ExpenseEmployee() {
 
               {loadingList && (
                 <tr>
-                  <td colSpan={isAdmin ? 10 : 8} style={{ padding: 12, fontSize: 12 }}>
+                  <td
+                    colSpan={isAdmin ? 10 : 8}
+                    style={{ padding: 12, fontSize: 12 }}
+                  >
                     Loading...
                   </td>
                 </tr>
@@ -1427,7 +1533,10 @@ export default function ExpenseEmployee() {
 
               {!loadingList && rows.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 10 : 8} style={{ padding: 12, fontSize: 12 }}>
+                  <td
+                    colSpan={isAdmin ? 10 : 8}
+                    style={{ padding: 12, fontSize: 12 }}
+                  >
                     No expenses found
                   </td>
                 </tr>
@@ -1529,7 +1638,9 @@ export default function ExpenseEmployee() {
                   marginBottom: 8,
                 }}
               >
-                <div style={{ fontSize: 14, fontWeight: 600 }}>Payment Details</div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>
+                  Payment Details
+                </div>
                 <button
                   type="button"
                   onClick={() => setPaymentPreview(null)}

@@ -62,6 +62,8 @@ const ALLOWED_TEAM_IDS: string[] = [
     '68078c506a3572ff9478bd6c',
     '693d0c7f5c4e2f15ce95cf0b',
     '68e8feb4fa8c01760efccf87',
+    '695cb6645585adfa28e9bea3',
+    '6957a5422381863817eb481d'
 ];
 
 const ALLOWED_TEAM_CODES: string[] = [
