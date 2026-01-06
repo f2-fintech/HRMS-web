@@ -34,7 +34,63 @@ const prettyFileName = (url: string) => {
 const isImageUrl = (url: string) =>
   /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
 
-// -------- options (SAME as ExpenseEmployee) ----------
+
+const getStatusChipStyle = (status: string): React.CSSProperties => {
+  const base: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '2px 10px',
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'capitalize',
+  };
+
+  switch (status) {
+    case 'approved':
+      return {
+        ...base,
+        background: 'rgba(34,197,94,0.12)',
+        color: '#166534',
+      };
+    case 'paid':
+      return {
+        ...base,
+        background: 'rgba(59,130,246,0.12)',
+        color: '#1d4ed8',
+      };
+    case 'rejected':
+      return {
+        ...base,
+        background: 'rgba(239,68,68,0.12)',
+        color: '#b91c1c',
+      };
+    case 'pending':
+    default:
+      return {
+        ...base,
+        background: 'rgba(148,163,184,0.12)',
+        color: '#475569',
+      };
+  }
+};
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'approved':
+      return 'Approved';
+    case 'paid':
+      return 'Paid';
+    case 'rejected':
+      return 'Rejected';
+    case 'pending':
+    default:
+      return 'Pending';
+  }
+};
+
+// -------- options ----------
 const companyAdminOptions = [
   { label: 'Cake', value: 'cake' },
   { label: 'Stationary', value: 'stationary' },
@@ -97,6 +153,7 @@ type EmployeeType = {
   _id: string;
   first_name: string;
   last_name: string;
+  image?: string;
 };
 
 type UserLS = {
@@ -108,10 +165,9 @@ type UserLS = {
   employee_role?: number | string;
 };
 
-// 🆕 payment mode type
 type PaymentMode = 'account' | 'upi' | 'qr';
 
-// -------- shared UI styles (SAME) ----------
+// -------- shared UI styles ----------
 const fieldLabelStyle: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
@@ -163,7 +219,7 @@ export default function ExpenseAdmin() {
 
   const defaultDate = useMemo(() => todayISO(), []);
 
-  // 🆕 Snackbar state
+  // Snackbar
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<
@@ -187,7 +243,7 @@ export default function ExpenseAdmin() {
     setOpenSnackbar(false);
   };
 
-  // ===== USER (ADMIN CHECK) =====
+  // USER (ADMIN CHECK)
   const { isAdmin } = useMemo(() => {
     if (typeof window === 'undefined') {
       return { isAdmin: false };
@@ -199,7 +255,7 @@ export default function ExpenseAdmin() {
     return { isAdmin: r === 1 };
   }, []);
 
-  // ===== EMPLOYEES for name mapping =====
+  // EMPLOYEES
   const employees = useSelector(
     (state: RootState) => (state as any)?.employees?.employees || [],
   ) as EmployeeType[];
@@ -212,31 +268,50 @@ export default function ExpenseAdmin() {
   }, []);
 
   const empMap = useMemo(() => {
-    const m = new Map<string, string>();
+    const m = new Map<string, EmployeeType>();
     (employees || []).forEach((e) => {
       if (!e?._id) return;
-      m.set(String(e._id), `${e.first_name} ${e.last_name}`.trim());
+      m.set(String(e._id), e);
     });
     return m;
   }, [employees]);
 
-  const getEmpName = (idOrObj: any) => {
-    if (!idOrObj) return '-';
+  const getEmpData = (idOrObj: any): { name: string; image?: string } => {
+    if (!idOrObj) return { name: '-', image: '' };
+
     if (typeof idOrObj === 'object') {
-      const _id = idOrObj?._id;
-      if (_id && empMap.has(_id)) return empMap.get(_id)!;
-      if (idOrObj?.first_name)
-        return `${idOrObj.first_name} ${idOrObj.last_name || ''}`.trim();
-      return _id || '-';
+      const _id = idOrObj?._id ? String(idOrObj._id) : '';
+      const nameFromObj = idOrObj?.first_name
+        ? `${idOrObj.first_name} ${idOrObj.last_name || ''}`.trim()
+        : undefined;
+
+      const empFromMap = _id && empMap.has(_id) ? empMap.get(_id)! : undefined;
+
+      const name =
+        nameFromObj ||
+        (empFromMap
+          ? `${empFromMap.first_name} ${empFromMap.last_name || ''}`.trim()
+          : _id || '-');
+
+      const image = idOrObj?.image || empFromMap?.image || '';
+
+      return { name: name || '-', image };
     }
-    return empMap.get(String(idOrObj)) || String(idOrObj);
+
+    const id = String(idOrObj);
+    const emp = empMap.get(id);
+    if (emp) {
+      return {
+        name: `${emp.first_name} ${emp.last_name || ''}`.trim() || id,
+        image: emp.image,
+      };
+    }
+    return { name: id, image: '' };
   };
 
-  // ---------- CREATE / EDIT FORM STATES ----------
+  // CREATE / EDIT STATES
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  // 🆕 track which expense is being edited
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [date, setDate] = useState(defaultDate);
@@ -244,7 +319,6 @@ export default function ExpenseAdmin() {
 
   const [companyAdmin, setCompanyAdmin] = useState<CompanyAdminValue>('cake');
   const [customCategory, setCustomCategory] = useState('');
-
   const [companyApproval, setCompanyApproval] =
     useState<CompanyApprovalValue>('company_approval');
 
@@ -252,7 +326,7 @@ export default function ExpenseAdmin() {
   const [description, setDescription] = useState('');
   const [invoices, setInvoices] = useState<File[]>([]);
 
-  const [managerId] = useState<string>(''); // optional backend field
+  const [managerId] = useState<string>('');
 
   const [expenseChannel, setExpenseChannel] = useState('');
   const [cashbackToCustomer, setCashbackToCustomer] = useState(false);
@@ -289,29 +363,31 @@ export default function ExpenseAdmin() {
     setUpiId('');
     setQrNote('');
     setQrFile(null);
-    setEditingId(null); // 🆕 reset edit mode
+    setEditingId(null);
   };
 
-  // ---------- LIST STATES ----------
+  // LIST STATES
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loadingList, setLoadingList] = useState(false);
-
   const totalPages = Math.max(1, Math.ceil((total || 0) / 10));
 
-  // admin verify
   const [note, setNote] = useState('');
   const [selectedId, setSelectedId] = useState<string>('');
-  const [verifyingId, setVerifyingId] = useState<string>(''); // 🆕 verify loading state
+  const [verifyingId, setVerifyingId] = useState<string>('');
 
-  // payment preview dialog
-  const [paymentPreview, setPaymentPreview] = useState<string | null>(null);
+  // 🆕 Payment preview: text + invoices + QR
+  const [paymentPreview, setPaymentPreview] = useState<{
+    text: string;
+    invoices: string[];
+    qrUrl?: string | null;
+  } | null>(null);
 
   const showCategory = (r: any) =>
     r?.company_admin === 'other' ? r?.custom_category || 'Other' : r?.company_admin;
 
-  // ---------- LOAD LIST (ADMIN = all) ----------
+  // LOAD LIST
   const load = async () => {
     try {
       setLoadingList(true);
@@ -320,12 +396,7 @@ export default function ExpenseAdmin() {
         setTotal(0);
         return;
       }
-
-      const res = await listExpenses({
-        page,
-        limit: 10,
-      });
-
+      const res = await listExpenses({ page, limit: 10 });
       const data = Array.isArray(res?.data) ? res.data : [];
       setRows(data);
       setTotal(res?.total || data.length);
@@ -339,11 +410,13 @@ export default function ExpenseAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin]);
 
-  // ---------- ADMIN VERIFY ----------
-  async function verify(id: string, status: 'approved' | 'rejected') {
+  // ADMIN VERIFY
+  async function verify(
+    id: string,
+    status: 'approved' | 'rejected' | 'paid' | 'pending',
+  ) {
     try {
       if (!isAdmin) return;
-
       setVerifyingId(id);
 
       await adminVerifyExpense(id, { status, note });
@@ -352,12 +425,28 @@ export default function ExpenseAdmin() {
       setNote('');
       await load();
 
-      const msg =
-        status === 'approved'
-          ? 'Expense approved successfully'
-          : 'Expense rejected successfully';
+      let msg = '';
+      let severity: 'success' | 'error' | 'info' | 'warning' = 'success';
 
-      const severity = status === 'approved' ? 'success' : 'error';
+      switch (status) {
+        case 'approved':
+          msg = 'Expense approved successfully ✅';
+          severity = 'success';
+          break;
+        case 'paid':
+          msg = 'Expense marked as PAID 💸';
+          severity = 'success';
+          break;
+        case 'rejected':
+          msg = 'Expense rejected';
+          severity = 'error';
+          break;
+        case 'pending':
+        default:
+          msg = 'Status set to Pending';
+          severity = 'info';
+          break;
+      }
 
       showSnackbar(msg, severity);
     } catch (err: any) {
@@ -370,12 +459,11 @@ export default function ExpenseAdmin() {
     }
   }
 
-  // ---------- START EDIT ----------
+  // START EDIT
   const startEdit = (row: any) => {
     setOpen(true);
     setEditingId(row._id || null);
 
-    // Basic fields
     setDate(row.date?.slice(0, 10) || defaultDate);
     setExpectedPaymentDate(
       row.expected_payment_date ? String(row.expected_payment_date).slice(0, 10) : '',
@@ -394,7 +482,6 @@ export default function ExpenseAdmin() {
     setCashbackToCustomer(!!row.cashback_to_customer);
     setReferralPartner(row.referral_partner || '');
 
-    // 🆕 PAYMENT DETAILS FROM row.payment
     const p: string = (row.payment || '').toString().trim();
 
     let mode: PaymentMode = 'account';
@@ -430,7 +517,6 @@ export default function ExpenseAdmin() {
       const parts = p.split('|').map((s) => s.trim());
       if (parts[1]) qrNoteVal = parts[1];
     } else {
-      // unknown / empty -> default
       mode = 'account';
     }
 
@@ -467,11 +553,10 @@ export default function ExpenseAdmin() {
     }
   };
 
-  // ---------- SUBMIT CREATE / UPDATE ----------
+  // SUBMIT CREATE / UPDATE
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 🔴 VALIDATIONS via Snackbar
     if (!date) {
       showSnackbar('Submission date required', 'error');
       return;
@@ -508,7 +593,6 @@ export default function ExpenseAdmin() {
       return;
     }
 
-    // Payment string build
     let payment: string | undefined;
 
     if (paymentMode === 'account') {
@@ -540,9 +624,9 @@ export default function ExpenseAdmin() {
       payment = `UPI | ID: ${upiId.trim()}`;
     } else if (paymentMode === 'qr') {
       payment = `QR Payment${qrNote.trim() ? ' | ' + qrNote.trim() : ''}`;
-      // QR file alag se invoices me add hoga
     }
 
+    // ✅ invoices + QR file ek sath backend me jayenge
     const allFiles: File[] = [...invoices, ...(qrFile ? [qrFile] : [])];
 
     const payload: any = {
@@ -561,8 +645,6 @@ export default function ExpenseAdmin() {
       referral_partner:
         companyApproval === 'referral_partner' ? referralPartner : undefined,
       payment,
-
-      // 🆕 structured fields
       payment_mode: paymentMode,
       account_holder: paymentMode === 'account' ? accountHolder.trim() : undefined,
       bank_name: paymentMode === 'account' ? bankName.trim() : undefined,
@@ -576,11 +658,9 @@ export default function ExpenseAdmin() {
       setSaving(true);
 
       if (editingId) {
-        // 🆕 UPDATE
         await updateExpense(editingId, payload, allFiles);
         showSnackbar('Expense updated successfully ✅', 'success');
       } else {
-        // CREATE
         await createExpense(payload, allFiles);
         showSnackbar('Expense created successfully ✅', 'success');
         setPage(1);
@@ -596,7 +676,7 @@ export default function ExpenseAdmin() {
     }
   };
 
-  // ========= NON ADMIN VIEW =========
+  // NON ADMIN VIEW
   if (!isAdmin) {
     return (
       <div
@@ -633,7 +713,7 @@ export default function ExpenseAdmin() {
     );
   }
 
-  // ========= ADMIN VIEW =========
+  // ADMIN VIEW
   return (
     <div
       style={{
@@ -681,7 +761,7 @@ export default function ExpenseAdmin() {
         </div>
       </div>
 
-      {/* CREATE / EDIT EXPENSE FORM */}
+      {/* CREATE / EDIT FORM */}
       {open && (
         <form
           onSubmit={onSubmit}
@@ -693,7 +773,6 @@ export default function ExpenseAdmin() {
             overflow: 'hidden',
           }}
         >
-          {/* Card header strip */}
           <div
             style={{
               padding: '10px 16px',
@@ -712,7 +791,7 @@ export default function ExpenseAdmin() {
           </div>
 
           <div style={{ padding: 16 }}>
-            {/* Section 1: Basic Details */}
+            {/* Section 1 */}
             <div style={{ marginBottom: 14 }}>
               <div
                 style={{
@@ -721,7 +800,6 @@ export default function ExpenseAdmin() {
                   gap: 12,
                 }}
               >
-                {/* Date */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <label style={fieldLabelStyle}>Expense Date</label>
                   <input
@@ -733,7 +811,6 @@ export default function ExpenseAdmin() {
                   />
                 </div>
 
-                {/* Expected Payment Date */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <label style={fieldLabelStyle}>Expected Payment Date</label>
                   <input
@@ -744,7 +821,6 @@ export default function ExpenseAdmin() {
                   />
                 </div>
 
-                {/* Category */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <label style={fieldLabelStyle}>Expense Category</label>
                   <select
@@ -760,7 +836,6 @@ export default function ExpenseAdmin() {
                   </select>
                 </div>
 
-                {/* Custom Category */}
                 {isOther && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <label style={fieldLabelStyle}>Other Expense Name</label>
@@ -775,7 +850,7 @@ export default function ExpenseAdmin() {
               </div>
             </div>
 
-            {/* Section 2: Expense Type & Amount */}
+            {/* Section 2 */}
             <div style={{ marginBottom: 14 }}>
               <div
                 style={{
@@ -784,7 +859,6 @@ export default function ExpenseAdmin() {
                   gap: 12,
                 }}
               >
-                {/* Expense Type */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <label style={fieldLabelStyle}>Expense Type</label>
                   <select
@@ -802,7 +876,6 @@ export default function ExpenseAdmin() {
                   </select>
                 </div>
 
-                {/* Conditional fields */}
                 {companyApproval === 'expense_channel' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <label style={fieldLabelStyle}>Expense Channel</label>
@@ -867,7 +940,7 @@ export default function ExpenseAdmin() {
               )}
             </div>
 
-            {/* Section 3: Description & Invoices */}
+            {/* Section 3: Description & invoices */}
             <div style={{ marginBottom: 4 }}>
               <div
                 style={{
@@ -919,11 +992,10 @@ export default function ExpenseAdmin() {
               </div>
             </div>
 
-            {/* Section 4: Payment Mode + QR Upload */}
+            {/* Payment Mode + QR */}
             <div style={{ marginTop: 12 }}>
               <label style={fieldLabelStyle}>Payment Mode</label>
 
-              {/* dropdown */}
               <div
                 style={{
                   marginTop: 6,
@@ -945,7 +1017,6 @@ export default function ExpenseAdmin() {
                 </div>
               </div>
 
-              {/* ACCOUNT MODE */}
               {paymentMode === 'account' && (
                 <div
                   style={{
@@ -997,7 +1068,6 @@ export default function ExpenseAdmin() {
                 </div>
               )}
 
-              {/* UPI MODE */}
               {paymentMode === 'upi' && (
                 <div
                   style={{
@@ -1019,7 +1089,6 @@ export default function ExpenseAdmin() {
                 </div>
               )}
 
-              {/* QR MODE */}
               {paymentMode === 'qr' && (
                 <div
                   style={{
@@ -1030,18 +1099,8 @@ export default function ExpenseAdmin() {
                     alignItems: 'flex-start',
                   }}
                 >
-                  {/* QR Note */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>QR Note (optional)</label>
-                    <input
-                      value={qrNote}
-                      onChange={(e) => setQrNote(e.target.value)}
-                      style={fieldInputStyle}
-                      placeholder="Example: Paid via Harpreet Ji QR"
-                    />
-                  </div>
+                 
 
-                  {/* QR Upload */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <label style={fieldLabelStyle}>Upload QR Image</label>
                     <div
@@ -1076,7 +1135,7 @@ export default function ExpenseAdmin() {
                             src={URL.createObjectURL(qrFile)}
                             alt="QR Preview"
                             style={{
-                              width: 40, // 🧾 smaller preview
+                              width: 40,
                               height: 40,
                               borderRadius: 8,
                               objectFit: 'cover',
@@ -1088,6 +1147,9 @@ export default function ExpenseAdmin() {
                           </div>
                         </div>
                       )}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#9ca3af' }}>
+                      QR image yahan upload hoga – list me sirf “View” ke andar dikhega.
                     </div>
                   </div>
                 </div>
@@ -1180,15 +1242,28 @@ export default function ExpenseAdmin() {
             <tbody>
               {!loadingList &&
                 rows.map((r) => {
-                  // Edit/Delete sirf pending pe
                   const canEdit = r.admin_status === 'pending';
                   const canDelete = r.admin_status === 'pending';
-
-                  // sirf yeh row abhi verify ho rahi hai?
                   const isRowVerifying = verifyingId === r._id;
-
-                  // ✅ admin ho to hamesha status change allowed
                   const canVerify = isAdmin;
+
+                  const owner = getEmpData(r.owner_id);
+                  const manager = getEmpData(r.manager_id);
+
+                  const allInvoiceUrls: string[] = Array.isArray(r.invoices)
+                    ? r.invoices
+                    : [];
+
+                  const isQrPayment = String(r.payment || '').startsWith('QR Payment');
+
+                  // ✅ QR ko invoices se alag kar rahe hain
+                  let invoiceUrls: string[] = allInvoiceUrls;
+                  let qrUrl: string | null = null;
+
+                  if (isQrPayment && allInvoiceUrls.length > 0) {
+                    qrUrl = allInvoiceUrls[allInvoiceUrls.length - 1]; // last file = QR
+                    invoiceUrls = allInvoiceUrls.slice(0, -1); // baaki invoice
+                  }
 
                   return (
                     <tr key={r._id}>
@@ -1210,8 +1285,30 @@ export default function ExpenseAdmin() {
                           fontSize: 12,
                         }}
                       >
-                        {getEmpName(r.owner_id)}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                        >
+                          {owner.image && (
+                            <img
+                              src={owner.image}
+                              alt={owner.name}
+                              style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                border: '1px solid #e5e7eb',
+                              }}
+                            />
+                          )}
+                          <span>{owner.name}</span>
+                        </div>
                       </td>
+
                       <td
                         style={{
                           padding: 10,
@@ -1219,7 +1316,28 @@ export default function ExpenseAdmin() {
                           fontSize: 12,
                         }}
                       >
-                        {getEmpName(r.manager_id)}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                        >
+                          {manager.image && (
+                            <img
+                              src={manager.image}
+                              alt={manager.name}
+                              style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                border: '1px solid #e5e7eb',
+                              }}
+                            />
+                          )}
+                          <span>{manager.name}</span>
+                        </div>
                       </td>
 
                       <td
@@ -1274,7 +1392,13 @@ export default function ExpenseAdmin() {
 
                             <button
                               type="button"
-                              onClick={() => setPaymentPreview(r.payment)}
+                              onClick={() =>
+                                setPaymentPreview({
+                                  text: r.payment,
+                                  invoices: invoiceUrls,
+                                  qrUrl,
+                                })
+                              }
                               style={{
                                 padding: '4px 10px',
                                 borderRadius: 999,
@@ -1298,15 +1422,16 @@ export default function ExpenseAdmin() {
                           padding: 10,
                           borderBottom: '1px solid #f1f1f1',
                           fontSize: 12,
-                          textTransform: 'capitalize',
                         }}
                       >
-                        {r.admin_status}
+                        <span style={getStatusChipStyle(r.admin_status)}>
+                          {getStatusLabel(r.admin_status)}
+                        </span>
                       </td>
 
-                      {/* 🧾 INVOICES (SMALL THUMBNAIL + CLICK TO OPEN) */}
+                      {/* Invoices column */}
                       <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1' }}>
-                        {Array.isArray(r.invoices) && r.invoices.length > 0 ? (
+                        {invoiceUrls.length > 0 ? (
                           <div
                             style={{
                               display: 'flex',
@@ -1314,7 +1439,7 @@ export default function ExpenseAdmin() {
                               gap: 8,
                             }}
                           >
-                            {r.invoices.map((url: string, idx: number) => {
+                            {invoiceUrls.map((url: string, idx: number) => {
                               const name = prettyFileName(url);
                               const img = isImageUrl(url);
 
@@ -1342,7 +1467,7 @@ export default function ExpenseAdmin() {
                                       src={url}
                                       alt={name}
                                       style={{
-                                        width: 26, // 🧾 smaller image
+                                        width: 26,
                                         height: 26,
                                         borderRadius: 6,
                                         objectFit: 'cover',
@@ -1365,6 +1490,10 @@ export default function ExpenseAdmin() {
                               );
                             })}
                           </div>
+                        ) : qrUrl ? (
+                          <span style={{ fontSize: 11, color: '#6b7280' }}>
+                            No invoice – only QR (see <b>View</b>)
+                          </span>
                         ) : (
                           <span style={{ fontSize: 11, color: '#9ca3af' }}>
                             No invoice
@@ -1372,7 +1501,7 @@ export default function ExpenseAdmin() {
                         )}
                       </td>
 
-                      {/* ACTION CELL */}
+                      {/* Action */}
                       <td
                         style={{
                           padding: 10,
@@ -1430,7 +1559,7 @@ export default function ExpenseAdmin() {
                             onClick={() => {
                               if (!canVerify || isRowVerifying) return;
                               setSelectedId(r._id);
-                              setNote(''); // har baar fresh note
+                              setNote('');
                             }}
                             style={{
                               padding: '5px 10px',
@@ -1484,7 +1613,7 @@ export default function ExpenseAdmin() {
           </table>
         </div>
 
-        {/* ✅ ADMIN VERIFY DIALOG */}
+        {/* ADMIN VERIFY DIALOG */}
         {selectedId && (
           <div
             style={{
@@ -1537,8 +1666,9 @@ export default function ExpenseAdmin() {
               </div>
 
               <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
-                Please add a note and choose <b>Approve</b> or <b>Reject</b> for this
-                expense.
+                Please add a note and choose <b>Approve</b>, <b>Paid</b> or{' '}
+                <b>Reject</b> for this expense. You can also reset it to{' '}
+                <b>Pending</b>.
               </div>
 
               <textarea
@@ -1554,7 +1684,7 @@ export default function ExpenseAdmin() {
                   resize: 'vertical',
                   minHeight: 80,
                 }}
-                placeholder="Add a note for approval / rejection..."
+                placeholder="Add a note for approval / rejection / payment..."
               />
 
               <div
@@ -1568,6 +1698,17 @@ export default function ExpenseAdmin() {
               >
                 <button
                   disabled={verifyingId === selectedId}
+                  onClick={() => verify(selectedId, 'pending')}
+                  style={{
+                    ...pillButtonGhost,
+                    opacity: verifyingId === selectedId ? 0.6 : 1,
+                  }}
+                >
+                  {verifyingId === selectedId ? 'Updating…' : 'Mark Pending'}
+                </button>
+
+                <button
+                  disabled={verifyingId === selectedId}
                   onClick={() => verify(selectedId, 'approved')}
                   style={{
                     ...pillButtonPrimary,
@@ -1578,6 +1719,20 @@ export default function ExpenseAdmin() {
                 >
                   {verifyingId === selectedId ? 'Approving…' : 'Approve'}
                 </button>
+
+                <button
+                  disabled={verifyingId === selectedId}
+                  onClick={() => verify(selectedId, 'paid')}
+                  style={{
+                    ...pillButtonPrimary,
+                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                    boxShadow: '0 8px 18px rgba(59,130,246,0.35)',
+                    opacity: verifyingId === selectedId ? 0.6 : 1,
+                  }}
+                >
+                  {verifyingId === selectedId ? 'Marking…' : 'Mark as Paid'}
+                </button>
+
                 <button
                   disabled={verifyingId === selectedId}
                   onClick={() => verify(selectedId, 'rejected')}
@@ -1590,6 +1745,7 @@ export default function ExpenseAdmin() {
                 >
                   {verifyingId === selectedId ? 'Rejecting…' : 'Reject'}
                 </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -1652,6 +1808,7 @@ export default function ExpenseAdmin() {
                 </button>
               </div>
 
+              {/* Text */}
               <div
                 style={{
                   fontSize: 12,
@@ -1661,8 +1818,46 @@ export default function ExpenseAdmin() {
                   padding: '6px 0 4px',
                 }}
               >
-                {paymentPreview}
+                {paymentPreview.text}
               </div>
+
+         
+
+              {/* ✅ QR Image (agar hai) */}
+              {paymentPreview.qrUrl && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: 10,
+                    borderRadius: 12,
+                    border: '1px solid #e5e7eb',
+                    background: '#f9fafb',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      marginBottom: 6,
+                      color: '#4b5563',
+                      fontWeight: 500,
+                    }}
+                  >
+                    QR Image:
+                  </div>
+                  <img
+                    src={paymentPreview.qrUrl}
+                    alt="QR"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: 260,
+                      borderRadius: 10,
+                      objectFit: 'contain',
+                      border: '1px solid #e5e7eb',
+                      background: '#ffffff',
+                    }}
+                  />
+                </div>
+              )}
 
               <div
                 style={{
