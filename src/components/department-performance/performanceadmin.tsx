@@ -45,7 +45,8 @@ type Employee = {
     code?: string;
 };
 
-const fullName = (e?: Employee | null) => `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || '—';
+const fullName = (e?: Employee | null) =>
+    `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || '—';
 
 const splitIds = (csv?: string) =>
     String(csv || '')
@@ -63,13 +64,21 @@ const ALLOWED_TEAM_IDS: string[] = [
     '693d0c7f5c4e2f15ce95cf0b',
     '68e8feb4fa8c01760efccf87',
     '695cb6645585adfa28e9bea3',
-    '6957a5422381863817eb481d'
+    '6957a5422381863817eb481d',
+    '692fe78fabe7b3ff34a7eeb7',
+    '6926e5c5fa305b986d876d2a',
+    '68babf61fa8c01760eee3c78',
+    '687a1fd4fa8c01760ed7e03e',
+    '6877453ffa8c01760ed6c198',
+    '687743eefa8c01760ed6c04f',
+    '6877439bfa8c01760ed6bff0',
+    '68774331fa8c01760ed6bf2b',
+    '687741f9fa8c01760ed6bec9',
 ];
 
 const ALLOWED_TEAM_CODES: string[] = [
     'Product ',
     // 'HR',
-
 ];
 
 const getFileNameFromUrl = (url: string) => {
@@ -84,10 +93,11 @@ const getFileNameFromUrl = (url: string) => {
 
 const prettyFileName = (url: string) => {
     const name = getFileNameFromUrl(url);
-    return name.replace(/^\d{10,}-/, ''); 
+    return name.replace(/^\d{10,}-/, '');
 };
 
-const isImageUrl = (url: string) => /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
+const isImageUrl = (url: string) =>
+    /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
 
 const normalizeUrl = (url: string) => {
     const u = String(url || '');
@@ -120,14 +130,18 @@ export default function PerformanceAdmin() {
     const [reviewRating, setReviewRating] = useState<number | null>(null);
     const [reviewText, setReviewText] = useState('');
 
-  
+    // ⭐ New: save state + dirty state
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
+
+    // ---------- Load employees ----------
     useEffect(() => {
         if (!employees || employees.length === 0) {
             dispatch(fetchEmployees({ page: 1, limit: 0, search: '', designation: '' }));
         }
     }, [dispatch, employees?.length]);
 
-    
+    // ---------- Load teams ----------
     useEffect(() => {
         const run = async () => {
             const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
@@ -194,7 +208,10 @@ export default function PerformanceAdmin() {
         });
     }, [teams, teamSearch]);
 
-    const selectedTeam = useMemo(() => teams.find((t) => t._id === selectedTeamId) || null, [teams, selectedTeamId]);
+    const selectedTeam = useMemo(
+        () => teams.find((t) => t._id === selectedTeamId) || null,
+        [teams, selectedTeamId],
+    );
 
     // ✅ Remove invalid employee ids + skip ids not present in employee map (no “—” cards)
     const teamMemberIds = useMemo(() => {
@@ -205,6 +222,7 @@ export default function PerformanceAdmin() {
         return ids;
     }, [selectedTeam?.employee_ids, empMap]);
 
+    // ---------- Load record (daily / monthly) ----------
     const loadRecord = async () => {
         if (!selectedEmployeeId) {
             setRecord(null);
@@ -220,6 +238,9 @@ export default function PerformanceAdmin() {
             setRecord(r || null);
             setReviewRating(r?.rating ?? null);
             setReviewText(r?.review ?? '');
+
+            // ⭐ Loaded from backend -> clean state
+            setIsDirty(false);
         } catch (e) {
             console.log(e);
             setRecord(null);
@@ -233,17 +254,26 @@ export default function PerformanceAdmin() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab, filterDate, filterMonth, selectedEmployeeId]);
 
+    // ---------- Submit review ----------
     const submitReview = async () => {
-        if (!record?._id) return;
+        if (!record?._id || isSaving || !isDirty) return;
+
         try {
+            setIsSaving(true);
+
             await apiPatch(`/department-performance/${record._id}/review`, {
                 rating: reviewRating,
                 review: reviewText,
             });
+
             alert('✅ Review saved');
-            loadRecord();
+
+            // Reload record (will also set isDirty(false))
+            await loadRecord();
         } catch (e: any) {
             alert(`❌ ${e?.message || 'Error'}`);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -354,7 +384,11 @@ export default function PerformanceAdmin() {
                                 </Typography>
                             </Box>
 
-                            <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ minHeight: 36 }}>
+                            <Tabs
+                                value={tab}
+                                onChange={(_, v) => setTab(v)}
+                                sx={{ minHeight: 36 }}
+                            >
                                 <Tab value="daily" label="Daily" />
                                 <Tab value="monthly" label="Monthly" />
                             </Tabs>
@@ -447,7 +481,9 @@ export default function PerformanceAdmin() {
                                     ) : (
                                         <Stack spacing={2}>
                                             <Typography sx={{ fontWeight: 900 }}>
-                                                {tab === 'daily' ? `Daily • ${record.date}` : `Monthly • ${record.month}`}
+                                                {tab === 'daily'
+                                                    ? `Daily • ${record.date}`
+                                                    : `Monthly • ${record.month}`}
                                             </Typography>
 
                                             {tab === 'daily' ? (
@@ -456,7 +492,9 @@ export default function PerformanceAdmin() {
                                                         <Typography variant="caption" sx={{ fontWeight: 900 }}>
                                                             What done today
                                                         </Typography>
-                                                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.whatDoneToday || '—'}</Typography>
+                                                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>
+                                                            {record.whatDoneToday || '—'}
+                                                        </Typography>
                                                     </Box>
                                                     <Box>
                                                         <Typography variant="caption" sx={{ fontWeight: 900 }}>
@@ -473,7 +511,9 @@ export default function PerformanceAdmin() {
                                                         <Typography variant="caption" sx={{ fontWeight: 900 }}>
                                                             Plan for this month
                                                         </Typography>
-                                                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.planForThisMonth || '—'}</Typography>
+                                                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>
+                                                            {record.planForThisMonth || '—'}
+                                                        </Typography>
                                                     </Box>
                                                     <Box>
                                                         <Typography variant="caption" sx={{ fontWeight: 900 }}>
@@ -529,7 +569,9 @@ export default function PerformanceAdmin() {
                                                                                         border: '1px solid',
                                                                                         borderColor: 'divider',
                                                                                     }}
-                                                                                    onError={(e: any) => (e.currentTarget.style.display = 'none')}
+                                                                                    onError={(e: any) =>
+                                                                                        (e.currentTarget.style.display = 'none')
+                                                                                    }
                                                                                 />
                                                                             ) : (
                                                                                 <Box
@@ -551,7 +593,11 @@ export default function PerformanceAdmin() {
                                                                             )}
 
                                                                             <Box sx={{ minWidth: 0 }}>
-                                                                                <Typography sx={{ fontWeight: 900 }} noWrap title={name}>
+                                                                                <Typography
+                                                                                    sx={{ fontWeight: 900 }}
+                                                                                    noWrap
+                                                                                    title={name}
+                                                                                >
                                                                                     {name}
                                                                                 </Typography>
                                                                             </Box>
@@ -564,7 +610,6 @@ export default function PerformanceAdmin() {
                                                 </>
                                             ) : null}
 
-
                                             <Divider />
 
                                             <Typography sx={{ fontWeight: 900 }}>Review</Typography>
@@ -573,13 +618,22 @@ export default function PerformanceAdmin() {
                                                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
                                                     Rating:
                                                 </Typography>
-                                                <Rating value={reviewRating} onChange={(_, v) => setReviewRating(v)} />
+                                                <Rating
+                                                    value={reviewRating}
+                                                    onChange={(_, v) => {
+                                                        setReviewRating(v);
+                                                        setIsDirty(true); // ⭐ user changed rating
+                                                    }}
+                                                />
                                             </Stack>
 
                                             <TextField
                                                 label="Review"
                                                 value={reviewText}
-                                                onChange={(e) => setReviewText(e.target.value)}
+                                                onChange={(e) => {
+                                                    setReviewText(e.target.value);
+                                                    setIsDirty(true); // ⭐ user changed text
+                                                }}
                                                 multiline
                                                 minRows={3}
                                             />
@@ -587,6 +641,7 @@ export default function PerformanceAdmin() {
                                             <Button
                                                 variant="contained"
                                                 onClick={submitReview}
+                                                disabled={isSaving || !isDirty || !record?._id}
                                                 sx={{
                                                     borderRadius: 2,
                                                     fontWeight: 900,
@@ -594,7 +649,7 @@ export default function PerformanceAdmin() {
                                                     alignSelf: 'flex-start',
                                                 }}
                                             >
-                                                Save Review
+                                                {isSaving ? 'Saving…' : isDirty ? 'Save Review' : 'Saved'}
                                             </Button>
                                         </Stack>
                                     )}
