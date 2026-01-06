@@ -49,13 +49,16 @@ const API_BASE_URL =
 
 // Teams filter (optional)
 const ALLOWED_TEAM_IDS: string[] = [
-  '674abf5e2cb3ff920ea4a898',
-  '680789b86a3572ff9478bcd2',
-  '68078bdd6a3572ff9478bd50',
   '68078c506a3572ff9478bd6c',
   '68e8feb4fa8c01760efccf87',
   '693d0c7f5c4e2f15ce95cf0b',
-  '6957a5422381863817eb481d'
+  '6957a5422381863817eb481d',
+  '695cc3c45585adfa28ea6dbf',
+  '695cb6645585adfa28e9bea3',
+  '674abf5e2cb3ff920ea4a898',
+  '680789b86a3572ff9478bcd2',
+  '68078bdd6a3572ff9478bd50',
+
 ];
 
 const ALLOWED_TEAM_NAMES: string[] = [

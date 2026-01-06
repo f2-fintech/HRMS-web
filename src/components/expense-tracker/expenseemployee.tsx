@@ -376,9 +376,9 @@ export default function ExpenseEmployee() {
       const safeRows = isAdmin
         ? data
         : data.filter((r: any) => {
-            const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
-            return myIds.includes(oid);
-          });
+          const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
+          return myIds.includes(oid);
+        });
 
       setRows(safeRows);
       setTotal(isAdmin ? res?.total || 0 : safeRows.length);
@@ -1075,18 +1075,6 @@ export default function ExpenseEmployee() {
                     alignItems: 'flex-start',
                   }}
                 >
-                  {/* QR Note */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>QR Note (optional)</label>
-                    <input
-                      value={qrNote}
-                      onChange={(e) => setQrNote(e.target.value)}
-                      style={fieldInputStyle}
-                      placeholder="Example: Paid via Harpreet Ji QR"
-                    />
-                  </div>
-
-                  {/* QR Upload */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <label style={fieldLabelStyle}>Upload QR Image</label>
                     <div
@@ -1176,8 +1164,8 @@ export default function ExpenseEmployee() {
                     ? 'Updating...'
                     : 'Saving...'
                   : editingId
-                  ? 'Update Expense'
-                  : 'Submit Expense'}
+                    ? 'Update Expense'
+                    : 'Submit Expense'}
               </button>
             </div>
           </div>
