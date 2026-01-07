@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { debounce } from 'lodash';
 import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
 import {
   Button,
@@ -27,6 +26,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { DriveFileRenameOutlineOutlined } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import dayjs, { Dayjs } from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
@@ -37,6 +37,8 @@ import {
   fetchAllQueries,
 } from '@/redux/features/queries/queriesSlice';
 import QueryForm from '@/components/query/QueryForm';
+
+dayjs.extend(utc);
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
@@ -60,7 +62,7 @@ const Query = () => {
   const [snackbarSeverity, setSnackbarSeverity] =
     useState<'success' | 'error'>('success');
 
-  const [selectedDate, setSelectedDate] = React.useState(dayjs());
+  const [selectedDate, setSelectedDate] = React.useState<Dayjs>(dayjs());
 
   // 🔹 teams + HR detection
   const [teams, setTeams] = useState<any[]>([]);
@@ -70,6 +72,10 @@ const Query = () => {
   // 🔹 Replies dialog state
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [replyDialogQuery, setReplyDialogQuery] = useState<any | null>(null);
+
+  // 🔹 Description dialog state
+  const [descDialogOpen, setDescDialogOpen] = useState(false);
+  const [descDialogQuery, setDescDialogQuery] = useState<any | null>(null);
 
   const month = selectedDate.format('MM');
   const year = selectedDate.format('YYYY');
@@ -170,9 +176,6 @@ const Query = () => {
     [],
   );
 
-  // ------------------------
-  // Initial load: user details + teams + queries
-  // ------------------------
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     setUserRole(user.role);
@@ -240,9 +243,6 @@ const Query = () => {
     return debouncedFetch.cancel;
   }, [debouncedFetch]);
 
-  // ------------------------
-  // Form open & close
-  // ------------------------
   const handleQueryAddClick = useCallback(() => {
     setSelectedQuery(null);
     setShowForm(true);
@@ -290,6 +290,17 @@ const Query = () => {
     setReplyDialogQuery(null);
   };
 
+  // 🔹 Description dialog handlers
+  const handleViewDescription = (query: any) => {
+    setDescDialogQuery(query);
+    setDescDialogOpen(true);
+  };
+
+  const handleCloseDescDialog = () => {
+    setDescDialogOpen(false);
+    setDescDialogQuery(null);
+  };
+
   useEffect(() => {
     return () => {
       handleInputChange.cancel();
@@ -301,43 +312,40 @@ const Query = () => {
   // ------------------------
   const generateColumns = useMemo(() => {
     const columns: GridColDef[] = [
-      // ✅ Assigned By (creator) – avatarCell class for left alignment
       ...(queryType !== 'own'
         ? [
-            {
-              field: 'employeeName',
-              headerName: 'Assigned By',
-              minWidth: 200,
-              headerAlign: 'center',
-              align: 'left',
-              cellClassName: 'avatarCell',
-              renderCell: params => {
-                const emp = params.row.employee || {};
-                const fullName = `${emp.first_name || ''} ${
-                  emp.last_name || ''
+          {
+            field: 'employeeName',
+            headerName: 'Assigned By',
+            minWidth: 200,
+            headerAlign: 'center',
+            align: 'left',
+            cellClassName: 'avatarCell',
+            renderCell: params => {
+              const emp = params.row.employee || {};
+              const fullName = `${emp.first_name || ''} ${emp.last_name || ''
                 }`.trim();
 
-                return (
-                  <Box display="flex" alignItems="center">
-                    <Avatar
-                      src={emp.image || undefined}
-                      sx={{ mr: 1, width: 32, height: 32 }}
-                    >
-                      {!emp.image && fullName
-                        ? fullName.charAt(0).toUpperCase()
-                        : null}
-                    </Avatar>
-                    <Typography variant="body2" noWrap>
-                      {fullName || '—'}
-                    </Typography>
-                  </Box>
-                );
-              },
+              return (
+                <Box display="flex" alignItems="center">
+                  <Avatar
+                    src={emp.image || undefined}
+                    sx={{ mr: 1, width: 32, height: 32 }}
+                  >
+                    {!emp.image && fullName
+                      ? fullName.charAt(0).toUpperCase()
+                      : null}
+                  </Avatar>
+                  <Typography variant="body2" noWrap>
+                    {fullName || '—'}
+                  </Typography>
+                </Box>
+              );
             },
-          ]
+          },
+        ]
         : []),
 
-      // ✅ Department (text only, center aligned)
       {
         field: 'raisedFromDepartment',
         headerName: 'Department',
@@ -351,40 +359,38 @@ const Query = () => {
         ),
       },
 
-      // 👉 Directed To (jisko assign hua) – same avatarCell class
       ...(isAdminLike || (queryType !== 'against' && userRole)
         ? [
-            {
-              field: 'toQueryName',
-              headerName: 'Directed To',
-              minWidth: 200,
-              headerAlign: 'center',
-              align: 'left',
-              cellClassName: 'avatarCell',
-              renderCell: params => {
-                const toEmp = params.row.toQuery || {};
-                const fullName = `${toEmp.first_name || ''} ${
-                  toEmp.last_name || ''
+          {
+            field: 'toQueryName',
+            headerName: 'Directed To',
+            minWidth: 200,
+            headerAlign: 'center',
+            align: 'left',
+            cellClassName: 'avatarCell',
+            renderCell: params => {
+              const toEmp = params.row.toQuery || {};
+              const fullName = `${toEmp.first_name || ''} ${toEmp.last_name || ''
                 }`.trim();
 
-                return (
-                  <Box display="flex" alignItems="center">
-                    <Avatar
-                      src={toEmp.image || undefined}
-                      sx={{ mr: 1, width: 32, height: 32 }}
-                    >
-                      {!toEmp.image && fullName
-                        ? fullName.charAt(0).toUpperCase()
-                        : null}
-                    </Avatar>
-                    <Typography variant="body2" noWrap>
-                      {fullName || '—'}
-                    </Typography>
-                  </Box>
-                );
-              },
+              return (
+                <Box display="flex" alignItems="center">
+                  <Avatar
+                    src={toEmp.image || undefined}
+                    sx={{ mr: 1, width: 32, height: 32 }}
+                  >
+                    {!toEmp.image && fullName
+                      ? fullName.charAt(0).toUpperCase()
+                      : null}
+                  </Avatar>
+                  <Typography variant="body2" noWrap>
+                    {fullName || '—'}
+                  </Typography>
+                </Box>
+              );
             },
-          ]
+          },
+        ]
         : []),
 
       {
@@ -435,20 +441,30 @@ const Query = () => {
           </Typography>
         ),
       },
+
       {
         field: 'description',
         headerName: 'Query Details',
-        minWidth: 250,
+        minWidth: 160,
         headerAlign: 'center',
         align: 'center',
-        renderCell: params => (
-          <Typography variant="body2" noWrap>
-            {params.value}
-          </Typography>
-        ),
+        sortable: false,
+        renderCell: params => {
+          const hasDesc = !!params.row.description;
+          return (
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={!hasDesc}
+              onClick={() => handleViewDescription(params.row)}
+              sx={{ textTransform: 'none', borderRadius: 6, fontSize: 12 }}
+            >
+              {hasDesc ? 'View' : 'No Details'}
+            </Button>
+          );
+        },
       },
 
-      // 🔥 Replies column – View button
       {
         field: 'repliesInfo',
         headerName: 'Replies',
@@ -502,11 +518,8 @@ const Query = () => {
     ];
 
     return columns;
-  }, [queryType, userRole, isAdminLike]);
+  }, [queryType, userRole, isAdminLike, handleViewReplies, handleViewDescription]);
 
-  // ------------------------
-  // Rows mapping – department jisne query raise ki
-  // ------------------------
   const rows = useMemo(() => {
     const employeeToTeamMap = new Map<string, string>();
 
@@ -561,7 +574,7 @@ const Query = () => {
     <Box>
       <ToastContainer />
       <Box sx={{ flexGrow: 1, padding: 4 }}>
-        {/* Dialog for Create / Edit Query */}
+        {/* Create / Edit Dialog */}
         <Dialog open={showForm} onClose={handleClose} fullWidth maxWidth="md">
           <DialogContent>
             <QueryForm
@@ -574,7 +587,7 @@ const Query = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Replies View Dialog */}
+        {/* Replies Dialog */}
         <Dialog
           open={replyDialogOpen}
           onClose={handleCloseRepliesDialog}
@@ -583,23 +596,24 @@ const Query = () => {
         >
           <DialogTitle>
             Replies
-            {replyDialogQuery?.queryType
-              ? ` - ${replyDialogQuery.queryType}`
-              : ''}
+            {replyDialogQuery?.queryType ? ` - ${replyDialogQuery.queryType}` : ''}
           </DialogTitle>
           <DialogContent dividers>
             {replyDialogQuery?.replies && replyDialogQuery.replies.length > 0 ? (
               <Box sx={{ maxHeight: 320, overflowY: 'auto' }}>
                 {replyDialogQuery.replies.map((r: any, idx: number) => {
                   const name = r?.employee
-                    ? `${r.employee.first_name || ''} ${
-                        r.employee.last_name || ''
+                    ? `${r.employee.first_name || ''} ${r.employee.last_name || ''
                       }`.trim()
                     : 'User';
+
                   const message = r?.message || '';
-                  const time = r?.createdAt
-                    ? dayjs(r.createdAt).format('DD MMM YYYY, HH:mm')
-                    : '';
+
+                  // 🟢 EXACT same value as Grid → Last Update column
+                  const time =
+                    replyDialogQuery?.updateDate ||
+                    replyDialogQuery?.assignedDate ||
+                    '';
 
                   return (
                     <Box key={r._id || idx} sx={{ mb: 1.5 }}>
@@ -607,22 +621,27 @@ const Query = () => {
                         <Typography variant="subtitle2" fontWeight={600}>
                           {name}
                         </Typography>
+
                         {time && (
                           <Typography
                             variant="caption"
                             color="text.secondary"
+                            title={String(time)}
                           >
                             {time}
                           </Typography>
                         )}
                       </Box>
+
                       <Typography variant="body2">{message}</Typography>
+
                       {idx !== replyDialogQuery.replies.length - 1 && (
                         <Divider sx={{ my: 1 }} />
                       )}
                     </Box>
                   );
                 })}
+
               </Box>
             ) : (
               <Typography variant="body2" color="text.secondary">
@@ -633,6 +652,38 @@ const Query = () => {
             <Box mt={2} textAlign="right">
               <Button
                 onClick={handleCloseRepliesDialog}
+                variant="contained"
+                sx={{ textTransform: 'none', borderRadius: 2 }}
+              >
+                Close
+              </Button>
+            </Box>
+          </DialogContent>
+        </Dialog>
+
+
+        {/* Description Dialog */}
+        <Dialog
+          open={descDialogOpen}
+          onClose={handleCloseDescDialog}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle>
+            Query Details
+            {descDialogQuery?.employee?.first_name
+              ? ` - ${descDialogQuery.employee.first_name} ${descDialogQuery.employee.last_name || ''
+              }`
+              : ''}
+          </DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="body2">
+              {descDialogQuery?.description || 'No details available.'}
+            </Typography>
+
+            <Box mt={2} textAlign="right">
+              <Button
+                onClick={handleCloseDescDialog}
                 variant="contained"
                 sx={{ textTransform: 'none', borderRadius: 2 }}
               >
@@ -696,7 +747,6 @@ const Query = () => {
 
         {/* Filters row: Search + Date */}
         <Grid container spacing={3} mb={2} alignItems="center">
-          {/* Search Input */}
           <Grid item xs={12} md={8}>
             <Autocomplete
               freeSolo
@@ -727,13 +777,12 @@ const Query = () => {
             />
           </Grid>
 
-          {/* Date Picker */}
           <Grid item xs={12} md={4} display="flex" justifyContent="flex-end">
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
                 views={isAdminLike ? ['month', 'year'] : ['year']}
                 label={isAdminLike ? 'Select Month and Year' : 'Select Year'}
-                value={dayjs(selectedDate)}
+                value={selectedDate}
                 onChange={handleDateChange}
                 sx={{
                   width: '80%',
@@ -779,10 +828,9 @@ const Query = () => {
               alignItems: 'center',
               padding: '8px',
             },
-            // 👉 sirf avatarCell wali cells left aligned (Assigned By + Directed To)
             '& .avatarCell': {
               justifyContent: 'flex-start',
-                paddingLeft: '20px',
+              paddingLeft: '42px',
             },
             '& .MuiDataGrid-row': {
               fontWeight: '600',
