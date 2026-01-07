@@ -90,29 +90,26 @@ const Query = () => {
     () =>
       debounce(() => {
         if (isAdminLike) {
-          // Admin ya HR → all queries with month + year filter
           dispatch(
             fetchAllQueries({
               page,
               limit,
               keyword: selectedKeyword,
-              month: month,
-              year: year,
+              month,
+              year,
             }),
           );
         } else if (queryType === 'own') {
-          // Logged-in user → queries created by user
           dispatch(
             fetchUserQueries({
               page,
               limit,
               keyword: selectedKeyword,
               month: '0',
-              year: year,
+              year,
             }),
           );
         } else {
-          // Logged-in user → queries assigned to this user (toQuery = userId)
           dispatch(
             fetchQueriesByToQueryId({
               toQueryId: userId,
@@ -120,7 +117,7 @@ const Query = () => {
               limit,
               keyword: selectedKeyword,
               month: 0,
-              year: year,
+              year,
             }),
           );
         }
@@ -181,7 +178,6 @@ const Query = () => {
     setUserRole(user.role);
     setUserId(user.id);
 
-    // pehle teams load karo, usse HR detect karenge
     const fetchTeamsAndDetectHr = async () => {
       try {
         setTeamsLoading(true);
@@ -199,7 +195,6 @@ const Query = () => {
         const teamArr = Array.isArray(json) ? json : json.teams || [];
         setTeams(teamArr);
 
-        // 🔍 Check: current user HR team me hai kya?
         if (user.id) {
           const lowerUserId = String(user.id);
 
@@ -240,7 +235,6 @@ const Query = () => {
     fetchTeamsAndDetectHr();
   }, []);
 
-  // teams / isAdminLike ready hone ke baad queries fetch
   useEffect(() => {
     debouncedFetch();
     return debouncedFetch.cancel;
@@ -258,7 +252,6 @@ const Query = () => {
     setQueryType(prevType => (prevType === 'against' ? 'own' : 'against'));
   }, []);
 
-  // ✅ Parent ka onSubmit sirf UI handle karega
   const handleFormSubmit = (savedQuery: any) => {
     setSnackbarMessage(
       selectedQuery ? 'Query updated successfully!' : 'Query created successfully!',
@@ -269,7 +262,6 @@ const Query = () => {
     setShowForm(false);
     setSelectedQuery(null);
 
-    // list refresh
     debouncedFetch();
   };
 
@@ -309,6 +301,7 @@ const Query = () => {
   // ------------------------
   const generateColumns = useMemo(() => {
     const columns: GridColDef[] = [
+      // ✅ Assigned By (creator) – avatarCell class for left alignment
       ...(queryType !== 'own'
         ? [
             {
@@ -316,22 +309,49 @@ const Query = () => {
               headerName: 'Assigned By',
               minWidth: 200,
               headerAlign: 'center',
-              align: 'center',
-              renderCell: params => (
-                <Box display="flex" alignItems="center">
-                  <Avatar
-                    src={params.row.employee?.image}
-                    sx={{ mr: 1, width: 32, height: 32 }}
-                  />
-                  <Typography variant="body2" noWrap>
-                    {params.row.employee?.first_name}{' '}
-                    {params.row.employee?.last_name}
-                  </Typography>
-                </Box>
-              ),
+              align: 'left',
+              cellClassName: 'avatarCell',
+              renderCell: params => {
+                const emp = params.row.employee || {};
+                const fullName = `${emp.first_name || ''} ${
+                  emp.last_name || ''
+                }`.trim();
+
+                return (
+                  <Box display="flex" alignItems="center">
+                    <Avatar
+                      src={emp.image || undefined}
+                      sx={{ mr: 1, width: 32, height: 32 }}
+                    >
+                      {!emp.image && fullName
+                        ? fullName.charAt(0).toUpperCase()
+                        : null}
+                    </Avatar>
+                    <Typography variant="body2" noWrap>
+                      {fullName || '—'}
+                    </Typography>
+                  </Box>
+                );
+              },
             },
           ]
         : []),
+
+      // ✅ Department (text only, center aligned)
+      {
+        field: 'raisedFromDepartment',
+        headerName: 'Department',
+        minWidth: 180,
+        headerAlign: 'center',
+        align: 'center',
+        renderCell: params => (
+          <Typography variant="body2" noWrap>
+            {params.row?.raisedFromDepartment || '—'}
+          </Typography>
+        ),
+      },
+
+      // 👉 Directed To (jisko assign hua) – same avatarCell class
       ...(isAdminLike || (queryType !== 'against' && userRole)
         ? [
             {
@@ -339,22 +359,34 @@ const Query = () => {
               headerName: 'Directed To',
               minWidth: 200,
               headerAlign: 'center',
-              align: 'center',
-              renderCell: params => (
-                <Box display="flex" alignItems="center">
-                  <Avatar
-                    src={params.row.toQuery?.image}
-                    sx={{ mr: 1, width: 32, height: 32 }}
-                  />
-                  <Typography variant="body2" noWrap>
-                    {params.row.toQuery?.first_name}{' '}
-                    {params.row.toQuery?.last_name}
-                  </Typography>
-                </Box>
-              ),
+              align: 'left',
+              cellClassName: 'avatarCell',
+              renderCell: params => {
+                const toEmp = params.row.toQuery || {};
+                const fullName = `${toEmp.first_name || ''} ${
+                  toEmp.last_name || ''
+                }`.trim();
+
+                return (
+                  <Box display="flex" alignItems="center">
+                    <Avatar
+                      src={toEmp.image || undefined}
+                      sx={{ mr: 1, width: 32, height: 32 }}
+                    >
+                      {!toEmp.image && fullName
+                        ? fullName.charAt(0).toUpperCase()
+                        : null}
+                    </Avatar>
+                    <Typography variant="body2" noWrap>
+                      {fullName || '—'}
+                    </Typography>
+                  </Box>
+                );
+              },
             },
           ]
         : []),
+
       {
         field: 'assignedDate',
         headerName: 'Date Assigned',
@@ -391,19 +423,6 @@ const Query = () => {
           </Typography>
         ),
       },
-      // 🔹 Team column
-      {
-        field: 'team',
-        headerName: 'Team',
-        minWidth: 150,
-        headerAlign: 'center',
-        align: 'center',
-        renderCell: params => (
-          <Typography variant="body2" noWrap>
-            {params.value}
-          </Typography>
-        ),
-      },
       {
         field: 'queryType',
         headerName: 'Type of Query',
@@ -429,7 +448,7 @@ const Query = () => {
         ),
       },
 
-      // 🔥 Replies column – ab yahan View button
+      // 🔥 Replies column – View button
       {
         field: 'repliesInfo',
         headerName: 'Replies',
@@ -463,7 +482,9 @@ const Query = () => {
         headerAlign: 'center',
         align: 'center',
         renderCell: params => (
-          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <Box
+            sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+          >
             <Button
               variant="contained"
               sx={{
@@ -484,7 +505,7 @@ const Query = () => {
   }, [queryType, userRole, isAdminLike]);
 
   // ------------------------
-  // Rows mapping – Team name nikalna (toQuery employee se)
+  // Rows mapping – department jisne query raise ki
   // ------------------------
   const rows = useMemo(() => {
     const employeeToTeamMap = new Map<string, string>();
@@ -512,17 +533,23 @@ const Query = () => {
     });
 
     return queries.map(query => {
-      const toQuery = query.toQuery;
-      const toQueryId =
-        (toQuery && (toQuery._id || toQuery.id)) || query.toQuery;
+      const createdBy = query.employee;
+      const createdById =
+        (createdBy && (createdBy._id || createdBy.id)) || query.employee;
 
-      const teamName =
+      const raisedFromDepartment =
+        (createdById && employeeToTeamMap.get(String(createdById))) || '';
+
+      const toQueryEmp = query.toQuery;
+      const toQueryId =
+        (toQueryEmp && (toQueryEmp._id || toQueryEmp.id)) || query.toQuery;
+      const assignedDepartment =
         (toQueryId && employeeToTeamMap.get(String(toQueryId))) || '';
 
-      // ✅ IMPORTANT: Pure query spread so replies + nested data carry forward
       return {
         ...query,
-        team: teamName,
+        raisedFromDepartment,
+        assignedDepartment,
       };
     });
   }, [queries, teams]);
@@ -547,7 +574,7 @@ const Query = () => {
           </DialogContent>
         </Dialog>
 
-        {/* 🔥 Replies View Dialog */}
+        {/* Replies View Dialog */}
         <Dialog
           open={replyDialogOpen}
           onClose={handleCloseRepliesDialog}
@@ -556,7 +583,9 @@ const Query = () => {
         >
           <DialogTitle>
             Replies
-            {replyDialogQuery?.queryType ? ` - ${replyDialogQuery.queryType}` : ''}
+            {replyDialogQuery?.queryType
+              ? ` - ${replyDialogQuery.queryType}`
+              : ''}
           </DialogTitle>
           <DialogContent dividers>
             {replyDialogQuery?.replies && replyDialogQuery.replies.length > 0 ? (
@@ -614,7 +643,12 @@ const Query = () => {
         </Dialog>
 
         {/* Header */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={4}
+        >
           <Box>
             <Typography variant="h4" gutterBottom>
               Queries
@@ -745,12 +779,16 @@ const Query = () => {
               alignItems: 'center',
               padding: '8px',
             },
+            // 👉 sirf avatarCell wali cells left aligned (Assigned By + Directed To)
+            '& .avatarCell': {
+              justifyContent: 'flex-start',
+                paddingLeft: '20px',
+            },
             '& .MuiDataGrid-row': {
               fontWeight: '600',
               fontSize: '14px',
               boxSizing: 'border-box',
             },
-            // Custom row color classes
             '& .status-pending': { backgroundColor: 'rgba(255, 255, 0, 0.2)' },
             '& .status-resolved': { backgroundColor: 'rgba(0, 255, 0, 0.2)' },
             '& .status-on-progress': {
@@ -771,7 +809,11 @@ const Query = () => {
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{ mt: 8 }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
           {snackbarMessage}
         </Alert>
       </Snackbar>
