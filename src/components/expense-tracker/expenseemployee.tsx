@@ -959,7 +959,7 @@ export default function ExpenseEmployee() {
 
             {/* Section 4: Payment Mode + QR Upload */}
             <div style={{ marginTop: 12 }}>
-              <label style={fieldLabelStyle}>Payment Mode</label>
+              <label style={fieldLabelStyle}>Choose Payment Mode</label>
 
               {/* Row 1: dropdown */}
               <div

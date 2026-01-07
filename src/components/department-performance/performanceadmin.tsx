@@ -61,19 +61,11 @@ const ALLOWED_TEAM_IDS: string[] = [
     '680789b86a3572ff9478bcd2',
     '68078bdd6a3572ff9478bd50',
     '68078c506a3572ff9478bd6c',
-    '693d0c7f5c4e2f15ce95cf0b',
-    '68e8feb4fa8c01760efccf87',
     '695cb6645585adfa28e9bea3',
+    '695df838e3d5943c53701a83',
+    '68e8feb4fa8c01760efccf87',
+    '693d0c7f5c4e2f15ce95cf0b',
     '6957a5422381863817eb481d',
-    '692fe78fabe7b3ff34a7eeb7',
-    '6926e5c5fa305b986d876d2a',
-    '68babf61fa8c01760eee3c78',
-    '687a1fd4fa8c01760ed7e03e',
-    '6877453ffa8c01760ed6c198',
-    '687743eefa8c01760ed6c04f',
-    '6877439bfa8c01760ed6bff0',
-    '68774331fa8c01760ed6bf2b',
-    '687741f9fa8c01760ed6bec9',
 ];
 
 const ALLOWED_TEAM_CODES: string[] = [

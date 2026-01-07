@@ -27,7 +27,7 @@ import axios from 'axios';
 import { apiResponse } from '../../utility/apiResponse/employeesResponse';
 
 interface QueryFormProps {
-  onSubmit?: (queryData: any) => void; // optional + API ke baad callback
+  onSubmit?: (queryData: any) => void;
   query?: any;
   userRole: string;
   onClose: () => void;
@@ -47,8 +47,8 @@ const statuses = ['Pending', 'Resolved', 'On Process'];
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 
-// Teams filter (optional)
 const ALLOWED_TEAM_IDS: string[] = [
+  '695ce778b71faf497ee89a54',
   '68078c506a3572ff9478bd6c',
   '68e8feb4fa8c01760efccf87',
   '693d0c7f5c4e2f15ce95cf0b',
@@ -58,7 +58,8 @@ const ALLOWED_TEAM_IDS: string[] = [
   '674abf5e2cb3ff920ea4a898',
   '680789b86a3572ff9478bcd2',
   '68078bdd6a3572ff9478bd50',
-
+  '695df229e3d5943c537019ce',
+ 
 ];
 
 const ALLOWED_TEAM_NAMES: string[] = [
@@ -67,8 +68,7 @@ const ALLOWED_TEAM_NAMES: string[] = [
   'IT TEAM',
   'Credit Team',
   'Ops Team',
-  'IT & Infra'
-
+  'IT & Infra',
 ];
 
 const QueryForm: React.FC<QueryFormProps> = ({
@@ -95,10 +95,11 @@ const QueryForm: React.FC<QueryFormProps> = ({
   });
 
   const [teams, setTeams] = useState<any[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
+  const [myDepartment, setMyDepartment] = useState<any | null>(null); // you are from which dept
+  const [queryDepartment, setQueryDepartment] = useState<any | null>(null); // query is for which dept
 
   const [allEmployees, setAllEmployees] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]); // filtered list for "Query To"
+  const [employees, setEmployees] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -107,7 +108,6 @@ const QueryForm: React.FC<QueryFormProps> = ({
   const isEditMode = !!query;
   const isAgainstQuery = queryType === 'against';
 
-  // 🔹 Replies state
   const [replies, setReplies] = useState<any[]>(query?.replies || []);
   const [replyText, setReplyText] = useState('');
   const [replySubmitting, setReplySubmitting] = useState(false);
@@ -182,7 +182,6 @@ const QueryForm: React.FC<QueryFormProps> = ({
         const json = await resp.json();
         const teamArr: any[] = Array.isArray(json) ? json : json.teams || [];
 
-        // 🔥 filter logic: sirf selected teams rakho
         let filteredTeams = teamArr;
 
         if (ALLOWED_TEAM_IDS.length || ALLOWED_TEAM_NAMES.length) {
@@ -193,7 +192,6 @@ const QueryForm: React.FC<QueryFormProps> = ({
             const nameAllowed = ALLOWED_TEAM_NAMES.length
               ? ALLOWED_TEAM_NAMES.includes(t.name)
               : false;
-            // agar dono arrays empty hain, sab allowed; warna koi ek true to allowed
             return ALLOWED_TEAM_IDS.length || ALLOWED_TEAM_NAMES.length
               ? idAllowed || nameAllowed
               : true;
@@ -210,29 +208,78 @@ const QueryForm: React.FC<QueryFormProps> = ({
             company_id: query.company_id,
           });
 
-          const toQueryEmp = empData.find(
-            (e: any) =>
-              e._id === (query.toQuery?._id || query.toQuery),
-          );
+          // ----- FROM DEPARTMENT (you are from which dept) -----
+          let myDept: any = null;
 
-          if (toQueryEmp) {
-            const empId = toQueryEmp._id;
-            const teamOfEmp =
-              teamArr.find((t: any) =>
-                getTeamEmployeeIds(t).includes(empId),
-              ) || null;
+          // 1) try: backend se direct fromDepartment
+          if (query.fromDepartment) {
+            const fromDeptId =
+              typeof query.fromDepartment === 'string'
+                ? query.fromDepartment
+                : query.fromDepartment._id;
+            myDept =
+              teamArr.find((t: any) => String(t._id) === String(fromDeptId)) ||
+              null;
+          }
 
-            if (teamOfEmp) {
-              // ensure employee ka team list me ho, chahe allowed list me na bhi ho
-              if (
-                !filteredTeams.some((t: any) => t._id === teamOfEmp._id)
-              ) {
-                filteredTeams = [...filteredTeams, teamOfEmp];
-              }
+          // 2) fallback: creator employee ke basis pe
+          if (!myDept) {
+            const createdByEmp = empData.find(
+              (e: any) => e._id === (query.employee?._id || query.employee),
+            );
 
-              setSelectedTeam(teamOfEmp);
-              filterEmployeesByTeam(teamOfEmp, empData);
+            if (createdByEmp) {
+              myDept =
+                teamArr.find((t: any) =>
+                  getTeamEmployeeIds(t).includes(createdByEmp._id),
+                ) || null;
             }
+          }
+
+          if (myDept) {
+            if (!filteredTeams.some((t: any) => t._id === myDept._id)) {
+              filteredTeams = [...filteredTeams, myDept];
+            }
+            setMyDepartment(myDept);
+          }
+
+          // ----- QUERY DEPARTMENT (query is for which dept) -----
+          let qDept: any = null;
+
+          // 1) try: backend se direct queryDepartment
+          if (query.queryDepartment) {
+            const qDeptId =
+              typeof query.queryDepartment === 'string'
+                ? query.queryDepartment
+                : query.queryDepartment._id;
+            qDept =
+              teamArr.find((t: any) => String(t._id) === String(qDeptId)) ||
+              null;
+          }
+
+          // 2) fallback: toQuery employee ke basis pe
+          if (!qDept) {
+            const toQueryEmp = empData.find(
+              (e: any) =>
+                e._id === (query.toQuery?._id || query.toQuery),
+            );
+
+            if (toQueryEmp) {
+              const empId = toQueryEmp._id;
+              qDept =
+                teamArr.find((t: any) =>
+                  getTeamEmployeeIds(t).includes(empId),
+                ) || null;
+            }
+          }
+
+          if (qDept) {
+            if (!filteredTeams.some((t: any) => t._id === qDept._id)) {
+              filteredTeams = [...filteredTeams, qDept];
+            }
+
+            setQueryDepartment(qDept);
+            filterEmployeesByTeam(qDept, empData);
           }
 
           setReplies(query.replies || []);
@@ -254,8 +301,14 @@ const QueryForm: React.FC<QueryFormProps> = ({
   // handlers
   // =========================
 
-  const handleTeamChange = (event: any, value: any) => {
-    setSelectedTeam(value || null);
+  // "You are from which department?"
+  const handleMyDepartmentChange = (event: any, value: any) => {
+    setMyDepartment(value || null);
+  };
+
+  // "Your query is for which department?"
+  const handleQueryDepartmentChange = (event: any, value: any) => {
+    setQueryDepartment(value || null);
     setFormData(prev => ({ ...prev, toQuery: '' }));
     filterEmployeesByTeam(value || null);
   };
@@ -285,14 +338,23 @@ const QueryForm: React.FC<QueryFormProps> = ({
   // =========================
   const validate = () => {
     const temp: { [k: string]: string } = {};
+
+    if (!myDepartment && !isEditMode) {
+      temp.myDepartment = 'Please select your department';
+    }
+    if (!queryDepartment && !isEditMode) {
+      temp.queryDepartment = 'Please select query department';
+    }
+
     if (!formData.toQuery) temp.toQuery = 'Assigned to name is required';
     if (!formData.queryType) temp.queryType = 'Query Type is required';
+
     setErrors(temp);
     return Object.keys(temp).length === 0;
   };
 
   // =========================
-  // submit: direct API call
+  // submit
   // =========================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -304,13 +366,15 @@ const QueryForm: React.FC<QueryFormProps> = ({
       const token = localStorage.getItem('token') || '';
       const companyId = localStorage.getItem('company_id') || company_id || '';
 
-      // DTO ke hisaab se payload
       const payload = {
-        toQuery: formData.toQuery, // employee _id string
+        toQuery: formData.toQuery,
         queryType: formData.queryType,
         description: formData.description,
         status: formData.status || 'Pending',
         company_id: formData.company_id || companyId,
+        // ✅ new fields – backend schema/DTO me add kiye the
+        fromDepartment: myDepartment?._id || myDepartment?.id,
+        queryDepartment: queryDepartment?._id || queryDepartment?.id,
       };
 
       const isEdit = !!query;
@@ -328,8 +392,6 @@ const QueryForm: React.FC<QueryFormProps> = ({
         },
       });
 
-      console.log('Query API success:', res.data);
-
       if (onSubmit) {
         onSubmit(res.data);
       }
@@ -339,7 +401,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
       console.error('Submission error:', err?.response?.data || err.message);
       alert(
         err?.response?.data?.message ||
-        'Error while creating/updating query. Please try again.',
+          'Error while creating/updating query. Please try again.',
       );
     } finally {
       setSubmitting(false);
@@ -406,7 +468,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
       console.error('Reply error:', err?.response?.data || err.message);
       alert(
         err?.response?.data?.message ||
-        'Reply send karte waqt error aaya. Please try again.',
+          'Reply send karte waqt error aaya. Please try again.',
       );
     } finally {
       setReplySubmitting(false);
@@ -517,19 +579,21 @@ const QueryForm: React.FC<QueryFormProps> = ({
               </Grid>
             )}
 
-            {/* Department / Team */}
+            {/* STEP 1: You are from which department? */}
             <Grid item xs={12} md={6}>
               <Autocomplete
                 options={teams}
                 getOptionLabel={o => o.name || o.code || ''}
-                value={selectedTeam}
-                onChange={handleTeamChange}
+                value={myDepartment}
+                onChange={handleMyDepartmentChange}
                 loading={loading && !teams.length}
                 renderInput={params => (
                   <TextField
                     {...params}
-                    label="Department"
-                    placeholder="Select Department"
+                    label="You are from which Department?"
+                    placeholder="Select your Department"
+                    error={!!errors.myDepartment}
+                    helperText={errors.myDepartment}
                     InputProps={{
                       ...params.InputProps,
                       startAdornment: (
@@ -555,7 +619,47 @@ const QueryForm: React.FC<QueryFormProps> = ({
               />
             </Grid>
 
-            {/* Query To (filtered by team) */}
+            {/* STEP 2: Your query is for which department? */}
+            <Grid item xs={12} md={6}>
+              <Autocomplete
+                options={teams}
+                getOptionLabel={o => o.name || o.code || ''}
+                value={queryDepartment}
+                onChange={handleQueryDepartmentChange}
+                loading={loading && !teams.length}
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    label="Your query is for which Department?"
+                    placeholder="Select Department for Query"
+                    error={!!errors.queryDepartment}
+                    helperText={errors.queryDepartment}
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <GroupIcon color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <>
+                          {loading && (
+                            <CircularProgress
+                              color="inherit"
+                              size={20}
+                            />
+                          )}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                disabled={isEditMode && isAgainstQuery}
+              />
+            </Grid>
+
+            {/* Query To (filtered by queryDepartment) */}
             <Grid item xs={12} md={6}>
               <Autocomplete
                 options={employees}
@@ -675,7 +779,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
               />
             </Grid>
 
-            {/* 🔥 Replies Section (only edit mode) */}
+            {/* Replies Section (only edit mode) */}
             {query && (
               <Grid item xs={12}>
                 <Divider sx={{ my: 2 }} />
@@ -683,7 +787,6 @@ const QueryForm: React.FC<QueryFormProps> = ({
                   Replies / Discussion
                 </Typography>
 
-                {/* Existing replies list */}
                 <Box
                   sx={{
                     maxHeight: 220,
@@ -711,7 +814,8 @@ const QueryForm: React.FC<QueryFormProps> = ({
                       >
                         <Typography fontWeight={600} variant="subtitle2">
                           {r?.employee
-                            ? `${r.employee.first_name || ''} ${r.employee.last_name || ''
+                            ? `${r.employee.first_name || ''} ${
+                                r.employee.last_name || ''
                               }`.trim()
                             : 'User'}
                         </Typography>
@@ -727,7 +831,6 @@ const QueryForm: React.FC<QueryFormProps> = ({
                   )}
                 </Box>
 
-                {/* Add new reply (sirf admin + assignee) */}
                 <Box display="flex" gap={1} alignItems="flex-start">
                   <TextField
                     fullWidth
@@ -736,8 +839,8 @@ const QueryForm: React.FC<QueryFormProps> = ({
                     maxRows={4}
                     placeholder={
                       canReply
-                        ? 'Type Your Reply'
-                        : 'Sirf admin ya "Only the admin or the person to whom the query is assigned can reply.'
+                        ? 'Type your reply'
+                        : 'Sirf admin ya jisko query assign hai wahi reply kar sakta hai.'
                     }
                     value={replyText}
                     onChange={e => setReplyText(e.target.value)}
@@ -746,10 +849,14 @@ const QueryForm: React.FC<QueryFormProps> = ({
                   <Button
                     variant="contained"
                     sx={{
-                      minWidth: 100, height: '10%',
-                      alignSelf: 'center', mt: '7px'
+                      minWidth: 100,
+                      height: '10%',
+                      alignSelf: 'center',
+                      mt: '7px',
                     }}
-                    disabled={replySubmitting || !replyText.trim() || !canReply}
+                    disabled={
+                      replySubmitting || !replyText.trim() || !canReply
+                    }
                     onClick={handleAddReply}
                   >
                     {replySubmitting ? 'Sending…' : 'Reply'}
