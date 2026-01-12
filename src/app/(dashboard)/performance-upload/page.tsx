@@ -126,6 +126,8 @@ type TeamBreakdown = {
     totalLogins: number;
     totalApproval: number;
     totalDisbursal: number;
+    totalDrop: number;
+    totalCashback: number;
     memberCount: number;
   };
   memberBreakdown: {
@@ -194,7 +196,7 @@ export default function PerformanceUploadPage() {
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [teamBreakdown, setTeamBreakdown] = useState<TeamBreakdown | null>(null);
   const [teamBreakdownLoading, setTeamBreakdownLoading] = useState(false);
-  
+
 
   // Manager/TL filter state
   const [managerTlFilter, setManagerTlFilter] = useState<string>('all');
@@ -323,15 +325,15 @@ export default function PerformanceUploadPage() {
     }
   };
 
-const latestUploadedDate = useMemo(() => {
-  if (!rows.length) return null;
+  const latestUploadedDate = useMemo(() => {
+    if (!rows.length) return null;
 
-  return rows
-    .map(r => r.date)
-    .filter(Boolean)
-    .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())[0];
-}, [rows]);
-const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
+    return rows
+      .map(r => r.date)
+      .filter(Boolean)
+      .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())[0];
+  }, [rows]);
+  const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
 
 
   useEffect(() => {
@@ -512,13 +514,15 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
 
   /* ------------ Totals ------------ */
   const totals = useMemo(() => {
-    const sum = (k: 'login' | 'approval' | 'disbursal') =>
+    const sum = (k: 'login' | 'approval' | 'disbursal' | 'drop' | 'cashback') =>
       rows.reduce((a, r) => a + Number(r[k] || 0), 0);
 
     return {
       logins: sum('login'),
       approvals: sum('approval'),
       disbursal: sum('disbursal'),
+      drop: sum('drop'),
+      cashback: sum('cashback'),
     };
   }, [rows]);
 
@@ -993,216 +997,269 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
           </Box>
         </Paper>
 
-        <Grid container spacing={2}>
+       <Grid container spacing={2}>
+  {/* 1) Total Logins */}
+  <Grid item xs={12} md={2.4}>
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+        boxShadow: '0 10px 22px rgba(22,163,74,0.35)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <CheckCircleIcon sx={{ fontSize: 22 }} />
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
 
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                boxShadow: '0 10px 22px rgba(22,163,74,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <CheckCircleIcon sx={{ fontSize: 22 }} />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Logins
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 25,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {totals.logins.toLocaleString('en-IN')}
+        <Typography variant="body2" sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}>
+          Total Logins
+        </Typography>
+        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
+          {totals.logins.toLocaleString('en-IN')}
+        </Typography>
+      </Box>
+    </Paper>
+  </Grid>
 
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
+  {/* 2) Total Approvals */}
+  <Grid item xs={12} md={2.4}>
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+        boxShadow: '0 10px 22px rgba(37,99,235,0.35)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <EmojiEventsIcon sx={{ fontSize: 22 }} />
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
 
+        <Typography variant="body2" sx={{ color: '#dbeafe', fontWeight: 500, mb: 0.3 }}>
+          Total Approvals
+        </Typography>
+        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
+          {rupee(totals.approvals)}
+        </Typography>
+      </Box>
+    </Paper>
+  </Grid>
 
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                boxShadow: '0 10px 22px rgba(37,99,235,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <EmojiEventsIcon sx={{ fontSize: 22 }} />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#dbeafe', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Approvals
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 25,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.approvals)}
+  {/* 3) Total Disbursals */}
+  <Grid item xs={12} md={2.4}>
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+        boxShadow: '0 10px 22px rgba(109,40,217,0.35)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <StarBorderIconLike />
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
 
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
+        <Typography variant="body2" sx={{ color: '#ede9fe', fontWeight: 500, mb: 0.3 }}>
+          Total Disbursals
+        </Typography>
+        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
+          {rupee(totals.disbursal)}
+        </Typography>
+      </Box>
+    </Paper>
+  </Grid>
 
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-                boxShadow: '0 10px 22px rgba(109,40,217,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <StarBorderIconLike />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#ede9fe', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Disbursals
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 25,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.disbursal)}
+  {/* 4) Total Drop */}
+  <Grid item xs={12} md={2.4}>
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+        boxShadow: '0 10px 22px rgba(185,28,28,0.35)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {/* simple icon without new import */}
+            <span style={{ fontSize: 18, lineHeight: 1 }}>↓</span>
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
 
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
+        <Typography variant="body2" sx={{ color: '#fee2e2', fontWeight: 500, mb: 0.3 }}>
+          Total Drop
+        </Typography>
+        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
+          {rupee(totals.drop)}
+        </Typography>
+      </Box>
+    </Paper>
+  </Grid>
+
+  {/* 5) Total Cashback */}
+  <Grid item xs={12} md={2.4}>
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
+        boxShadow: '0 10px 22px rgba(14,116,144,0.35)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {/* simple icon without new import */}
+            <span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
+
+        <Typography variant="body2" sx={{ color: '#cffafe', fontWeight: 500, mb: 0.3 }}>
+          Total Cashback
+        </Typography>
+        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
+          {rupee(totals.cashback)}
+        </Typography>
+      </Box>
+    </Paper>
+  </Grid>
+</Grid>
 
 
         {(starPerformers.approval || starPerformers.disbursal) && (
@@ -1600,7 +1657,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                         <TableCell align="center">
                           {teamInfo ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-                              
+
                               <Tooltip title={`${teamInfo.memberCount} team members`}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                   <GroupsIcon sx={{ fontSize: 16, color: '#6b7280' }} />
@@ -1653,73 +1710,50 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
 
                         <TableCell align="right">
 
-                          {isAdmin ? (
-                            <Stack
-                              direction="row"
-                              spacing={0.5}
-                              justifyContent="flex-end"
-                            >
-                              <Tooltip title="Edit row">
-                                <IconButton
-                                  color="primary"
-                                  size="small"
-                                  onClick={() => {
-                                    setEditingId(r._id);
+                        {canAddRow ? (
+  <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+    <Tooltip title="Edit row">
+      <IconButton
+        color="primary"
+        size="small"
+        onClick={() => {
+          setEditingId(r._id);
 
-                                    if (r.date) {
-                                      setDate(dayjs(r.date));
-                                    }
+          if (r.date) setDate(dayjs(r.date));
 
-                                    setForm({
-                                      employee_name: r.employee_name || '',
-                                      manager_tl: r.manager_tl || '',
-                                      total_logins: String(
-                                        r.login ?? r.total_logins ?? 0 || '',
-                                      ),
-                                      approval_lakh: r.approval
-                                        ? Number(
-                                          r.approval,
-                                        ).toLocaleString('en-IN')
-                                        : '',
-                                      disbursal_lakh: r.disbursal
-                                        ? Number(
-                                          r.disbursal,
-                                        ).toLocaleString('en-IN')
-                                        : '',
-                                      drop_lakh: r.drop
-                                        ? Number(r.drop).toLocaleString('en-IN')
-                                        : '',
-                                      cashback_lakh: r.cashback
-                                        ? Number(r.cashback).toLocaleString('en-IN')
-                                        : '',
+          setForm({
+            employee_name: r.employee_name || '',
+            manager_tl: r.manager_tl || '',
+            total_logins: String(r.login ?? r.total_logins ?? 0 || ''),
+            approval_lakh: r.approval ? Number(r.approval).toLocaleString('en-IN') : '',
+            disbursal_lakh: r.disbursal ? Number(r.disbursal).toLocaleString('en-IN') : '',
+            drop_lakh: r.drop ? Number(r.drop).toLocaleString('en-IN') : '',
+            cashback_lakh: r.cashback ? Number(r.cashback).toLocaleString('en-IN') : '',
+            code: r.code || '',
+          });
 
-                                      code: r.code || '',
-                                    });
-                                    setAmountUnit('rupees');
-                                    setFormOpen(true);
-                                  }}
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete row">
-                                <IconButton
-                                  color="error"
-                                  size="small"
-                                  onClick={() => onDelete(r._id)}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Stack>
-                          ) : (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              —
-                            </Typography>
-                          )}
+          setAmountUnit('rupees');
+          setFormOpen(true);
+        }}
+      >
+        <EditIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
+
+    {isAdmin && (
+      <Tooltip title="Delete row">
+        <IconButton color="error" size="small" onClick={() => onDelete(r._id)}>
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    )}
+  </Stack>
+) : (
+  <Typography variant="caption" color="text.secondary">
+    —
+  </Typography>
+)}
+
                         </TableCell>
                       </TableRow>
                     )
