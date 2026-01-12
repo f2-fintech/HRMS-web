@@ -6,6 +6,18 @@ import type { RootState, AppDispatch } from '@/redux/store';
 import { Snackbar, Alert } from '@mui/material';
 
 import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  BarChart,
+  Bar,
+} from 'recharts';
+
+import {
   createExpense,
   listExpenses,
   todayISO,
@@ -34,7 +46,6 @@ const prettyFileName = (url: string) => {
 const isImageUrl = (url: string) =>
   /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
 
-
 const getStatusChipStyle = (status: string): React.CSSProperties => {
   const base: React.CSSProperties = {
     display: 'inline-flex',
@@ -49,30 +60,14 @@ const getStatusChipStyle = (status: string): React.CSSProperties => {
 
   switch (status) {
     case 'approved':
-      return {
-        ...base,
-        background: 'rgba(34,197,94,0.12)',
-        color: '#166534',
-      };
+      return { ...base, background: 'rgba(34,197,94,0.12)', color: '#166534' };
     case 'paid':
-      return {
-        ...base,
-        background: 'rgba(59,130,246,0.12)',
-        color: '#1d4ed8',
-      };
+      return { ...base, background: 'rgba(59,130,246,0.12)', color: '#1d4ed8' };
     case 'rejected':
-      return {
-        ...base,
-        background: 'rgba(239,68,68,0.12)',
-        color: '#b91c1c',
-      };
+      return { ...base, background: 'rgba(239,68,68,0.12)', color: '#b91c1c' };
     case 'pending':
     default:
-      return {
-        ...base,
-        background: 'rgba(148,163,184,0.12)',
-        color: '#475569',
-      };
+      return { ...base, background: 'rgba(148,163,184,0.12)', color: '#475569' };
   }
 };
 
@@ -141,7 +136,7 @@ const companyApprovalOptions = [
   { label: 'Referral Partner Payment', value: 'referral_partner' },
   { label: 'Leave Encashment', value: 'leave_encashment' },
   { label: 'Data Purchase', value: 'data_purchase' },
-  { label: 'Advance From Company', value: 'data_purchase' },
+  { label: 'Advance From Company', value: 'advance_from_company' },
   { label: 'HR Admin Expense', value: 'managementabhinav' },
   { label: 'Management Expense(Harpreet Singh)', value: 'management' },
   { label: 'Management Expense(Abhinav Awal)', value: 'managementabhinav' },
@@ -214,9 +209,26 @@ const pillButtonGhost: React.CSSProperties = {
   gap: 6,
 };
 
+// --- graph helpers ---
+const monthKey = (d: string) => {
+  const dt = 
+  
+  new Date(d);
+  if (Number.isNaN(dt.getTime())) return '';
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const dayKey = (d: string) => {
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return '';
+  return String(dt.getDate()).padStart(2, '0');
+};
+
+const currencyINR = (n: number) =>
+  `₹ ${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+
 export default function ExpenseAdmin() {
   const dispatch = useDispatch<AppDispatch>();
-
   const defaultDate = useMemo(() => todayISO(), []);
 
   // Snackbar
@@ -245,9 +257,7 @@ export default function ExpenseAdmin() {
 
   // USER (ADMIN CHECK)
   const { isAdmin } = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return { isAdmin: false };
-    }
+    if (typeof window === 'undefined') return { isAdmin: false };
     const user: UserLS = JSON.parse(localStorage.getItem('user') || '{}');
     const rRaw =
       user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
@@ -261,9 +271,7 @@ export default function ExpenseAdmin() {
   ) as EmployeeType[];
 
   useEffect(() => {
-    if (!employees || employees.length === 0) {
-      dispatch(fetchEmployees());
-    }
+    if (!employees || employees.length === 0) dispatch(fetchEmployees());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -284,7 +292,6 @@ export default function ExpenseAdmin() {
       const nameFromObj = idOrObj?.first_name
         ? `${idOrObj.first_name} ${idOrObj.last_name || ''}`.trim()
         : undefined;
-
       const empFromMap = _id && empMap.has(_id) ? empMap.get(_id)! : undefined;
 
       const name =
@@ -294,18 +301,12 @@ export default function ExpenseAdmin() {
           : _id || '-');
 
       const image = idOrObj?.image || empFromMap?.image || '';
-
       return { name: name || '-', image };
     }
 
     const id = String(idOrObj);
     const emp = empMap.get(id);
-    if (emp) {
-      return {
-        name: `${emp.first_name} ${emp.last_name || ''}`.trim() || id,
-        image: emp.image,
-      };
-    }
+    if (emp) return { name: `${emp.first_name} ${emp.last_name || ''}`.trim() || id, image: emp.image };
     return { name: id, image: '' };
   };
 
@@ -325,7 +326,6 @@ export default function ExpenseAdmin() {
   const [paidAmount, setPaidAmount] = useState<string>('');
   const [description, setDescription] = useState('');
   const [invoices, setInvoices] = useState<File[]>([]);
-
   const [managerId] = useState<string>('');
 
   const [expenseChannel, setExpenseChannel] = useState('');
@@ -375,6 +375,7 @@ export default function ExpenseAdmin() {
 
   const [note, setNote] = useState('');
   const [selectedId, setSelectedId] = useState<string>('');
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
   const [verifyingId, setVerifyingId] = useState<string>('');
 
   // 🆕 Payment preview: text + invoices + QR
@@ -383,6 +384,11 @@ export default function ExpenseAdmin() {
     invoices: string[];
     qrUrl?: string | null;
   } | null>(null);
+
+  // ✅ Text preview (Description / Admin Note)
+  const [textPreview, setTextPreview] = useState<{ title: string; text: string } | null>(
+    null,
+  );
 
   const showCategory = (r: any) =>
     r?.company_admin === 'other' ? r?.custom_category || 'Other' : r?.company_admin;
@@ -407,14 +413,55 @@ export default function ExpenseAdmin() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin]);
 
+  const currentMonth = useMemo(() => monthKey(todayISO()), []);
+  const currentMonthRows = useMemo(
+    () => (rows || []).filter((r) => monthKey(r.date) === currentMonth),
+    [rows, currentMonth],
+  );
+
+  const monthTotal = useMemo(
+    () => currentMonthRows.reduce((sum, r) => sum + Number(r.paid_amount || 0), 0),
+    [currentMonthRows],
+  );
+
+  const dailySeries = useMemo(() => {
+    const map = new Map<string, number>();
+    currentMonthRows.forEach((r) => {
+      const k = dayKey(r.date);
+      map.set(k, (map.get(k) || 0) + Number(r.paid_amount || 0));
+    });
+
+    return Array.from(map.entries())
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .map(([day, amount]) => ({ day, amount }));
+  }, [currentMonthRows]);
+
+  const categorySeries = useMemo(() => {
+    const map = new Map<string, number>();
+    currentMonthRows.forEach((r) => {
+      const cat = showCategory(r) || 'Other';
+      map.set(cat, (map.get(cat) || 0) + Number(r.paid_amount || 0));
+    });
+
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([category, amount]) => ({ category, amount }));
+  }, [currentMonthRows]);
+
+  const statusTotals = useMemo(() => {
+    const m: Record<string, number> = { pending: 0, approved: 0, paid: 0, rejected: 0 };
+    currentMonthRows.forEach((r) => {
+      const st = String(r.admin_status || 'pending');
+      m[st] = (m[st] || 0) + Number(r.paid_amount || 0);
+    });
+    return m;
+  }, [currentMonthRows]);
+
   // ADMIN VERIFY
-  async function verify(
-    id: string,
-    status: 'approved' | 'rejected' | 'paid' | 'pending',
-  ) {
+  async function verify(id: string, status: 'approved' | 'rejected' | 'paid' | 'pending') {
     try {
       if (!isAdmin) return;
       setVerifyingId(id);
@@ -422,6 +469,7 @@ export default function ExpenseAdmin() {
       await adminVerifyExpense(id, { status, note });
 
       setSelectedId('');
+      setSelectedRow(null);
       setNote('');
       await load();
 
@@ -471,9 +519,7 @@ export default function ExpenseAdmin() {
 
     setCompanyAdmin((row.company_admin as CompanyAdminValue) || 'cake');
     setCustomCategory(row.custom_category || '');
-    setCompanyApproval(
-      (row.company_approval as CompanyApprovalValue) || 'company_approval',
-    );
+    setCompanyApproval((row.company_approval as CompanyApprovalValue) || 'company_approval');
 
     setPaidAmount(row.paid_amount != null ? String(row.paid_amount) : '');
     setDescription(row.description || '');
@@ -530,9 +576,7 @@ export default function ExpenseAdmin() {
     setQrFile(null);
     setInvoices([]);
 
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
@@ -541,7 +585,6 @@ export default function ExpenseAdmin() {
         const ok = window.confirm('Are you sure you want to delete this expense?');
         if (!ok) return;
       }
-
       await softDeleteExpense(id);
       showSnackbar('Expense deleted successfully 🗑️', 'success');
       await load();
@@ -557,70 +600,42 @@ export default function ExpenseAdmin() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!date) {
-      showSnackbar('Submission date required', 'error');
-      return;
-    }
-    if (!companyAdmin) {
-      showSnackbar('Company Admin required', 'error');
-      return;
-    }
-    if (isOther && !customCategory.trim()) {
-      showSnackbar('Please enter Other expense name', 'error');
-      return;
-    }
-    if (!companyApproval) {
-      showSnackbar('More Expense Type required', 'error');
-      return;
-    }
-    if (!paidAmount.trim()) {
-      showSnackbar('Paid amount required', 'error');
-      return;
-    }
+    if (!date) return showSnackbar('Submission date required', 'error');
+    if (!companyAdmin) return showSnackbar('Company Admin required', 'error');
+    if (isOther && !customCategory.trim())
+      return showSnackbar('Please enter Other expense name', 'error');
+    if (!companyApproval) return showSnackbar('More Expense Type required', 'error');
+    if (!paidAmount.trim()) return showSnackbar('Paid amount required', 'error');
 
     const amt = Number(paidAmount);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      showSnackbar('Paid amount must be valid number', 'error');
-      return;
-    }
+    if (!Number.isFinite(amt) || amt <= 0)
+      return showSnackbar('Paid amount must be valid number', 'error');
 
-    if (companyApproval === 'expense_channel' && !expenseChannel.trim()) {
-      showSnackbar('Expense Channel required', 'error');
-      return;
-    }
-    if (companyApproval === 'referral_partner' && !referralPartner.trim()) {
-      showSnackbar('Referral Partner required', 'error');
-      return;
-    }
+    if (companyApproval === 'expense_channel' && !expenseChannel.trim())
+      return showSnackbar('Expense Channel required', 'error');
+
+    if (companyApproval === 'referral_partner' && !referralPartner.trim())
+      return showSnackbar('Referral Partner required', 'error');
 
     let payment: string | undefined;
 
     if (paymentMode === 'account') {
-      if (
-        !accountHolder.trim() ||
-        !bankName.trim() ||
-        !accountNumber.trim() ||
-        !ifsc.trim()
-      ) {
+      if (!accountHolder.trim() || !bankName.trim() || !accountNumber.trim() || !ifsc.trim()) {
         showSnackbar(
           'Account Holder, Bank Name, Account Number & IFSC are required for Account payment',
           'error',
         );
         return;
       }
-      const parts = [
+      payment = [
         'Account Transfer',
         `Name: ${accountHolder.trim()}`,
         `Bank: ${bankName.trim()}`,
         `A/c: ${accountNumber.trim()}`,
         `IFSC: ${ifsc.trim()}`,
-      ];
-      payment = parts.join(' | ');
+      ].join(' | ');
     } else if (paymentMode === 'upi') {
-      if (!upiId.trim()) {
-        showSnackbar('UPI ID is required', 'error');
-        return;
-      }
+      if (!upiId.trim()) return showSnackbar('UPI ID is required', 'error');
       payment = `UPI | ID: ${upiId.trim()}`;
     } else if (paymentMode === 'qr') {
       payment = `QR Payment${qrNote.trim() ? ' | ' + qrNote.trim() : ''}`;
@@ -638,12 +653,10 @@ export default function ExpenseAdmin() {
       company_approval: companyApproval as any,
       paid_amount: amt,
       description,
-      expense_channel:
-        companyApproval === 'expense_channel' ? expenseChannel : undefined,
+      expense_channel: companyApproval === 'expense_channel' ? expenseChannel : undefined,
       cashback_to_customer:
         companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
-      referral_partner:
-        companyApproval === 'referral_partner' ? referralPartner : undefined,
+      referral_partner: companyApproval === 'referral_partner' ? referralPartner : undefined,
       payment,
       payment_mode: paymentMode,
       account_holder: paymentMode === 'account' ? accountHolder.trim() : undefined,
@@ -656,7 +669,6 @@ export default function ExpenseAdmin() {
 
     try {
       setSaving(true);
-
       if (editingId) {
         await updateExpense(editingId, payload, allFiles);
         showSnackbar('Expense updated successfully ✅', 'success');
@@ -665,7 +677,6 @@ export default function ExpenseAdmin() {
         showSnackbar('Expense created successfully ✅', 'success');
         setPage(1);
       }
-
       resetForm();
       setOpen(false);
       await load();
@@ -739,11 +750,8 @@ export default function ExpenseAdmin() {
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           <button
             onClick={() => {
-              if (open) {
-                resetForm();
-              } else {
-                setEditingId(null);
-              }
+              if (open) resetForm();
+              else setEditingId(null);
               setOpen((v) => !v);
             }}
             style={{
@@ -761,12 +769,156 @@ export default function ExpenseAdmin() {
         </div>
       </div>
 
+      {/* ✅ MONTHLY GRAPH SUMMARY */}
+      <div
+        style={{
+          marginTop: 12,
+          borderRadius: 18,
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
+          padding: 14,
+          boxShadow: '0 12px 28px rgba(15,23,42,0.08)',
+        }}
+      >
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'stretch' }}>
+          {/* Total */}
+          <div
+            style={{
+              flex: '1 1 220px',
+              borderRadius: 14,
+              padding: 12,
+              border: '1px solid #eef2f7',
+              background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.06))',
+            }}
+          >
+            <div style={{ fontSize: 12, color: '#6b7280' }}>This Month Total Spend</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#111827', marginTop: 2 }}>
+              {currencyINR(monthTotal)}
+            </div>
+            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+              Month: <b>{currentMonth}</b>
+            </div>
+          </div>
+
+          {/* Status cards */}
+          {(['paid', 'approved', 'pending', 'rejected'] as const).map((k) => (
+            <div
+              key={k}
+              style={{
+                flex: '1 1 160px',
+                borderRadius: 14,
+                padding: 12,
+                border: '1px solid #eef2f7',
+                background: '#fbfdff',
+              }}
+            >
+              <div style={{ fontSize: 12, color: '#6b7280' }}>{getStatusLabel(k)}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', marginTop: 2 }}>
+                {currencyINR(statusTotals[k] || 0)}
+              </div>
+              <div style={{ marginTop: 6 }}>
+                <span style={getStatusChipStyle(k)}>{getStatusLabel(k)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 12, marginTop: 12 }}>
+          {/* Daily Spend Line */}
+          <div
+            style={{
+              borderRadius: 14,
+              border: '1px solid #eef2f7',
+              background: '#ffffff',
+              padding: 10,
+              minHeight: 260,
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
+              Daily Spend (This Month)
+            </div>
+
+            {dailySeries.length === 0 ? (
+              <div style={{ fontSize: 12, color: '#9ca3af', padding: 12 }}>No data for this month</div>
+            ) : (
+              <div style={{ width: '100%', height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={dailySeries}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="amount" strokeWidth={3} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          {/* Category Bar */}
+          <div
+            style={{
+              borderRadius: 14,
+              border: '1px solid #eef2f7',
+              background: '#ffffff',
+              padding: 10,
+              minHeight: 260,
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
+              Top Categories (This Month)
+            </div>
+
+            {categorySeries.length === 0 ? (
+              <div style={{ fontSize: 12, color: '#9ca3af', padding: 12 }}>No data for this month</div>
+            ) : (
+              <div style={{ width: '100%', height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={categorySeries}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" hide />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="amount" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {categorySeries.length > 0 && (
+              <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {categorySeries.slice(0, 6).map((c) => (
+                  <span
+                    key={c.category}
+                    style={{
+                      fontSize: 11,
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      background: '#f1f5f9',
+                      border: '1px solid #e5e7eb',
+                      color: '#334155',
+                      maxWidth: 220,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                    title={`${c.category} - ${currencyINR(c.amount)}`}
+                  >
+                    {c.category}: <b>{currencyINR(c.amount)}</b>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* CREATE / EDIT FORM */}
       {open && (
         <form
           onSubmit={onSubmit}
           style={{
-            marginTop: 8,
+            marginTop: 12,
             borderRadius: 18,
             background: '#ffffff',
             boxShadow: '0 18px 50px rgba(15, 23, 42, 0.12)',
@@ -863,9 +1015,7 @@ export default function ExpenseAdmin() {
                   <label style={fieldLabelStyle}>Expense Type</label>
                   <select
                     value={companyApproval}
-                    onChange={(e) =>
-                      setCompanyApproval(e.target.value as CompanyApprovalValue)
-                    }
+                    onChange={(e) => setCompanyApproval(e.target.value as CompanyApprovalValue)}
                     style={fieldInputStyle}
                   >
                     {companyApprovalOptions.map((o) => (
@@ -996,14 +1146,7 @@ export default function ExpenseAdmin() {
             <div style={{ marginTop: 12 }}>
               <label style={fieldLabelStyle}>Payment Mode</label>
 
-              <div
-                style={{
-                  marginTop: 6,
-                  display: 'flex',
-                  gap: 12,
-                  flexWrap: 'wrap',
-                }}
-              >
+              <div style={{ marginTop: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ flex: '0 0 230px', maxWidth: 260 }}>
                   <select
                     value={paymentMode}
@@ -1099,8 +1242,6 @@ export default function ExpenseAdmin() {
                     alignItems: 'flex-start',
                   }}
                 >
-                 
-
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <label style={fieldLabelStyle}>Upload QR Image</label>
                     <div
@@ -1124,27 +1265,19 @@ export default function ExpenseAdmin() {
                         }}
                       />
                       {qrFile && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <img
                             src={URL.createObjectURL(qrFile)}
                             alt="QR Preview"
                             style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 8,
+                              width: 44,
+                              height: 44,
+                              borderRadius: 10,
                               objectFit: 'cover',
                               border: '1px solid #e5e7eb',
                             }}
                           />
-                          <div style={{ fontSize: 11, color: '#4b5563' }}>
-                            {qrFile.name}
-                          </div>
+                          <div style={{ fontSize: 11, color: '#4b5563' }}>{qrFile.name}</div>
                         </div>
                       )}
                     </div>
@@ -1180,16 +1313,9 @@ export default function ExpenseAdmin() {
               <button
                 type="submit"
                 disabled={saving}
-                style={{
-                  ...pillButtonPrimary,
-                  opacity: saving ? 0.7 : 1,
-                }}
+                style={{ ...pillButtonPrimary, opacity: saving ? 0.7 : 1 }}
               >
-                {saving
-                  ? 'Saving...'
-                  : editingId
-                    ? 'Update Expense'
-                    : 'Submit Expense'}
+                {saving ? 'Saving...' : editingId ? 'Update Expense' : 'Submit Expense'}
               </button>
             </div>
           </div>
@@ -1200,7 +1326,7 @@ export default function ExpenseAdmin() {
       <div style={{ marginTop: 18 }}>
         <div
           style={{
-            marginTop: 40,
+            marginTop: 18,
             overflowX: 'auto',
             border: '1px solid #e5e7eb',
             borderRadius: 14,
@@ -1213,11 +1339,12 @@ export default function ExpenseAdmin() {
                 {[
                   'Date',
                   'Employee',
-                  'Manager',
                   'Category',
-                  'Paid',
+                  'Description',
+                  'Amount To Pay',
                   'Payment Details',
-                  'Admin Status',
+                  'Status',
+                  'Admin Note',
                   'Invoices',
                   'Action',
                 ].map((h) => (
@@ -1231,6 +1358,7 @@ export default function ExpenseAdmin() {
                       background: '#f9fafb',
                       color: '#4b5563',
                       fontWeight: 600,
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {h}
@@ -1248,21 +1376,17 @@ export default function ExpenseAdmin() {
                   const canVerify = isAdmin;
 
                   const owner = getEmpData(r.owner_id);
-                  const manager = getEmpData(r.manager_id);
 
-                  const allInvoiceUrls: string[] = Array.isArray(r.invoices)
-                    ? r.invoices
-                    : [];
-
+                  const allInvoiceUrls: string[] = Array.isArray(r.invoices) ? r.invoices : [];
                   const isQrPayment = String(r.payment || '').startsWith('QR Payment');
 
-                  // ✅ QR ko invoices se alag kar rahe hain
+                  // ✅ QR ko invoices se alag
                   let invoiceUrls: string[] = allInvoiceUrls;
                   let qrUrl: string | null = null;
 
                   if (isQrPayment && allInvoiceUrls.length > 0) {
                     qrUrl = allInvoiceUrls[allInvoiceUrls.length - 1]; // last file = QR
-                    invoiceUrls = allInvoiceUrls.slice(0, -1); // baaki invoice
+                    invoiceUrls = allInvoiceUrls.slice(0, -1);
                   }
 
                   return (
@@ -1285,13 +1409,7 @@ export default function ExpenseAdmin() {
                           fontSize: 12,
                         }}
                       >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           {owner.image && (
                             <img
                               src={owner.image}
@@ -1309,107 +1427,54 @@ export default function ExpenseAdmin() {
                         </div>
                       </td>
 
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
-                          {manager.image && (
-                            <img
-                              src={manager.image}
-                              alt={manager.name}
-                              style={{
-                                width: 26,
-                                height: 26,
-                                borderRadius: '50%',
-                                objectFit: 'cover',
-                                border: '1px solid #e5e7eb',
-                              }}
-                            />
-                          )}
-                          <span>{manager.name}</span>
-                        </div>
-                      </td>
-
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                        }}
-                      >
+                      <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1', fontSize: 12 }}>
                         {showCategory(r)}
                       </td>
 
+                      {/* ✅ Description (only view) */}
                       <td
                         style={{
                           padding: 10,
                           borderBottom: '1px solid #f1f1f1',
                           fontSize: 12,
+                          minWidth: 120,
+                          maxWidth: 140,
                         }}
                       >
-                        {r.paid_amount}
-                      </td>
-
-                      {/* Payment Details */}
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                          maxWidth: 260,
-                        }}
-                      >
-                        {r.payment ? (
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                            }}
-                          >
+                        {r.description ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span
                               style={{
-                                display: 'inline-block',
+                                fontSize: 11,
+                                color: '#9ca3af',
+                                fontStyle: 'italic',
                                 whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                maxWidth: 180,
                               }}
-                              title={r.payment}
                             >
-                              {r.payment}
+                              Description
                             </span>
 
                             <button
                               type="button"
                               onClick={() =>
-                                setPaymentPreview({
-                                  text: r.payment,
-                                  invoices: invoiceUrls,
-                                  qrUrl,
-                                })
+                                setTextPreview({ title: 'Description', text: String(r.description) })
                               }
+                              title="View Description"
                               style={{
-                                padding: '4px 10px',
+                                padding: '5px 8px',
                                 borderRadius: 999,
-                                border: '1px solid #d1d5db',
-                                background: '#f9fafb',
-                                fontSize: 11,
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                fontSize: 12,
                                 cursor: 'pointer',
-                                whiteSpace: 'nowrap',
+                                color: '#ffffff',
+                                boxShadow: '0 4px 10px rgba(99,102,241,0.35)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                               }}
                             >
-                              View
+                              👁
                             </button>
                           </div>
                         ) : (
@@ -1417,28 +1482,126 @@ export default function ExpenseAdmin() {
                         )}
                       </td>
 
+                      <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1', fontSize: 12 }}>
+                        {r.paid_amount}
+                      </td>
+
+                      {/* ✅ Payment Details (only view) */}
                       <td
                         style={{
                           padding: 10,
                           borderBottom: '1px solid #f1f1f1',
                           fontSize: 12,
+                          minWidth: 120,
+                          maxWidth: 140,
                         }}
                       >
+                        {r.payment ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: '#9ca3af',
+                                fontStyle: 'italic',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Payment
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPaymentPreview({
+                                  text: String(r.payment),
+                                  invoices: invoiceUrls,
+                                  qrUrl,
+                                })
+                              }
+                              title="View Payment Details"
+                              style={{
+                                padding: '5px 8px',
+                                borderRadius: 999,
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                color: '#ffffff',
+                                boxShadow: '0 4px 10px rgba(14,165,233,0.35)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              👁
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
+                        )}
+                      </td>
+
+                      <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1', fontSize: 12 }}>
                         <span style={getStatusChipStyle(r.admin_status)}>
                           {getStatusLabel(r.admin_status)}
                         </span>
                       </td>
 
-                      {/* Invoices column */}
+                      {/* ✅ Admin Note (only view) */}
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                          minWidth: 120,
+                          maxWidth: 140,
+                        }}
+                      >
+                        {r.admin_note ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: '#9ca3af',
+                                fontStyle: 'italic',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Note
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setTextPreview({ title: 'Note', text: String(r.admin_note) })
+                              }
+                              title="Admin Response"
+                              style={{
+                                padding: '5px 8px',
+                                borderRadius: 999,
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                color: '#ffffff',
+                                boxShadow: '0 4px 10px rgba(99,102,241,0.35)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              👁
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
+                        )}
+                      </td>
+
+                      {/* Invoices */}
                       <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1' }}>
                         {invoiceUrls.length > 0 ? (
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexWrap: 'wrap',
-                              gap: 8,
-                            }}
-                          >
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                             {invoiceUrls.map((url: string, idx: number) => {
                               const name = prettyFileName(url);
                               const img = isImageUrl(url);
@@ -1491,17 +1654,13 @@ export default function ExpenseAdmin() {
                             })}
                           </div>
                         ) : qrUrl ? (
-                          <span style={{ fontSize: 11, color: '#6b7280' }}>
-                            No invoice – only QR (see <b>View</b>)
-                          </span>
+                          <span style={{ fontSize: 11, color: '#6b7280' }}>only QR Uploaded</span>
                         ) : (
-                          <span style={{ fontSize: 11, color: '#9ca3af' }}>
-                            No invoice
-                          </span>
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>No invoice</span>
                         )}
                       </td>
 
-                      {/* Action */}
+                      {/* Action (one line) */}
                       <td
                         style={{
                           padding: 10,
@@ -1510,47 +1669,41 @@ export default function ExpenseAdmin() {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        <div
-                          style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 6,
-                          }}
-                        >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
                           <button
                             type="button"
                             disabled={!canEdit}
                             onClick={() => startEdit(r)}
+                            title="Edit Expense"
                             style={{
-                              padding: '5px 10px',
+                              padding: '5px 8px',
                               borderRadius: 999,
                               border: 'none',
-                              fontSize: 11,
-                              fontWeight: 600,
+                              fontSize: 12,
                               cursor: canEdit ? 'pointer' : 'not-allowed',
                               background: canEdit ? '#0ea5e9' : '#e5e7eb',
                               color: canEdit ? '#ffffff' : '#9ca3af',
                             }}
                           >
-                            Edit
+                            ✏️
                           </button>
 
                           <button
                             type="button"
                             disabled={!canDelete}
                             onClick={() => handleDelete(r._id)}
+                            title="Delete Expense"
                             style={{
-                              padding: '5px 10px',
+                              padding: '5px 8px',
                               borderRadius: 999,
                               border: 'none',
-                              fontSize: 11,
-                              fontWeight: 600,
+                              fontSize: 12,
                               cursor: canDelete ? 'pointer' : 'not-allowed',
                               background: canDelete ? '#ef4444' : '#e5e7eb',
                               color: canDelete ? '#ffffff' : '#9ca3af',
                             }}
                           >
-                            Del
+                            🗑
                           </button>
 
                           <button
@@ -1559,20 +1712,19 @@ export default function ExpenseAdmin() {
                             onClick={() => {
                               if (!canVerify || isRowVerifying) return;
                               setSelectedId(r._id);
-                              setNote('');
+                              setSelectedRow(r);
+                              setNote(r.admin_note || '');
                             }}
+                            title="Change Status"
                             style={{
                               padding: '5px 10px',
                               borderRadius: 999,
                               border: 'none',
                               fontSize: 11,
                               fontWeight: 600,
-                              cursor:
-                                !canVerify || isRowVerifying ? 'not-allowed' : 'pointer',
-                              background:
-                                canVerify && !isRowVerifying ? '#1d4ed8' : '#e5e7eb',
-                              color:
-                                canVerify && !isRowVerifying ? '#ffffff' : '#9ca3af',
+                              cursor: !canVerify || isRowVerifying ? 'not-allowed' : 'pointer',
+                              background: canVerify && !isRowVerifying ? '#1d4ed8' : '#e5e7eb',
+                              color: canVerify && !isRowVerifying ? '#ffffff' : '#9ca3af',
                               boxShadow:
                                 canVerify && !isRowVerifying
                                   ? '0 3px 10px rgba(37, 99, 235, 0.35)'
@@ -1586,7 +1738,7 @@ export default function ExpenseAdmin() {
                                 : 'Verify'
                               : isRowVerifying
                                 ? 'Updating...'
-                                : 'Change Status'}
+                                : 'Change'}
                           </button>
                         </div>
                       </td>
@@ -1612,271 +1764,6 @@ export default function ExpenseAdmin() {
             </tbody>
           </table>
         </div>
-
-        {/* ADMIN VERIFY DIALOG */}
-        {selectedId && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(15,23,42,0.45)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 60,
-            }}
-          >
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: 18,
-                maxWidth: 520,
-                width: '90%',
-                padding: 16,
-                boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 8,
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 600 }}>
-                  Admin Verify Expense
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedId('');
-                    setNote('');
-                  }}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    fontSize: 18,
-                    lineHeight: 1,
-                    cursor: 'pointer',
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-
-              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
-                Please add a note and choose <b>Approve</b>, <b>Paid</b> or{' '}
-                <b>Reject</b> for this expense. You can also reset it to{' '}
-                <b>Pending</b>.
-              </div>
-
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: 10,
-                  borderRadius: 10,
-                  border: '1px solid #dde2eb',
-                  fontSize: 12,
-                  resize: 'vertical',
-                  minHeight: 80,
-                }}
-                placeholder="Add a note for approval / rejection / payment..."
-              />
-
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 10,
-                  marginTop: 12,
-                  justifyContent: 'flex-end',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <button
-                  disabled={verifyingId === selectedId}
-                  onClick={() => verify(selectedId, 'pending')}
-                  style={{
-                    ...pillButtonGhost,
-                    opacity: verifyingId === selectedId ? 0.6 : 1,
-                  }}
-                >
-                  {verifyingId === selectedId ? 'Updating…' : 'Mark Pending'}
-                </button>
-
-                <button
-                  disabled={verifyingId === selectedId}
-                  onClick={() => verify(selectedId, 'approved')}
-                  style={{
-                    ...pillButtonPrimary,
-                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                    boxShadow: '0 8px 18px rgba(34, 197, 94, 0.3)',
-                    opacity: verifyingId === selectedId ? 0.6 : 1,
-                  }}
-                >
-                  {verifyingId === selectedId ? 'Approving…' : 'Approve'}
-                </button>
-
-                <button
-                  disabled={verifyingId === selectedId}
-                  onClick={() => verify(selectedId, 'paid')}
-                  style={{
-                    ...pillButtonPrimary,
-                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                    boxShadow: '0 8px 18px rgba(59,130,246,0.35)',
-                    opacity: verifyingId === selectedId ? 0.6 : 1,
-                  }}
-                >
-                  {verifyingId === selectedId ? 'Marking…' : 'Mark as Paid'}
-                </button>
-
-                <button
-                  disabled={verifyingId === selectedId}
-                  onClick={() => verify(selectedId, 'rejected')}
-                  style={{
-                    ...pillButtonPrimary,
-                    background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                    boxShadow: '0 8px 18px rgba(239, 68, 68, 0.3)',
-                    opacity: verifyingId === selectedId ? 0.6 : 1,
-                  }}
-                >
-                  {verifyingId === selectedId ? 'Rejecting…' : 'Reject'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedId('');
-                    setNote('');
-                  }}
-                  style={pillButtonGhost}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PAYMENT DETAILS DIALOG */}
-        {paymentPreview && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(15,23,42,0.45)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 50,
-            }}
-          >
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: 18,
-                maxWidth: 520,
-                width: '90%',
-                padding: 16,
-                boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 8,
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 600 }}>Payment Details</div>
-                <button
-                  type="button"
-                  onClick={() => setPaymentPreview(null)}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    fontSize: 18,
-                    lineHeight: 1,
-                    cursor: 'pointer',
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-
-              {/* Text */}
-              <div
-                style={{
-                  fontSize: 12,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  lineHeight: 1.5,
-                  padding: '6px 0 4px',
-                }}
-              >
-                {paymentPreview.text}
-              </div>
-
-         
-
-              {/* ✅ QR Image (agar hai) */}
-              {paymentPreview.qrUrl && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    padding: 10,
-                    borderRadius: 12,
-                    border: '1px solid #e5e7eb',
-                    background: '#f9fafb',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      marginBottom: 6,
-                      color: '#4b5563',
-                      fontWeight: 500,
-                    }}
-                  >
-                    QR Image:
-                  </div>
-                  <img
-                    src={paymentPreview.qrUrl}
-                    alt="QR"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: 260,
-                      borderRadius: 10,
-                      objectFit: 'contain',
-                      border: '1px solid #e5e7eb',
-                      background: '#ffffff',
-                    }}
-                  />
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  marginTop: 12,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setPaymentPreview(null)}
-                  style={pillButtonPrimary}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* pagination */}
         <div
@@ -1920,6 +1807,333 @@ export default function ExpenseAdmin() {
         </div>
       </div>
 
+      {/* ADMIN VERIFY DIALOG */}
+      {selectedId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15,23,42,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 60,
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 18,
+              maxWidth: 520,
+              width: '90%',
+              padding: 16,
+              boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Admin Verify Expense</div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedId('');
+                  setSelectedRow(null);
+                  setNote('');
+                }}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: 18,
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {selectedRow && (
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+                Current: <b>{getStatusLabel(selectedRow.admin_status)}</b>
+              </div>
+            )}
+
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+              Please add a note and choose <b>Approve</b>, <b>Paid</b> or <b>Reject</b>. You can also
+              reset it to <b>Pending</b>.
+            </div>
+
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              style={{
+                width: '100%',
+                padding: 10,
+                borderRadius: 10,
+                border: '1px solid #dde2eb',
+                fontSize: 12,
+                resize: 'vertical',
+                minHeight: 80,
+              }}
+              placeholder="Add a note for approval / rejection / payment..."
+            />
+
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                marginTop: 12,
+                justifyContent: 'flex-end',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                disabled={verifyingId === selectedId}
+                onClick={() => verify(selectedId, 'pending')}
+                style={{ ...pillButtonGhost, opacity: verifyingId === selectedId ? 0.6 : 1 }}
+              >
+                {verifyingId === selectedId ? 'Updating…' : 'Mark Pending'}
+              </button>
+
+              <button
+                disabled={verifyingId === selectedId}
+                onClick={() => verify(selectedId, 'approved')}
+                style={{
+                  ...pillButtonPrimary,
+                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  boxShadow: '0 8px 18px rgba(34, 197, 94, 0.3)',
+                  opacity: verifyingId === selectedId ? 0.6 : 1,
+                }}
+              >
+                {verifyingId === selectedId ? 'Approving…' : 'Approve'}
+              </button>
+
+              <button
+                disabled={verifyingId === selectedId}
+                onClick={() => verify(selectedId, 'paid')}
+                style={{
+                  ...pillButtonPrimary,
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  boxShadow: '0 8px 18px rgba(59,130,246,0.35)',
+                  opacity: verifyingId === selectedId ? 0.6 : 1,
+                }}
+              >
+                {verifyingId === selectedId ? 'Marking…' : 'Mark as Paid'}
+              </button>
+
+              <button
+                disabled={verifyingId === selectedId}
+                onClick={() => verify(selectedId, 'rejected')}
+                style={{
+                  ...pillButtonPrimary,
+                  background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                  boxShadow: '0 8px 18px rgba(239, 68, 68, 0.3)',
+                  opacity: verifyingId === selectedId ? 0.6 : 1,
+                }}
+              >
+                {verifyingId === selectedId ? 'Rejecting…' : 'Reject'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedId('');
+                  setSelectedRow(null);
+                  setNote('');
+                }}
+                style={pillButtonGhost}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAYMENT DETAILS DIALOG (✅ QR bigger) */}
+      {paymentPreview && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15,23,42,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 18,
+              maxWidth: 720,
+              width: '92%',
+              padding: 16,
+              boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Payment Details</div>
+              <button
+                type="button"
+                onClick={() => setPaymentPreview(null)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: 18,
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Text */}
+            <div
+              style={{
+                fontSize: 12,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                lineHeight: 1.5,
+                padding: '6px 0 4px',
+              }}
+            >
+              {paymentPreview.text}
+            </div>
+
+            {/* QR Image */}
+            {paymentPreview.qrUrl && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: 10,
+                  borderRadius: 12,
+                  border: '1px solid #e5e7eb',
+                  background: '#f9fafb',
+                }}
+              >
+                <div style={{ fontSize: 11, color: '#4b5563', marginBottom: 6, fontWeight: 600 }}>
+                  QR Image (click to open)
+                </div>
+
+                <a href={paymentPreview.qrUrl} target="_blank" rel="noreferrer">
+                  <img
+                    src={paymentPreview.qrUrl}
+                    alt="QR"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: 280, // ✅ bigger
+                      borderRadius: 12,
+                      objectFit: 'contain',
+                      border: '1px solid #e5e7eb',
+                      background: '#ffffff',
+                      cursor: 'zoom-in',
+                    }}
+                  />
+                </a>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+              <button type="button" onClick={() => setPaymentPreview(null)} style={pillButtonPrimary}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TEXT PREVIEW DIALOG */}
+      {textPreview && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15,23,42,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 55,
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 18,
+              maxWidth: 520,
+              width: '90%',
+              padding: 16,
+              boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{textPreview.title}</div>
+              <button
+                type="button"
+                onClick={() => setTextPreview(null)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: 18,
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div
+              style={{
+                fontSize: 12,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                lineHeight: 1.6,
+                color: '#374151',
+                maxHeight: 320,
+                overflow: 'auto',
+                border: '1px solid #e5e7eb',
+                borderRadius: 12,
+                padding: 10,
+                background: '#f9fafb',
+              }}
+            >
+              {textPreview.text}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+              <button type="button" onClick={() => setTextPreview(null)} style={pillButtonPrimary}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={4000}
@@ -1927,11 +2141,7 @@ export default function ExpenseAdmin() {
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{ mt: 2 }}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          sx={{ width: '100%' }}
-        >
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>
