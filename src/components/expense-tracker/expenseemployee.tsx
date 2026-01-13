@@ -1,6 +1,5 @@
 // =======================================
-// ✅ ExpenseEmployee.tsx
-// (STRICT EMP VIEW + FRONTEND SAFETY FILTER + PAYMENT DROPDOWN + QR UPLOAD + PAYMENT DIALOG + EDIT/DELETE)
+// ✅ ExpenseEmployee.tsx (PREMIUM UI + DESCRIPTION VIEW + PAYMENT VIEW + QR IN PAYMENT MODAL + INVOICE ONLY)
 // =======================================
 'use client';
 
@@ -109,53 +108,6 @@ type UserLS = {
 // 🆕 payment mode type
 type PaymentMode = 'account' | 'upi' | 'qr';
 
-// -------- shared UI styles ----------
-const fieldLabelStyle: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  color: '#55657a',
-};
-
-const fieldInputStyle: React.CSSProperties = {
-  padding: '9px 10px',
-  borderRadius: 10,
-  border: '1px solid #dde2eb',
-  fontSize: 13,
-  outline: 'none',
-  background: '#fdfdfd',
-};
-
-const pillButtonPrimary: React.CSSProperties = {
-  padding: '8px 16px',
-  borderRadius: 999,
-  border: 'none',
-  background: 'linear-gradient(135deg, #0aa674, #068f63)',
-  color: '#fff',
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: 'pointer',
-  boxShadow: '0 6px 16px rgba(6, 143, 99, 0.25)',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-};
-
-const pillButtonGhost: React.CSSProperties = {
-  padding: '8px 16px',
-  borderRadius: 999,
-  border: '1px solid #dde2eb',
-  background: '#f8fafc',
-  color: '#4b5563',
-  fontSize: 13,
-  fontWeight: 500,
-  cursor: 'pointer',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-};
-
 // small helper: get label from options
 function getOptionLabel(
   value: string | undefined,
@@ -174,7 +126,7 @@ async function updateExpenseRequest(id: string, body: Record<string, any>, files
     typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const companyId =
     (typeof window !== 'undefined' &&
-      (localStorage.getItem('company_id') || user.company_id)) ||
+      (localStorage.getItem('company_id') || (user as any).company_id)) ||
     '';
 
   const fd = new FormData();
@@ -208,19 +160,16 @@ async function softDeleteExpenseRequest(id: string) {
     typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const companyId =
     (typeof window !== 'undefined' &&
-      (localStorage.getItem('company_id') || user.company_id)) ||
+      (localStorage.getItem('company_id') || (user as any).company_id)) ||
     '';
 
-  const res = await fetch(
-    `${base}/expense-tracker/${encodeURIComponent(id)}/delete`,
-    {
-      method: 'Delete',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'x-company-id': companyId,
-      } as any,
-    },
-  );
+  const res = await fetch(`${base}/expense-tracker/${encodeURIComponent(id)}/delete`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'x-company-id': companyId,
+    } as any,
+  });
 
   if (!res.ok) {
     const txt = await res.text();
@@ -230,6 +179,180 @@ async function softDeleteExpenseRequest(id: string) {
   return res.json();
 }
 
+/** =========================
+ * ✅ PREMIUM UI TOKENS (Improved Colors)
+ * ========================= */
+const ui = {
+  pageBg:
+    'radial-gradient(1200px 700px at 15% 0%, rgba(99,102,241,0.18) 0%, rgba(59,130,246,0.10) 30%, rgba(248,250,252,1) 70%)',
+  cardBg: '#ffffff',
+  text: '#0b1220',
+  muted: '#5b6b85',
+  border: 'rgba(15,23,42,0.10)',
+  border2: 'rgba(15,23,42,0.16)',
+  shadow: '0 18px 60px rgba(2, 6, 23, 0.10)',
+  shadowSoft: '0 10px 30px rgba(2, 6, 23, 0.08)',
+  radius: 18,
+  radiusSm: 14,
+  primary: 'linear-gradient(135deg, #4f46e5 0%, #2563eb 55%, #0284c7 100%)',
+  danger: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+  success: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+};
+
+const inputBase: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  borderRadius: 12,
+  border: `1px solid ${ui.border}`,
+  background: 'rgba(248,250,252,0.85)',
+  outline: 'none',
+  fontSize: 13,
+  color: ui.text,
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
+};
+
+const selectBase: React.CSSProperties = {
+  ...inputBase,
+  appearance: 'none',
+};
+
+const cardStyle: React.CSSProperties = {
+  borderRadius: ui.radius,
+  background: ui.cardBg,
+  border: `1px solid ${ui.border}`,
+  boxShadow: ui.shadow,
+};
+
+const pillPrimary: React.CSSProperties = {
+  padding: '9px 14px',
+  borderRadius: 999,
+  border: 'none',
+  background: ui.primary,
+  color: '#fff',
+  fontSize: 13,
+  fontWeight: 800,
+  cursor: 'pointer',
+  boxShadow: '0 10px 20px rgba(79,70,229,0.20)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+};
+
+const pillGhost: React.CSSProperties = {
+  padding: '9px 14px',
+  borderRadius: 999,
+  border: `1px solid ${ui.border2}`,
+  background: 'rgba(248,250,252,0.85)',
+  color: ui.text,
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+};
+
+const tinyBtn: React.CSSProperties = {
+  padding: '7px 10px',
+  borderRadius: 999,
+  border: `1px solid ${ui.border2}`,
+  background: 'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,250,252,0.92) 100%)',
+  fontSize: 11,
+  cursor: 'pointer',
+  fontWeight: 900,
+  color: ui.text,
+  boxShadow: '0 6px 14px rgba(2,6,23,0.06)',
+};
+
+const label = (txt: string) => (
+  <div
+    style={{
+      fontSize: 11,
+      fontWeight: 900,
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
+      color: ui.muted,
+      marginBottom: 6,
+    }}
+  >
+    {txt}
+  </div>
+);
+
+const money = (v: any) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return String(v ?? '');
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(n);
+};
+
+const statusBadge = (status?: string) => {
+  const s = String(status || '').toLowerCase();
+  const cfg =
+    s === 'approved'
+      ? { bg: 'rgba(34,197,94,0.12)', bd: 'rgba(34,197,94,0.35)', fg: '#166534', dot: '#22c55e' }
+      : s === 'rejected'
+      ? { bg: 'rgba(239,68,68,0.12)', bd: 'rgba(239,68,68,0.35)', fg: '#7f1d1d', dot: '#ef4444' }
+      : { bg: 'rgba(245,158,11,0.12)', bd: 'rgba(245,158,11,0.35)', fg: '#92400e', dot: '#f59e0b' };
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '6px 10px',
+        borderRadius: 999,
+        border: `1px solid ${cfg.bd}`,
+        background: cfg.bg,
+        color: cfg.fg,
+        fontSize: 11,
+        fontWeight: 900,
+        textTransform: 'capitalize',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ width: 8, height: 8, borderRadius: 99, background: cfg.dot }} />
+      {s || 'pending'}
+    </span>
+  );
+};
+
+const EyeIcon = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+// Try to find QR image url from row:
+// 1) explicit qr_image_url/qr_url/qr_image
+// 2) fallback to first invoice image (if payment indicates QR)
+const getQrUrlFromRow = (r: any) => {
+  const direct =
+    r?.qr_image_url || r?.qr_url || r?.qr_image || r?.qrImageUrl || r?.qrImage || null;
+  if (direct) return String(direct);
+
+  const inv: string[] = Array.isArray(r?.invoices) ? r.invoices : [];
+  const firstImg = inv.find((u) => isImageUrl(u));
+  return firstImg || null;
+};
+
 export default function ExpenseEmployee() {
   const defaultDate = useMemo(() => todayISO(), []);
 
@@ -237,12 +360,9 @@ export default function ExpenseEmployee() {
     (state: RootState) => (state as any)?.employees?.employees || [],
   ) as EmployeeType[];
 
-  /**
-   * ✅ LocalStorage user details (id + role)
-   */
-  const { myIds, roleNum, isAdmin } = useMemo(() => {
+  const { myIds, isAdmin } = useMemo(() => {
     if (typeof window === 'undefined') {
-      return { myIds: [] as string[], roleNum: 0, isAdmin: false };
+      return { myIds: [] as string[], isAdmin: false };
     }
 
     const user: UserLS = JSON.parse(localStorage.getItem('user') || '{}');
@@ -251,11 +371,10 @@ export default function ExpenseEmployee() {
       .filter(Boolean)
       .map((x) => String(x).trim());
 
-    const rRaw =
-      user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
+    const rRaw = user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
     const r = Number(rRaw) || 0;
 
-    return { myIds: Array.from(new Set(ids)), roleNum: r, isAdmin: r === 1 };
+    return { myIds: Array.from(new Set(ids)), isAdmin: r === 1 };
   }, []);
 
   const empMap = useMemo(() => {
@@ -272,8 +391,7 @@ export default function ExpenseEmployee() {
     if (typeof idOrObj === 'object') {
       const _id = idOrObj?._id;
       if (_id && empMap.has(_id)) return empMap.get(_id)!;
-      if (idOrObj?.first_name)
-        return `${idOrObj.first_name} ${idOrObj.last_name || ''}`.trim();
+      if (idOrObj?.first_name) return `${idOrObj.first_name} ${idOrObj.last_name || ''}`.trim();
       return _id || '-';
     }
     return empMap.get(String(idOrObj)) || String(idOrObj);
@@ -281,7 +399,7 @@ export default function ExpenseEmployee() {
 
   // ---------- form states ----------
   const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null); // 🆕 currently editing
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
@@ -313,7 +431,7 @@ export default function ExpenseEmployee() {
   const [ifsc, setIfsc] = useState('');
   const [upiId, setUpiId] = useState('');
   const [qrNote, setQrNote] = useState('');
-  const [qrFile, setQrFile] = useState<File | null>(null); // 🆕 QR image
+  const [qrFile, setQrFile] = useState<File | null>(null);
 
   // ---------- list states ----------
   const [page, setPage] = useState(1);
@@ -323,8 +441,9 @@ export default function ExpenseEmployee() {
   const [note, setNote] = useState('');
   const [selectedId, setSelectedId] = useState<string>('');
 
-  // 🆕 Payment details dialog state
-  const [paymentPreview, setPaymentPreview] = useState<string | null>(null);
+  // 🆕 dialogs
+  const [descPreview, setDescPreview] = useState<string | null>(null);
+  const [paymentMeta, setPaymentMeta] = useState<any | null>(null);
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / 10));
   const isOther = companyAdmin === 'other';
@@ -352,9 +471,6 @@ export default function ExpenseEmployee() {
     setQrFile(null);
   };
 
-  /**
-   * ✅ STRICT ROLE-WISE LIST + FRONTEND SAFETY FILTER
-   */
   const load = async () => {
     try {
       setLoadingList(true);
@@ -376,9 +492,9 @@ export default function ExpenseEmployee() {
       const safeRows = isAdmin
         ? data
         : data.filter((r: any) => {
-          const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
-          return myIds.includes(oid);
-        });
+            const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
+            return myIds.includes(oid);
+          });
 
       setRows(safeRows);
       setTotal(isAdmin ? res?.total || 0 : safeRows.length);
@@ -392,16 +508,12 @@ export default function ExpenseEmployee() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin, myIds.join('|')]);
 
-  // 🔁 Category & Expense Type (Leave Encashment sync)
   function handleCompanyApprovalChange(val: CompanyApprovalValue) {
     setCompanyApproval(val);
 
     if (val === 'leave_encashment') {
-      // Type = Leave Encashment → Category bhi same
       setCompanyAdmin('leave_encashment');
     } else {
-      // Agar pehle category leave_encashment thi aur ab user ne type change kar diya,
-      // to category ko default pe wapas laa do (ya jo default chahiye ho)
       if (companyAdmin === 'leave_encashment') {
         setCompanyAdmin('cake');
       }
@@ -413,33 +525,24 @@ export default function ExpenseEmployee() {
 
     if (!date) return alert('Submission date required');
     if (!companyAdmin) return alert('Company Admin required');
-    if (isOther && !customCategory.trim())
-      return alert('Please enter Other expense name');
+    if (isOther && !customCategory.trim()) return alert('Please enter Other expense name');
     if (!companyApproval) return alert('More Expense Type required');
     if (!paidAmount.trim()) return alert('Paid amount required');
 
     const amt = Number(paidAmount);
-    if (!Number.isFinite(amt) || amt <= 0)
-      return alert('Paid amount must be valid number');
+    if (!Number.isFinite(amt) || amt <= 0) return alert('Paid amount must be valid number');
 
     if (companyApproval === 'expense_channel' && !expenseChannel.trim())
       return alert('Expense Channel required');
     if (companyApproval === 'referral_partner' && !referralPartner.trim())
       return alert('Referral Partner required');
 
-    // 🧠 Build payment string from mode + fields
+    // payment string
     let payment: string | undefined;
 
     if (paymentMode === 'account') {
-      if (
-        !accountHolder.trim() ||
-        !bankName.trim() ||
-        !accountNumber.trim() ||
-        !ifsc.trim()
-      ) {
-        return alert(
-          'Account Holder, Bank Name, Account Number & IFSC are required for Account payment',
-        );
+      if (!accountHolder.trim() || !bankName.trim() || !accountNumber.trim() || !ifsc.trim()) {
+        return alert('Account Holder, Bank Name, Account Number & IFSC are required for Account payment');
       }
       const parts = [
         'Account Transfer',
@@ -454,10 +557,9 @@ export default function ExpenseEmployee() {
       payment = `UPI | ID: ${upiId.trim()}`;
     } else if (paymentMode === 'qr') {
       payment = `QR Payment${qrNote.trim() ? ' | ' + qrNote.trim() : ''}`;
-      // QR image alag se attach hoga (qrFile) – neeche invoices ke sath merge karenge
     }
 
-    // 🧾 Invoices + QR file merge
+    // merge files
     const allFiles: File[] = [...invoices, ...(qrFile ? [qrFile] : [])];
 
     const payload: any = {
@@ -469,21 +571,13 @@ export default function ExpenseEmployee() {
       company_approval: companyApproval as any,
       paid_amount: amt,
       description,
-      expense_channel:
-        companyApproval === 'expense_channel' ? expenseChannel : undefined,
-      cashback_to_customer:
-        companyApproval === 'cashback_to_customer'
-          ? cashbackToCustomer
-          : undefined,
-      referral_partner:
-        companyApproval === 'referral_partner' ? referralPartner : undefined,
+      expense_channel: companyApproval === 'expense_channel' ? expenseChannel : undefined,
+      cashback_to_customer: companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
+      referral_partner: companyApproval === 'referral_partner' ? referralPartner : undefined,
 
-      // 🧾 Text summary jo tum list me dikha rahe ho
       payment,
 
-      // 🆕 Structured payment fields (yehi edit pe wapas aayenge)
-      payment_mode: paymentMode, // 'account' | 'upi' | 'qr'
-
+      payment_mode: paymentMode,
       account_holder: paymentMode === 'account' ? accountHolder.trim() : undefined,
       bank_name: paymentMode === 'account' ? bankName.trim() : undefined,
       account_number: paymentMode === 'account' ? accountNumber.trim() : undefined,
@@ -497,11 +591,9 @@ export default function ExpenseEmployee() {
       setSaving(true);
 
       if (editingId) {
-        // 🆕 UPDATE FLOW
         await updateExpenseRequest(editingId, payload, allFiles);
         alert('Expense updated ✅');
       } else {
-        // CREATE FLOW
         await createExpense(payload, allFiles);
         alert('Expense created ✅');
       }
@@ -518,33 +610,16 @@ export default function ExpenseEmployee() {
     }
   };
 
-  // 🔍 Category display logic (UI) – yahi Category column me dikh raha hai
   const showCategory = (r: any) => {
     const adminCat: string | undefined = r?.company_admin;
     const type: string | undefined = r?.company_approval;
     const custom: string | undefined = r?.custom_category;
 
-    // 1) Agar "Other" hai to custom category dikhao
-    if (adminCat === 'other') {
-      return custom || 'Other';
-    }
-
-    // 2) Agar category empty / default "cake" hai,
-    //    lekin type set hai (jaise payout, referral, etc) to type dikhayo
-    if ((!adminCat || adminCat === 'cake') && type) {
+    if (adminCat === 'other') return custom || 'Other';
+    if ((!adminCat || adminCat === 'cake') && type)
       return getOptionLabel(type, companyApprovalOptions) || type;
-    }
-
-    // 3) Normal case – category value ka label
-    if (adminCat) {
-      return getOptionLabel(adminCat, companyAdminOptions) || adminCat;
-    }
-
-    // 4) Fallback – agar category hi nahi aur type hai to type ka label
-    if (type) {
-      return getOptionLabel(type, companyApprovalOptions) || type;
-    }
-
+    if (adminCat) return getOptionLabel(adminCat, companyAdminOptions) || adminCat;
+    if (type) return getOptionLabel(type, companyApprovalOptions) || type;
     return '-';
   };
 
@@ -561,7 +636,6 @@ export default function ExpenseEmployee() {
     }
   }
 
-  // 🆕 Load row into form for EDIT
   const handleEdit = (r: any) => {
     setEditingId(r._id);
     setOpen(true);
@@ -570,23 +644,18 @@ export default function ExpenseEmployee() {
     setExpectedPaymentDate(r.expected_payment_date || '');
     setCompanyAdmin((r.company_admin as CompanyAdminValue) || 'cake');
     setCustomCategory(r.custom_category || '');
-    setCompanyApproval(
-      (r.company_approval as CompanyApprovalValue) || 'company_approval',
-    );
+    setCompanyApproval((r.company_approval as CompanyApprovalValue) || 'company_approval');
     setPaidAmount(String(r.paid_amount || ''));
     setDescription(r.description || '');
     setExpenseChannel(r.expense_channel || '');
     setCashbackToCustomer(!!r.cashback_to_customer);
     setReferralPartner(r.referral_partner || '');
 
-    // Reset uploads (existing invoices server pe hi rahenge)
     setInvoices([]);
     setQrFile(null);
 
-    // 🧠 Payment string se mode + fields parse karenge
     const p = String(r.payment || '').trim();
 
-    // Defaults
     let mode: PaymentMode = 'account';
     let accHolder = '';
     let bank = '';
@@ -597,41 +666,24 @@ export default function ExpenseEmployee() {
 
     if (p.startsWith('Account Transfer')) {
       mode = 'account';
-
-      // "Account Transfer | Name: X | Bank: Y | A/c: Z | IFSC: W"
       const parts = p.split('|').map((s) => s.trim());
-
       parts.forEach((part) => {
-        if (part.startsWith('Name:')) {
-          accHolder = part.replace('Name:', '').trim();
-        } else if (part.startsWith('Bank:')) {
-          bank = part.replace('Bank:', '').trim();
-        } else if (part.startsWith('A/c:')) {
-          accNo = part.replace('A/c:', '').trim();
-        } else if (part.startsWith('IFSC:')) {
-          ifscVal = part.replace('IFSC:', '').trim();
-        }
+        if (part.startsWith('Name:')) accHolder = part.replace('Name:', '').trim();
+        else if (part.startsWith('Bank:')) bank = part.replace('Bank:', '').trim();
+        else if (part.startsWith('A/c:')) accNo = part.replace('A/c:', '').trim();
+        else if (part.startsWith('IFSC:')) ifscVal = part.replace('IFSC:', '').trim();
       });
     } else if (p.startsWith('UPI')) {
       mode = 'upi';
-
-      // "UPI | ID: something@upi"
       const parts = p.split('|').map((s) => s.trim());
       const idPart = parts.find((x) => x.startsWith('ID:'));
-      if (idPart) {
-        upi = idPart.replace('ID:', '').trim();
-      }
+      if (idPart) upi = idPart.replace('ID:', '').trim();
     } else if (p.startsWith('QR Payment')) {
       mode = 'qr';
-
-      // "QR Payment | Some note"
       const parts = p.split('|').map((s) => s.trim());
-      if (parts.length > 1) {
-        qrN = parts.slice(1).join(' | ');
-      }
+      if (parts.length > 1) qrN = parts.slice(1).join(' | ');
     }
 
-    // 🔁 Ab state me set karo
     setPaymentMode(mode);
     setAccountHolder(accHolder);
     setBankName(bank);
@@ -641,7 +693,6 @@ export default function ExpenseEmployee() {
     setQrNote(qrN);
   };
 
-  // 🆕 Delete (soft delete)
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this expense?')) return;
 
@@ -659,486 +710,412 @@ export default function ExpenseEmployee() {
     }
   };
 
+  // ✅ correct colspans
+  const colSpanCount = isAdmin ? 10 : 8;
+
   return (
     <div
       style={{
         padding: 16,
-        maxWidth: 1100,
+        maxWidth: 1180,
         margin: '0 auto',
-        background: '#f3f5fb',
         minHeight: '100vh',
+        background: ui.pageBg,
       }}
     >
-      {/* Header */}
+      <style jsx global>{`
+        .exp-row {
+          transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+        }
+        .exp-row:hover {
+          background: rgba(255, 255, 255, 0.98) !important;
+          box-shadow: 0 10px 26px rgba(2, 6, 23, 0.06) inset;
+        }
+      `}</style>
+
+      {/* Sticky Top Bar */}
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          marginBottom: 10,
+          position: 'sticky',
+          top: 0,
+          zIndex: 5,
+          padding: '10px 0 12px',
+          backdropFilter: 'blur(10px)',
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 18, color: '#111827' }}>
-          {isAdmin ? 'All Expenses' : 'My Expenses'}
-        </h2>
-
-        <button
-          onClick={() => {
-            if (open && editingId) {
-              // Agar edit mode me tha aur close kara to reset bhi
-              resetForm();
-              setEditingId(null);
-            }
-            setOpen((v) => !v);
-          }}
+        <div
           style={{
-            ...pillButtonPrimary,
-            boxShadow: '0 8px 18px rgba(14, 116, 144, 0.3)',
-            background: open
-              ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
-              : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            borderRadius: ui.radius,
+            padding: 14,
+            background: 'rgba(255,255,255,0.78)',
+            border: `1px solid ${ui.border}`,
+            boxShadow: ui.shadowSoft,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
           }}
         >
-          {open ? (editingId ? 'Cancel Edit' : 'Close Form') : '+ Create Expense'}
-        </button>
-      </div>
-
-      {/* CREATE / EDIT EXPENSE FORM */}
-      {open && (
-        <form
-          onSubmit={onSubmit}
-          style={{
-            marginTop: 8,
-            borderRadius: 18,
-            background: '#ffffff',
-            boxShadow: '0 18px 50px rgba(15, 23, 42, 0.12)',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Card header strip */}
-          <div
-            style={{
-              padding: '10px 16px',
-              borderBottom: '1px solid #e5e7eb',
-              background:
-                'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.05))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>
-              {editingId ? 'Edit Expense' : 'New Expense Request'}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: ui.text }}>
+              {isAdmin ? 'All Expenses' : 'My Expenses'}
+            </div>
+            <div style={{ fontSize: 12, color: ui.muted }}>
+              Requests, invoices, payment details & admin approvals.
             </div>
           </div>
 
+          <button
+            onClick={() => {
+              if (open && editingId) {
+                resetForm();
+                setEditingId(null);
+              }
+              setOpen((v) => !v);
+            }}
+            style={{
+              ...pillPrimary,
+              background: open ? ui.danger : ui.primary,
+              boxShadow: open
+                ? '0 10px 20px rgba(239,68,68,0.18)'
+                : '0 10px 20px rgba(79,70,229,0.20)',
+            }}
+          >
+            {open ? (editingId ? 'Cancel Edit' : 'Close Form') : '+ Create Expense'}
+          </button>
+        </div>
+      </div>
+
+      {/* CREATE / EDIT FORM */}
+      {open && (
+        <form onSubmit={onSubmit} style={{ ...cardStyle, overflow: 'hidden', marginTop: 12 }}>
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: `1px solid ${ui.border}`,
+              background:
+                'linear-gradient(135deg, rgba(79,70,229,0.12) 0%, rgba(37,99,235,0.10) 40%, rgba(2,132,199,0.06) 70%, rgba(255,255,255,0) 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 99,
+                  background: editingId ? '#f59e0b' : '#4f46e5',
+                  boxShadow: editingId
+                    ? '0 0 0 6px rgba(245,158,11,0.12)'
+                    : '0 0 0 6px rgba(79,70,229,0.12)',
+                }}
+              />
+              <div style={{ fontSize: 14, fontWeight: 900, color: ui.text }}>
+                {editingId ? 'Edit Expense' : 'New Expense Request'}
+              </div>
+            </div>
+
+            {editingId ? (
+              <div style={{ fontSize: 12, color: ui.muted, fontWeight: 900 }}>
+                Editing ID: {String(editingId).slice(-6)}
+              </div>
+            ) : null}
+          </div>
+
           <div style={{ padding: 16 }}>
-            {/* Section 1: Basic Details */}
-            <div style={{ marginBottom: 14 }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-                  gap: 12,
-                }}
-              >
-                {/* Date */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={fieldLabelStyle}>Expense Date</label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                    style={fieldInputStyle}
-                  />
-                </div>
-
-                {/* Expected Payment Date */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={fieldLabelStyle}>Expected Payment Date</label>
-                  <input
-                    type="date"
-                    value={expectedPaymentDate}
-                    onChange={(e) => setExpectedPaymentDate(e.target.value)}
-                    style={fieldInputStyle}
-                  />
-                </div>
-
-                {/* Category */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={fieldLabelStyle}>
-                    {isLeaveEncashmentFlow
-                      ? 'Expense Category (auto: Leave Encashment)'
-                      : 'Expense Category'}
-                  </label>
-                  <select
-                    value={companyAdmin}
-                    onChange={(e) =>
-                      setCompanyAdmin(e.target.value as CompanyAdminValue)
-                    }
-                    style={fieldInputStyle}
-                    disabled={isLeaveEncashmentFlow}
-                  >
-                    {companyAdminOptions.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Custom Category */}
-                {isOther && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>Other Expense Name</label>
-                    <input
-                      value={customCategory}
-                      onChange={(e) => setCustomCategory(e.target.value)}
-                      placeholder="Enter expense name"
-                      style={fieldInputStyle}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Section 2: Expense Type & Amount */}
-            <div style={{ marginBottom: 14 }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-                  gap: 12,
-                }}
-              >
-                {/* Expense Type */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={fieldLabelStyle}>Expense Type</label>
-                  <select
-                    value={companyApproval}
-                    onChange={(e) =>
-                      handleCompanyApprovalChange(
-                        e.target.value as CompanyApprovalValue,
-                      )
-                    }
-                    style={fieldInputStyle}
-                  >
-                    {companyApprovalOptions.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Conditional fields */}
-                {companyApproval === 'expense_channel' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>Expense Channel</label>
-                    <input
-                      value={expenseChannel}
-                      onChange={(e) => setExpenseChannel(e.target.value)}
-                      style={fieldInputStyle}
-                      placeholder="Enter channel name"
-                    />
-                  </div>
-                )}
-
-                {companyApproval === 'referral_partner' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>Referral Partner</label>
-                    <input
-                      value={referralPartner}
-                      onChange={(e) => setReferralPartner(e.target.value)}
-                      style={fieldInputStyle}
-                      placeholder="Enter partner name"
-                    />
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={fieldLabelStyle}>Amount To Be Pay</label>
-                  <input
-                    type="number"
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(e.target.value)}
-                    required
-                    style={fieldInputStyle}
-                    placeholder="₹0"
-                  />
-                </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                gap: 12,
+              }}
+            >
+              {/* Date */}
+              <div style={{ gridColumn: 'span 3' as any }}>
+                {label('Expense Date')}
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                  style={inputBase}
+                />
               </div>
 
-              {companyApproval === 'cashback_to_customer' && (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginTop: 10,
-                    padding: '8px 10px',
-                    borderRadius: 10,
-                    background: '#f9fafb',
-                    border: '1px dashed #d1d5db',
-                  }}
+              {/* Expected Payment Date */}
+              <div style={{ gridColumn: 'span 3' as any }}>
+                {label('Expected Payment Date')}
+                <input
+                  type="date"
+                  value={expectedPaymentDate}
+                  onChange={(e) => setExpectedPaymentDate(e.target.value)}
+                  style={inputBase}
+                />
+              </div>
+
+              {/* Category */}
+              <div style={{ gridColumn: 'span 3' as any }}>
+                {label(isLeaveEncashmentFlow ? 'Expense Category (auto)' : 'Expense Category')}
+                <select
+                  value={companyAdmin}
+                  onChange={(e) => setCompanyAdmin(e.target.value as CompanyAdminValue)}
+                  style={selectBase}
+                  disabled={isLeaveEncashmentFlow}
                 >
+                  {companyAdminOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Expense Type */}
+              <div style={{ gridColumn: 'span 3' as any }}>
+                {label('Expense Type')}
+                <select
+                  value={companyApproval}
+                  onChange={(e) => handleCompanyApprovalChange(e.target.value as CompanyApprovalValue)}
+                  style={selectBase}
+                >
+                  {companyApprovalOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {isOther ? (
+                <div style={{ gridColumn: 'span 6' as any }}>
+                  {label('Other Expense Name')}
                   <input
-                    id="cashback_to_customer"
-                    type="checkbox"
-                    checked={cashbackToCustomer}
-                    onChange={(e) => setCashbackToCustomer(e.target.checked)}
-                  />
-                  <label htmlFor="cashback_to_customer" style={{ fontSize: 12 }}>
-                    Cashback given to customer
-                  </label>
-                </div>
-              )}
-            </div>
-
-            {/* Section 3: Description & Invoices */}
-            <div style={{ marginBottom: 4 }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1.1fr)',
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={fieldLabelStyle}>Description</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    style={{
-                      ...fieldInputStyle,
-                      resize: 'vertical',
-                      minHeight: 72,
-                    }}
-                    placeholder="Describe what this expense is for..."
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Enter expense name"
+                    style={inputBase}
                   />
                 </div>
+              ) : null}
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={fieldLabelStyle}>Upload Invoices</label>
+              {companyApproval === 'expense_channel' ? (
+                <div style={{ gridColumn: 'span 6' as any }}>
+                  {label('Expense Channel')}
+                  <input
+                    value={expenseChannel}
+                    onChange={(e) => setExpenseChannel(e.target.value)}
+                    style={inputBase}
+                    placeholder="Enter channel name"
+                  />
+                </div>
+              ) : null}
+
+              {companyApproval === 'referral_partner' ? (
+                <div style={{ gridColumn: 'span 6' as any }}>
+                  {label('Referral Partner')}
+                  <input
+                    value={referralPartner}
+                    onChange={(e) => setReferralPartner(e.target.value)}
+                    style={inputBase}
+                    placeholder="Enter partner name"
+                  />
+                </div>
+              ) : null}
+
+              <div style={{ gridColumn: 'span 3' as any }}>
+                {label('Amount To Be Pay')}
+                <input
+                  type="number"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                  required
+                  style={inputBase}
+                  placeholder="₹0"
+                />
+              </div>
+
+              {companyApproval === 'cashback_to_customer' ? (
+                <div style={{ gridColumn: 'span 9' as any }}>
+                  {label('Cashback')}
                   <div
                     style={{
-                      borderRadius: 10,
-                      border: '1px dashed #cbd5e1',
-                      padding: 10,
-                      background: '#f9fafb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: 12,
+                      borderRadius: ui.radiusSm,
+                      background: 'rgba(248,250,252,0.9)',
+                      border: `1px dashed ${ui.border2}`,
                     }}
                   >
                     <input
-                      type="file"
-                      multiple
-                      onChange={(e) =>
-                        setInvoices(Array.from(e.target.files || []))
-                      }
+                      id="cashback_to_customer"
+                      type="checkbox"
+                      checked={cashbackToCustomer}
+                      onChange={(e) => setCashbackToCustomer(e.target.checked)}
+                      style={{ width: 16, height: 16 }}
                     />
-                    {invoices.length > 0 && (
-                      <div
-                        style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}
-                      >
-                        {invoices.length} file(s) selected
-                      </div>
-                    )}
-                    <div
-                      style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}
+                    <label
+                      htmlFor="cashback_to_customer"
+                      style={{ fontSize: 13, fontWeight: 900, color: ui.text }}
                     >
-                      PDF / Image upload karein – bills, receipts etc.
-                    </div>
+                      Cashback given to customer
+                    </label>
+                    <span style={{ fontSize: 12, color: ui.muted }}>(enable only when paid)</span>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Description */}
+              <div style={{ gridColumn: 'span 8' as any }}>
+                {label('Description')}
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  style={{ ...inputBase, resize: 'vertical', minHeight: 92 }}
+                  placeholder="Describe what this expense is for..."
+                />
+              </div>
+
+              {/* Upload Invoices */}
+              <div style={{ gridColumn: 'span 4' as any }}>
+                {label('Upload Invoices')}
+                <div
+                  style={{
+                    borderRadius: ui.radiusSm,
+                    border: `1px dashed ${ui.border2}`,
+                    padding: 12,
+                    background: 'rgba(248,250,252,0.9)',
+                  }}
+                >
+                  <input type="file" multiple onChange={(e) => setInvoices(Array.from(e.target.files || []))} />
+                  <div style={{ fontSize: 11, color: ui.muted, marginTop: 8 }}>
+                    {invoices.length ? `${invoices.length} file(s) selected` : 'PDF / Image upload – bills, receipts etc.'}
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Section 4: Payment Mode + QR Upload */}
-            <div style={{ marginTop: 12 }}>
-              <label style={fieldLabelStyle}>Choose Payment Mode</label>
-
-              {/* Row 1: dropdown */}
-              <div
-                style={{
-                  marginTop: 6,
-                  display: 'flex',
-                  gap: 12,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ flex: '0 0 230px', maxWidth: 260 }}>
+              {/* Payment Mode */}
+              <div style={{ gridColumn: 'span 12' as any }}>
+                {label('Payment Mode')}
+                <div
+                  style={{
+                    padding: 12,
+                    borderRadius: ui.radiusSm,
+                    border: `1px solid ${ui.border}`,
+                    background: 'rgba(255,255,255,0.75)',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 10,
+                    alignItems: 'center',
+                  }}
+                >
                   <select
                     value={paymentMode}
-                    onChange={(e) =>
-                      setPaymentMode(e.target.value as PaymentMode)
-                    }
-                    style={fieldInputStyle}
+                    onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
+                    style={{ ...selectBase, maxWidth: 300 }}
                   >
                     <option value="account">Bank Account Transfer</option>
                     <option value="upi">UPI</option>
                     <option value="qr">QR Payment</option>
                   </select>
+
                 </div>
               </div>
 
-              {/* ACCOUNT MODE */}
+              {/* Account Fields */}
               {paymentMode === 'account' && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    display: 'grid',
-                    gridTemplateColumns:
-                      'repeat(auto-fit, minmax(230px, 1fr))',
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>Account Holder Name</label>
-                    <input
-                      value={accountHolder}
-                      onChange={(e) => setAccountHolder(e.target.value)}
-                      style={fieldInputStyle}
-                      placeholder="Account holder name"
-                    />
+                <>
+                  <div style={{ gridColumn: 'span 3' as any }}>
+                    {label('Account Holder Name')}
+                    <input value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} style={inputBase} />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>Bank Name</label>
-                    <input
-                      value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
-                      style={fieldInputStyle}
-                      placeholder="HDFC, ICICI..."
-                    />
+                  <div style={{ gridColumn: 'span 3' as any }}>
+                    {label('Bank Name')}
+                    <input value={bankName} onChange={(e) => setBankName(e.target.value)} style={inputBase} />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>Account Number</label>
-                    <input
-                      value={accountNumber}
-                      onChange={(e) => setAccountNumber(e.target.value)}
-                      style={fieldInputStyle}
-                      placeholder="1234 5678 9012"
-                    />
+                  <div style={{ gridColumn: 'span 3' as any }}>
+                    {label('Account Number')}
+                    <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} style={inputBase} />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>IFSC</label>
-                    <input
-                      value={ifsc}
-                      onChange={(e) =>
-                        setIfsc(e.target.value.toUpperCase())
-                      }
-                      style={fieldInputStyle}
-                      placeholder="HDFC0001234"
-                    />
+                  <div style={{ gridColumn: 'span 3' as any }}>
+                    {label('IFSC')}
+                    <input value={ifsc} onChange={(e) => setIfsc(e.target.value.toUpperCase())} style={inputBase} />
                   </div>
-                </div>
+                </>
               )}
 
-              {/* UPI MODE */}
+              {/* UPI */}
               {paymentMode === 'upi' && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    display: 'grid',
-                    gridTemplateColumns:
-                      'repeat(auto-fit, minmax(230px, 1fr))',
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>UPI ID</label>
-                    <input
-                      value={upiId}
-                      onChange={(e) => setUpiId(e.target.value)}
-                      style={fieldInputStyle}
-                      placeholder="98xxxxxx@ybl"
-                    />
-                  </div>
+                <div style={{ gridColumn: 'span 4' as any }}>
+                  {label('UPI ID')}
+                  <input
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    style={inputBase}
+                    placeholder="98xxxxxx@ybl"
+                  />
                 </div>
               )}
 
-              {/* QR MODE */}
+              {/* QR */}
               {paymentMode === 'qr' && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    display: 'grid',
-                    gridTemplateColumns:
-                      'repeat(auto-fit, minmax(230px, 1fr))',
-                    gap: 12,
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={fieldLabelStyle}>Upload QR Image</label>
-                    <div
-                      style={{
-                        borderRadius: 10,
-                        border: '1px dashed #cbd5e1',
-                        padding: 10,
-                        background: '#f9fafb',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                        maxWidth: 260,
+                <div style={{ gridColumn: 'span 6' as any }}>
+                  {label('Upload QR Image')}
+                  <div
+                    style={{
+                      borderRadius: ui.radiusSm,
+                      border: `1px dashed ${ui.border2}`,
+                      padding: 12,
+                      background: 'rgba(248,250,252,0.9)',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 12,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setQrFile(file);
                       }}
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          setQrFile(file);
-                        }}
-                      />
-                      {qrFile && (
-                        <div
+                    />
+
+                    {qrFile ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <img
+                          src={URL.createObjectURL(qrFile)}
+                          alt="QR Preview"
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
+                            width: 56,
+                            height: 56,
+                            borderRadius: 14,
+                            objectFit: 'cover',
+                            border: `1px solid ${ui.border}`,
+                            boxShadow: '0 8px 18px rgba(2,6,23,0.10)',
                           }}
-                        >
-                          <img
-                            src={URL.createObjectURL(qrFile)}
-                            alt="QR Preview"
-                            style={{
-                              width: 60,
-                              height: 60,
-                              borderRadius: 8,
-                              objectFit: 'cover',
-                              border: '1px solid #e5e7eb',
-                            }}
-                          />
-                          <div
-                            style={{ fontSize: 11, color: '#4b5563' }}
-                          >
-                            {qrFile.name}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                        />
+                        <div style={{ fontSize: 12, fontWeight: 900, color: ui.text }}>{qrFile.name}</div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: ui.muted }}>Attach QR screenshot/logo for receiver.</div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Buttons */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 10,
-                marginTop: 12,
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-              }}
-            >
+            <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -1146,26 +1123,13 @@ export default function ExpenseEmployee() {
                   setEditingId(null);
                   setOpen(false);
                 }}
-                style={pillButtonGhost}
+                style={pillGhost}
               >
                 Cancel
               </button>
 
-              <button
-                type="submit"
-                disabled={saving}
-                style={{
-                  ...pillButtonPrimary,
-                  opacity: saving ? 0.7 : 1,
-                }}
-              >
-                {saving
-                  ? editingId
-                    ? 'Updating...'
-                    : 'Saving...'
-                  : editingId
-                    ? 'Update Expense'
-                    : 'Submit Expense'}
+              <button type="submit" disabled={saving} style={{ ...pillPrimary, opacity: saving ? 0.7 : 1 }}>
+                {saving ? (editingId ? 'Updating...' : 'Saving...') : editingId ? 'Update Expense' : 'Submit Expense'}
               </button>
             </div>
           </div>
@@ -1173,51 +1137,53 @@ export default function ExpenseEmployee() {
       )}
 
       {/* LIST */}
-      <div style={{ marginTop: 18 }}>
+      <div style={{ marginTop: 16, ...cardStyle, overflow: 'hidden' }}>
         <div
           style={{
+            padding: '12px 14px',
+            borderBottom: `1px solid ${ui.border}`,
+            background: 'rgba(255,255,255,0.75)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 10,
           }}
         >
-          {/* yahan future filters aa sakte hain */}
+          <div style={{ fontSize: 14, fontWeight: 900, color: ui.text }}>Expense Records</div>
+          <div style={{ fontSize: 12, color: ui.muted }}>
+            Showing <b>{rows.length}</b> / <b>{total || rows.length}</b>
+          </div>
         </div>
 
-        <div
-          style={{
-            marginTop: 10,
-            overflowX: 'auto',
-            border: '1px solid #e5e7eb',
-            borderRadius: 14,
-            background: '#ffffff',
-          }}
-        >
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto' }}>
+             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
             <thead>
               <tr>
                 {[
                   'Date',
                   ...(isAdmin ? (['Employee', 'Manager'] as const) : ([] as const)),
                   'Category',
-                  'Paid',
+                  'Amount To Pay',
+                  'Description',
                   'Payment Details',
-                  // 'Mgr Status',
                   'Admin Status',
                   'Invoices',
-                  'Action', // 🆕 always show Action column
+                  'Action',
                 ].map((h) => (
                   <th
                     key={h}
                     style={{
                       textAlign: 'left',
                       fontSize: 12,
-                      padding: 10,
-                      borderBottom: '1px solid #e5e7eb',
-                      background: '#f9fafb',
-                      color: '#4b5563',
-                      fontWeight: 600,
+                      padding: 12,
+                      borderBottom: `1px solid ${ui.border}`,
+                      background: 'rgba(248,250,252,0.95)',
+                      color: ui.muted,
+                      fontWeight: 900,
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 1,
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {h}
@@ -1228,88 +1194,89 @@ export default function ExpenseEmployee() {
 
             <tbody>
               {!loadingList &&
-                rows.map((r) => {
+                rows.map((r, idx) => {
                   const canVerify = isAdmin && r.admin_status === 'pending';
+                  const zebra = idx % 2 === 0;
+
                   return (
-                    <tr key={r._id}>
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                    <tr
+                      key={r._id}
+                      className="exp-row"
+                      style={{ background: zebra ? 'rgba(255,255,255,0.90)' : 'rgba(248,250,252,0.70)' }}
+                    >
+                      {/* Date */}
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, whiteSpace: 'nowrap' }}>
                         {r.date}
                       </td>
 
+                      {/* Admin columns */}
                       {isAdmin ? (
                         <>
-                          <td
-                            style={{
-                              padding: 10,
-                              borderBottom: '1px solid #f1f1f1',
-                              fontSize: 12,
-                            }}
-                          >
+                          <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12 }}>
                             {getEmpName(r.owner_id)}
                           </td>
-                          <td
-                            style={{
-                              padding: 10,
-                              borderBottom: '1px solid #f1f1f1',
-                              fontSize: 12,
-                            }}
-                          >
+                          <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12 }}>
                             {getEmpName(r.manager_id)}
                           </td>
                         </>
                       ) : null}
 
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                        }}
-                      >
+                      {/* Category */}
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12 }}>
                         {showCategory(r)}
                       </td>
 
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                        }}
-                      >
-                        {r.paid_amount}
+                      {/* Paid */}
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, fontWeight: 900, whiteSpace: 'nowrap' }}>
+                        {money(r.paid_amount)}
                       </td>
 
-                      {/* Payment Details column with dialog trigger */}
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                          maxWidth: 260,
-                        }}
-                      >
-                        {r.payment ? (
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                            }}
-                          >
+                      {/* ✅ Description with view icon */}
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, maxWidth: 280 }}>
+                        {r.description ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span
                               style={{
                                 display: 'inline-block',
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
-                                maxWidth: 180,
+                                maxWidth: 200,
+                                color: ui.text,
+                                fontWeight: 700,
+                              }}
+                              title={r.description}
+                            >
+                              {r.description}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setDescPreview(String(r.description))}
+                              style={{ ...tinyBtn, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                              title="View Description"
+                            >
+                              <EyeIcon />
+                              
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 11, color: ui.muted }}>—</span>
+                        )}
+                      </td>
+
+                      {/* Payment */}
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, maxWidth: 320 }}>
+                        {r.payment ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: 220,
+                                color: ui.text,
+                                fontWeight: 700,
                               }}
                               title={r.payment}
                             >
@@ -1318,189 +1285,175 @@ export default function ExpenseEmployee() {
 
                             <button
                               type="button"
-                              onClick={() => setPaymentPreview(r.payment)}
-                              style={{
-                                padding: '4px 10px',
-                                borderRadius: 999,
-                                border: '1px solid #d1d5db',
-                                background: '#f9fafb',
-                                fontSize: 11,
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                              }}
+                              onClick={() =>
+                                setPaymentMeta({
+                                  payment: r.payment,
+                                  payment_mode: r.payment_mode,
+                                  qr: getQrUrlFromRow(r),
+                                })
+                              }
+                              style={{ ...tinyBtn, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                              title="View Payment"
                             >
-                              View
+                              <EyeIcon />
+                            
                             </button>
                           </div>
                         ) : (
-                          <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
-                        )}
-                      </td>
-                      {/* 
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {r.manager_status}
-                      </td> */}
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {r.admin_status}
-                      </td>
-
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                        }}
-                      >
-                        {Array.isArray(r.invoices) && r.invoices.length > 0 ? (
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 8,
-                            }}
-                          >
-                            {r.invoices.map((url: string, idx: number) => {
-                              const name = prettyFileName(url);
-                              const img = isImageUrl(url);
-                              return (
-                                <div
-                                  key={idx}
-                                  style={{
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: 10,
-                                    padding: 8,
-                                    display: 'flex',
-                                    gap: 10,
-                                    alignItems: 'center',
-                                    background: '#f9fafb',
-                                    maxWidth: 420,
-                                  }}
-                                >
-                                  {img ? (
-                                    <img
-                                      src={url}
-                                      alt={name}
-                                      style={{
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: 8,
-                                        objectFit: 'cover',
-                                      }}
-                                    />
-                                  ) : null}
-
-                                  <div style={{ minWidth: 0 }}>
-                                    <a
-                                      href={url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      style={{
-                                        fontWeight: 600,
-                                        fontSize: 12,
-                                        color: '#1d4ed8',
-                                        textDecoration: 'none',
-                                      }}
-                                    >
-                                      {name || `Invoice ${idx + 1}`}
-                                    </a>
-                                    <div
-                                      style={{
-                                        fontSize: 11,
-                                        color: '#6b7280',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        maxWidth: 300,
-                                      }}
-                                    >
-                                      {url}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <span style={{ fontSize: 11, color: '#9ca3af' }}>
-                            No invoice
-                          </span>
+                          <span style={{ fontSize: 11, color: ui.muted }}>—</span>
                         )}
                       </td>
 
-                      {/* ACTION CELL */}
-                      <td
-                        style={{
-                          padding: 10,
-                          borderBottom: '1px solid #f1f1f1',
-                          fontSize: 12,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      {/* Admin Status */}
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12 }}>
+                        {statusBadge(r.admin_status)}
+                      </td>
+
+                  
+<td style={{ padding: 12, borderBottom: `1px solid ${ui.border}` }}>
+  {(() => {
+    const invoiceUrls: string[] = Array.isArray(r.invoices) ? r.invoices : [];
+
+    const isQrPay = String(r?.payment || '').toLowerCase().includes('qr');
+    const qrUrl = isQrPay ? getQrUrlFromRow(r) : null;
+
+    // remove QR image from invoice list
+    const onlyInvoices = qrUrl
+      ? invoiceUrls.filter((u) => String(u) !== String(qrUrl))
+      : invoiceUrls;
+
+    if (!onlyInvoices.length) {
+      return <span style={{ fontSize: 11, color: ui.muted }}>No invoice</span>;
+    }
+
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        {onlyInvoices.map((url: string, i: number) => {
+          const name = prettyFileName(url) || `Invoice ${i + 1}`;
+          const img = isImageUrl(url);
+
+          return (
+            <a
+              key={i}
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 14,
+                border: `1px solid ${ui.border}`,
+                background: 'rgba(255,255,255,0.9)',
+                boxShadow: '0 8px 18px rgba(2,6,23,0.06)',
+                textDecoration: 'none',
+                color: ui.text,
+                maxWidth: 300,
+              }}
+            >
+              {/* 🔥 REAL IMAGE PREVIEW */}
+              {img ? (
+                <img
+                  src={url}
+                  alt={name}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    objectFit: 'cover',
+                    border: `1px solid ${ui.border2}`,
+                    flexShrink: 0,
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'rgba(79,70,229,0.12)',
+                    border: `1px solid rgba(79,70,229,0.25)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    color: '#4338ca',
+                    fontSize: 11,
+                    flexShrink: 0,
+                  }}
+                >
+                  PDF
+                </div>
+              )}
+
+              {/* filename */}
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 900,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: 180,
+                }}
+                title={name}
+              >
+                {name}
+              </span>
+
+              <span style={{ marginLeft: 'auto', color: ui.muted, fontWeight: 900 }}>↗</span>
+            </a>
+          );
+        })}
+      </div>
+    );
+  })()}
+</td>
+
+                      {/* Action */}
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, whiteSpace: 'nowrap' }}>
                         {isAdmin ? (
                           <button
                             disabled={!canVerify}
                             onClick={() => setSelectedId(r._id)}
                             style={{
-                              padding: '6px 12px',
-                              borderRadius: 999,
-                              border: 'none',
-                              fontSize: 11,
-                              fontWeight: 600,
+                              ...pillPrimary,
+                              padding: '8px 12px',
+                              fontSize: 12,
+                              opacity: canVerify ? 1 : 0.5,
                               cursor: canVerify ? 'pointer' : 'not-allowed',
-                              background: canVerify ? '#1d4ed8' : '#e5e7eb',
-                              color: canVerify ? '#ffffff' : '#9ca3af',
-                              boxShadow: canVerify
-                                ? '0 3px 10px rgba(37, 99, 235, 0.35)'
-                                : 'none',
-                              transition: 'all 0.2s ease',
                             }}
                           >
                             Verify
                           </button>
                         ) : (
-                          <div style={{ display: 'flex', gap: 6 }}>
+                          <div style={{ display: 'flex', gap: 8 }}>
                             <button
                               type="button"
                               onClick={() => handleEdit(r)}
                               style={{
-                                padding: '4px 10px',
-                                borderRadius: 999,
-                                border: '1px solid #93c5fd',
-                                background: '#eff6ff',
-                                fontSize: 11,
-                                cursor: 'pointer',
+                                ...pillGhost,
+                                padding: '8px 12px',
+                                borderColor: 'rgba(79,70,229,0.30)',
+                                background: 'rgba(79,70,229,0.08)',
                               }}
                             >
                               Edit
                             </button>
-                            <button
+                            {/* <button
                               type="button"
                               onClick={() => handleDelete(r._id)}
                               style={{
-                                padding: '4px 10px',
-                                borderRadius: 999,
-                                border: '1px solid #fecaca',
-                                background: '#fef2f2',
-                                fontSize: 11,
-                                cursor: 'pointer',
+                                ...pillGhost,
+                                padding: '8px 12px',
+                                borderColor: 'rgba(239,68,68,0.35)',
+                                background: 'rgba(239,68,68,0.08)',
                                 color: '#b91c1c',
                               }}
                             >
                               Delete
-                            </button>
+                            </button> */}
                           </div>
                         )}
                       </td>
@@ -1510,10 +1463,7 @@ export default function ExpenseEmployee() {
 
               {loadingList && (
                 <tr>
-                  <td
-                    colSpan={isAdmin ? 10 : 8}
-                    style={{ padding: 12, fontSize: 12 }}
-                  >
+                  <td colSpan={colSpanCount} style={{ padding: 14, fontSize: 12, color: ui.muted }}>
                     Loading...
                   </td>
                 </tr>
@@ -1521,10 +1471,7 @@ export default function ExpenseEmployee() {
 
               {!loadingList && rows.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={isAdmin ? 10 : 8}
-                    style={{ padding: 12, fontSize: 12 }}
-                  >
+                  <td colSpan={colSpanCount} style={{ padding: 14, fontSize: 12, color: ui.muted }}>
                     No expenses found
                   </td>
                 </tr>
@@ -1532,189 +1479,265 @@ export default function ExpenseEmployee() {
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* ADMIN VERIFY BOX */}
-        {isAdmin && selectedId && (
-          <div
-            style={{
-              marginTop: 14,
-              border: '1px solid #e5e7eb',
-              padding: 12,
-              borderRadius: 12,
-              background: '#ffffff',
-              boxShadow: '0 10px 30px rgba(15,23,42,0.08)',
-            }}
-          >
-            <h4 style={{ marginTop: 0, marginBottom: 6, fontSize: 14 }}>
-              Admin Verify Expense
-            </h4>
+      {/* ADMIN VERIFY BOX */}
+      {isAdmin && selectedId && (
+        <div style={{ marginTop: 14, ...cardStyle, padding: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: ui.text }}>Admin Verify Expense</div>
+            <button
+              onClick={() => {
+                setSelectedId('');
+                setNote('');
+              }}
+              style={pillGhost}
+            >
+              Close
+            </button>
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            {label('Note')}
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={3}
-              style={{
-                width: '100%',
-                padding: 10,
-                borderRadius: 10,
-                border: '1px solid #dde2eb',
-                fontSize: 12,
-              }}
+              style={{ ...inputBase, minHeight: 90, resize: 'vertical' }}
               placeholder="Add a note for approval / rejection..."
             />
-            <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => verify(selectedId, 'approved')}
+              style={{ ...pillPrimary, background: ui.success, boxShadow: '0 10px 20px rgba(34,197,94,0.18)' }}
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => verify(selectedId, 'rejected')}
+              style={{ ...pillPrimary, background: ui.danger, boxShadow: '0 10px 20px rgba(239,68,68,0.18)' }}
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ DESCRIPTION DIALOG */}
+      {descPreview && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15,23,42,0.50)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 60,
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 18,
+              maxWidth: 560,
+              width: '100%',
+              padding: 16,
+              boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
+              border: `1px solid ${ui.border}`,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 900, color: ui.text }}>Description</div>
               <button
-                onClick={() => verify(selectedId, 'approved')}
+                type="button"
+                onClick={() => setDescPreview(null)}
                 style={{
-                  ...pillButtonPrimary,
-                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                  boxShadow: '0 8px 18px rgba(34, 197, 94, 0.3)',
+                  border: `1px solid ${ui.border2}`,
+                  background: 'rgba(248,250,252,0.95)',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  lineHeight: 1,
+                  color: ui.text,
                 }}
               >
-                Approve
+                ×
               </button>
-              <button
-                onClick={() => verify(selectedId, 'rejected')}
-                style={{
-                  ...pillButtonPrimary,
-                  background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                  boxShadow: '0 8px 18px rgba(239, 68, 68, 0.3)',
-                }}
-              >
-                Reject
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedId('');
-                  setNote('');
-                }}
-                style={pillButtonGhost}
-              >
-                Cancel
+            </div>
+
+            <div style={{ fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.65, color: ui.text }}>
+              {descPreview}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+              <button type="button" onClick={() => setDescPreview(null)} style={pillPrimary}>
+                Close
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* PAYMENT DETAILS DIALOG */}
-        {paymentPreview && (
+      {/* ✅ PAYMENT DETAILS DIALOG (with QR image if available) */}
+      {paymentMeta?.payment && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15,23,42,0.50)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 55,
+            padding: 16,
+          }}
+        >
           <div
             style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(15,23,42,0.45)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 50,
+              background: '#ffffff',
+              borderRadius: 18,
+              maxWidth: 640,
+              width: '100%',
+              padding: 16,
+              boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
+              border: `1px solid ${ui.border}`,
+              overflow: 'hidden',
             }}
           >
             <div
               style={{
-                background: '#ffffff',
-                borderRadius: 18,
-                maxWidth: 520,
-                width: '90%',
-                padding: 16,
-                boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
+                padding: 12,
+                margin: -16,
+                marginBottom: 12,
+                borderBottom: `1px solid ${ui.border}`,
+                background:
+                  'linear-gradient(135deg, rgba(79,70,229,0.14) 0%, rgba(37,99,235,0.10) 45%, rgba(2,132,199,0.08) 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}
             >
+              <div style={{ fontSize: 14, fontWeight: 900, color: ui.text }}>Payment Details</div>
+              <button
+                type="button"
+                onClick={() => setPaymentMeta(null)}
+                style={{
+                  border: `1px solid ${ui.border2}`,
+                  background: 'rgba(255,255,255,0.9)',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  lineHeight: 1,
+                  color: ui.text,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* QR preview if payment is QR and we have image */}
+            {String(paymentMeta?.payment || '').toLowerCase().includes('qr') && paymentMeta?.qr ? (
               <div
                 style={{
                   display: 'flex',
+                  gap: 12,
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 8,
+                  padding: 12,
+                  borderRadius: 16,
+                  background:
+                    'linear-gradient(180deg, rgba(248,250,252,0.98) 0%, rgba(255,255,255,0.90) 100%)',
+                  border: `1px solid ${ui.border}`,
+                  boxShadow: '0 10px 24px rgba(2,6,23,0.08)',
+                  marginBottom: 12,
                 }}
               >
-                <div style={{ fontSize: 14, fontWeight: 600 }}>
-                  Payment Details
+               <img
+  src={paymentMeta.qr}
+  alt="QR"
+  style={{
+    width: 160,        // 🔥 pehle 110 tha
+    height: 160,       // 🔥 pehle 110 tha
+    borderRadius: 22,
+    objectFit: 'cover',
+    border: `1px solid ${ui.border2}`,
+    boxShadow: '0 14px 34px rgba(2,6,23,0.18)',
+    background: '#fff',
+    padding: 6,        // thoda premium frame feel
+  }}
+/>
+
+                <div style={{ minWidth: 0 }}>
+                  <a
+                    href={paymentMeta.qr}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      marginTop: 10,
+                      fontSize: 12,
+                      fontWeight: 900,
+                      color: '#1d4ed8',
+                      textDecoration: 'none',
+                      gap: 8,
+                      alignItems: 'center',
+                    }}
+                  >
+                  </a>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setPaymentPreview(null)}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    fontSize: 18,
-                    lineHeight: 1,
-                    cursor: 'pointer',
-                  }}
-                >
-                  ×
-                </button>
               </div>
+            ) : null}
 
-              <div
-                style={{
-                  fontSize: 12,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  lineHeight: 1.5,
-                  padding: '6px 0 4px',
-                }}
-              >
-                {paymentPreview}
-              </div>
+            <div
+              style={{
+                fontSize: 12,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                lineHeight: 1.65,
+                padding: '6px 0 4px',
+                color: ui.text,
+              }}
+            >
+              {paymentMeta.payment}
+            </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  marginTop: 12,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setPaymentPreview(null)}
-                  style={pillButtonPrimary}
-                >
-                  Close
-                </button>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+              <button type="button" onClick={() => setPaymentMeta(null)} style={pillPrimary}>
+                Close
+              </button>
             </div>
           </div>
-        )}
-
-        {/* pagination */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 10,
-            alignItems: 'center',
-            marginTop: 12,
-            justifyContent: 'flex-end',
-          }}
-        >
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            style={{
-              ...pillButtonGhost,
-              padding: '6px 12px',
-              fontSize: 12,
-              opacity: page <= 1 ? 0.6 : 1,
-            }}
-          >
-            Prev
-          </button>
-
-          <div style={{ fontSize: 12 }}>
-            Page <b>{page}</b> / <b>{totalPages}</b>
-          </div>
-
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            style={{
-              ...pillButtonGhost,
-              padding: '6px 12px',
-              fontSize: 12,
-              opacity: page >= totalPages ? 0.6 : 1,
-            }}
-          >
-            Next
-          </button>
         </div>
+      )}
+
+      {/* Pagination */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14, justifyContent: 'flex-end' }}>
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page <= 1}
+          style={{ ...pillGhost, padding: '8px 12px', fontSize: 12, opacity: page <= 1 ? 0.6 : 1 }}
+        >
+          Prev
+        </button>
+
+        <div style={{ fontSize: 12, color: ui.text }}>
+          Page <b>{page}</b> / <b>{totalPages}</b>
+        </div>
+
+        <button
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={page >= totalPages}
+          style={{ ...pillGhost, padding: '8px 12px', fontSize: 12, opacity: page >= totalPages ? 0.6 : 1 }}
+        >
+          Next
+        </button>
       </div>
     </div>
   );
