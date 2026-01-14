@@ -211,9 +211,7 @@ const pillButtonGhost: React.CSSProperties = {
 
 // --- graph helpers ---
 const monthKey = (d: string) => {
-  const dt = 
-  
-  new Date(d);
+  const dt = new Date(d);
   if (Number.isNaN(dt.getTime())) return '';
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
 };
@@ -226,6 +224,20 @@ const dayKey = (d: string) => {
 
 const currencyINR = (n: number) =>
   `₹ ${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+
+// --- upcoming payment helpers ---
+const parseYMD = (ymd?: string) => {
+  if (!ymd) return null;
+  const s = String(ymd).slice(0, 10);
+  const dt = new Date(`${s}T00:00:00`);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt;
+};
+
+const ymdOf = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const isSameYMD = (a: Date, b: Date) => ymdOf(a) === ymdOf(b);
 
 export default function ExpenseAdmin() {
   const dispatch = useDispatch<AppDispatch>();
@@ -340,6 +352,10 @@ export default function ExpenseAdmin() {
   const [upiId, setUpiId] = useState('');
   const [qrNote, setQrNote] = useState('');
   const [qrFile, setQrFile] = useState<File | null>(null);
+  const [showGraphs, setShowGraphs] = useState(false);
+  const [actualPaymentDate, setActualPaymentDate] = useState<string>('');
+
+
 
   const isOther = companyAdmin === 'other';
 
@@ -413,8 +429,10 @@ export default function ExpenseAdmin() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin]);
 
+  // ======== MONTH GRAPHS (submitted date based) =========
   const currentMonth = useMemo(() => monthKey(todayISO()), []);
   const currentMonthRows = useMemo(
     () => (rows || []).filter((r) => monthKey(r.date) === currentMonth),
@@ -459,6 +477,81 @@ export default function ExpenseAdmin() {
     });
     return m;
   }, [currentMonthRows]);
+
+  // ======== UPCOMING PAYMENTS (expected date based) =========
+  const todayDT = useMemo(() => parseYMD(todayISO())!, []);
+  const upcomingBase = useMemo(() => {
+    // Upcoming + Overdue = those which are NOT paid/rejected and have expected date
+    return (rows || []).filter((r) => {
+      const st = String(r.admin_status || 'pending');
+      const exp = parseYMD(r.expected_payment_date);
+      if (!exp) return false;
+      if (st === 'paid' || st === 'rejected') return false;
+      return true;
+    });
+  }, [rows]);
+
+  const upcomingSummary = useMemo(() => {
+    let dueToday = 0;
+    let dueNext7 = 0;
+    let overdue = 0;
+    let totalOpen = 0;
+
+    const byDate = new Map<string, number>();
+
+    upcomingBase.forEach((r) => {
+      const exp = parseYMD(r.expected_payment_date);
+      if (!exp) return;
+      const amt = Number(r.paid_amount || 0);
+      if (!Number.isFinite(amt)) return;
+
+      totalOpen += amt;
+
+      const diffDays = Math.floor((exp.getTime() - todayDT.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) overdue += amt;
+      if (diffDays === 0) dueToday += amt;
+      if (diffDays >= 0 && diffDays <= 7) dueNext7 += amt;
+
+      const k = ymdOf(exp);
+      byDate.set(k, (byDate.get(k) || 0) + amt);
+    });
+
+    const nextDates = Array.from(byDate.entries())
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 10);
+
+    // Overdue list (top 10)
+    const overdueRows = upcomingBase
+      .filter((r) => {
+        const exp = parseYMD(r.expected_payment_date);
+        if (!exp) return false;
+        return exp.getTime() < todayDT.getTime();
+      })
+      .sort((a, b) => {
+        const ea = parseYMD(a.expected_payment_date)?.getTime() || 0;
+        const eb = parseYMD(b.expected_payment_date)?.getTime() || 0;
+        return ea - eb;
+      })
+      .slice(0, 10);
+
+    // Upcoming list (next 10)
+    const upcomingRows = upcomingBase
+      .filter((r) => {
+        const exp = parseYMD(r.expected_payment_date);
+        if (!exp) return false;
+        return exp.getTime() >= todayDT.getTime();
+      })
+      .sort((a, b) => {
+        const ea = parseYMD(a.expected_payment_date)?.getTime() || 0;
+        const eb = parseYMD(b.expected_payment_date)?.getTime() || 0;
+        return ea - eb;
+      })
+      .slice(0, 10);
+
+    return { dueToday, dueNext7, overdue, totalOpen, nextDates, overdueRows, upcomingRows };
+  }, [upcomingBase, todayDT]);
 
   // ADMIN VERIFY
   async function verify(id: string, status: 'approved' | 'rejected' | 'paid' | 'pending') {
@@ -716,8 +809,7 @@ export default function ExpenseAdmin() {
             Access Restricted
           </h3>
           <p style={{ margin: 0, marginBottom: 12, fontSize: 13, color: '#6b7280' }}>
-            Only users with <b>Admin (role = 1)</b> can view and manage expenses on this
-            page.
+            Only users with <b>Admin (role = 1)</b> can view and manage expenses on this page.
           </p>
         </div>
       </div>
@@ -762,157 +854,366 @@ export default function ExpenseAdmin() {
                 : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
               padding: '6px 14px',
               fontSize: 12,
+              marginRight: 10,
             }}
           >
             {open ? 'Close Form' : '+ Create Expense'}
           </button>
+          <button
+            type="button"
+            onClick={() => setShowGraphs((v) => !v)}
+            style={{
+              ...pillButtonGhost,
+              padding: '6px 14px',
+              fontSize: 12,
+              borderRadius: 999,
+              background: showGraphs ? '#111827' : '#f8fafc',
+              color: showGraphs ? '#fff' : '#4b5563',
+              border: showGraphs ? '1px solid #111827' : '1px solid #dde2eb',
+              boxShadow: showGraphs ? '0 8px 18px rgba(17,24,39,0.25)' : 'none',
+            }}
+          >
+            {showGraphs ? 'Hide Graphs' : 'View Graphs'}
+          </button>
+
         </div>
       </div>
 
       {/* ✅ MONTHLY GRAPH SUMMARY */}
-      <div
-        style={{
-          marginTop: 12,
-          borderRadius: 18,
-          background: '#ffffff',
-          border: '1px solid #e5e7eb',
-          padding: 14,
-          boxShadow: '0 12px 28px rgba(15,23,42,0.08)',
-        }}
-      >
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'stretch' }}>
-          {/* Total */}
-          <div
-            style={{
-              flex: '1 1 220px',
-              borderRadius: 14,
-              padding: 12,
-              border: '1px solid #eef2f7',
-              background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.06))',
-            }}
-          >
-            <div style={{ fontSize: 12, color: '#6b7280' }}>This Month Total Spend</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#111827', marginTop: 2 }}>
-              {currencyINR(monthTotal)}
-            </div>
-            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
-              Month: <b>{currentMonth}</b>
-            </div>
-          </div>
+      {showGraphs && (
 
-          {/* Status cards */}
-          {(['paid', 'approved', 'pending', 'rejected'] as const).map((k) => (
+        <div
+          style={{
+            marginTop: 12,
+            borderRadius: 18,
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            padding: 14,
+            boxShadow: '0 12px 28px rgba(15,23,42,0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'stretch' }}>
+            {/* Total */}
             <div
-              key={k}
               style={{
-                flex: '1 1 160px',
+                flex: '1 1 220px',
                 borderRadius: 14,
                 padding: 12,
                 border: '1px solid #eef2f7',
-                background: '#fbfdff',
+                background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.06))',
               }}
             >
-              <div style={{ fontSize: 12, color: '#6b7280' }}>{getStatusLabel(k)}</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', marginTop: 2 }}>
-                {currencyINR(statusTotals[k] || 0)}
+              <div style={{ fontSize: 12, color: '#6b7280' }}>This Month Total Spend</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#111827', marginTop: 2 }}>
+                {currencyINR(monthTotal)}
               </div>
-              <div style={{ marginTop: 6 }}>
-                <span style={getStatusChipStyle(k)}>{getStatusLabel(k)}</span>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+                Month: <b>{currentMonth}</b>
               </div>
             </div>
-          ))}
-        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 12, marginTop: 12 }}>
-          {/* Daily Spend Line */}
+            {/* Status cards */}
+            {(['paid', 'approved', 'pending', 'rejected'] as const).map((k) => (
+              <div
+                key={k}
+                style={{
+                  flex: '1 1 160px',
+                  borderRadius: 14,
+                  padding: 12,
+                  border: '1px solid #eef2f7',
+                  background: '#fbfdff',
+                }}
+              >
+                <div style={{ fontSize: 12, color: '#6b7280' }}>{getStatusLabel(k)}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', marginTop: 2 }}>
+                  {currencyINR(statusTotals[k] || 0)}
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  <span style={getStatusChipStyle(k)}>{getStatusLabel(k)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 12, marginTop: 12 }}>
+            {/* Daily Spend Line */}
+            <div
+              style={{
+                borderRadius: 14,
+                border: '1px solid #eef2f7',
+                background: '#ffffff',
+                padding: 10,
+                minHeight: 260,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
+                Daily Spend (This Month)
+              </div>
+
+              {dailySeries.length === 0 ? (
+                <div style={{ fontSize: 12, color: '#9ca3af', padding: 12 }}>
+                  No data for this month
+                </div>
+              ) : (
+                <div style={{ width: '100%', height: 220 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailySeries}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="day" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="amount" strokeWidth={3} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Category Bar */}
+            <div
+              style={{
+                borderRadius: 14,
+                border: '1px solid #eef2f7',
+                background: '#ffffff',
+                padding: 10,
+                minHeight: 260,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
+                Top Categories (This Month)
+              </div>
+
+              {categorySeries.length === 0 ? (
+                <div style={{ fontSize: 12, color: '#9ca3af', padding: 12 }}>
+                  No data for this month
+                </div>
+              ) : (
+                <div style={{ width: '100%', height: 220 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={categorySeries}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="category" hide />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="amount" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {categorySeries.length > 0 && (
+                <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {categorySeries.slice(0, 6).map((c) => (
+                    <span
+                      key={c.category}
+                      style={{
+                        fontSize: 11,
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        background: '#f1f5f9',
+                        border: '1px solid #e5e7eb',
+                        color: '#334155',
+                        maxWidth: 220,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={`${c.category} - ${currencyINR(c.amount)}`}
+                    >
+                      {c.category}: <b>{currencyINR(c.amount)}</b>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ✅ UPCOMING PAYMENTS (Expected Date Based) */}
           <div
             style={{
+              marginTop: 12,
               borderRadius: 14,
               border: '1px solid #eef2f7',
               background: '#ffffff',
-              padding: 10,
-              minHeight: 260,
+              padding: 12,
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
-              Daily Spend (This Month)
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>
+                Upcoming / Overdue Payments (Expected Date)
+              </div>
+              <div style={{ fontSize: 11, color: '#6b7280' }}>
+                Counts only <b>Pending + Approved</b> (not Paid/Rejected) with Expected Date
+              </div>
             </div>
 
-            {dailySeries.length === 0 ? (
-              <div style={{ fontSize: 12, color: '#9ca3af', padding: 12 }}>No data for this month</div>
-            ) : (
-              <div style={{ width: '100%', height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={dailySeries}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="amount" strokeWidth={3} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
+              <div style={{ flex: '1 1 200px', border: '1px solid #eef2f7', borderRadius: 12, padding: 10, background: '#fbfdff' }}>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>Overdue Amount</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#111827', marginTop: 2 }}>
+                  {currencyINR(upcomingSummary.overdue)}
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  <span style={getStatusChipStyle('rejected')}>Overdue</span>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Category Bar */}
-          <div
-            style={{
-              borderRadius: 14,
-              border: '1px solid #eef2f7',
-              background: '#ffffff',
-              padding: 10,
-              minHeight: 260,
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
-              Top Categories (This Month)
+              <div style={{ flex: '1 1 200px', border: '1px solid #eef2f7', borderRadius: 12, padding: 10, background: '#fbfdff' }}>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>Due Today</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#111827', marginTop: 2 }}>
+                  {currencyINR(upcomingSummary.dueToday)}
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  <span style={getStatusChipStyle('approved')}>Today</span>
+                </div>
+              </div>
+
+              <div style={{ flex: '1 1 200px', border: '1px solid #eef2f7', borderRadius: 12, padding: 10, background: '#fbfdff' }}>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>Due Next 7 Days</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#111827', marginTop: 2 }}>
+                  {currencyINR(upcomingSummary.dueNext7)}
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  <span style={getStatusChipStyle('pending')}>Next 7 days</span>
+                </div>
+              </div>
+
+              <div style={{ flex: '1 1 200px', border: '1px solid #eef2f7', borderRadius: 12, padding: 10, background: 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(37,99,235,0.06))' }}>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>Total Open (Expected)</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#111827', marginTop: 2 }}>
+                  {currencyINR(upcomingSummary.totalOpen)}
+                </div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+                  Based on Expected Date entries
+                </div>
+              </div>
             </div>
 
-            {categorySeries.length === 0 ? (
-              <div style={{ fontSize: 12, color: '#9ca3af', padding: 12 }}>No data for this month</div>
-            ) : (
-              <div style={{ width: '100%', height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={categorySeries}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" hide />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="amount" />
-                  </BarChart>
-                </ResponsiveContainer>
+            {/* Date-wise next payments */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+              <div style={{ border: '1px solid #eef2f7', borderRadius: 12, padding: 10, background: '#ffffff' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#111827' }}>Next Payment Dates (Top 10)</div>
+                {upcomingSummary.nextDates.length === 0 ? (
+                  <div style={{ fontSize: 12, color: '#9ca3af', padding: 10 }}>No upcoming/overdue expected payments</div>
+                ) : (
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {upcomingSummary.nextDates.map((d) => {
+                      const dt = parseYMD(d.date)!;
+                      const isToday = isSameYMD(dt, todayDT);
+                      const isPast = dt.getTime() < todayDT.getTime();
+                      return (
+                        <div
+                          key={d.date}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            padding: '8px 10px',
+                            borderRadius: 12,
+                            border: '1px solid #eef2f7',
+                            background: isPast
+                              ? 'rgba(239,68,68,0.06)'
+                              : isToday
+                                ? 'rgba(34,197,94,0.07)'
+                                : '#fbfdff',
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#111827' }}>{d.date}</div>
+                            <div style={{ fontSize: 11, color: '#6b7280' }}>
+                              {isPast ? 'Overdue' : isToday ? 'Due Today' : 'Upcoming'}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#111827' }}>
+                            {currencyINR(d.amount)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
 
-            {categorySeries.length > 0 && (
-              <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {categorySeries.slice(0, 6).map((c) => (
-                  <span
-                    key={c.category}
-                    style={{
-                      fontSize: 11,
-                      padding: '4px 10px',
-                      borderRadius: 999,
-                      background: '#f1f5f9',
-                      border: '1px solid #e5e7eb',
-                      color: '#334155',
-                      maxWidth: 220,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                    title={`${c.category} - ${currencyINR(c.amount)}`}
-                  >
-                    {c.category}: <b>{currencyINR(c.amount)}</b>
-                  </span>
-                ))}
+              <div style={{ border: '1px solid #eef2f7', borderRadius: 12, padding: 10, background: '#ffffff' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#111827' }}>Quick Lists</div>
+
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#b91c1c' }}>Overdue (Top 10)</div>
+                  {upcomingSummary.overdueRows.length === 0 ? (
+                    <div style={{ fontSize: 12, color: '#9ca3af', padding: '8px 0' }}>No overdue</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+                      {upcomingSummary.overdueRows.map((r: any) => (
+                        <div
+                          key={r._id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            padding: '8px 10px',
+                            borderRadius: 12,
+                            border: '1px solid #fee2e2',
+                            background: 'rgba(239,68,68,0.06)',
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#111827' }}>
+                              {String(r.expected_payment_date).slice(0, 10)} • {showCategory(r)}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {getEmpData(r.owner_id).name} • {getStatusLabel(String(r.admin_status || 'pending'))}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#111827' }}>
+                            {currencyINR(Number(r.paid_amount || 0))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#1d4ed8' }}>Upcoming (Next 10)</div>
+                  {upcomingSummary.upcomingRows.length === 0 ? (
+                    <div style={{ fontSize: 12, color: '#9ca3af', padding: '8px 0' }}>No upcoming</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+                      {upcomingSummary.upcomingRows.map((r: any) => (
+                        <div
+                          key={r._id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            padding: '8px 10px',
+                            borderRadius: 12,
+                            border: '1px solid #dbeafe',
+                            background: 'rgba(59,130,246,0.06)',
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#111827' }}>
+                              {String(r.expected_payment_date).slice(0, 10)} • {showCategory(r)}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {getEmpData(r.owner_id).name} • {getStatusLabel(String(r.admin_status || 'pending'))}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#111827' }}>
+                            {currencyINR(Number(r.paid_amount || 0))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
-      </div>
-
+      )}
       {/* CREATE / EDIT FORM */}
       {open && (
         <form
@@ -929,8 +1230,7 @@ export default function ExpenseAdmin() {
             style={{
               padding: '10px 16px',
               borderBottom: '1px solid #e5e7eb',
-              background:
-                'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.05))',
+              background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.05))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -1338,6 +1638,7 @@ export default function ExpenseAdmin() {
               <tr>
                 {[
                   'Date',
+                  'Expected Date',
                   'Employee',
                   'Category',
                   'Description',
@@ -1391,6 +1692,7 @@ export default function ExpenseAdmin() {
 
                   return (
                     <tr key={r._id}>
+                      {/* Date */}
                       <td
                         style={{
                           padding: 10,
@@ -1402,6 +1704,21 @@ export default function ExpenseAdmin() {
                         {r.date?.slice(0, 10)}
                       </td>
 
+                      {/* ✅ Expected Date (FIXED) */}
+                      <td
+                        style={{
+                          padding: 10,
+                          borderBottom: '1px solid #f1f1f1',
+                          fontSize: 12,
+                          whiteSpace: 'nowrap',
+                          color: r.expected_payment_date ? '#111827' : '#9ca3af',
+                          fontWeight: r.expected_payment_date ? 600 : 400,
+                        }}
+                      >
+                        {r.expected_payment_date ? String(r.expected_payment_date).slice(0, 10) : '—'}
+                      </td>
+
+                      {/* ✅ Employee (FIXED position) */}
                       <td
                         style={{
                           padding: 10,
@@ -1483,7 +1800,7 @@ export default function ExpenseAdmin() {
                       </td>
 
                       <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1', fontSize: 12 }}>
-                        {r.paid_amount}
+                        ₹ {Number(r.paid_amount || 0).toLocaleString('en-IN')}
                       </td>
 
                       {/* ✅ Payment Details (only view) */}
@@ -1714,6 +2031,10 @@ export default function ExpenseAdmin() {
                               setSelectedId(r._id);
                               setSelectedRow(r);
                               setNote(r.admin_note || '');
+                              setActualPaymentDate(
+                                r.actual_payment_date ? String(r.actual_payment_date).slice(0, 10) : ''
+                              );
+
                             }}
                             title="Change Status"
                             style={{
@@ -1726,9 +2047,7 @@ export default function ExpenseAdmin() {
                               background: canVerify && !isRowVerifying ? '#1d4ed8' : '#e5e7eb',
                               color: canVerify && !isRowVerifying ? '#ffffff' : '#9ca3af',
                               boxShadow:
-                                canVerify && !isRowVerifying
-                                  ? '0 3px 10px rgba(37, 99, 235, 0.35)'
-                                  : 'none',
+                                canVerify && !isRowVerifying ? '0 3px 10px rgba(37, 99, 235, 0.35)' : 'none',
                               transition: 'all 0.2s ease',
                             }}
                           >
@@ -1748,7 +2067,7 @@ export default function ExpenseAdmin() {
 
               {loadingList && (
                 <tr>
-                  <td colSpan={10} style={{ padding: 12, fontSize: 12 }}>
+                  <td colSpan={11} style={{ padding: 12, fontSize: 12 }}>
                     Loading...
                   </td>
                 </tr>
@@ -1756,7 +2075,7 @@ export default function ExpenseAdmin() {
 
               {!loadingList && rows.length === 0 && (
                 <tr>
-                  <td colSpan={10} style={{ padding: 12, fontSize: 12 }}>
+                  <td colSpan={11} style={{ padding: 12, fontSize: 12 }}>
                     No expenses found
                   </td>
                 </tr>
@@ -1884,6 +2203,27 @@ export default function ExpenseAdmin() {
               }}
               placeholder="Add a note for approval / rejection / payment..."
             />
+            {/* ✅ Actual Payment Date (only for Paid) */}
+            {selectedRow && (
+              <div style={{ marginTop: 10 }}>
+                <label style={fieldLabelStyle}>Actual Payment Date</label>
+                <input
+                  type="date"
+                  value={actualPaymentDate}
+                  onChange={(e) => setActualPaymentDate(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: 10,
+                    borderRadius: 10,
+                    border: '1px solid #dde2eb',
+                    fontSize: 12,
+                    marginTop: 6,
+                    background: '#fdfdfd',
+                  }}
+                />
+
+              </div>
+            )}
 
             <div
               style={{
@@ -1894,6 +2234,7 @@ export default function ExpenseAdmin() {
                 flexWrap: 'wrap',
               }}
             >
+
               <button
                 disabled={verifyingId === selectedId}
                 onClick={() => verify(selectedId, 'pending')}
@@ -1915,18 +2256,19 @@ export default function ExpenseAdmin() {
                 {verifyingId === selectedId ? 'Approving…' : 'Approve'}
               </button>
 
-              <button
-                disabled={verifyingId === selectedId}
-                onClick={() => verify(selectedId, 'paid')}
-                style={{
-                  ...pillButtonPrimary,
-                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                  boxShadow: '0 8px 18px rgba(59,130,246,0.35)',
-                  opacity: verifyingId === selectedId ? 0.6 : 1,
-                }}
-              >
-                {verifyingId === selectedId ? 'Marking…' : 'Mark as Paid'}
-              </button>
+         <button
+  disabled={verifyingId === selectedId || !actualPaymentDate}
+  onClick={() => verify(selectedId, 'paid')}
+  style={{
+    ...pillButtonPrimary,
+    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+    boxShadow: '0 8px 18px rgba(59,130,246,0.35)',
+    opacity: verifyingId === selectedId || !actualPaymentDate ? 0.6 : 1,
+    cursor: verifyingId === selectedId || !actualPaymentDate ? 'not-allowed' : 'pointer',
+  }}
+>
+  {verifyingId === selectedId ? 'Marking…' : 'Mark as Paid'}
+</button>
 
               <button
                 disabled={verifyingId === selectedId}
@@ -2039,7 +2381,7 @@ export default function ExpenseAdmin() {
                     style={{
                       width: '100%',
                       height: 'auto',
-                      maxHeight: 280, // ✅ bigger
+                      maxHeight: 280,
                       borderRadius: 12,
                       objectFit: 'contain',
                       border: '1px solid #e5e7eb',

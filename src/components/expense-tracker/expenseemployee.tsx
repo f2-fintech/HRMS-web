@@ -295,8 +295,8 @@ const statusBadge = (status?: string) => {
     s === 'approved'
       ? { bg: 'rgba(34,197,94,0.12)', bd: 'rgba(34,197,94,0.35)', fg: '#166534', dot: '#22c55e' }
       : s === 'rejected'
-      ? { bg: 'rgba(239,68,68,0.12)', bd: 'rgba(239,68,68,0.35)', fg: '#7f1d1d', dot: '#ef4444' }
-      : { bg: 'rgba(245,158,11,0.12)', bd: 'rgba(245,158,11,0.35)', fg: '#92400e', dot: '#f59e0b' };
+        ? { bg: 'rgba(239,68,68,0.12)', bd: 'rgba(239,68,68,0.35)', fg: '#7f1d1d', dot: '#ef4444' }
+        : { bg: 'rgba(245,158,11,0.12)', bd: 'rgba(245,158,11,0.35)', fg: '#92400e', dot: '#f59e0b' };
 
   return (
     <span
@@ -492,9 +492,9 @@ export default function ExpenseEmployee() {
       const safeRows = isAdmin
         ? data
         : data.filter((r: any) => {
-            const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
-            return myIds.includes(oid);
-          });
+          const oid = String(r?.owner_id?._id ?? r?.owner_id ?? '').trim();
+          return myIds.includes(oid);
+        });
 
       setRows(safeRows);
       setTotal(isAdmin ? res?.total || 0 : safeRows.length);
@@ -817,12 +817,6 @@ export default function ExpenseEmployee() {
                 {editingId ? 'Edit Expense' : 'New Expense Request'}
               </div>
             </div>
-
-            {editingId ? (
-              <div style={{ fontSize: 12, color: ui.muted, fontWeight: 900 }}>
-                Editing ID: {String(editingId).slice(-6)}
-              </div>
-            ) : null}
           </div>
 
           <div style={{ padding: 16 }}>
@@ -1156,7 +1150,7 @@ export default function ExpenseEmployee() {
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
             <thead>
               <tr>
                 {[
@@ -1256,7 +1250,7 @@ export default function ExpenseEmployee() {
                               title="View Description"
                             >
                               <EyeIcon />
-                              
+
                             </button>
                           </div>
                         ) : (
@@ -1296,7 +1290,7 @@ export default function ExpenseEmployee() {
                               title="View Payment"
                             >
                               <EyeIcon />
-                            
+
                             </button>
                           </div>
                         ) : (
@@ -1309,107 +1303,107 @@ export default function ExpenseEmployee() {
                         {statusBadge(r.admin_status)}
                       </td>
 
-                  
-<td style={{ padding: 12, borderBottom: `1px solid ${ui.border}` }}>
-  {(() => {
-    const invoiceUrls: string[] = Array.isArray(r.invoices) ? r.invoices : [];
 
-    const isQrPay = String(r?.payment || '').toLowerCase().includes('qr');
-    const qrUrl = isQrPay ? getQrUrlFromRow(r) : null;
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}` }}>
+                        {(() => {
+                          const invoiceUrls: string[] = Array.isArray(r.invoices) ? r.invoices : [];
 
-    // remove QR image from invoice list
-    const onlyInvoices = qrUrl
-      ? invoiceUrls.filter((u) => String(u) !== String(qrUrl))
-      : invoiceUrls;
+                          const isQrPay = String(r?.payment || '').toLowerCase().includes('qr');
+                          const qrUrl = isQrPay ? getQrUrlFromRow(r) : null;
 
-    if (!onlyInvoices.length) {
-      return <span style={{ fontSize: 11, color: ui.muted }}>No invoice</span>;
-    }
+                          // remove QR image from invoice list
+                          const onlyInvoices = qrUrl
+                            ? invoiceUrls.filter((u) => String(u) !== String(qrUrl))
+                            : invoiceUrls;
 
-    return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-        {onlyInvoices.map((url: string, i: number) => {
-          const name = prettyFileName(url) || `Invoice ${i + 1}`;
-          const img = isImageUrl(url);
+                          if (!onlyInvoices.length) {
+                            return <span style={{ fontSize: 11, color: ui.muted }}>No invoice</span>;
+                          }
 
-          return (
-            <a
-              key={i}
-              href={url}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 12px',
-                borderRadius: 14,
-                border: `1px solid ${ui.border}`,
-                background: 'rgba(255,255,255,0.9)',
-                boxShadow: '0 8px 18px rgba(2,6,23,0.06)',
-                textDecoration: 'none',
-                color: ui.text,
-                maxWidth: 300,
-              }}
-            >
-              {/* 🔥 REAL IMAGE PREVIEW */}
-              {img ? (
-                <img
-                  src={url}
-                  alt={name}
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    objectFit: 'cover',
-                    border: `1px solid ${ui.border2}`,
-                    flexShrink: 0,
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    background: 'rgba(79,70,229,0.12)',
-                    border: `1px solid rgba(79,70,229,0.25)`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 900,
-                    color: '#4338ca',
-                    fontSize: 11,
-                    flexShrink: 0,
-                  }}
-                >
-                  PDF
-                </div>
-              )}
+                          return (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                              {onlyInvoices.map((url: string, i: number) => {
+                                const name = prettyFileName(url) || `Invoice ${i + 1}`;
+                                const img = isImageUrl(url);
 
-              {/* filename */}
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: 180,
-                }}
-                title={name}
-              >
-                {name}
-              </span>
+                                return (
+                                  <a
+                                    key={i}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 10,
+                                      padding: '8px 12px',
+                                      borderRadius: 14,
+                                      border: `1px solid ${ui.border}`,
+                                      background: 'rgba(255,255,255,0.9)',
+                                      boxShadow: '0 8px 18px rgba(2,6,23,0.06)',
+                                      textDecoration: 'none',
+                                      color: ui.text,
+                                      maxWidth: 300,
+                                    }}
+                                  >
+                                    {/* 🔥 REAL IMAGE PREVIEW */}
+                                    {img ? (
+                                      <img
+                                        src={url}
+                                        alt={name}
+                                        style={{
+                                          width: 36,
+                                          height: 36,
+                                          borderRadius: 8,
+                                          objectFit: 'cover',
+                                          border: `1px solid ${ui.border2}`,
+                                          flexShrink: 0,
+                                        }}
+                                      />
+                                    ) : (
+                                      <div
+                                        style={{
+                                          width: 36,
+                                          height: 36,
+                                          borderRadius: 8,
+                                          background: 'rgba(79,70,229,0.12)',
+                                          border: `1px solid rgba(79,70,229,0.25)`,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontWeight: 900,
+                                          color: '#4338ca',
+                                          fontSize: 11,
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        PDF
+                                      </div>
+                                    )}
 
-              <span style={{ marginLeft: 'auto', color: ui.muted, fontWeight: 900 }}>↗</span>
-            </a>
-          );
-        })}
-      </div>
-    );
-  })()}
-</td>
+                                    {/* filename */}
+                                    <span
+                                      style={{
+                                        fontSize: 12,
+                                        fontWeight: 900,
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        maxWidth: 180,
+                                      }}
+                                      title={name}
+                                    >
+                                      {name}
+                                    </span>
+
+                                    <span style={{ marginLeft: 'auto', color: ui.muted, fontWeight: 900 }}>↗</span>
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </td>
 
                       {/* Action */}
                       <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, whiteSpace: 'nowrap' }}>
@@ -1659,20 +1653,20 @@ export default function ExpenseEmployee() {
                   marginBottom: 12,
                 }}
               >
-               <img
-  src={paymentMeta.qr}
-  alt="QR"
-  style={{
-    width: 160,        // 🔥 pehle 110 tha
-    height: 160,       // 🔥 pehle 110 tha
-    borderRadius: 22,
-    objectFit: 'cover',
-    border: `1px solid ${ui.border2}`,
-    boxShadow: '0 14px 34px rgba(2,6,23,0.18)',
-    background: '#fff',
-    padding: 6,        // thoda premium frame feel
-  }}
-/>
+                <img
+                  src={paymentMeta.qr}
+                  alt="QR"
+                  style={{
+                    width: 160,        // 🔥 pehle 110 tha
+                    height: 160,       // 🔥 pehle 110 tha
+                    borderRadius: 22,
+                    objectFit: 'cover',
+                    border: `1px solid ${ui.border2}`,
+                    boxShadow: '0 14px 34px rgba(2,6,23,0.18)',
+                    background: '#fff',
+                    padding: 6,        // thoda premium frame feel
+                  }}
+                />
 
                 <div style={{ minWidth: 0 }}>
                   <a
