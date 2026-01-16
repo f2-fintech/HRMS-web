@@ -81,8 +81,8 @@ const companyApprovalOptions = [
   { label: 'Leave Encashment', value: 'leave_encashment' },
 
   { label: 'Data Purchase', value: 'data_purchase' },
-  { label: 'Advance From Company', value: 'data_purchase' },
-  { label: 'HR Admin Expense', value: 'managementabhinav' },
+  // { label: 'Advance From Company', value: 'data_purchase' },
+  // { label: 'HR Admin Expense', value: 'managementabhinav' },
   { label: 'Management Expense(Harpreet Singh)', value: 'management' },
   { label: 'Management Expense(Abhinav Awal)', value: 'managementabhinav' },
 ] as const;
@@ -1157,7 +1157,8 @@ export default function ExpenseEmployee() {
                   'Date',
                   ...(isAdmin ? (['Employee', 'Manager'] as const) : ([] as const)),
                   'Category',
-                  'Amount To Pay',
+                   'Expense Type',
+                  'Amount',
                   'Description',
                   'Payment Details',
                   'Admin Status',
@@ -1218,6 +1219,9 @@ export default function ExpenseEmployee() {
                       {/* Category */}
                       <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12 }}>
                         {showCategory(r)}
+                      </td>
+                       <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1', fontSize: 12 }}>
+                        {(r.company_approval )}
                       </td>
 
                       {/* Paid */}

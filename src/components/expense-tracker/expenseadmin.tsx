@@ -136,10 +136,10 @@ const companyApprovalOptions = [
   { label: 'Referral Partner Payment', value: 'referral_partner' },
   { label: 'Leave Encashment', value: 'leave_encashment' },
   { label: 'Data Purchase', value: 'data_purchase' },
-  { label: 'Advance From Company', value: 'advance_from_company' },
-  { label: 'HR Admin Expense', value: 'managementabhinav' },
-  { label: 'Management Expense(Harpreet Singh)', value: 'management' },
-  { label: 'Management Expense(Abhinav Awal)', value: 'managementabhinav' },
+  // { label: 'Advance From Company', value: 'advance_from_company' },
+  // { label: 'HR Admin Expense', value: 'managementabhinav' },
+  { label: 'Management Expense(Harpreet Singh)', value: 'Harpreet_singh_Management' },
+  { label: 'Management Expense(Abhinav Awal)', value: 'Abhinav_Awal_Management' },
 ] as const;
 
 type CompanyApprovalValue = (typeof companyApprovalOptions)[number]['value'];
@@ -1638,12 +1638,13 @@ export default function ExpenseAdmin() {
               <tr>
                 {[
                   'Date',
-                  'Expected Date',
+                  'Payment Release Date',
                   'Employee',
                   'Category',
+                  'Expense Type',
                   'Description',
-                  'Amount To Pay',
-                  'Payment Details',
+                  'Amount',
+                  'Mode Of Payment',
                   'Status',
                   'Admin Note',
                   'Invoices',
@@ -1746,6 +1747,9 @@ export default function ExpenseAdmin() {
 
                       <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1', fontSize: 12 }}>
                         {showCategory(r)}
+                      </td>
+                      <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1', fontSize: 12 }}>
+                        {(r.company_approval )}
                       </td>
 
                       {/* ✅ Description (only view) */}
@@ -2256,19 +2260,19 @@ export default function ExpenseAdmin() {
                 {verifyingId === selectedId ? 'Approving…' : 'Approve'}
               </button>
 
-         <button
-  disabled={verifyingId === selectedId || !actualPaymentDate}
-  onClick={() => verify(selectedId, 'paid')}
-  style={{
-    ...pillButtonPrimary,
-    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-    boxShadow: '0 8px 18px rgba(59,130,246,0.35)',
-    opacity: verifyingId === selectedId || !actualPaymentDate ? 0.6 : 1,
-    cursor: verifyingId === selectedId || !actualPaymentDate ? 'not-allowed' : 'pointer',
-  }}
->
-  {verifyingId === selectedId ? 'Marking…' : 'Mark as Paid'}
-</button>
+              <button
+                disabled={verifyingId === selectedId || !actualPaymentDate}
+                onClick={() => verify(selectedId, 'paid')}
+                style={{
+                  ...pillButtonPrimary,
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  boxShadow: '0 8px 18px rgba(59,130,246,0.35)',
+                  opacity: verifyingId === selectedId || !actualPaymentDate ? 0.6 : 1,
+                  cursor: verifyingId === selectedId || !actualPaymentDate ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {verifyingId === selectedId ? 'Marking…' : 'Mark as Paid'}
+              </button>
 
               <button
                 disabled={verifyingId === selectedId}
