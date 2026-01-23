@@ -21,7 +21,9 @@ interface PunchInOutProps {
 
 const WHITELIST_EMPLOYEE_IDS = [
     '66bca8d72f1270380b77ab12',
-    '66c881fe269ecefff3411649'
+    '66c881fe269ecefff3411649',
+  '66bca6192f1270380b77aac5',
+  '66bc8bfe2f1270380b77a920',
 ];
 
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
