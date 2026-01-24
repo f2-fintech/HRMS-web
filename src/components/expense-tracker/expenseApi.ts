@@ -214,29 +214,33 @@ export async function managerVerifyExpense(id: string, payload: VerifyPayload) {
 }
 
 export async function adminVerifyExpense(
-    id: string,
-    payload: VerifyPayload,
-    files: File[] = [],
+  id: string,
+  payload: VerifyPayload,
+  files: File[] = [],
 ) {
-    const fd = new FormData();
-    Object.entries(payload || {}).forEach(([k, v]) => {
-        if (v === undefined || v === null) return;
-        fd.append(k, String(v));
-    });
-    files.forEach((f) => fd.append('files', f));
-    const res = await fetch(
-        `${baseUrl()}/expense-tracker/${encodeURIComponent(id)}/admin-verify`,
-        {
-            method: 'PATCH',
-            headers: getAuthHeaders({ json: false }),
-            body: fd,
-        },
-    );
-    const data: any = await parseResponse(res);
-    if (!res.ok) throw new Error(data?.message || data?.raw || 'Upload failed');
-    return data;
-}
+  const fd = new FormData();
 
+  Object.entries(payload || {}).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
+    fd.append(k, String(v));
+  });
+
+  // ✅ MUST match backend interceptor
+  files.forEach((f) => fd.append('admin_attachments', f));
+
+  const res = await fetch(
+    `${baseUrl()}/expense-tracker/${encodeURIComponent(id)}/admin-verify`,
+    {
+      method: 'PATCH',
+      headers: getAuthHeaders({ json: false }),
+      body: fd,
+    },
+  );
+
+  const data: any = await parseResponse(res);
+  if (!res.ok) throw new Error(data?.message || data?.raw || 'Upload failed');
+  return data;
+}
 
 
 export async function softDeleteExpense(id: string) {
