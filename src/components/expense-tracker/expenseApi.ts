@@ -214,10 +214,39 @@ export async function managerVerifyExpense(id: string, payload: VerifyPayload) {
     return await apiPatch<any>(`/expense-tracker/${encodeURIComponent(id)}/manager-verify`, payload);
 }
 
-// ✅ Admin verify
-export async function adminVerifyExpense(id: string, payload: VerifyPayload) {
-    return await apiPatch<any>(`/expense-tracker/${encodeURIComponent(id)}/admin-verify`, payload);
+// ✅ Admin verify (with attachment upload)
+export async function adminVerifyExpense(
+  id: string,
+  payload: VerifyPayload,
+  files: File[] = [],
+) {
+  const fd = new FormData();
+
+  // ✅ append fields
+  Object.entries(payload || {}).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
+    fd.append(k, String(v));
+  });
+
+  // ✅ append attachments (field name backend me same rakho)
+  // suggested: "admin_attachments"
+  files.forEach((f) => fd.append('admin_attachments', f));
+
+  // ✅ PATCH multipart
+  const res = await fetch(
+    `${baseUrl()}/expense-tracker/${encodeURIComponent(id)}/admin-verify`,
+    {
+      method: 'PATCH',
+      headers: getAuthHeaders({ json: false }), // ✅ NO content-type
+      body: fd,
+    },
+  );
+
+  const data: any = await parseResponse(res);
+  if (!res.ok) throw new Error(data?.message || data?.raw || 'Upload failed');
+  return data;
 }
+
 
 export async function softDeleteExpense(id: string) {
     return await apiDelete<any>(`/expense-tracker/${encodeURIComponent(id)}`);
