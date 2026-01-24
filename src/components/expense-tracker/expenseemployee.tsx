@@ -1,15 +1,15 @@
-// =======================================
-// ✅ ExpenseEmployee.tsx (PREMIUM UI + DESCRIPTION VIEW + PAYMENT VIEW + QR IN PAYMENT MODAL + INVOICE ONLY)
-// =======================================
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/redux/store';
-
 import { createExpense, listExpenses, todayISO, adminVerifyExpense } from './expenseApi';
 
-// -------- helpers ----------
+import { Snackbar, Alert, MenuItem, Select } from '@mui/material';
+
+/** =========================
+ * Helpers
+ * ========================= */
 const getFileNameFromUrl = (url: string) => {
   try {
     const clean = String(url || '').split('?')[0];
@@ -28,9 +28,37 @@ const prettyFileName = (url: string) => {
 const isImageUrl = (url: string) =>
   /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
 
-// -------- options ----------
+// normalize attachments fields (string | object | array)
+const normalizeUrls = (val: any): string[] => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.map(String).filter(Boolean);
+
+  if (typeof val === 'object') {
+    const possible =
+      val.url || val.path || val.location || val.key || val.file || val.link || null;
+    return possible ? [String(possible)] : [];
+  }
+
+  return [String(val)];
+};
+
+// small helper: get label from options
+function getOptionLabel(
+  value: string | undefined,
+  options: readonly { label: string; value: string }[],
+): string | undefined {
+  if (!value) return undefined;
+  const found = options.find((o) => o.value === value);
+  return found?.label;
+}
+
+/** =========================
+ * Options
+ * ========================= */
 const companyAdminOptions = [
+  { label: 'Choose Category', value: '' },
   { label: 'Cake', value: 'cake' },
+  { label: 'Advance Payment', value: 'advance_payment' },
   { label: 'Stationary', value: 'stationary' },
   { label: 'Water', value: 'water' },
   { label: 'Tea', value: 'tea' },
@@ -66,6 +94,16 @@ const companyAdminOptions = [
   { label: 'Bonus', value: 'bonus' },
   { label: 'Incentives', value: 'incentives' },
   { label: 'Contests', value: 'contests' },
+
+  { label: 'Company Approved Expenses', value: 'company_approval' },
+  { label: 'Channel Partner Payment', value: 'expense_channel' },
+  { label: 'Payout', value: 'payout' },
+  { label: 'Gift/Consultancy to a Customer', value: 'cashback_to_customer' },
+  { label: 'Referral Partner Payment', value: 'referral_partner' },
+  { label: 'Leave Encashment', value: 'leave_encashment' },
+  { label: 'Data Purchase', value: 'data_purchase' },
+  { label: 'Management Expense(Harpreet Singh)', value: 'Harpreet_singh_Management' },
+  { label: 'Management Expense(Abhinav Awal)', value: 'Abhinav_Awal_Management' },
   { label: 'Other', value: 'other' },
 ] as const;
 
@@ -75,19 +113,194 @@ const companyApprovalOptions = [
   { label: 'Company Approved Expenses', value: 'company_approval' },
   { label: 'Channel Partner Payment', value: 'expense_channel' },
   { label: 'Payout', value: 'payout' },
-
   { label: 'Gift/Consultancy to a Customer', value: 'cashback_to_customer' },
   { label: 'Referral Partner Payment', value: 'referral_partner' },
   { label: 'Leave Encashment', value: 'leave_encashment' },
-
   { label: 'Data Purchase', value: 'data_purchase' },
-  // { label: 'Advance From Company', value: 'data_purchase' },
-  // { label: 'HR Admin Expense', value: 'managementabhinav' },
   { label: 'Management Expense(Harpreet Singh)', value: 'management' },
   { label: 'Management Expense(Abhinav Awal)', value: 'managementabhinav' },
 ] as const;
 
 type CompanyApprovalValue = (typeof companyApprovalOptions)[number]['value'];
+
+const ALLOWED_TEAM_IDS: string[] = [
+  '674abf192cb3ff920ea4a894',
+  '680789b86a3572ff9478bcd2',
+  '68078bdd6a3572ff9478bd50',
+  '68078c506a3572ff9478bd6c',
+  '68e8feb4fa8c01760efccf87',
+  '693d0c7f5c4e2f15ce95cf0b',
+  '6957a5422381863817eb481d',
+  '695cb6645585adfa28e9bea3',
+  '695ce778b71faf497ee89a54',
+  '695df229e3d5943c537019ce',
+];
+
+type TeamType = { _id: string; name: string; code: string };
+
+type TeamConfig = {
+  categories: CompanyAdminValue[];
+  approvals: CompanyApprovalValue[];
+};
+
+const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
+  // admin
+  '674abf192cb3ff920ea4a894': {
+    categories: [
+      'advance_payment',
+      'leave_encashment',
+      'conveyance_petrol',
+      'travel_reimbursement',
+      'overtime',
+      'bonus',
+      'incentives',
+      'other',
+      'expense_channel',
+      'payout',
+      'cashback_to_customer',
+      'referral_partner',
+      'Harpreet_singh_Management',
+      'Abhinav_Awal_Management',
+    ],
+    approvals: ['company_approval'],
+  },
+  // HR
+  '680789b86a3572ff9478bcd2': {
+    categories: [
+      'cake',
+      'stationary',
+      'tea',
+      'water',
+      'decor',
+      'gifting',
+      'food_beverages',
+      'company_outing',
+      'overtime',
+      'rent_noida_first_floor',
+      'rent_bareilly',
+      'bonus',
+      'contests',
+      'leave_encashment',
+      'advance_payment',
+      'other',
+    ],
+    approvals: ['company_approval'],
+  },
+  // Sales
+  '68078bdd6a3572ff9478bd50': {
+    categories: [
+      'data_purchase',
+      'overtime',
+      'advertisement',
+      'conveyance_petrol',
+      'cab',
+      'travel_reimbursement',
+      'collab_events_marketing',
+      'community_building_expense',
+      'food_beverages',
+      'incentives',
+      'contests',
+      'other',
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  '6957a5422381863817eb481d': {
+    categories: [
+      'sim',
+      'system_rent',
+      'advance_payment',
+      'dialer',
+      'travel_reimbursement',
+      'internet',
+      'incentives',
+      'bonus', 'overtime', 
+      'cloud_ai',
+      'other',
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  '68078c506a3572ff9478bd6c': {
+    categories: ['bonus', 'overtime', 'advance_payment', 'incentives', 'cloud_ai', 'other'],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  // admin (final)
+  '695df229e3d5943c537019ce': {
+    categories: [
+      'stationary',
+      'water',
+      'tea',
+      'repairs',
+      'maintenance',
+      'conveyance_petrol',
+      'food_beverages',
+      'Harpreet_singh_Management',
+      'Abhinav_Awal_Management',
+      
+      'other',
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  '695ce778b71faf497ee89a54': {
+    categories: [
+      'payout',
+      'gifting',
+      'data_purchase',
+      'advance_payment',
+      'rent_bareilly',
+      'rent_noida_first_floor',
+      'company_outing',
+      'it_consultancy',
+      'conveyance_petrol',
+      'food_beverages',
+      'referral_partner',
+      'Harpreet_singh_Management',
+      'community_building_expense',
+      'Abhinav_Awal_Management',
+      'other',
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  '68e8feb4fa8c01760efccf87': {
+    categories: [
+      'bonus',
+      'cab',
+      'payout',
+      'overtime',
+      'advance_payment',
+     
+      'cashback_to_customer',
+      'expense_channel',
+      'Harpreet_singh_Management',
+      'Abhinav_Awal_Management',
+      'other',
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  '695cb6645585adfa28e9bea3': {
+    categories: ['bonus', 'overtime', 'Harpreet_singh_Management', 'Abhinav_Awal_Management', 'other'],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  '693d0c7f5c4e2f15ce95cf0b': {
+    categories: [
+      'bonus',
+      'payout',
+      'incentives',
+      'overtime',
+      'cashback_to_customer',
+      'expense_channel',
+      'referral_partner',
+      'company_approval',
+      'data_purchase',
+      'Harpreet_singh_Management',
+      'Abhinav_Awal_Management',
+      'advance_payment',
+      'travel_reimbursement',
+      'community_building_expense',
+      'other',
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+};
 
 type EmployeeType = {
   _id: string;
@@ -105,29 +318,17 @@ type UserLS = {
   employee_role?: number | string;
 };
 
-// 🆕 payment mode type
 type PaymentMode = 'account' | 'upi' | 'qr';
 
-// small helper: get label from options
-function getOptionLabel(
-  value: string | undefined,
-  options: readonly { label: string; value: string }[],
-): string | undefined {
-  if (!value) return undefined;
-  const found = options.find((o) => o.value === value);
-  return found?.label;
-}
-
-// 🆕 Local API helpers for UPDATE + SOFT DELETE (multipart)
+/** =========================
+ * API helpers (UPDATE + SOFT DELETE)
+ * ========================= */
 async function updateExpenseRequest(id: string, body: Record<string, any>, files: File[]) {
   const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
-  const user =
-    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const companyId =
-    (typeof window !== 'undefined' &&
-      (localStorage.getItem('company_id') || (user as any).company_id)) ||
-    '';
+    (typeof window !== 'undefined' && (localStorage.getItem('company_id') || (user as any).company_id)) || '';
 
   const fd = new FormData();
   Object.entries(body).forEach(([k, v]) => {
@@ -156,12 +357,9 @@ async function updateExpenseRequest(id: string, body: Record<string, any>, files
 async function softDeleteExpenseRequest(id: string) {
   const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
-  const user =
-    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const companyId =
-    (typeof window !== 'undefined' &&
-      (localStorage.getItem('company_id') || (user as any).company_id)) ||
-    '';
+    (typeof window !== 'undefined' && (localStorage.getItem('company_id') || (user as any).company_id)) || '';
 
   const res = await fetch(`${base}/expense-tracker/${encodeURIComponent(id)}/delete`, {
     method: 'DELETE',
@@ -180,7 +378,7 @@ async function softDeleteExpenseRequest(id: string) {
 }
 
 /** =========================
- * ✅ PREMIUM UI TOKENS (Improved Colors)
+ * UI tokens
  * ========================= */
 const ui = {
   pageBg:
@@ -211,16 +409,34 @@ const inputBase: React.CSSProperties = {
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
 };
 
-const selectBase: React.CSSProperties = {
-  ...inputBase,
-  appearance: 'none',
+const fieldLabelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: '#55657a',
 };
 
 const cardStyle: React.CSSProperties = {
-  borderRadius: ui.radius,
-  background: ui.cardBg,
-  border: `1px solid ${ui.border}`,
-  boxShadow: ui.shadow,
+  marginTop: 12,
+  borderRadius: 16,
+  background: '#ffffff',
+  border: '1px solid #eef2f7',
+  boxShadow: '0 18px 50px rgba(15, 23, 42, 0.10)',
+  overflow: 'hidden',
+};
+
+const cardInner: React.CSSProperties = {
+  padding: 16,
+};
+
+const fieldInputStyle: React.CSSProperties = {
+  padding: '9px 10px',
+  borderRadius: 10,
+  border: '1px solid #dde2eb',
+  fontSize: 13,
+  outline: 'none',
+  background: '#fdfdfd',
 };
 
 const pillPrimary: React.CSSProperties = {
@@ -238,6 +454,26 @@ const pillPrimary: React.CSSProperties = {
   gap: 8,
 };
 
+const sectionStyle: React.CSSProperties = {
+  padding: 14,
+  borderRadius: 12,
+  border: '1px solid #f1f5f9',
+  background: '#fafafa',
+};
+
+const gridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+  gap: 12,
+  alignItems: 'end',
+};
+
+const fieldWrap: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+};
+
 const pillGhost: React.CSSProperties = {
   padding: '9px 14px',
   borderRadius: 999,
@@ -252,6 +488,16 @@ const pillGhost: React.CSSProperties = {
   gap: 8,
 };
 
+const actionRow: React.CSSProperties = {
+  display: 'flex',
+  gap: 10,
+  marginTop: 14,
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+  paddingTop: 12,
+  borderTop: '1px solid #f1f5f9',
+};
+
 const tinyBtn: React.CSSProperties = {
   padding: '7px 10px',
   borderRadius: 999,
@@ -262,6 +508,35 @@ const tinyBtn: React.CSSProperties = {
   fontWeight: 900,
   color: ui.text,
   boxShadow: '0 6px 14px rgba(2,6,23,0.06)',
+};
+
+const pillButtonPrimary: React.CSSProperties = {
+  padding: '8px 16px',
+  borderRadius: 999,
+  border: 'none',
+  background: 'linear-gradient(135deg, #0aa674, #068f63)',
+  color: '#fff',
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+  boxShadow: '0 6px 16px rgba(6, 143, 99, 0.25)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+};
+
+const pillButtonGhost: React.CSSProperties = {
+  padding: '8px 16px',
+  borderRadius: 999,
+  border: '1px solid #dde2eb',
+  background: '#f8fafc',
+  color: '#4b5563',
+  fontSize: 13,
+  fontWeight: 500,
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
 };
 
 const label = (txt: string) => (
@@ -289,8 +564,13 @@ const money = (v: any) => {
   }).format(n);
 };
 
-const statusBadge = (status?: string) => {
-  const s = String(status || '').toLowerCase();
+// ✅ status can be string or object; keep safe
+const statusBadge = (status?: any) => {
+  const raw =
+    typeof status === 'object' ? status?.status ?? status?.value ?? status?.name ?? '' : status;
+
+  const s = String(raw || '').toLowerCase();
+
   const cfg =
     s === 'approved'
       ? { bg: 'rgba(34,197,94,0.12)', bd: 'rgba(34,197,94,0.35)', fg: '#166534', dot: '#22c55e' }
@@ -361,9 +641,7 @@ export default function ExpenseEmployee() {
   ) as EmployeeType[];
 
   const { myIds, isAdmin } = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return { myIds: [] as string[], isAdmin: false };
-    }
+    if (typeof window === 'undefined') return { myIds: [] as string[], isAdmin: false };
 
     const user: UserLS = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -397,7 +675,23 @@ export default function ExpenseEmployee() {
     return empMap.get(String(idOrObj)) || String(idOrObj);
   };
 
-  // ---------- form states ----------
+  /** =========================
+   * Snackbar
+   * ========================= */
+  const [snack, setSnack] = useState<{
+    open: boolean;
+    msg: string;
+    severity: 'success' | 'error' | 'info' | 'warning';
+  }>({ open: false, msg: '', severity: 'success' });
+
+  const showSnack = (
+    msg: string,
+    severity: 'success' | 'error' | 'info' | 'warning' = 'success',
+  ) => setSnack({ open: true, msg, severity });
+
+  /** =========================
+   * Form states
+   * ========================= */
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -407,7 +701,7 @@ export default function ExpenseEmployee() {
   const [date, setDate] = useState(defaultDate);
   const [expectedPaymentDate, setExpectedPaymentDate] = useState<string>('');
 
-  const [companyAdmin, setCompanyAdmin] = useState<CompanyAdminValue>('cake');
+  const [companyAdmin, setCompanyAdmin] = useState<CompanyAdminValue>('');
   const [customCategory, setCustomCategory] = useState('');
 
   const [companyApproval, setCompanyApproval] =
@@ -423,7 +717,12 @@ export default function ExpenseEmployee() {
   const [cashbackToCustomer, setCashbackToCustomer] = useState(false);
   const [referralPartner, setReferralPartner] = useState('');
 
-  // 🆕 Payment mode + fields
+  const [teams, setTeams] = useState<TeamType[]>([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+
+  const [department, setDepartment] = useState(''); // team_id
+  const [invoiceDate, setInvoiceDate] = useState<string>(''); // YYYY-MM-DD
+
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('account');
   const [accountHolder, setAccountHolder] = useState('');
   const [bankName, setBankName] = useState('');
@@ -433,7 +732,9 @@ export default function ExpenseEmployee() {
   const [qrNote, setQrNote] = useState('');
   const [qrFile, setQrFile] = useState<File | null>(null);
 
-  // ---------- list states ----------
+  /** =========================
+   * List states
+   * ========================= */
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -441,13 +742,11 @@ export default function ExpenseEmployee() {
   const [note, setNote] = useState('');
   const [selectedId, setSelectedId] = useState<string>('');
 
-  // 🆕 dialogs
   const [descPreview, setDescPreview] = useState<string | null>(null);
   const [paymentMeta, setPaymentMeta] = useState<any | null>(null);
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / 10));
   const isOther = companyAdmin === 'other';
-  const isLeaveEncashmentFlow = companyApproval === 'leave_encashment';
 
   const resetForm = () => {
     setDate(defaultDate);
@@ -469,7 +768,15 @@ export default function ExpenseEmployee() {
     setUpiId('');
     setQrNote('');
     setQrFile(null);
+    setDepartment('');
+    setInvoiceDate('');
   };
+
+  const filteredCompanyAdminOptions = useMemo(() => {
+    if (!department) return companyAdminOptions.filter((o) => o.value === '');
+    const allowed = TEAM_CONFIG_MAP[String(department)]?.categories || [];
+    return companyAdminOptions.filter((o) => o.value === '' || allowed.includes(o.value));
+  }, [department]);
 
   const load = async () => {
     try {
@@ -504,45 +811,100 @@ export default function ExpenseEmployee() {
   };
 
   useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        setTeamsLoading(true);
+        const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
+
+        const token = localStorage.getItem('token') || '';
+        const user =
+          typeof window !== 'undefined'
+            ? JSON.parse(localStorage.getItem('user') || '{}')
+            : {};
+        const company_id = (user as any)?.company_id || '';
+        const cid = localStorage.getItem('company_id') || company_id || '';
+
+        const resp = await fetch(`${base}/teams/get-all-teams`, {
+          headers: {
+            Authorization: `Bearer ${token} ${cid}`,
+          },
+        });
+
+        const rawText = await resp.text();
+        let json: any = {};
+        try {
+          json = rawText ? JSON.parse(rawText) : {};
+        } catch {
+          console.error('Teams API non-JSON:', rawText);
+          json = {};
+        }
+
+        if (!resp.ok) {
+          console.error('Teams API failed:', resp.status, json || rawText);
+          setTeams([]);
+          return;
+        }
+
+        const teamArr: any[] = Array.isArray(json)
+          ? json
+          : Array.isArray(json?.teams)
+            ? json.teams
+            : Array.isArray(json?.data)
+              ? json.data
+              : [];
+
+        let filteredTeams = teamArr;
+        if (ALLOWED_TEAM_IDS.length) {
+          filteredTeams = teamArr.filter((t: any) => ALLOWED_TEAM_IDS.includes(String(t._id)));
+        }
+
+        const cleaned: TeamType[] = filteredTeams
+          .map((t: any) => ({ _id: String(t._id), name: t.name || '', code: t.code || '' }))
+          .filter((t) => t._id);
+
+        cleaned.sort((a, b) =>
+          String(a.name || a.code || '').localeCompare(String(b.name || b.code || '')),
+        );
+
+        setTeams(cleaned);
+      } catch (e) {
+        console.error('fetchTeams error:', e);
+        setTeams([]);
+      } finally {
+        setTeamsLoading(false);
+      }
+    };
+
+    fetchTeams();
+  }, []);
+
+  useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin, myIds.join('|')]);
 
-  function handleCompanyApprovalChange(val: CompanyApprovalValue) {
-    setCompanyApproval(val);
-
-    if (val === 'leave_encashment') {
-      setCompanyAdmin('leave_encashment');
-    } else {
-      if (companyAdmin === 'leave_encashment') {
-        setCompanyAdmin('cake');
-      }
-    }
-  }
-
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!date) return alert('Submission date required');
-    if (!companyAdmin) return alert('Company Admin required');
-    if (isOther && !customCategory.trim()) return alert('Please enter Other expense name');
-    if (!companyApproval) return alert('More Expense Type required');
-    if (!paidAmount.trim()) return alert('Paid amount required');
+    if (!date) return showSnack('Submission date required', 'warning');
+    if (!companyAdmin) return showSnack('Company Admin required', 'warning');
+    if (isOther && !customCategory.trim()) return showSnack('Please enter Other expense name', 'warning');
+    if (!companyApproval) return showSnack('More Expense Type required', 'warning');
+    if (!paidAmount.trim()) return showSnack('Paid amount required', 'warning');
 
     const amt = Number(paidAmount);
-    if (!Number.isFinite(amt) || amt <= 0) return alert('Paid amount must be valid number');
+    if (!Number.isFinite(amt) || amt <= 0) return showSnack('Paid amount must be valid number', 'warning');
 
     if (companyApproval === 'expense_channel' && !expenseChannel.trim())
-      return alert('Expense Channel required');
+      return showSnack('Expense Channel required', 'warning');
     if (companyApproval === 'referral_partner' && !referralPartner.trim())
-      return alert('Referral Partner required');
+      return showSnack('Referral Partner required', 'warning');
 
-    // payment string
     let payment: string | undefined;
 
     if (paymentMode === 'account') {
       if (!accountHolder.trim() || !bankName.trim() || !accountNumber.trim() || !ifsc.trim()) {
-        return alert('Account Holder, Bank Name, Account Number & IFSC are required for Account payment');
+        return showSnack('Account Holder, Bank Name, Account Number & IFSC are required', 'warning');
       }
       const parts = [
         'Account Transfer',
@@ -553,17 +915,18 @@ export default function ExpenseEmployee() {
       ];
       payment = parts.join(' | ');
     } else if (paymentMode === 'upi') {
-      if (!upiId.trim()) return alert('UPI ID is required');
+      if (!upiId.trim()) return showSnack('UPI ID is required', 'warning');
       payment = `UPI | ID: ${upiId.trim()}`;
     } else if (paymentMode === 'qr') {
       payment = `QR Payment${qrNote.trim() ? ' | ' + qrNote.trim() : ''}`;
     }
 
-    // merge files
     const allFiles: File[] = [...invoices, ...(qrFile ? [qrFile] : [])];
 
     const payload: any = {
       date,
+      invoice_date: invoiceDate || undefined,
+      department: department || undefined,
       expected_payment_date: expectedPaymentDate || undefined,
       manager_id: managerId || undefined,
       company_admin: companyAdmin as any,
@@ -574,15 +937,12 @@ export default function ExpenseEmployee() {
       expense_channel: companyApproval === 'expense_channel' ? expenseChannel : undefined,
       cashback_to_customer: companyApproval === 'cashback_to_customer' ? cashbackToCustomer : undefined,
       referral_partner: companyApproval === 'referral_partner' ? referralPartner : undefined,
-
       payment,
-
       payment_mode: paymentMode,
       account_holder: paymentMode === 'account' ? accountHolder.trim() : undefined,
       bank_name: paymentMode === 'account' ? bankName.trim() : undefined,
       account_number: paymentMode === 'account' ? accountNumber.trim() : undefined,
       ifsc: paymentMode === 'account' ? ifsc.trim() : undefined,
-
       upi_id: paymentMode === 'upi' ? upiId.trim() : undefined,
       qr_note: paymentMode === 'qr' ? qrNote.trim() : undefined,
     };
@@ -592,10 +952,10 @@ export default function ExpenseEmployee() {
 
       if (editingId) {
         await updateExpenseRequest(editingId, payload, allFiles);
-        alert('Expense updated ✅');
+        showSnack('Expense updated ✅', 'success');
       } else {
         await createExpense(payload, allFiles);
-        alert('Expense created ✅');
+        showSnack('Expense created ✅', 'success');
       }
 
       resetForm();
@@ -604,7 +964,7 @@ export default function ExpenseEmployee() {
       setPage(1);
       await load();
     } catch (err: any) {
-      alert(err?.message || 'Error');
+      showSnack(err?.message || 'Error', 'error');
     } finally {
       setSaving(false);
     }
@@ -630,9 +990,9 @@ export default function ExpenseEmployee() {
       setSelectedId('');
       setNote('');
       await load();
-      alert('Admin verification done ✅');
+      showSnack(`Marked ${status} ✅`, 'success');
     } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Error');
+      showSnack(err?.response?.data?.message || err?.message || 'Error', 'error');
     }
   }
 
@@ -786,349 +1146,443 @@ export default function ExpenseEmployee() {
         </div>
       </div>
 
-      {/* CREATE / EDIT FORM */}
       {open && (
-        <form onSubmit={onSubmit} style={{ ...cardStyle, overflow: 'hidden', marginTop: 12 }}>
-          <div
-            style={{
-              padding: '12px 16px',
-              borderBottom: `1px solid ${ui.border}`,
-              background:
-                'linear-gradient(135deg, rgba(79,70,229,0.12) 0%, rgba(37,99,235,0.10) 40%, rgba(2,132,199,0.06) 70%, rgba(255,255,255,0) 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 10,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 99,
-                  background: editingId ? '#f59e0b' : '#4f46e5',
-                  boxShadow: editingId
-                    ? '0 0 0 6px rgba(245,158,11,0.12)'
-                    : '0 0 0 6px rgba(79,70,229,0.12)',
-                }}
-              />
-              <div style={{ fontSize: 14, fontWeight: 900, color: ui.text }}>
-                {editingId ? 'Edit Expense' : 'New Expense Request'}
-              </div>
-            </div>
-          </div>
+        <form onSubmit={onSubmit} style={cardStyle}>
+          <div style={cardInner}>
 
-          <div style={{ padding: 16 }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                gap: 12,
-              }}
-            >
-              {/* Date */}
-              <div style={{ gridColumn: 'span 3' as any }}>
-                {label('Expense Date')}
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                  style={inputBase}
-                />
-              </div>
+            {/* SECTION 1 */}
+            <div style={sectionStyle}>
+              <div style={gridStyle}>
 
-              {/* Expected Payment Date */}
-              <div style={{ gridColumn: 'span 3' as any }}>
-                {label('Expected Payment Date')}
-                <input
-                  type="date"
-                  value={expectedPaymentDate}
-                  onChange={(e) => setExpectedPaymentDate(e.target.value)}
-                  style={inputBase}
-                />
-              </div>
+                {/* Department */}
+                <div style={fieldWrap}>
+                  <label style={fieldLabelStyle}>Select Department</label>
 
-              {/* Category */}
-              <div style={{ gridColumn: 'span 3' as any }}>
-                {label(isLeaveEncashmentFlow ? 'Expense Category (auto)' : 'Expense Category')}
-                <select
-                  value={companyAdmin}
-                  onChange={(e) => setCompanyAdmin(e.target.value as CompanyAdminValue)}
-                  style={selectBase}
-                  disabled={isLeaveEncashmentFlow}
-                >
-                  {companyAdminOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Expense Type */}
-              <div style={{ gridColumn: 'span 3' as any }}>
-                {label('Expense Type')}
-                <select
-                  value={companyApproval}
-                  onChange={(e) => handleCompanyApprovalChange(e.target.value as CompanyApprovalValue)}
-                  style={selectBase}
-                >
-                  {companyApprovalOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {isOther ? (
-                <div style={{ gridColumn: 'span 6' as any }}>
-                  {label('Other Expense Name')}
-                  <input
-                    value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder="Enter expense name"
-                    style={inputBase}
-                  />
-                </div>
-              ) : null}
-
-              {companyApproval === 'expense_channel' ? (
-                <div style={{ gridColumn: 'span 6' as any }}>
-                  {label('Expense Channel')}
-                  <input
-                    value={expenseChannel}
-                    onChange={(e) => setExpenseChannel(e.target.value)}
-                    style={inputBase}
-                    placeholder="Enter channel name"
-                  />
-                </div>
-              ) : null}
-
-              {companyApproval === 'referral_partner' ? (
-                <div style={{ gridColumn: 'span 6' as any }}>
-                  {label('Referral Partner')}
-                  <input
-                    value={referralPartner}
-                    onChange={(e) => setReferralPartner(e.target.value)}
-                    style={inputBase}
-                    placeholder="Enter partner name"
-                  />
-                </div>
-              ) : null}
-
-              <div style={{ gridColumn: 'span 3' as any }}>
-                {label('Amount To Be Pay')}
-                <input
-                  type="number"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
-                  required
-                  style={inputBase}
-                  placeholder="₹0"
-                />
-              </div>
-
-              {companyApproval === 'cashback_to_customer' ? (
-                <div style={{ gridColumn: 'span 9' as any }}>
-                  {label('Cashback')}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: 12,
-                      borderRadius: ui.radiusSm,
-                      background: 'rgba(248,250,252,0.9)',
-                      border: `1px dashed ${ui.border2}`,
+                  <Select
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    disabled={teamsLoading}
+                    displayEmpty
+                    sx={{
+                      height: 38,
+                      borderRadius: 3, // ✅ keep rounded like your inputs (12px vibe)
+                      '& .MuiSelect-select': { py: 1.05 },
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          mt: 1,
+                          boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+                          maxHeight: 360,
+                          overflowY: 'auto',
+                          '&::-webkit-scrollbar': { width: 8 },
+                          '&::-webkit-scrollbar-thumb': { background: '#cbd5e1', borderRadius: 8 },
+                          '&::-webkit-scrollbar-track': { background: '#f8fafc' },
+                        },
+                      },
+                      MenuListProps: { sx: { p: 0 } },
+                    }}
+                    renderValue={(selected) => {
+                      if (!selected) return teamsLoading ? 'Loading teams...' : 'You are from which Department';
+                      const found = teams.find((t) => t._id === selected);
+                      return found?.name || found?.code || 'Unnamed Team';
                     }}
                   >
-                    <input
-                      id="cashback_to_customer"
-                      type="checkbox"
-                      checked={cashbackToCustomer}
-                      onChange={(e) => setCashbackToCustomer(e.target.checked)}
-                      style={{ width: 16, height: 16 }}
-                    />
-                    <label
-                      htmlFor="cashback_to_customer"
-                      style={{ fontSize: 13, fontWeight: 900, color: ui.text }}
+                    <MenuItem
+                      value=""
+                      disabled
+                      sx={{
+                        bgcolor: '#ede9fe',
+                        color: '#7c3aed',
+                        fontWeight: 700,
+                        py: 1.2,
+                        px: 2,
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1,
+                      }}
                     >
-                      Cashback given to customer
-                    </label>
-                    <span style={{ fontSize: 12, color: ui.muted }}>(enable only when paid)</span>
+                      {teamsLoading ? 'Loading teams...' : 'You are from which Department'}
+                    </MenuItem>
+
+                    {teams.map((t) => (
+                      <MenuItem
+                        key={t._id}
+                        value={t._id}
+                        sx={{
+                          py: 1.3,
+                          px: 2,
+                          fontSize: 15,
+                          '&:hover': { bgcolor: '#f3f4f6' },
+                          '&.Mui-selected': { bgcolor: '#f3f4f6' },
+                          '&.Mui-selected:hover': { bgcolor: '#e5e7eb' },
+                        }}
+                      >
+                        {t.name || t.code || 'Unnamed Team'}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </div>
+
+                {/* Expense Date */}
+                <div style={fieldWrap}>
+                  <label style={fieldLabelStyle}>Expense Date</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    required
+                    style={fieldInputStyle}
+                  />
+                </div>
+
+                {/* Invoice Date */}
+                <div style={fieldWrap}>
+                  <label style={fieldLabelStyle}>Invoice Date</label>
+                  <input
+                    type="date"
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
+                    style={fieldInputStyle}
+                  />
+                </div>
+
+                {/* Expected Payment Date */}
+                <div style={fieldWrap}>
+                  <label style={fieldLabelStyle}>Expected Payment Date</label>
+                  <input
+                    type="date"
+                    value={expectedPaymentDate}
+                    onChange={(e) => setExpectedPaymentDate(e.target.value)}
+                    style={fieldInputStyle}
+                  />
+                </div>
+
+                {/* Expense Category */}
+                <div style={fieldWrap}>
+                  <label style={fieldLabelStyle}>Expense Category</label>
+
+                  <Select
+                    value={companyAdmin}
+                    onChange={(e) => setCompanyAdmin(e.target.value as CompanyAdminValue)}
+                    disabled={!department}
+                    displayEmpty
+                    renderValue={(selected) => {
+                      if (!selected) return 'Choose Category';
+                      const found = filteredCompanyAdminOptions.find((x) => x.value === selected);
+                      return found?.label || String(selected);
+                    }}
+                    sx={{
+                      height: 38,
+                      borderRadius: 3,
+                      '& .MuiSelect-select': { py: 1.05 },
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          mt: 1,
+                          boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+                          maxHeight: 360,
+                          overflowY: 'auto',
+                        },
+                      },
+                    }}
+                  >
+                    <MenuItem value="" disabled>
+                      Choose Category
+                    </MenuItem>
+
+                    {filteredCompanyAdminOptions
+                      .filter((o) => o.value !== '')
+                      .map((o) => (
+                        <MenuItem key={o.value} value={o.value}>
+                          {o.label}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </div>
+                <div style={fieldWrap}>
+                  <label style={fieldLabelStyle}>Amount To Be Pay</label>
+                  <input
+                    type="number"
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(e.target.value)}
+                    required
+                    style={fieldInputStyle}
+                    placeholder="₹0"
+                  />
+                </div>
+                {/* Other category */}
+                {isOther && (
+                  <div style={fieldWrap}>
+                    <label style={fieldLabelStyle}>Other Expense Name</label>
+                    <input
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      placeholder="Enter expense name"
+                      style={fieldInputStyle}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* SECTION 2 */}
+            {/* <div style={{ ...sectionStyle, marginTop: 12 }}>
+        <div style={gridStyle}>
+          {companyApproval === 'expense_channel' && (
+            <div style={fieldWrap}>
+              <label style={fieldLabelStyle}>Expense Channel</label>
+              <input
+                value={expenseChannel}
+                onChange={(e) => setExpenseChannel(e.target.value)}
+                style={fieldInputStyle}
+                placeholder="Enter channel name"
+              />
+            </div>
+          )}
+
+          {companyApproval === 'referral_partner' && (
+            <div style={fieldWrap}>
+              <label style={fieldLabelStyle}>Referral Partner</label>
+              <input
+                value={referralPartner}
+                onChange={(e) => setReferralPartner(e.target.value)}
+                style={fieldInputStyle}
+                placeholder="Enter partner name"
+              />
+            </div>
+          )}
+
+          <div style={fieldWrap}>
+            <label style={fieldLabelStyle}>Amount To Be Pay</label>
+            <input
+              type="number"
+              value={paidAmount}
+              onChange={(e) => setPaidAmount(e.target.value)}
+              required
+              style={fieldInputStyle}
+              placeholder="₹0"
+            />
+          </div>
+        </div>
+
+        {companyApproval === 'cashback_to_customer' && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 10,
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: '#fff',
+              border: '1px dashed #d1d5db',
+            }}
+          >
+            <input
+              id="cashback_to_customer_admin"
+              type="checkbox"
+              checked={cashbackToCustomer}
+              onChange={(e) => setCashbackToCustomer(e.target.checked)}
+            />
+            <label htmlFor="cashback_to_customer_admin" style={{ fontSize: 13, color: '#334155' }}>
+              Cashback given to customer
+            </label>
+          </div>
+        )}
+      </div> */}
+
+            {/* SECTION 3 */}
+            <div style={{ ...sectionStyle, marginTop: 12 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1.1fr)',
+                  gap: 12,
+                  alignItems: 'start',
+                }}
+              >
+                <div style={fieldWrap}>
+                  <label style={fieldLabelStyle}>Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    style={{ ...fieldInputStyle, height: 'auto', resize: 'vertical', minHeight: 68 }}
+                    placeholder="Describe what this expense is for..."
+                  />
+                </div>
+
+                <div style={fieldWrap}>
+                  <label style={fieldLabelStyle}>Upload Invoices</label>
+                  <div style={{ borderRadius: 12, border: '1px dashed #cbd5e1', padding: 12, background: '#fff' }}>
+                    <input type="file" multiple onChange={(e) => setInvoices(Array.from(e.target.files || []))} />
+                    {invoices.length > 0 && (
+                      <div style={{ fontSize: 12, color: '#475569', marginTop: 6 }}>
+                        {invoices.length} file(s) selected
+                      </div>
+                    )}
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                      Upload PDF / Image Here
+                    </div>
                   </div>
                 </div>
-              ) : null}
-
-              {/* Description */}
-              <div style={{ gridColumn: 'span 8' as any }}>
-                {label('Description')}
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  style={{ ...inputBase, resize: 'vertical', minHeight: 92 }}
-                  placeholder="Describe what this expense is for..."
-                />
               </div>
+            </div>
 
-              {/* Upload Invoices */}
-              <div style={{ gridColumn: 'span 4' as any }}>
-                {label('Upload Invoices')}
-                <div
-                  style={{
-                    borderRadius: ui.radiusSm,
-                    border: `1px dashed ${ui.border2}`,
-                    padding: 12,
-                    background: 'rgba(248,250,252,0.9)',
-                  }}
-                >
-                  <input type="file" multiple onChange={(e) => setInvoices(Array.from(e.target.files || []))} />
-                  <div style={{ fontSize: 11, color: ui.muted, marginTop: 8 }}>
-                    {invoices.length ? `${invoices.length} file(s) selected` : 'PDF / Image upload – bills, receipts etc.'}
-                  </div>
-                </div>
-              </div>
+            {/* PAYMENT MODE */}
+            <div style={{ ...sectionStyle, marginTop: 12 }}>
+              <label style={fieldLabelStyle}>Choose Mode Of Payment</label>
 
-              {/* Payment Mode */}
-              <div style={{ gridColumn: 'span 12' as any }}>
-                {label('Payment Mode')}
-                <div
-                  style={{
-                    padding: 12,
-                    borderRadius: ui.radiusSm,
-                    border: `1px solid ${ui.border}`,
-                    background: 'rgba(255,255,255,0.75)',
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 10,
-                    alignItems: 'center',
-                  }}
-                >
+              <div style={{ marginTop: 8, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: '0 0 230px', maxWidth: 260 }}>
                   <select
                     value={paymentMode}
                     onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
-                    style={{ ...selectBase, maxWidth: 300 }}
+                    style={{
+                      ...fieldInputStyle,
+                      height: 38,
+                      borderRadius: 12,
+                      border: '1px solid #d1d5db',
+                      background: '#fff',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      padding: '8px 12px',
+                      paddingRight: 38,
+                      outline: 'none',
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      backgroundImage:
+                        "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E\")",
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 12px center',
+                      backgroundSize: 18,
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.border = '1px solid #6366f1')}
+                    onBlur={(e) => (e.currentTarget.style.border = '1px solid #d1d5db')}
                   >
                     <option value="account">Bank Account Transfer</option>
                     <option value="upi">UPI</option>
                     <option value="qr">QR Payment</option>
                   </select>
-
                 </div>
               </div>
 
-              {/* Account Fields */}
+              {/* Account */}
               {paymentMode === 'account' && (
-                <>
-                  <div style={{ gridColumn: 'span 3' as any }}>
-                    {label('Account Holder Name')}
-                    <input value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} style={inputBase} />
+                <div style={{ marginTop: 8, ...gridStyle }}>
+                  <div style={fieldWrap}>
+                    <label style={fieldLabelStyle}>Account Holder Name</label>
+                    <input value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} style={fieldInputStyle} />
                   </div>
-
-                  <div style={{ gridColumn: 'span 3' as any }}>
-                    {label('Bank Name')}
-                    <input value={bankName} onChange={(e) => setBankName(e.target.value)} style={inputBase} />
+                  <div style={fieldWrap}>
+                    <label style={fieldLabelStyle}>Bank Name</label>
+                    <input value={bankName} onChange={(e) => setBankName(e.target.value)} style={fieldInputStyle} />
                   </div>
-
-                  <div style={{ gridColumn: 'span 3' as any }}>
-                    {label('Account Number')}
-                    <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} style={inputBase} />
+                  <div style={fieldWrap}>
+                    <label style={fieldLabelStyle}>Account Number</label>
+                    <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} style={fieldInputStyle} />
                   </div>
-
-                  <div style={{ gridColumn: 'span 3' as any }}>
-                    {label('IFSC')}
-                    <input value={ifsc} onChange={(e) => setIfsc(e.target.value.toUpperCase())} style={inputBase} />
+                  <div style={fieldWrap}>
+                    <label style={fieldLabelStyle}>IFSC</label>
+                    <input value={ifsc} onChange={(e) => setIfsc(e.target.value.toUpperCase())} style={fieldInputStyle} />
                   </div>
-                </>
+                </div>
               )}
 
               {/* UPI */}
               {paymentMode === 'upi' && (
-                <div style={{ gridColumn: 'span 4' as any }}>
-                  {label('UPI ID')}
-                  <input
-                    value={upiId}
-                    onChange={(e) => setUpiId(e.target.value)}
-                    style={inputBase}
-                    placeholder="98xxxxxx@ybl"
-                  />
+                <div style={{ marginTop: 12, ...gridStyle }}>
+                  <div style={fieldWrap}>
+                    <label style={fieldLabelStyle}>UPI ID</label>
+                    <input value={upiId} onChange={(e) => setUpiId(e.target.value)} style={fieldInputStyle} />
+                  </div>
                 </div>
               )}
 
               {/* QR */}
               {paymentMode === 'qr' && (
-                <div style={{ gridColumn: 'span 6' as any }}>
-                  {label('Upload QR Image')}
-                  <div
-                    style={{
-                      borderRadius: ui.radiusSm,
-                      border: `1px dashed ${ui.border2}`,
-                      padding: 12,
-                      background: 'rgba(248,250,252,0.9)',
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 12,
-                      alignItems: 'center',
-                    }}
-                  >
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        setQrFile(file);
-                      }}
-                    />
+                <div style={{ marginTop: 12, ...gridStyle, alignItems: 'start' }}>
+                  <div style={fieldWrap}>
+                    <label style={fieldLabelStyle}>Upload QR Image</label>
 
-                    {qrFile ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <img
-                          src={URL.createObjectURL(qrFile)}
-                          alt="QR Preview"
-                          style={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: 14,
-                            objectFit: 'cover',
-                            border: `1px solid ${ui.border}`,
-                            boxShadow: '0 8px 18px rgba(2,6,23,0.10)',
-                          }}
-                        />
-                        <div style={{ fontSize: 12, fontWeight: 900, color: ui.text }}>{qrFile.name}</div>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: ui.muted }}>Attach QR screenshot/logo for receiver.</div>
-                    )}
+                    <div
+                      style={{
+                        borderRadius: 12,
+                        border: '1px dashed #cbd5e1',
+                        padding: 12,
+                        background: '#fff',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 10,
+                        maxWidth: 280,
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null
+                          setQrFile(file)
+                        }}
+                      />
+
+                      {qrFile && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <img
+                            src={URL.createObjectURL(qrFile)}
+                            alt="QR Preview"
+                            style={{
+                              width: 52,
+                              height: 52,
+                              borderRadius: 12,
+                              objectFit: 'cover',
+                              border: '1px solid #e5e7eb',
+                            }}
+                          />
+                          <div style={{ fontSize: 12, color: '#334155' }}>{qrFile.name}</div>
+                        </div>
+                      )}
+                    </div>
+
+
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Buttons */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end' }}>
+
+            {/* ACTIONS */}
+            <div style={actionRow}>
               <button
                 type="button"
                 onClick={() => {
                   resetForm();
-                  setEditingId(null);
                   setOpen(false);
                 }}
-                style={pillGhost}
+                style={pillButtonGhost}
               >
                 Cancel
               </button>
 
-              <button type="submit" disabled={saving} style={{ ...pillPrimary, opacity: saving ? 0.7 : 1 }}>
-                {saving ? (editingId ? 'Updating...' : 'Saving...') : editingId ? 'Update Expense' : 'Submit Expense'}
+              <button
+                type="submit"
+                disabled={saving}
+                style={{
+                  ...pillButtonPrimary,
+                  opacity: saving ? 0.7 : 1,
+                }}
+              >
+                {saving ? 'Saving...' : editingId ? 'Update Expense' : 'Submit Expense'}
               </button>
             </div>
+
           </div>
         </form>
       )}
+
 
       {/* LIST */}
       <div style={{ marginTop: 16, ...cardStyle, overflow: 'hidden' }}>
@@ -1155,14 +1609,22 @@ export default function ExpenseEmployee() {
               <tr>
                 {[
                   'Date',
+                  'Release Date',
+                  'Invoice Date',
+
                   ...(isAdmin ? (['Employee', 'Manager'] as const) : ([] as const)),
+                  //    'Contact',
+                  // 'Email',
+                  // 'Branch',
+                  'Department',
                   'Category',
-                   'Expense Type',
+                  'Expense Type',
                   'Amount',
                   'Description',
                   'Payment Details',
                   'Admin Status',
                   'Invoices',
+                  'Admin Attachment',
                   'Action',
                 ].map((h) => (
                   <th
@@ -1203,6 +1665,18 @@ export default function ExpenseEmployee() {
                       <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, whiteSpace: 'nowrap' }}>
                         {r.date}
                       </td>
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {r.expected_payment_date}
+                      </td>
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {r.invoice_date}
+                      </td>
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {typeof r.department === 'object'
+                          ? (r.department?.name || r.department?.code || r.department?._id || '-')
+                          : (r.department || '-')}
+                      </td>
+
 
                       {/* Admin columns */}
                       {isAdmin ? (
@@ -1220,8 +1694,8 @@ export default function ExpenseEmployee() {
                       <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12 }}>
                         {showCategory(r)}
                       </td>
-                       <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1', fontSize: 12 }}>
-                        {(r.company_approval )}
+                      <td style={{ padding: 10, borderBottom: '1px solid #f1f1f1', fontSize: 12 }}>
+                        {(r.company_approval)}
                       </td>
 
                       {/* Paid */}
@@ -1408,6 +1882,97 @@ export default function ExpenseEmployee() {
                           );
                         })()}
                       </td>
+<td style={{ padding: 12, borderBottom: `1px solid ${ui.border}` }}>
+  {(() => {
+    const urls =
+      normalizeUrls(r.admin_attachments).length
+        ? normalizeUrls(r.admin_attachments)
+        : normalizeUrls(r.admin_attachment);
+
+    if (!urls.length) return <span style={{ fontSize: 11, color: ui.muted }}>—</span>;
+
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        {urls.map((url: string, i: number) => {
+          const name = prettyFileName(url) || `Admin File ${i + 1}`;
+          const img = isImageUrl(url);
+
+          return (
+            <a
+              key={i}
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 14,
+                border: `1px solid ${ui.border}`,
+                background: 'rgba(255,255,255,0.9)',
+                boxShadow: '0 8px 18px rgba(2,6,23,0.06)',
+                textDecoration: 'none',
+                color: ui.text,
+                maxWidth: 300,
+              }}
+            >
+              {img ? (
+                <img
+                  src={url}
+                  alt={name}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    objectFit: 'cover',
+                    border: `1px solid ${ui.border2}`,
+                    flexShrink: 0,
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'rgba(16,185,129,0.12)',
+                    border: '1px solid rgba(16,185,129,0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    color: '#047857',
+                    fontSize: 11,
+                    flexShrink: 0,
+                  }}
+                >
+                  PDF
+                </div>
+              )}
+
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 900,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: 180,
+                }}
+                title={name}
+              >
+                {name}
+              </span>
+
+              <span style={{ marginLeft: 'auto', color: ui.muted, fontWeight: 900 }}>↗</span>
+            </a>
+          );
+        })}
+      </div>
+    );
+  })()}
+</td>
 
                       {/* Action */}
                       <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, whiteSpace: 'nowrap' }}>
@@ -1661,14 +2226,14 @@ export default function ExpenseEmployee() {
                   src={paymentMeta.qr}
                   alt="QR"
                   style={{
-                    width: 160,        // 🔥 pehle 110 tha
-                    height: 160,       // 🔥 pehle 110 tha
+                    width: 160,
+                    height: 160,
                     borderRadius: 22,
                     objectFit: 'cover',
                     border: `1px solid ${ui.border2}`,
                     boxShadow: '0 14px 34px rgba(2,6,23,0.18)',
                     background: '#fff',
-                    padding: 6,        // thoda premium frame feel
+                    padding: 6,
                   }}
                 />
 
@@ -1714,8 +2279,6 @@ export default function ExpenseEmployee() {
           </div>
         </div>
       )}
-
-      {/* Pagination */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14, justifyContent: 'flex-end' }}>
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
