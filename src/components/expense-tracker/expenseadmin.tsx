@@ -85,12 +85,12 @@ const companyAdminOptions = [
   { label: 'Choose Category', value: '' },
   { label: 'Cake', value: 'cake' },
   { label: 'Advance Payment', value: 'advance_payment' },
-  { label: 'Stationary', value: 'stationary' },
+  { label: 'Stationery', value: 'stationary' },
   { label: 'Water', value: 'water' },
   { label: 'Tea', value: 'tea' },
   { label: 'Internet', value: 'internet' },
   { label: 'Lease Line', value: 'lease_line' },
-  { label: 'Leave Encasement', value: 'leave_encashment' },
+  { label: 'Leave Encashment', value: 'leave_encashment' },
   { label: 'Dialer', value: 'dialer' },
   { label: 'SIM', value: 'sim' },
   { label: 'Cloud / AI', value: 'cloud_ai' },
@@ -109,7 +109,7 @@ const companyAdminOptions = [
   { label: 'Repairs', value: 'repairs' },
   { label: 'Electricity', value: 'electricity' },
   { label: 'Maintenance', value: 'maintenance' },
-  { label: 'convince & Petrol', value: 'conveyance_petrol' },
+  { label: 'convince & Petrol', value: 'convenience_petrol' },
   { label: 'Cab', value: 'cab' },
   { label: 'Travel & Reimbursement', value: 'travel_reimbursement' },
   { label: 'Food & Beverages', value: 'food_beverages' },
@@ -130,7 +130,7 @@ const companyAdminOptions = [
   { label: 'Data Purchase', value: 'data_purchase' },
   { label: 'Management Expense(Harpreet Singh)', value: 'Harpreet_singh_Management' },
   { label: 'Management Expense(Abhinav Awal)', value: 'Abhinav_Awal_Management' },
-  { label: 'Other', value: 'other' },
+  { label: 'Others', value: 'other' },
 ] as const;
 
 type CompanyAdminValue = (typeof companyAdminOptions)[number]['value'];
@@ -160,7 +160,7 @@ const ALLOWED_TEAM_IDS: string[] = [
   '695cb6645585adfa28e9bea3',
   '695ce778b71faf497ee89a54',
   '695df229e3d5943c537019ce',
- 
+
 ];
 
 type TeamConfig = {
@@ -171,53 +171,48 @@ type TeamConfig = {
 const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
 
   // admin
-  '695df229e3d5943c537019ce': {
-    categories: [
-      'tea',
-      'water',
-      'stationary',
-      'leave_encashment',
-      'bonus',
-      'overtime',
-      'advance_payment',
-      'leave_encashment',
-      'conveyance_petrol',
-      'travel_reimbursement',
-      'overtime',
-      'bonus',
-      'incentives',
-      'other',
-      'expense_channel',
-      'payout',
-      'cashback_to_customer',
-      'referral_partner',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
-      'other',
+  // '695df229e3d5943c537019ce': {
+  //   categories: [
+  //     'tea',
+  //     'water',
+  //     'stationary',
+  //     'leave_encashment',
+  //     'bonus',
+  //     'overtime',
+  //     'advance_payment',
+  //     'leave_encashment',
+  //     'conveyance_petrol',
+  //     'travel_reimbursement',
+  //     'overtime',
+  //     'bonus',
+  //     'incentives',
+  //     'other',
+  //     'expense_channel',
+  //     'payout',
+  //     'cashback_to_customer',
+  //     'referral_partner',
+  //     'Harpreet_singh_Management',
+  //     'Abhinav_Awal_Management',
+  //     'other',
 
-    ],
-    approvals: ['company_approval'],
-  },
+  //   ],
+  //   approvals: ['company_approval'],
+  // },
   // admin
   '674abf192cb3ff920ea4a894': {
     categories: [
-    
-      
       'advance_payment',
-      'leave_encashment',
-      'conveyance_petrol',
+      'leave_encashment', //spelling wrong
+
       'travel_reimbursement',
       'overtime',
       'bonus',
       'incentives',
       'other',
       'expense_channel',
-      'payout',
+      'payout',//sourcer payment
       'cashback_to_customer',
       'referral_partner',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
-      'other',
 
     ],
     approvals: ['company_approval'],
@@ -243,18 +238,20 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
       'bonus',
       'overtime',
       'advance_payment',
+      'Harpreet_singh_Management',
+      'Abhinav_Awal_Management',
       'other',
     ],
     approvals: ['company_approval'],
   },
 
-  // Sales
+  // Marketing
   '68078bdd6a3572ff9478bd50': {
     categories: [
       'data_purchase',
       'overtime',
       'advertisement',
-      'conveyance_petrol',
+      // 'convenience_petrol',
       'cab',
       'travel_reimbursement',
       'collab_events_marketing',
@@ -283,7 +280,7 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
- '68078c506a3572ff9478bd6c': {
+  '68078c506a3572ff9478bd6c': {
     categories: [
       'bonus',
       'overtime',
@@ -303,7 +300,7 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
       'tea',
       'repairs',
       'maintenance',
-      'conveyance_petrol',
+      'travel_reimbursement',
       'food_beverages',
       'Harpreet_singh_Management',
       'Abhinav_Awal_Management',
@@ -322,33 +319,23 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
       'rent_noida_first_floor',
       'company_outing',
       'it_consultancy',
-      'conveyance_petrol',
+      'travel_reimbursement',
       'food_beverages',
       'referral_partner',
       'Harpreet_singh_Management',
       'community_building_expense',
       'Abhinav_Awal_Management',
-          'other',
+      'other',
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
   '68e8feb4fa8c01760efccf87': {
     categories: [
       'bonus',
-      'cab',
-    
-      'payout',
+      'travel_reimbursement',
       'overtime',
       'advance_payment',
-      'leave_encashment',
-      'cashback_to_customer',
-      
-      'expense_channel',
-   
-      'leave_encashment',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
-         'other',
+      'other',
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
@@ -356,11 +343,11 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
     categories: [
       'bonus',
       'overtime',
-      'leave_encashment',
+      'travel_reimbursement',
       'leave_encashment',
       'Harpreet_singh_Management',
       'Abhinav_Awal_Management',
-         'other',
+      'other',
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
@@ -375,14 +362,10 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
       'cashback_to_customer',
       'expense_channel',
       'referral_partner',
-      'company_approval',
-      'data_purchase',
       'leave_encashment',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
+
       'advance_payment',
       'travel_reimbursement',
-      'community_building_expense',
       'other',
     ],
     approvals: [
@@ -696,6 +679,29 @@ export default function ExpenseAdmin() {
   const [showGraphs, setShowGraphs] = useState(false);
   const [actualPaymentDate, setActualPaymentDate] = useState<string>('');
   const [adminVerifyFiles, setAdminVerifyFiles] = useState<File[]>([]);
+  // ✅ Month filter (default current month)
+  const now = useMemo(() => new Date(), []);
+  const [filterYear, setFilterYear] = useState<number>(now.getFullYear());
+  const [filterMonth, setFilterMonth] = useState<number>(now.getMonth() + 1); // 1-12
+
+  const monthLabel = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`;
+
+  const monthOptions = [
+    { label: 'January', value: 1 },
+    { label: 'February', value: 2 },
+    { label: 'March', value: 3 },
+    { label: 'April', value: 4 },
+    { label: 'May', value: 5 },
+    { label: 'June', value: 6 },
+    { label: 'July', value: 7 },
+    { label: 'August', value: 8 },
+    { label: 'September', value: 9 },
+    { label: 'October', value: 10 },
+    { label: 'November', value: 11 },
+    { label: 'December', value: 12 },
+  ] as const;
+
+  const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 3 + i); // last 3 + next 2
 
   const isOther = companyAdmin === 'other';
 
@@ -800,7 +806,10 @@ export default function ExpenseAdmin() {
         setTotal(0);
         return;
       }
-      const res = await listExpenses({ page, limit: 10 });
+      const res = await listExpenses({
+        page, limit: 10, month: filterMonth,
+        year: filterYear,
+      });
       const data = Array.isArray(res?.data) ? res.data : [];
       setRows(data);
       setTotal(res?.total || data.length);
@@ -812,10 +821,10 @@ export default function ExpenseAdmin() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, isAdmin]);
+  }, [page, isAdmin, filterMonth, filterYear]);
 
-  const currentMonth = useMemo(() => monthKey(todayISO()), []);
-  const currentMonthRows = useMemo(() => (rows || []).filter((r) => monthKey(r.date) === currentMonth), [rows, currentMonth]);
+  const currentMonth = useMemo(() => monthLabel(filterYear, filterMonth), [filterYear, filterMonth]);
+  const currentMonthRows = useMemo(() => rows || [], [rows]); // already filtered from backend
 
   const monthTotal = useMemo(
     () => currentMonthRows.reduce((sum, r) => sum + Number(r.paid_amount || 0), 0),
@@ -845,6 +854,17 @@ export default function ExpenseAdmin() {
       .slice(0, 10)
       .map(([category, amount]) => ({ category, amount }));
   }, [currentMonthRows]);
+  const buildFullMonthSeries = (year: number, month: number, apiDaily: { day: string; amount: number }[]) => {
+    const daysInMonth = new Date(year, month, 0).getDate(); // month is 1-12
+    const map = new Map<number, number>();
+    apiDaily.forEach((d) => map.set(Number(d.day), Number(d.amount || 0)));
+
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      return { day: String(day).padStart(2, '0'), amount: map.get(day) || 0 };
+    });
+  };
+
 
   const statusTotals = useMemo(() => {
     const m: Record<string, number> = { pending: 0, approved: 0, paid: 0, rejected: 0 };
@@ -1203,7 +1223,7 @@ export default function ExpenseAdmin() {
           marginBottom: 2,
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 20, color: '#111827' }}>Company Expenses</h2>
+        <h2 style={{ margin: 0, fontSize: 20, color: '#111827' }}></h2>
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           <button
             onClick={() => {
@@ -1240,6 +1260,34 @@ export default function ExpenseAdmin() {
           >
             {showGraphs ? 'Hide Graphs' : 'View Graphs'}
           </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Select
+              size="small"
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(Number(e.target.value))}
+              sx={{ height: 34, borderRadius: 3, bgcolor: '#fff', minWidth: 140 }}
+            >
+              {monthOptions.map((m) => (
+                <MenuItem key={m.value} value={m.value}>
+                  {m.label}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              size="small"
+              value={filterYear}
+              onChange={(e) => setFilterYear(Number(e.target.value))}
+              sx={{ height: 34, borderRadius: 3, bgcolor: '#fff', minWidth: 90 }}
+            >
+              {yearOptions.map((y) => (
+                <MenuItem key={y} value={y}>
+                  {y}
+                </MenuItem>
+              ))}
+            </Select>
+          </div>
+
         </div>
       </div>
 

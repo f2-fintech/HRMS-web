@@ -161,6 +161,8 @@ export async function createExpense(payload: CreateExpensePayload, invoices: Fil
         `, fd);
 }
 
+
+
 // ✅ Update expense (optional: append new invoices)
 export async function updateExpense(id: string, payload: Partial<CreateExpensePayload>, invoices?: File[]) {
     const fd = new FormData();
@@ -191,18 +193,28 @@ export async function listExpenses(params: {
     owner_id?: string;
     manager_status?: string;
     admin_status?: string;
+
+    // ✅ NEW
+    month?: number; // 1-12
+    year?: number;  // 2024/2025/2026...
 }) {
     const qs = new URLSearchParams();
+
     if (params.page) qs.set('page', String(params.page));
     if (params.limit) qs.set('limit', String(params.limit));
     if (params.owner_id) qs.set('owner_id', params.owner_id);
     if (params.manager_status) qs.set('manager_status', params.manager_status);
     if (params.admin_status) qs.set('admin_status', params.admin_status);
 
+    // ✅ Monthwise filter
+    if (params.month) qs.set('month', String(params.month));
+    if (params.year) qs.set('year', String(params.year));
+
     return await apiGet<{ page: number; limit: number; total: number; data: any[] }>(
         `/expense-tracker/list?${qs.toString()}`,
     );
 }
+
 
 export async function getExpenseById(id: string) {
     return await apiGet<any>(`/expense-tracker/${encodeURIComponent(id)}`);
@@ -214,32 +226,32 @@ export async function managerVerifyExpense(id: string, payload: VerifyPayload) {
 }
 
 export async function adminVerifyExpense(
-  id: string,
-  payload: VerifyPayload,
-  files: File[] = [],
+    id: string,
+    payload: VerifyPayload,
+    files: File[] = [],
 ) {
-  const fd = new FormData();
+    const fd = new FormData();
 
-  Object.entries(payload || {}).forEach(([k, v]) => {
-    if (v === undefined || v === null) return;
-    fd.append(k, String(v));
-  });
+    Object.entries(payload || {}).forEach(([k, v]) => {
+        if (v === undefined || v === null) return;
+        fd.append(k, String(v));
+    });
 
-  // ✅ MUST match backend interceptor
-  files.forEach((f) => fd.append('admin_attachments', f));
+    // ✅ MUST match backend interceptor
+    files.forEach((f) => fd.append('admin_attachments', f));
 
-  const res = await fetch(
-    `${baseUrl()}/expense-tracker/${encodeURIComponent(id)}/admin-verify`,
-    {
-      method: 'PATCH',
-      headers: getAuthHeaders({ json: false }),
-      body: fd,
-    },
-  );
+    const res = await fetch(
+        `${baseUrl()}/expense-tracker/${encodeURIComponent(id)}/admin-verify`,
+        {
+            method: 'PATCH',
+            headers: getAuthHeaders({ json: false }),
+            body: fd,
+        },
+    );
 
-  const data: any = await parseResponse(res);
-  if (!res.ok) throw new Error(data?.message || data?.raw || 'Upload failed');
-  return data;
+    const data: any = await parseResponse(res);
+    if (!res.ok) throw new Error(data?.message || data?.raw || 'Upload failed');
+    return data;
 }
 
 
