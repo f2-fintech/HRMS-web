@@ -76,6 +76,8 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+
+
 /* ---------------- Types ---------------- */
 type Row = {
   _id: string;
@@ -84,8 +86,9 @@ type Row = {
   employee_id?: string;
   manager_tl?: string;
   login?: number;
-  approval?: number; // in Rupees
+  approval?: number;
   disbursal?: number;
+  abnp?: number;
   code?: string;
   [k: string]: any;
 };
@@ -98,20 +101,23 @@ type SortConfig = {
   direction: SortDirection;
 };
 
-// Team totals type
 type TeamTotalInfo = {
   role: 'manager' | 'team_leader';
   teamName: string;
+
   teamTotalLogins: number;
   teamTotalApproval: number;
   teamTotalDisbursal: number;
+  teamTotalDrop?: number;     
+  teamTotalCashback?: number;   
+  teamTotalABNP?: number;       // ✅ NEW (optional)
+
   memberCount: number;
   memberCodes: string[];
 };
 
 type TeamTotalsMap = Record<string, TeamTotalInfo>;
 
-// Team breakdown type
 type TeamBreakdown = {
   employee: {
     _id: string;
@@ -122,23 +128,28 @@ type TeamBreakdown = {
   };
   role: 'manager' | 'team_leader' | 'employee';
   team: { _id: string; name: string; code: string } | null;
+
   totals: {
     totalLogins: number;
     totalApproval: number;
     totalDisbursal: number;
     totalDrop: number;
     totalCashback: number;
+    totalABNP?: number; // ✅ NEW
     memberCount: number;
   };
+
   memberBreakdown: {
     code: string;
     name: string;
     logins: number;
     approval: number;
     disbursal: number;
+    drop?: number;      // ✅ NEW
+    cashback?: number;  // ✅ NEW
+    abnp?: number;      // ✅ NEW
   }[];
 };
-
 /* ---------------- Helpers ---------------- */
 const rupee = (n: number) =>
   `₹${Intl.NumberFormat('en-IN').format(Number(n || 0))}`;
@@ -282,18 +293,30 @@ export default function PerformanceUploadPage() {
         ? res.data
         : res.data?.data || [];
 
-      const normalized: Row[] = raw.map((r) => ({
-        ...r,
-        login: Number(r.login ?? r.total_logins ?? 0),
-        approval: Number(r.approval ?? r.approval_amount ?? 0),
-        disbursal: Number(r.disbursal ?? r.disbursal_amount ?? 0),
-        drop: Number(r.drop ?? r.drop_amount ?? 0),
-        cashback: Number(r.cashback ?? r.cashback_amount ?? 0),
-        code:
-          typeof r.code === 'string'
-            ? r.code.trim()
-            : (r.code ?? '').toString().trim(),
-      }));
+      const normalized: Row[] = raw.map((r) => {
+        const login = Number(r.login ?? r.total_logins ?? 0);
+        const approval = Number(r.approval ?? r.approval_amount ?? 0);
+        const disbursal = Number(r.disbursal ?? r.disbursal_amount ?? 0);
+        const drop = Number(r.drop ?? r.drop_amount ?? 0);
+        const cashback = Number(r.cashback ?? r.cashback_amount ?? 0);
+
+        const abnp = Math.max(approval - (disbursal + drop + cashback), 0); // ✅
+
+        return {
+          ...r,
+          login,
+          approval,
+          disbursal,
+          drop,
+          cashback,
+          abnp,
+          code:
+            typeof r.code === 'string'
+              ? r.code.trim()
+              : (r.code ?? '').toString().trim(),
+        };
+      });
+
 
       setRows(normalized);
 
@@ -514,7 +537,7 @@ export default function PerformanceUploadPage() {
 
   /* ------------ Totals ------------ */
   const totals = useMemo(() => {
-    const sum = (k: 'login' | 'approval' | 'disbursal' | 'drop' | 'cashback') =>
+    const sum = (k: 'login' | 'approval' | 'disbursal' | 'drop' | 'cashback' | 'abnp') =>
       rows.reduce((a, r) => a + Number(r[k] || 0), 0);
 
     return {
@@ -523,6 +546,7 @@ export default function PerformanceUploadPage() {
       disbursal: sum('disbursal'),
       drop: sum('drop'),
       cashback: sum('cashback'),
+      abnp: sum('abnp')
     };
   }, [rows]);
 
@@ -996,9 +1020,218 @@ export default function PerformanceUploadPage() {
             </Stack>
           </Box>
         </Paper>
+<Grid container spacing={2}>
+  {/* 1) Total Logins (ORANGE) */}
+  <Grid item xs={12} md={2.4}>
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)',
+        boxShadow: '0 10px 22px rgba(249,115,22,0.35)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mb: 1.2,
+            alignItems: 'center',
+          }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <CheckCircleIcon sx={{ fontSize: 22 }} />
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
 
-       <Grid container spacing={2}>
-  {/* 1) Total Logins */}
+        <Typography
+          variant="body2"
+          sx={{ color: '#ffedd5', fontWeight: 500, mb: 0.3 }}
+        >
+          Total Logins
+        </Typography>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            fontSize: 25,
+            lineHeight: 1.2,
+            color: '#fff',
+          }}
+        >
+          {totals.logins.toLocaleString('en-IN')}
+        </Typography>
+      </Box>
+    </Paper>
+  </Grid>
+
+  {/* 2) Total Approvals (YELLOW) */}
+  <Grid item xs={12} md={2.4}>
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
+        boxShadow: '0 10px 22px rgba(234,179,8,0.35)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mb: 1.2,
+            alignItems: 'center',
+          }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <EmojiEventsIcon sx={{ fontSize: 22 }} />
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
+
+        <Typography
+          variant="body2"
+          sx={{ color: '#fef3c7', fontWeight: 500, mb: 0.3 }}
+        >
+          Total Approvals
+        </Typography>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            fontSize: 25,
+            lineHeight: 1.2,
+            color: '#fff',
+          }}
+        >
+          {rupee(totals.approvals)}
+        </Typography>
+      </Box>
+    </Paper>
+  </Grid>
+
+  {/* 3) Total ABNP (DARK SLATE) */}
+  <Grid item xs={12} md={2.4}>
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
+        boxShadow: '0 10px 22px rgba(15,23,42,0.35)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mb: 1.2,
+            alignItems: 'center',
+          }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1 }}>Δ</span>
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
+
+        <Typography
+          variant="body2"
+          sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 500, mb: 0.3 }}
+        >
+          Total ABND
+        </Typography>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            fontSize: 25,
+            lineHeight: 1.2,
+            color: '#fff',
+          }}
+        >
+          {rupee(totals.abnp)}
+        </Typography>
+      </Box>
+    </Paper>
+  </Grid>
+
+  {/* 4) Total Disbursals (GREEN) */}
   <Grid item xs={12} md={2.4}>
     <Paper
       sx={{
@@ -1023,111 +1256,14 @@ export default function PerformanceUploadPage() {
         }}
       />
       <Box sx={{ position: 'relative' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.22)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CheckCircleIcon sx={{ fontSize: 22 }} />
-          </Box>
-          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-        </Box>
-
-        <Typography variant="body2" sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}>
-          Total Logins
-        </Typography>
-        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
-          {totals.logins.toLocaleString('en-IN')}
-        </Typography>
-      </Box>
-    </Paper>
-  </Grid>
-
-  {/* 2) Total Approvals */}
-  <Grid item xs={12} md={2.4}>
-    <Paper
-      sx={{
-        p: 2.1,
-        borderRadius: 2.5,
-        color: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-        boxShadow: '0 10px 22px rgba(37,99,235,0.35)',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: -30,
-          right: -30,
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.10)',
-        }}
-      />
-      <Box sx={{ position: 'relative' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.22)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <EmojiEventsIcon sx={{ fontSize: 22 }} />
-          </Box>
-          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-        </Box>
-
-        <Typography variant="body2" sx={{ color: '#dbeafe', fontWeight: 500, mb: 0.3 }}>
-          Total Approvals
-        </Typography>
-        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
-          {rupee(totals.approvals)}
-        </Typography>
-      </Box>
-    </Paper>
-  </Grid>
-
-  {/* 3) Total Disbursals */}
-  <Grid item xs={12} md={2.4}>
-    <Paper
-      sx={{
-        p: 2.1,
-        borderRadius: 2.5,
-        color: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-        boxShadow: '0 10px 22px rgba(109,40,217,0.35)',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: -30,
-          right: -30,
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.10)',
-        }}
-      />
-      <Box sx={{ position: 'relative' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mb: 1.2,
+            alignItems: 'center',
+          }}
+        >
           <Box
             sx={{
               width: 40,
@@ -1144,17 +1280,28 @@ export default function PerformanceUploadPage() {
           <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
         </Box>
 
-        <Typography variant="body2" sx={{ color: '#ede9fe', fontWeight: 500, mb: 0.3 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}
+        >
           Total Disbursals
         </Typography>
-        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            fontSize: 25,
+            lineHeight: 1.2,
+            color: '#fff',
+          }}
+        >
           {rupee(totals.disbursal)}
         </Typography>
       </Box>
     </Paper>
   </Grid>
 
-  {/* 4) Total Drop */}
+  {/* 5) Total Drop (RED) */}
   <Grid item xs={12} md={2.4}>
     <Paper
       sx={{
@@ -1179,7 +1326,14 @@ export default function PerformanceUploadPage() {
         }}
       />
       <Box sx={{ position: 'relative' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mb: 1.2,
+            alignItems: 'center',
+          }}
+        >
           <Box
             sx={{
               width: 40,
@@ -1191,23 +1345,33 @@ export default function PerformanceUploadPage() {
               justifyContent: 'center',
             }}
           >
-            {/* simple icon without new import */}
             <span style={{ fontSize: 18, lineHeight: 1 }}>↓</span>
           </Box>
           <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
         </Box>
 
-        <Typography variant="body2" sx={{ color: '#fee2e2', fontWeight: 500, mb: 0.3 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: '#fee2e2', fontWeight: 500, mb: 0.3 }}
+        >
           Total Drop
         </Typography>
-        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            fontSize: 25,
+            lineHeight: 1.2,
+            color: '#fff',
+          }}
+        >
           {rupee(totals.drop)}
         </Typography>
       </Box>
     </Paper>
   </Grid>
 
-  {/* 5) Total Cashback */}
+  {/* 6) Total Cashback (CYAN) */}
   <Grid item xs={12} md={2.4}>
     <Paper
       sx={{
@@ -1232,7 +1396,14 @@ export default function PerformanceUploadPage() {
         }}
       />
       <Box sx={{ position: 'relative' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2, alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mb: 1.2,
+            alignItems: 'center',
+          }}
+        >
           <Box
             sx={{
               width: 40,
@@ -1244,22 +1415,33 @@ export default function PerformanceUploadPage() {
               justifyContent: 'center',
             }}
           >
-            {/* simple icon without new import */}
             <span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>
           </Box>
           <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
         </Box>
 
-        <Typography variant="body2" sx={{ color: '#cffafe', fontWeight: 500, mb: 0.3 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: '#cffafe', fontWeight: 500, mb: 0.3 }}
+        >
           Total Cashback
         </Typography>
-        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 25, lineHeight: 1.2, color: '#fff' }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            fontSize: 25,
+            lineHeight: 1.2,
+            color: '#fff',
+          }}
+        >
           {rupee(totals.cashback)}
         </Typography>
       </Box>
     </Paper>
   </Grid>
 </Grid>
+
 
 
         {(starPerformers.approval || starPerformers.disbursal) && (
@@ -1710,49 +1892,49 @@ export default function PerformanceUploadPage() {
 
                         <TableCell align="right">
 
-                        {canAddRow ? (
-  <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-    <Tooltip title="Edit row">
-      <IconButton
-        color="primary"
-        size="small"
-        onClick={() => {
-          setEditingId(r._id);
+                          {canAddRow ? (
+                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                              <Tooltip title="Edit row">
+                                <IconButton
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => {
+                                    setEditingId(r._id);
 
-          if (r.date) setDate(dayjs(r.date));
+                                    if (r.date) setDate(dayjs(r.date));
 
-          setForm({
-            employee_name: r.employee_name || '',
-            manager_tl: r.manager_tl || '',
-            total_logins: String(r.login ?? r.total_logins ?? 0 || ''),
-            approval_lakh: r.approval ? Number(r.approval).toLocaleString('en-IN') : '',
-            disbursal_lakh: r.disbursal ? Number(r.disbursal).toLocaleString('en-IN') : '',
-            drop_lakh: r.drop ? Number(r.drop).toLocaleString('en-IN') : '',
-            cashback_lakh: r.cashback ? Number(r.cashback).toLocaleString('en-IN') : '',
-            code: r.code || '',
-          });
+                                    setForm({
+                                      employee_name: r.employee_name || '',
+                                      manager_tl: r.manager_tl || '',
+                                      total_logins: String(r.login ?? r.total_logins ?? 0 || ''),
+                                      approval_lakh: r.approval ? Number(r.approval).toLocaleString('en-IN') : '',
+                                      disbursal_lakh: r.disbursal ? Number(r.disbursal).toLocaleString('en-IN') : '',
+                                      drop_lakh: r.drop ? Number(r.drop).toLocaleString('en-IN') : '',
+                                      cashback_lakh: r.cashback ? Number(r.cashback).toLocaleString('en-IN') : '',
+                                      code: r.code || '',
+                                    });
 
-          setAmountUnit('rupees');
-          setFormOpen(true);
-        }}
-      >
-        <EditIcon fontSize="small" />
-      </IconButton>
-    </Tooltip>
+                                    setAmountUnit('rupees');
+                                    setFormOpen(true);
+                                  }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
 
-    {isAdmin && (
-      <Tooltip title="Delete row">
-        <IconButton color="error" size="small" onClick={() => onDelete(r._id)}>
-          <DeleteIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    )}
-  </Stack>
-) : (
-  <Typography variant="caption" color="text.secondary">
-    —
-  </Typography>
-)}
+                              {isAdmin && (
+                                <Tooltip title="Delete row">
+                                  <IconButton color="error" size="small" onClick={() => onDelete(r._id)}>
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Stack>
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">
+                              —
+                            </Typography>
+                          )}
 
                         </TableCell>
                       </TableRow>
@@ -1848,16 +2030,7 @@ export default function PerformanceUploadPage() {
                       </Typography>
                     </Paper>
                   </Grid>
-                  <Grid item xs={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#FEF3C7', borderRadius: 2 }}>
-                      <Typography variant="caption" sx={{ color: '#92400E', fontWeight: 600 }}>
-                        Total Approval
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#92400E' }}>
-                        {rupee(teamBreakdown.totals.totalApproval)}
-                      </Typography>
-                    </Paper>
-                  </Grid>
+
                   <Grid item xs={6} md={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#FCE7F3', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#9D174D', fontWeight: 600 }}>
@@ -2055,16 +2228,63 @@ export default function PerformanceUploadPage() {
                 />
               </Grid>
 
-              <Grid item xs={12} md={4}>
-                <TextField
-                  label="Total Logins"
-                  type="number"
-                  value={form.total_logins}
-                  onChange={handleFormChange('total_logins')}
-                  fullWidth
-                  size="medium"
-                />
-              </Grid>
+       {/* 1) Total Logins (SOFT ORANGE) */}
+<Grid item xs={12} md={2.4}>
+  <Paper
+    sx={{
+      p: 2.1,
+      borderRadius: 2.5,
+      color: '#ffffff',
+      position: 'relative',
+      overflow: 'hidden',
+      background: 'linear-gradient(135deg, #FDBA74 0%, #FB923C 50%, #F97316 100%)',
+      boxShadow: '0 10px 22px rgba(251,146,60,0.35)',
+    }}
+  >
+    <Box
+      sx={{
+        position: 'absolute',
+        top: -30,
+        right: -30,
+        width: 90,
+        height: 90,
+        borderRadius: '50%',
+        bgcolor: 'rgba(255,255,255,0.15)',
+      }}
+    />
+
+    <Box sx={{ position: 'relative' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2 }}>
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: 2,
+            bgcolor: 'rgba(255,255,255,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <CheckCircleIcon sx={{ fontSize: 22 }} />
+        </Box>
+        <TrendingUpIcon sx={{ opacity: 0.85, fontSize: 20 }} />
+      </Box>
+
+      <Typography variant="body2" sx={{ color: '#FFF7ED', fontWeight: 500 }}>
+        Total Logins
+      </Typography>
+
+      <Typography
+        variant="h6"
+        sx={{ fontWeight: 800, fontSize: 25, color: '#fff' }}
+      >
+        {totals.logins.toLocaleString('en-IN')}
+      </Typography>
+    </Box>
+  </Paper>
+</Grid>
+
 
               {/* Approval */}
               <Grid item xs={12} md={4}>
