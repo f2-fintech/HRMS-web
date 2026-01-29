@@ -96,7 +96,7 @@ const companyAdminOptions = [
   { label: 'Cloud / AI', value: 'cloud_ai' },
   { label: 'AWS Server', value: 'aws_server' },
   { label: 'Rent - Bareilly', value: 'rent_bareilly' },
-  { label: 'Rent - Noida First Floor', value: 'rent_noida_first_floor' },
+  { label: 'Rent - Noida', value: 'rent_noida_first_floor' },
   { label: 'Rent - Noida Ground Floor', value: 'rent_noida_ground_floor' },
   { label: 'System Rent', value: 'system_rent' },
   { label: 'Decor', value: 'decor' },
