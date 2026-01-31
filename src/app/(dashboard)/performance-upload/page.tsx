@@ -2004,40 +2004,97 @@ export default function PerformanceUploadPage() {
                   </Grid>
                 </Paper>
 
-                {/* Team Totals Summary */}
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                  <Grid item xs={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#DCFCE7', borderRadius: 2 }}>
-                      <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
-                        Team Members
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
-                        {teamBreakdown.totals.memberCount}
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#E0F2FE', borderRadius: 2 }}>
-                      <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
-                        Total Logins
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E40AF' }}>
-                        {teamBreakdown.totals.totalLogins.toLocaleString('en-IN')}
-                      </Typography>
-                    </Paper>
-                  </Grid>
+             {/* Team Totals Summary */}
+<Grid container spacing={2} sx={{ mb: 3 }}>
 
-                  <Grid item xs={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#FCE7F3', borderRadius: 2 }}>
-                      <Typography variant="caption" sx={{ color: '#9D174D', fontWeight: 600 }}>
-                        Total Disbursal
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#9D174D' }}>
-                        {rupee(teamBreakdown.totals.totalDisbursal)}
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                </Grid>
+  {/* Team Members */}
+  <Grid item xs={6} md={3}>
+    <Paper
+      sx={{
+        p: 2,
+        textAlign: 'center',
+        bgcolor: '#DCFCE7',
+        borderRadius: 2,
+      }}
+    >
+      <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
+        Team Members
+      </Typography>
+
+      <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
+        {teamBreakdown.totals.memberCount}
+      </Typography>
+    </Paper>
+  </Grid>
+
+  {/* Total Logins */}
+  <Grid item xs={6} md={3}>
+    <Paper
+      sx={{
+        p: 2,
+        textAlign: 'center',
+        bgcolor: '#E0F2FE',
+        borderRadius: 2,
+      }}
+    >
+      <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
+        Total Logins
+      </Typography>
+
+      <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E40AF' }}>
+        {teamBreakdown.totals.totalLogins.toLocaleString('en-IN')}
+      </Typography>
+    </Paper>
+  </Grid>
+
+{/* Total Disbursal */}
+<Grid item xs={6} md={3}>
+  <Paper
+    sx={{
+      p: 2,
+      textAlign: 'center',
+      bgcolor: '#EDE9FE',     // light purple
+      borderRadius: 2,
+    }}
+  >
+    <Typography
+      variant="caption"
+      sx={{ color: '#6D28D9', fontWeight: 600 }}  // dark purple
+    >
+      Total Approval
+    </Typography>
+
+    <Typography
+      variant="h5"
+      sx={{ fontWeight: 800, color: '#6D28D9' }}
+    >
+      {rupee(teamBreakdown.totals.totalApproval)}
+    </Typography>
+  </Paper>
+</Grid>
+
+  {/* Total Disbursal */}
+  <Grid item xs={6} md={3}>
+    <Paper
+      sx={{
+        p: 2,
+        textAlign: 'center',
+        bgcolor: '#DCFCE7',   // green
+        borderRadius: 2,
+      }}
+    >
+      <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
+        Total Disbursal
+      </Typography>
+
+      <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
+        {rupee(teamBreakdown.totals.totalDisbursal)}
+      </Typography>
+    </Paper>
+  </Grid>
+
+</Grid>
+
 
                 {/* Member Breakdown Table */}
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
