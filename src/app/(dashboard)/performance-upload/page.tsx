@@ -1,13 +1,9 @@
 'use client';
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-
 import { useRouter, useSearchParams } from 'next/navigation';
-
 import axios from 'axios';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-
 import {
   Box,
   Button,
@@ -108,8 +104,8 @@ type TeamTotalInfo = {
   teamTotalLogins: number;
   teamTotalApproval: number;
   teamTotalDisbursal: number;
-  teamTotalDrop?: number;     
-  teamTotalCashback?: number;   
+  teamTotalDrop?: number;
+  teamTotalCashback?: number;
   teamTotalABNP?: number;       // ✅ NEW (optional)
 
   memberCount: number;
@@ -1020,427 +1016,427 @@ export default function PerformanceUploadPage() {
             </Stack>
           </Box>
         </Paper>
-<Grid container spacing={2}>
-  {/* 1) Total Logins (ORANGE) */}
-  <Grid item xs={12} md={2.4}>
-    <Paper
-      sx={{
-        p: 2.1,
-        borderRadius: 2.5,
-        color: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)',
-        boxShadow: '0 10px 22px rgba(249,115,22,0.35)',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: -30,
-          right: -30,
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.10)',
-        }}
-      />
-      <Box sx={{ position: 'relative' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            mb: 1.2,
-            alignItems: 'center',
-          }}
-        >
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.22)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CheckCircleIcon sx={{ fontSize: 22 }} />
-          </Box>
-          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-        </Box>
+        <Grid container spacing={2}>
+          {/* 1) Total Logins (ORANGE) */}
+          <Grid item xs={12} md={2.4}>
+            <Paper
+              sx={{
+                p: 2.1,
+                borderRadius: 2.5,
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)',
+                boxShadow: '0 10px 22px rgba(249,115,22,0.35)',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -30,
+                  right: -30,
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                }}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1.2,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <CheckCircleIcon sx={{ fontSize: 22 }} />
+                  </Box>
+                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+                </Box>
 
-        <Typography
-          variant="body2"
-          sx={{ color: '#ffedd5', fontWeight: 500, mb: 0.3 }}
-        >
-          Total Logins
-        </Typography>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 800,
-            fontSize: 25,
-            lineHeight: 1.2,
-            color: '#fff',
-          }}
-        >
-          {totals.logins.toLocaleString('en-IN')}
-        </Typography>
-      </Box>
-    </Paper>
-  </Grid>
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#ffedd5', fontWeight: 500, mb: 0.3 }}
+                >
+                  Total Logins
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 25,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
+                >
+                  {totals.logins.toLocaleString('en-IN')}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
 
-  {/* 2) Total Approvals (YELLOW) */}
-  <Grid item xs={12} md={2.4}>
-    <Paper
-      sx={{
-        p: 2.1,
-        borderRadius: 2.5,
-        color: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
-        boxShadow: '0 10px 22px rgba(234,179,8,0.35)',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: -30,
-          right: -30,
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.10)',
-        }}
-      />
-      <Box sx={{ position: 'relative' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            mb: 1.2,
-            alignItems: 'center',
-          }}
-        >
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.22)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <EmojiEventsIcon sx={{ fontSize: 22 }} />
-          </Box>
-          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-        </Box>
+          {/* 2) Total Approvals (YELLOW) */}
+          <Grid item xs={12} md={2.4}>
+            <Paper
+              sx={{
+                p: 2.1,
+                borderRadius: 2.5,
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
+                boxShadow: '0 10px 22px rgba(234,179,8,0.35)',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -30,
+                  right: -30,
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                }}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1.2,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <EmojiEventsIcon sx={{ fontSize: 22 }} />
+                  </Box>
+                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+                </Box>
 
-        <Typography
-          variant="body2"
-          sx={{ color: '#fef3c7', fontWeight: 500, mb: 0.3 }}
-        >
-          Total Approvals
-        </Typography>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 800,
-            fontSize: 25,
-            lineHeight: 1.2,
-            color: '#fff',
-          }}
-        >
-          {rupee(totals.approvals)}
-        </Typography>
-      </Box>
-    </Paper>
-  </Grid>
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#fef3c7', fontWeight: 500, mb: 0.3 }}
+                >
+                  Total Approvals
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 25,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
+                >
+                  {rupee(totals.approvals)}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
 
-  {/* 3) Total ABNP (DARK SLATE) */}
-  <Grid item xs={12} md={2.4}>
-    <Paper
-      sx={{
-        p: 2.1,
-        borderRadius: 2.5,
-        color: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
-        boxShadow: '0 10px 22px rgba(15,23,42,0.35)',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: -30,
-          right: -30,
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.10)',
-        }}
-      />
-      <Box sx={{ position: 'relative' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            mb: 1.2,
-            alignItems: 'center',
-          }}
-        >
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.22)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <span style={{ fontSize: 16, lineHeight: 1 }}>Δ</span>
-          </Box>
-          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-        </Box>
+          {/* 3) Total ABNP (DARK SLATE) */}
+          <Grid item xs={12} md={2.4}>
+            <Paper
+              sx={{
+                p: 2.1,
+                borderRadius: 2.5,
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
+                boxShadow: '0 10px 22px rgba(15,23,42,0.35)',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -30,
+                  right: -30,
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                }}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1.2,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: 16, lineHeight: 1 }}>Δ</span>
+                  </Box>
+                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+                </Box>
 
-        <Typography
-          variant="body2"
-          sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 500, mb: 0.3 }}
-        >
-          Total ABND
-        </Typography>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 800,
-            fontSize: 25,
-            lineHeight: 1.2,
-            color: '#fff',
-          }}
-        >
-          {rupee(totals.abnp)}
-        </Typography>
-      </Box>
-    </Paper>
-  </Grid>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 500, mb: 0.3 }}
+                >
+                  Total ABND
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 25,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
+                >
+                  {rupee(totals.abnp)}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
 
-  {/* 4) Total Disbursals (GREEN) */}
-  <Grid item xs={12} md={2.4}>
-    <Paper
-      sx={{
-        p: 2.1,
-        borderRadius: 2.5,
-        color: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-        boxShadow: '0 10px 22px rgba(22,163,74,0.35)',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: -30,
-          right: -30,
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.10)',
-        }}
-      />
-      <Box sx={{ position: 'relative' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            mb: 1.2,
-            alignItems: 'center',
-          }}
-        >
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.22)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <StarBorderIconLike />
-          </Box>
-          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-        </Box>
+          {/* 4) Total Disbursals (GREEN) */}
+          <Grid item xs={12} md={2.4}>
+            <Paper
+              sx={{
+                p: 2.1,
+                borderRadius: 2.5,
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                boxShadow: '0 10px 22px rgba(22,163,74,0.35)',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -30,
+                  right: -30,
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                }}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1.2,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <StarBorderIconLike />
+                  </Box>
+                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+                </Box>
 
-        <Typography
-          variant="body2"
-          sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}
-        >
-          Total Disbursals
-        </Typography>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 800,
-            fontSize: 25,
-            lineHeight: 1.2,
-            color: '#fff',
-          }}
-        >
-          {rupee(totals.disbursal)}
-        </Typography>
-      </Box>
-    </Paper>
-  </Grid>
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}
+                >
+                  Total Disbursals
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 25,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
+                >
+                  {rupee(totals.disbursal)}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
 
-  {/* 5) Total Drop (RED) */}
-  <Grid item xs={12} md={2.4}>
-    <Paper
-      sx={{
-        p: 2.1,
-        borderRadius: 2.5,
-        color: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-        boxShadow: '0 10px 22px rgba(185,28,28,0.35)',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: -30,
-          right: -30,
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.10)',
-        }}
-      />
-      <Box sx={{ position: 'relative' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            mb: 1.2,
-            alignItems: 'center',
-          }}
-        >
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.22)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <span style={{ fontSize: 18, lineHeight: 1 }}>↓</span>
-          </Box>
-          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-        </Box>
+          {/* 5) Total Drop (RED) */}
+          <Grid item xs={12} md={2.4}>
+            <Paper
+              sx={{
+                p: 2.1,
+                borderRadius: 2.5,
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                boxShadow: '0 10px 22px rgba(185,28,28,0.35)',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -30,
+                  right: -30,
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                }}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1.2,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>↓</span>
+                  </Box>
+                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+                </Box>
 
-        <Typography
-          variant="body2"
-          sx={{ color: '#fee2e2', fontWeight: 500, mb: 0.3 }}
-        >
-          Total Drop
-        </Typography>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 800,
-            fontSize: 25,
-            lineHeight: 1.2,
-            color: '#fff',
-          }}
-        >
-          {rupee(totals.drop)}
-        </Typography>
-      </Box>
-    </Paper>
-  </Grid>
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#fee2e2', fontWeight: 500, mb: 0.3 }}
+                >
+                  Total Drop
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 25,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
+                >
+                  {rupee(totals.drop)}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
 
-  {/* 6) Total Cashback (CYAN) */}
-  <Grid item xs={12} md={2.4}>
-    <Paper
-      sx={{
-        p: 2.1,
-        borderRadius: 2.5,
-        color: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
-        boxShadow: '0 10px 22px rgba(14,116,144,0.35)',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: -30,
-          right: -30,
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.10)',
-        }}
-      />
-      <Box sx={{ position: 'relative' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            mb: 1.2,
-            alignItems: 'center',
-          }}
-        >
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.22)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>
-          </Box>
-          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-        </Box>
+          {/* 6) Total Cashback (CYAN) */}
+          <Grid item xs={12} md={2.4}>
+            <Paper
+              sx={{
+                p: 2.1,
+                borderRadius: 2.5,
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
+                boxShadow: '0 10px 22px rgba(14,116,144,0.35)',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -30,
+                  right: -30,
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                }}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1.2,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>
+                  </Box>
+                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+                </Box>
 
-        <Typography
-          variant="body2"
-          sx={{ color: '#cffafe', fontWeight: 500, mb: 0.3 }}
-        >
-          Total Cashback
-        </Typography>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 800,
-            fontSize: 25,
-            lineHeight: 1.2,
-            color: '#fff',
-          }}
-        >
-          {rupee(totals.cashback)}
-        </Typography>
-      </Box>
-    </Paper>
-  </Grid>
-</Grid>
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#cffafe', fontWeight: 500, mb: 0.3 }}
+                >
+                  Total Cashback
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 25,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
+                >
+                  {rupee(totals.cashback)}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
 
 
 
@@ -2228,62 +2224,7 @@ export default function PerformanceUploadPage() {
                 />
               </Grid>
 
-       {/* 1) Total Logins (SOFT ORANGE) */}
-<Grid item xs={12} md={2.4}>
-  <Paper
-    sx={{
-      p: 2.1,
-      borderRadius: 2.5,
-      color: '#ffffff',
-      position: 'relative',
-      overflow: 'hidden',
-      background: 'linear-gradient(135deg, #FDBA74 0%, #FB923C 50%, #F97316 100%)',
-      boxShadow: '0 10px 22px rgba(251,146,60,0.35)',
-    }}
-  >
-    <Box
-      sx={{
-        position: 'absolute',
-        top: -30,
-        right: -30,
-        width: 90,
-        height: 90,
-        borderRadius: '50%',
-        bgcolor: 'rgba(255,255,255,0.15)',
-      }}
-    />
-
-    <Box sx={{ position: 'relative' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.2 }}>
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: 2,
-            bgcolor: 'rgba(255,255,255,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <CheckCircleIcon sx={{ fontSize: 22 }} />
-        </Box>
-        <TrendingUpIcon sx={{ opacity: 0.85, fontSize: 20 }} />
-      </Box>
-
-      <Typography variant="body2" sx={{ color: '#FFF7ED', fontWeight: 500 }}>
-        Total Logins
-      </Typography>
-
-      <Typography
-        variant="h6"
-        sx={{ fontWeight: 800, fontSize: 25, color: '#fff' }}
-      >
-        {totals.logins.toLocaleString('en-IN')}
-      </Typography>
-    </Box>
-  </Paper>
-</Grid>
+<Grid item xs={12} md={4}> <TextField label="Total Logins" type="number" value={form.total_logins} onChange={handleFormChange('total_logins')} fullWidth size="medium" /> </Grid>
 
 
               {/* Approval */}
