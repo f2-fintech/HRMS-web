@@ -41,12 +41,10 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
   const { capitalizeFirstLetter } = utility()
   const { settings } = useSettings()
 
-  // Fetch upcoming birthdays on mount
-  useEffect(() => {
-    if (!loadingBirthdays) {
-      dispatch(fetchUpcomingBirthdays(30))
-    }
-  }, [dispatch, loadingBirthdays])
+ useEffect(() => {
+  dispatch(fetchUpcomingBirthdays(30))
+}, [dispatch])
+
 
   const today = dayjs()
 
