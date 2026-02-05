@@ -1,8 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable padding-line-between-statements */
 'use client'
+
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { debounce } from 'lodash'
+
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { DataGrid, GridOverlay } from '@mui/x-data-grid'
@@ -16,29 +18,30 @@ import {
   DialogContent,
   TableCell,
   styled,
-  Paper,
   useTheme,
-  alpha
+  alpha,
+  MenuItem,
+  IconButton
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
 import DialogTitle from '@mui/material/DialogTitle'
 import { useDispatch, useSelector } from 'react-redux'
 import { format } from 'date-fns'
-import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
+import dayjs, { Dayjs } from 'dayjs'
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 
 import type { AppDispatch, RootState } from '@/redux/store'
 import { fetchLeaves } from '@/redux/features/leaves/leavesSlice'
 import { apiResponse } from '@/utility/apiResponse/employeesResponse'
 import AddLeavesForm from '@/components/leave/LeaveForm'
 import Loader from '@/components/loader/loader'
-import dayjs, { Dayjs } from 'dayjs'
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import AccordionLeaves from '@/components/leave/AccordionLeaves'
 import useDebounce from '@/utility/debounce/useDebounce'
 import { utility } from '@/utility'
+import LeaveBalancePanel from '@/components/leave/LeaveBalancePanel'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'bold',
@@ -105,7 +108,7 @@ const CustomNoRowsOverlay = () => {
 
 export default function LeavesGrid() {
   const theme = useTheme()
-  const gridRef = useRef(null)
+  const gridRef = useRef<any>(null)
 
   const dispatch = useDispatch<AppDispatch>()
   const { leaves, total, loading } = useSelector((state: RootState) => state.leaves)
@@ -114,19 +117,19 @@ export default function LeavesGrid() {
   const [selectedLeaves, setSelectedLeaves] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
-  const [employees, setEmployees] = useState([])
+  const [employees, setEmployees] = useState<any[]>([])
   const [selectedKeyword, setSelectedKeyword] = useState('')
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
   const [selectedDate, setSelectedDate] = React.useState(dayjs())
+  const [selectedEmployeeForBalance, setSelectedEmployeeForBalance] = useState<string | null>(null)
+  const [showBalance, setShowBalance] = useState(false)
 
   const month = selectedDate.format('MM')
   const year = selectedDate.format('YYYY')
 
   const handleDateChange = (newValue: Dayjs | null) => {
-    if (newValue) {
-      setSelectedDate(newValue)
-    }
+    if (newValue) setSelectedDate(newValue)
   }
 
   const debouncedKeyword = useDebounce(selectedKeyword, 500)
@@ -143,21 +146,29 @@ export default function LeavesGrid() {
     setSelectedKeyword(e.target.value)
   }, [])
 
-
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     setUserRole(user.role)
     setUserId(user.id)
 
-    // For admins (role < 3), fetch employees if not already fetched
     if (Number(user.role) < 3 && employees.length === 0) {
       const fetchEmployeesData = async () => {
         const employeeData = await apiResponse()
-        setEmployees(employeeData)
+        setEmployees(employeeData || [])
       }
       fetchEmployeesData()
     }
   }, [employees.length])
+
+  const balanceEmployeeId = useMemo(() => {
+    if (Number(userRole) > 1) return userId
+    return selectedEmployeeForBalance
+  }, [userRole, userId, selectedEmployeeForBalance])
+
+ 
+  const canShowBalance = useMemo(() => {
+    return Number(userRole) > 1 || !!selectedEmployeeForBalance
+  }, [userRole, selectedEmployeeForBalance])
 
   const handleLeaveAddClick = useCallback(() => {
     setSelectedLeaves(null)
@@ -170,23 +181,16 @@ export default function LeavesGrid() {
   }, [])
 
   const handleLeavedelete = async (id: string) => {
-    const { isTokenExpired } = utility();
-    let token: string | null = null;
-    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+    const { isTokenExpired } = utility()
+    let token: string | null = null
+    const { company_id } = typeof window !== 'undefined' ? JSON.parse(localStorage?.getItem('user') as any) : {}
 
-    if (typeof window !== "undefined") {
-      token = localStorage?.getItem('token');
-    }
+    if (typeof window !== 'undefined') token = localStorage?.getItem('token')
 
     if (!token || isTokenExpired(token)) {
-      // Clean up localStorage if needed
-      if (token) {
-        localStorage.removeItem('token');
-      }
-
-      // Redirect to login with page refresh
-      window.location.href = '/login';
-      return { error: token ? "Token expired" : "No token found" };
+      if (token) localStorage.removeItem('token')
+      window.location.href = '/login'
+      return { error: token ? 'Token expired' : 'No token found' }
     }
 
     const confirmDelete = confirm('Are you sure you want to delete this leave?')
@@ -196,22 +200,16 @@ export default function LeavesGrid() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/leaves/delete/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token} ${company_id}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json'
         }
       })
 
       if (response.ok) {
-        // Parse the response
         const data = await response.json()
-
-        // Show success toast
         toast.success(data.message || 'Leave deleted successfully.')
-
-        // Optimistically update UI
         dispatch(fetchLeaves({ page, limit, month, year, keyword: selectedKeyword }))
       } else {
-        // Parse and display error message
         const errorResult = await response.json()
         toast.error(errorResult.message || 'Failed to delete leave.')
       }
@@ -225,7 +223,6 @@ export default function LeavesGrid() {
     setShowForm(false)
   }, [])
 
-  // Performance optimization for accordion
   const handleScroll = useCallback(() => {
     if (gridRef.current) {
       const scrollEl = gridRef.current.querySelector('.MuiDataGrid-virtualScroller')
@@ -247,14 +244,13 @@ export default function LeavesGrid() {
     }
   }, [handleScroll])
 
-  // Enhanced column definitions
   const generateColumns = useMemo(() => {
-    const baseColumnStyles = {
+    const baseColumnStyles: any = {
       headerAlign: 'center',
       headerClassName: 'super-app-theme--header',
       sortable: false,
       flex: 1,
-      renderCell: params => (
+      renderCell: (params: any) => (
         <Box
           sx={{
             width: '100%',
@@ -273,21 +269,21 @@ export default function LeavesGrid() {
     return [
       ...(userRole === '1'
         ? [
-          {
-            field: 'leave',
-            headerName: 'Leave Details',
-            ...baseColumnStyles,
-            renderCell: params => (
-              <AccordionLeaves
-                params={params}
-                handleLeaveEditClick={handleLeaveEditClick}
-                handleLeavedelete={handleLeavedelete}
-                StyledTableCell={StyledTableCell}
-                BootstrapDialog={StyledDialog}
-              />
-            )
-          }
-        ]
+            {
+              field: 'leave',
+              headerName: 'Leave Details',
+              ...baseColumnStyles,
+              renderCell: (params: any) => (
+                <AccordionLeaves
+                  params={params}
+                  handleLeaveEditClick={handleLeaveEditClick}
+                  handleLeavedelete={handleLeavedelete}
+                  StyledTableCell={StyledTableCell}
+                  BootstrapDialog={StyledDialog}
+                />
+              )
+            }
+          ]
         : [
           {
             field: 'day',
@@ -516,9 +512,9 @@ export default function LeavesGrid() {
   }, [userRole, handleLeaveEditClick, handleLeavedelete])
 
   const rows = useMemo(() => {
-    return leaves
-      .filter(leave => leave && leave.day && leave.start_date) // Filter out invalid leaves
-      .map(leave => ({
+    return (leaves || [])
+      .filter((leave: any) => leave && leave.day && leave.start_date)
+      .map((leave: any) => ({
         _id: leave._id,
         start_date: leave.start_date,
         end_date: leave.end_date,
@@ -554,16 +550,25 @@ export default function LeavesGrid() {
           </DialogContent>
         </StyledDialog>
 
-        {/* Enhanced header section */}
+        {/* Header */}
         <Box
           sx={{
-            mb: 4,
+            mb: 3,
             display: 'flex',
             flexDirection: 'column',
             gap: 2
           }}
         >
-          <Box display='flex' justifyContent='space-between' alignItems='center'>
+          {/* Top Row */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: { xs: 'stretch', md: 'center' },
+              gap: 2,
+              flexWrap: 'wrap'
+            }}
+          >
             <Box>
               <Typography
                 variant='h4'
@@ -577,7 +582,7 @@ export default function LeavesGrid() {
               >
                 Leave Management
               </Typography>
-              <Typography
+               <Typography
                 variant='subtitle1'
                 sx={{
                   color: 'text.secondary',
@@ -587,13 +592,43 @@ export default function LeavesGrid() {
                 Dashboard / Leave
               </Typography>
             </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1.5,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                width: { xs: '100%', md: 'auto' }
+              }}
+            >
+              {userRole === '1' && (
+                <TextField
+                  select
+                  size='small'
+                  label='Employee (Leave Balance)'
+                  value={selectedEmployeeForBalance || ''}
+                  onChange={e => {
+                    setSelectedEmployeeForBalance(e.target.value)
+                    setShowBalance(true) // ✅ open balance card when selected
+                  }}
+                  sx={{ minWidth: { xs: '100%', sm: 260, md: 300 } }}
+                >
+                  {(employees || []).map((emp: any) => (
+                    <MenuItem key={emp._id} value={emp._id}>
+                      {emp.first_name ? `${emp.first_name} ${emp.last_name || ''}` : emp.name || emp.email || emp._id}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
 
-            <StyledButton variant='contained' color='primary' startIcon={<AddIcon />} onClick={handleLeaveAddClick}>
-              Apply Leave
-            </StyledButton>
+              <StyledButton variant='contained' color='primary' startIcon={<AddIcon />} onClick={handleLeaveAddClick}>
+                Apply Leave
+              </StyledButton>
+            </Box>
           </Box>
 
-          {/* Enhanced search and date picker section */}
+          {/* Search + Date */}
           <Grid container spacing={3} alignItems='center'>
             {userRole === '1' && (
               <Grid item xs={12} md={8}>
@@ -634,7 +669,19 @@ export default function LeavesGrid() {
             </Grid>
           </Grid>
         </Box>
-        <DataGrid
+
+        {canShowBalance && showBalance && (
+          <Box sx={{ mb: 3 }}>
+            <LeaveBalancePanel
+              employeeId={balanceEmployeeId}
+              year={year}
+              selectedMonth={month}
+              title='Leave Balance (18/year • 1.5/month)'
+              onClose={() => setShowBalance(false)}
+            />
+          </Box>
+        )}
+    <DataGrid
           autoHeight
           loading={loading}
           getRowHeight={() => 'auto'}
@@ -687,6 +734,7 @@ export default function LeavesGrid() {
             }
           }}
         />
+
       </Box>
     </Box>
   )
