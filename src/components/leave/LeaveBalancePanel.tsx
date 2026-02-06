@@ -51,12 +51,6 @@ type BalanceResponse = {
   months: MonthRow[]
 }
 
-type MonthRowDisplay = MonthRow & {
-  _openingAvailable?: number
-  _credited?: number
-  _closingDisplay?: number
-}
-
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function fmt(n: any) {
@@ -67,7 +61,7 @@ function fmt(n: any) {
 
 function normalizeTo12Months(months: MonthRow[]): MonthRow[] {
   const map = new Map<number, MonthRow>()
-  ;(months || []).forEach(m => map.set(Number(m.month), { ...m, month: Number(m.month) }))
+    ; (months || []).forEach(m => map.set(Number(m.month), { ...m, month: Number(m.month) }))
 
   const out: MonthRow[] = []
   for (let i = 1; i <= 12; i++) {
@@ -102,37 +96,6 @@ const UsedVsCreditIndicator = ({ used, credited }: { used: number; credited: num
   return null
 }
 
-function buildPolicyDisplay(months12: MonthRow[], expected: number): MonthRowDisplay[] {
-  let prevClosing = 0
-
-  return (months12 || []).map(m => {
-    const usedApproved = Number(m.used_approved ?? 0)
-    const usedPending = Number(m.used_pending ?? 0)
-
-    const usedTotal =
-      m.used_total !== undefined && m.used_total !== null
-        ? Number(m.used_total)
-        : usedApproved + usedPending > 0
-          ? usedApproved + usedPending
-          : Number(m.used ?? 0)
-
-    const extra = Number(m.extra ?? 0)
-    const credited = expected
-
-    const openingAvailable = prevClosing + credited
-    const closingDisplay = openingAvailable - usedTotal + extra
-
-    prevClosing = closingDisplay
-
-    return {
-      ...m,
-      _credited: credited,
-      _openingAvailable: openingAvailable,
-      _closingDisplay: closingDisplay
-    }
-  })
-}
-
 export default function LeaveBalancePanel({
   employeeId,
   year,
@@ -152,88 +115,112 @@ export default function LeaveBalancePanel({
 
   const y = useMemo(() => Number(year || dayjs().format('YYYY')), [year])
   const sm = useMemo(() => Number(selectedMonth || dayjs().format('MM')), [selectedMonth])
+useEffect(() => {
+  const run = async () => {
+    setError('')
+    setData(null)
+    if (!employeeId) return
 
-  useEffect(() => {
-    const run = async () => {
-      setError('')
-      setData(null)
-      if (!employeeId) return
+    const user =
+      typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('user') || '{}')
+        : {}
 
-      const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-      const company_id = user?.company_id
+    const token =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('token')
+        : null
 
-      if (!token || !company_id) {
-        setError('Token / company missing')
-        return
-      }
+    const company_id = user?.company_id
 
-      setLoading(true)
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${employeeId}?year=${y}`, {
-          headers: {
-            Authorization: `Bearer ${token} ${company_id}`,
-            'Content-Type': 'application/json'
-          }
-        })
-
-        const contentType = res.headers.get('content-type') || ''
-        const raw = contentType.includes('application/json') ? await res.json() : await res.text()
-
-        if (!res.ok) {
-          const msg = typeof raw === 'string' ? raw : (raw as any)?.message
-          throw new Error(msg || 'Failed to fetch balance')
-        }
-
-        const json = typeof raw === 'string' ? JSON.parse(raw) : raw
-        setData(json)
-      } catch (e: any) {
-        setError(e?.message || 'Something went wrong')
-      } finally {
-        setLoading(false)
-      }
+    if (!token || !company_id) {
+      setError('Token / company missing')
+      return
     }
 
-    run()
-  }, [employeeId, y])
+    const isEmployee = Number(user?.role) === 3
+
+    const url = isEmployee
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${employeeId}?year=${y}`
+      : `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${employeeId}?year=${y}&force=1`
+
+    setLoading(true)
+
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const contentType = res.headers.get('content-type') || ''
+      const raw = contentType.includes('application/json')
+        ? await res.json()
+        : await res.text()
+
+      if (!res.ok) {
+        const msg = typeof raw === 'string' ? raw : raw?.message
+        throw new Error(msg || 'Failed to fetch balance')
+      }
+
+      const json = typeof raw === 'string' ? JSON.parse(raw) : raw
+      setData(json)
+    } catch (e: any) {
+      setError(e?.message || 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  run()
+}, [employeeId, y])
+
 
   const getUsedApproved = (m: MonthRow) => Number(m.used_approved ?? 0)
   const getUsedPending = (m: MonthRow) => Number(m.used_pending ?? 0)
   const getUsedRejected = (m: MonthRow) => Number(m.used_rejected ?? 0)
 
+  // ✅ now fallback includes rejected too (because backend also does)
   const getUsedTotal = (m: MonthRow) => {
     if (m.used_total !== undefined && m.used_total !== null) return Number(m.used_total)
+
     const ap = getUsedApproved(m)
     const pe = getUsedPending(m)
-    if (ap + pe > 0) return ap + pe
+    const re = getUsedRejected(m)
+
+    if (ap + pe + re > 0) return ap + pe + re
     return Number(m.used ?? 0)
   }
 
   const getExtra = (m: MonthRow) => Number(m.extra ?? 0)
 
-  const expectedAccrual = Number(data?.monthly_accrual ?? 1.5)
+  // ✅ Show credit from backend month.accrued (fallback monthly_accrual)
+  const getCredit = (m: MonthRow) => Number(m.accrued ?? data?.monthly_accrual ?? 1.5)
 
-  const monthsDisplay = useMemo<MonthRowDisplay[]>(() => {
+  // ✅ Opening (Available) = opening + credit
+  const getOpeningAvailable = (m: MonthRow) => Number(m.opening ?? 0) + getCredit(m)
+
+  const monthsDisplay = useMemo<MonthRow[]>(() => {
     if (!data?.months?.length) return []
     const months12 = normalizeTo12Months(data.months)
-    const sorted = [...months12].sort((a, b) => Number(a.month) - Number(b.month))
-    return buildPolicyDisplay(sorted, expectedAccrual)
-  }, [data, expectedAccrual])
+    return [...months12].sort((a, b) => Number(a.month) - Number(b.month))
+  }, [data])
 
-  const selectedRow = useMemo<MonthRowDisplay | null>(() => {
+  const selectedRow = useMemo<MonthRow | null>(() => {
     if (!monthsDisplay.length) return null
     return monthsDisplay.find(m => Number(m.month) === sm) || null
   }, [monthsDisplay, sm])
 
-  if (!employeeId) {
-    return null
-  }
+  if (!employeeId) return null
 
   return (
     <Card sx={{ borderRadius: 3 }}>
       {loading && <LinearProgress />}
+
       <CardContent>
-        {/* Header with Close */}
+        {/* Header */}
         <Box display='flex' alignItems='center' justifyContent='space-between' gap={2} flexWrap='wrap'>
           <Box>
             <Typography variant='subtitle1' fontWeight={900}>
@@ -269,8 +256,9 @@ export default function LeaveBalancePanel({
               }}
             >
               <Typography variant='body2' color='text.secondary'>
-                Opening (Available) {fmt(selectedRow?._openingAvailable ?? 0)} • Credit {fmt(selectedRow?._credited ?? expectedAccrual)} •
-                Rejected {fmt(selectedRow ? getUsedRejected(selectedRow) : 0)}
+                Opening (Available) {fmt(selectedRow ? getOpeningAvailable(selectedRow) : 0)} • Credit{' '}
+                {fmt(selectedRow ? getCredit(selectedRow) : data?.monthly_accrual ?? 1.5)} • Rejected{' '}
+                {fmt(selectedRow ? getUsedRejected(selectedRow) : 0)}
               </Typography>
             </Box>
 
@@ -301,9 +289,11 @@ export default function LeaveBalancePanel({
                     const total = getUsedTotal(m)
                     const extra = getExtra(m)
 
-                    const openingAvail = Number(m._openingAvailable ?? 0)
-                    const credited = Number(m._credited ?? expectedAccrual)
-                    const closing = Number(m._closingDisplay ?? 0)
+                    const credit = getCredit(m)
+                    const openingAvail = getOpeningAvailable(m)
+
+                    // ✅ Closing from backend (policy-correct)
+                    const closing = Number(m.closing ?? 0)
 
                     return (
                       <TableRow key={m.month} hover selected={isSel}>
@@ -315,7 +305,7 @@ export default function LeaveBalancePanel({
                           <Typography fontWeight={isSel ? 900 : 600}>{fmt(openingAvail)}</Typography>
                         </TableCell>
 
-                        <TableCell align='center'>{fmt(credited)}</TableCell>
+                        <TableCell align='center'>{fmt(credit)}</TableCell>
                         <TableCell align='center'>{fmt(approved)}</TableCell>
                         <TableCell align='center'>{fmt(pending)}</TableCell>
                         <TableCell align='center'>{fmt(rejected)}</TableCell>
@@ -323,7 +313,7 @@ export default function LeaveBalancePanel({
                         <TableCell align='center'>
                           <Box display='inline-flex' alignItems='center' justifyContent='center'>
                             <Typography fontWeight={isSel ? 900 : 600}>{fmt(total)}</Typography>
-                            <UsedVsCreditIndicator used={total} credited={credited} />
+                            <UsedVsCreditIndicator used={total} credited={credit} />
                           </Box>
                         </TableCell>
 
