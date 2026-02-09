@@ -96,6 +96,8 @@ const UsedVsCreditIndicator = ({ used, credited }: { used: number; credited: num
   return null
 }
 
+
+
 export default function LeaveBalancePanel({
   employeeId,
   year,
@@ -215,13 +217,19 @@ useEffect(() => {
 
   if (!employeeId) return null
 
+  const totalActual = useMemo(() => {
+  return (monthsDisplay || []).reduce((sum, m) => sum + getUsedTotal(m), 0)
+}, [monthsDisplay])
+
+
   return (
+    
     <Card sx={{ borderRadius: 3 }}>
       {loading && <LinearProgress />}
 
       <CardContent>
         {/* Header */}
-        <Box display='flex' alignItems='center' justifyContent='space-between' gap={2} flexWrap='wrap'>
+        {/* <Box display='flex' alignItems='center' justifyContent='space-between' gap={2} flexWrap='wrap'>
           <Box>
             <Typography variant='subtitle1' fontWeight={900}>
               {title} • {y}
@@ -233,17 +241,17 @@ useEffect(() => {
               <CloseIcon />
             </IconButton>
           )}
-        </Box>
+        </Box> */}
 
-        {error && (
+        {/* {error && (
           <Typography color='error' sx={{ mt: 2 }}>
             {error}
           </Typography>
-        )}
+        )} */}
 
         {!error && data && (
           <>
-            <Box
+            {/* <Box
               sx={{
                 mt: 2,
                 display: 'flex',
@@ -260,7 +268,22 @@ useEffect(() => {
                 {fmt(selectedRow ? getCredit(selectedRow) : data?.monthly_accrual ?? 1.5)} • Rejected{' '}
                 {fmt(selectedRow ? getUsedRejected(selectedRow) : 0)}
               </Typography>
-            </Box>
+            </Box> */}
+    <Typography
+  variant="body2"
+  color="text.secondary"
+  sx={{
+    textAlign: 'right',
+    width: '100%',
+    fontWeight: 400,   // number hota hai, px nahi
+    fontSize: '15px',
+  }}
+>
+  Total Taken Leaves: <b>{fmt(totalActual)}</b>
+</Typography>
+
+
+
 
             <Divider sx={{ my: 2 }} />
 
@@ -268,7 +291,7 @@ useEffect(() => {
               <Table size='small'>
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'rgba(0,0,0,0.04)' }}>
-                    {['Month', 'Opening', 'Credit', 'Approved', 'Pending', 'Rejected', 'Taken', 'Extra', 'Closing'].map(h => (
+                    {['Month', 'Allowed', 'Accumulated', 'Actual', 'Extra', 'BAL','Approved', 'Pending', 'Rejected'].map(h => (
                       <TableCell key={h} align={h === 'Month' ? 'left' : 'center'}>
                         <Typography fontWeight={900} fontSize={13}>
                           {h}
@@ -300,15 +323,14 @@ useEffect(() => {
                         <TableCell>
                           <Typography fontWeight={isSel ? 900 : 600}>{monthNames[m.month - 1] ?? `M${m.month}`}</Typography>
                         </TableCell>
+                                                <TableCell align='center'>{fmt(credit)}</TableCell>
+
 
                         <TableCell align='center'>
                           <Typography fontWeight={isSel ? 900 : 600}>{fmt(openingAvail)}</Typography>
                         </TableCell>
 
-                        <TableCell align='center'>{fmt(credit)}</TableCell>
-                        <TableCell align='center'>{fmt(approved)}</TableCell>
-                        <TableCell align='center'>{fmt(pending)}</TableCell>
-                        <TableCell align='center'>{fmt(rejected)}</TableCell>
+                        
 
                         <TableCell align='center'>
                           <Box display='inline-flex' alignItems='center' justifyContent='center'>
@@ -324,6 +346,9 @@ useEffect(() => {
                         <TableCell align='center'>
                           <Typography fontWeight={900}>{fmt(closing)}</Typography>
                         </TableCell>
+                        <TableCell align='center'>{fmt(approved)}</TableCell>
+                        <TableCell align='center'>{fmt(pending)}</TableCell>
+                        <TableCell align='center'>{fmt(rejected)}</TableCell>
                       </TableRow>
                     )
                   })}
