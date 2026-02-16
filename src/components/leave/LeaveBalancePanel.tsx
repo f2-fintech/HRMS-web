@@ -40,11 +40,6 @@ type BalanceResponse = {
   year: number
   yearly_quota: number
   monthly_accrual: number
-
-  total_used_approved?: number
-  total_used_pending?: number
-  total_used_rejected?: number
-
   total_used?: number
   total_extra?: number
   closing_balance: number
@@ -61,14 +56,13 @@ function fmt(n: any) {
 
 function normalizeTo12Months(months: MonthRow[]): MonthRow[] {
   const map = new Map<number, MonthRow>()
-    ; (months || []).forEach(m => map.set(Number(m.month), { ...m, month: Number(m.month) }))
+  ;(months || []).forEach(m => map.set(Number(m.month), { ...m, month: Number(m.month) }))
 
   const out: MonthRow[] = []
   for (let i = 1; i <= 12; i++) {
     const m = map.get(i)
-    if (m) out.push(m)
-    else {
-      out.push({
+    out.push(
+      m ?? {
         month: i,
         opening: 0,
         accrued: 0,
@@ -79,8 +73,8 @@ function normalizeTo12Months(months: MonthRow[]): MonthRow[] {
         extra: 0,
         used: 0,
         closing: 0
-      })
-    }
+      }
+    )
   }
   return out
 }
@@ -95,8 +89,6 @@ const UsedVsCreditIndicator = ({ used, credited }: { used: number; credited: num
   if (u < c) return <IconDown />
   return null
 }
-
-
 
 export default function LeaveBalancePanel({
   employeeId,
@@ -117,181 +109,122 @@ export default function LeaveBalancePanel({
 
   const y = useMemo(() => Number(year || dayjs().format('YYYY')), [year])
   const sm = useMemo(() => Number(selectedMonth || dayjs().format('MM')), [selectedMonth])
-useEffect(() => {
-  const run = async () => {
-    setError('')
-    setData(null)
-    if (!employeeId) return
 
-    const user =
-      typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('user') || '{}')
-        : {}
+  useEffect(() => {
+    const run = async () => {
+      setError('')
+      setData(null)
+      if (!employeeId) return
 
-    const token =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('token')
-        : null
+      const user =
+        typeof window !== 'undefined'
+          ? JSON.parse(localStorage.getItem('user') || '{}')
+          : {}
 
-    const company_id = user?.company_id
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const company_id = user?.company_id
 
-    if (!token || !company_id) {
-      setError('Token / company missing')
-      return
-    }
-
-    const isEmployee = Number(user?.role) === 3
-
-    const url = isEmployee
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${employeeId}?year=${y}`
-      : `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${employeeId}?year=${y}&force=1`
-
-    setLoading(true)
-
-    try {
-      const res = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token} ${company_id}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      const contentType = res.headers.get('content-type') || ''
-      const raw = contentType.includes('application/json')
-        ? await res.json()
-        : await res.text()
-
-      if (!res.ok) {
-        const msg = typeof raw === 'string' ? raw : raw?.message
-        throw new Error(msg || 'Failed to fetch balance')
+      if (!token || !company_id) {
+        setError('Token / company missing')
+        return
       }
 
-      const json = typeof raw === 'string' ? JSON.parse(raw) : raw
-      setData(json)
-    } catch (e: any) {
-      setError(e?.message || 'Something went wrong')
-    } finally {
-      setLoading(false)
+      const url = `${process.env.NEXT_PUBLIC_APP_URL}/attendence/leave-balance/${employeeId}?year=${y}&force=1`
+
+      setLoading(true)
+      try {
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+            'Content-Type': 'application/json'
+          },
+          cache: 'no-store'
+        })
+
+        const raw = await res.json().catch(async () => await res.text())
+
+        if (!res.ok) {
+          const msg = typeof raw === 'string' ? raw : raw?.message
+          throw new Error(msg || 'Failed to fetch balance')
+        }
+
+        const json = typeof raw === 'string' ? JSON.parse(raw) : raw
+        setData(json)
+      } catch (e: any) {
+        setError(e?.message || 'Something went wrong')
+      } finally {
+        setLoading(false)
+      }
     }
-  }
 
-  run()
-}, [employeeId, y])
+    run()
+  }, [employeeId, y, sm])
 
-
-  const getUsedApproved = (m: MonthRow) => Number(m.used_approved ?? 0)
-  const getUsedPending = (m: MonthRow) => Number(m.used_pending ?? 0)
-  const getUsedRejected = (m: MonthRow) => Number(m.used_rejected ?? 0)
-
-  // ✅ now fallback includes rejected too (because backend also does)
-  const getUsedTotal = (m: MonthRow) => {
-    if (m.used_total !== undefined && m.used_total !== null) return Number(m.used_total)
-
-    const ap = getUsedApproved(m)
-    const pe = getUsedPending(m)
-    const re = getUsedRejected(m)
-
-    if (ap + pe + re > 0) return ap + pe + re
+  const getUsed = (m: MonthRow) => {
+    if (m.used_total != null) return Number(m.used_total)
+    if (m.used_approved != null) return Number(m.used_approved)
     return Number(m.used ?? 0)
   }
 
   const getExtra = (m: MonthRow) => Number(m.extra ?? 0)
-
-  // ✅ Show credit from backend month.accrued (fallback monthly_accrual)
   const getCredit = (m: MonthRow) => Number(m.accrued ?? data?.monthly_accrual ?? 1.5)
-
-  // ✅ Opening (Available) = opening + credit
   const getOpeningAvailable = (m: MonthRow) => Number(m.opening ?? 0) + getCredit(m)
 
   const monthsDisplay = useMemo<MonthRow[]>(() => {
     if (!data?.months?.length) return []
-    const months12 = normalizeTo12Months(data.months)
-    return [...months12].sort((a, b) => Number(a.month) - Number(b.month))
+    return normalizeTo12Months(data.months).sort((a, b) => Number(a.month) - Number(b.month))
   }, [data])
 
-  const selectedRow = useMemo<MonthRow | null>(() => {
-    if (!monthsDisplay.length) return null
-    return monthsDisplay.find(m => Number(m.month) === sm) || null
-  }, [monthsDisplay, sm])
+  const totalTaken = useMemo(() => {
+    return (monthsDisplay || []).reduce((sum, m) => sum + getUsed(m), 0)
+  }, [monthsDisplay])
 
   if (!employeeId) return null
 
-  const totalActual = useMemo(() => {
-  return (monthsDisplay || []).reduce((sum, m) => sum + getUsedTotal(m), 0)
-}, [monthsDisplay])
-
-
   return (
-    
     <Card sx={{ borderRadius: 3 }}>
       {loading && <LinearProgress />}
 
       <CardContent>
-        {/* Header */}
-        {/* <Box display='flex' alignItems='center' justifyContent='space-between' gap={2} flexWrap='wrap'>
-          <Box>
-            <Typography variant='subtitle1' fontWeight={900}>
-              {title} • {y}
-            </Typography>
-          </Box>
+        {/* ✅ Single aligned row: Total Taken (left) + Close (right) */}
+        <Box
+          display='flex'
+          alignItems='center'
+          justifyContent='space-between'
+          gap={2}
+          sx={{ mt: 0.5 }}
+        >
+          <Typography
+            variant='body1'
+            color='text.secondary'
+            sx={{ fontWeight: 600, fontSize: '16px' }}
+          >
+            Total Taken Leaves: <b>{fmt(totalTaken)}</b>
+          </Typography>
 
           {onClose && (
             <IconButton onClick={onClose} size='small'>
               <CloseIcon />
             </IconButton>
           )}
-        </Box> */}
+        </Box>
 
-        {/* {error && (
+        {error && (
           <Typography color='error' sx={{ mt: 2 }}>
             {error}
           </Typography>
-        )} */}
+        )}
 
         {!error && data && (
           <>
-            {/* <Box
-              sx={{
-                mt: 2,
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 2,
-                flexWrap: 'wrap',
-                p: 1.25,
-                borderRadius: 2,
-                bgcolor: 'rgba(0,0,0,0.03)'
-              }}
-            >
-              <Typography variant='body2' color='text.secondary'>
-                Opening (Available) {fmt(selectedRow ? getOpeningAvailable(selectedRow) : 0)} • Credit{' '}
-                {fmt(selectedRow ? getCredit(selectedRow) : data?.monthly_accrual ?? 1.5)} • Rejected{' '}
-                {fmt(selectedRow ? getUsedRejected(selectedRow) : 0)}
-              </Typography>
-            </Box> */}
-    <Typography
-  variant="body2"
-  color="text.secondary"
-  sx={{
-    textAlign: 'right',
-    width: '100%',
-    fontWeight: 400,   // number hota hai, px nahi
-    fontSize: '15px',
-  }}
->
-  Total Taken Leaves: <b>{fmt(totalActual)}</b>
-</Typography>
-
-
-
-
             <Divider sx={{ my: 2 }} />
 
             <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: 'hidden' }}>
               <Table size='small'>
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'rgba(0,0,0,0.04)' }}>
-                    {['Month', 'Allowed', 'Accumulated', 'Actual', 'Extra', 'BAL','Approved', 'Pending', 'Rejected'].map(h => (
+                    {['Month', 'Allowed', 'Accumulated', 'Actual', 'Extra', 'Balance'].map(h => (
                       <TableCell key={h} align={h === 'Month' ? 'left' : 'center'}>
                         <Typography fontWeight={900} fontSize={13}>
                           {h}
@@ -302,40 +235,33 @@ useEffect(() => {
                 </TableHead>
 
                 <TableBody>
-                  {(monthsDisplay || []).map(m => {
+                  {monthsDisplay.map(m => {
                     const isSel = Number(m.month) === sm
 
-                    const approved = getUsedApproved(m)
-                    const pending = getUsedPending(m)
-                    const rejected = getUsedRejected(m)
-
-                    const total = getUsedTotal(m)
-                    const extra = getExtra(m)
-
                     const credit = getCredit(m)
-                    const openingAvail = getOpeningAvailable(m)
-
-                    // ✅ Closing from backend (policy-correct)
+                    const available = getOpeningAvailable(m)
+                    const taken = getUsed(m)
+                    const extra = getExtra(m)
                     const closing = Number(m.closing ?? 0)
 
                     return (
                       <TableRow key={m.month} hover selected={isSel}>
                         <TableCell>
-                          <Typography fontWeight={isSel ? 900 : 600}>{monthNames[m.month - 1] ?? `M${m.month}`}</Typography>
+                          <Typography fontWeight={isSel ? 900 : 600}>
+                            {monthNames[m.month - 1] ?? `M${m.month}`}
+                          </Typography>
                         </TableCell>
-                                                <TableCell align='center'>{fmt(credit)}</TableCell>
 
+                        <TableCell align='center'>{fmt(credit)}</TableCell>
 
                         <TableCell align='center'>
-                          <Typography fontWeight={isSel ? 900 : 600}>{fmt(openingAvail)}</Typography>
+                          <Typography fontWeight={isSel ? 900 : 600}>{fmt(available)}</Typography>
                         </TableCell>
-
-                        
 
                         <TableCell align='center'>
                           <Box display='inline-flex' alignItems='center' justifyContent='center'>
-                            <Typography fontWeight={isSel ? 900 : 600}>{fmt(total)}</Typography>
-                            <UsedVsCreditIndicator used={total} credited={credit} />
+                            <Typography fontWeight={isSel ? 900 : 600}>{fmt(taken)}</Typography>
+                            <UsedVsCreditIndicator used={taken} credited={credit} />
                           </Box>
                         </TableCell>
 
@@ -346,9 +272,6 @@ useEffect(() => {
                         <TableCell align='center'>
                           <Typography fontWeight={900}>{fmt(closing)}</Typography>
                         </TableCell>
-                        <TableCell align='center'>{fmt(approved)}</TableCell>
-                        <TableCell align='center'>{fmt(pending)}</TableCell>
-                        <TableCell align='center'>{fmt(rejected)}</TableCell>
                       </TableRow>
                     )
                   })}
