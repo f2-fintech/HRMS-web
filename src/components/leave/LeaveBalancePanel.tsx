@@ -176,9 +176,12 @@ export default function LeaveBalancePanel({
     return normalizeTo12Months(data.months).sort((a, b) => Number(a.month) - Number(b.month))
   }, [data])
 
+  // ✅ FIX: Total Taken = sum of "Actual" only upto selectedMonth (sm)
   const totalTaken = useMemo(() => {
-    return (monthsDisplay || []).reduce((sum, m) => sum + getUsed(m), 0)
-  }, [monthsDisplay])
+    return (monthsDisplay || [])
+      .filter(m => Number(m.month) <= sm)
+      .reduce((sum, m) => sum + getUsed(m), 0)
+  }, [monthsDisplay, sm])
 
   if (!employeeId) return null
 
@@ -187,7 +190,6 @@ export default function LeaveBalancePanel({
       {loading && <LinearProgress />}
 
       <CardContent>
-        {/* ✅ Single aligned row: Total Taken (left) + Close (right) */}
         <Box
           display='flex'
           alignItems='center'
