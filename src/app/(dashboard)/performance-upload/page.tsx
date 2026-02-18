@@ -86,6 +86,8 @@ type Row = {
   disbursal?: number;
   abnp?: number;
   code?: string;
+  gross_approval?: number;
+  gross_disbursal?: number;
   [k: string]: any;
 };
 
@@ -107,7 +109,8 @@ type TeamTotalInfo = {
   teamTotalDrop?: number;
   teamTotalCashback?: number;
   teamTotalABNP?: number;       // ✅ NEW (optional)
-
+  teamTotalGrossApproval?: number;
+  teamTotalGrossDisbursal?: number;
   memberCount: number;
   memberCodes: string[];
 };
@@ -131,6 +134,8 @@ type TeamBreakdown = {
     totalDisbursal: number;
     totalDrop: number;
     totalCashback: number;
+    totalGrossApproval?: number;
+    totalGrossDisbursal?: number;
     totalABNP?: number; // ✅ NEW
     memberCount: number;
   };
@@ -142,7 +147,9 @@ type TeamBreakdown = {
     approval: number;
     disbursal: number;
     drop?: number;      // ✅ NEW
-    cashback?: number;  // ✅ NEW
+    cashback?: number;
+    grossApproval?: number;
+    grossDisbursal?: number;
     abnp?: number;      // ✅ NEW
   }[];
 };
@@ -295,6 +302,9 @@ export default function PerformanceUploadPage() {
         const disbursal = Number(r.disbursal ?? r.disbursal_amount ?? 0);
         const drop = Number(r.drop ?? r.drop_amount ?? 0);
         const cashback = Number(r.cashback ?? r.cashback_amount ?? 0);
+        const gross_approval = Number(r.gross_approval ?? r.grossApproval ?? 0);
+        const gross_disbursal = Number(r.gross_disbursal ?? r.grossDisbursal ?? 0);
+
 
         const abnp = Math.max(approval - (disbursal + drop + cashback), 0); // ✅
 
@@ -306,6 +316,8 @@ export default function PerformanceUploadPage() {
           drop,
           cashback,
           abnp,
+          gross_approval,
+          gross_disbursal,
           code:
             typeof r.code === 'string'
               ? r.code.trim()
@@ -533,7 +545,7 @@ export default function PerformanceUploadPage() {
 
   /* ------------ Totals ------------ */
   const totals = useMemo(() => {
-    const sum = (k: 'login' | 'approval' | 'disbursal' | 'drop' | 'cashback' | 'abnp') =>
+    const sum = (k: 'login' | 'approval' | 'disbursal' | 'drop' | 'cashback' | 'gross_approval' | 'gross_disbursal' | 'abnp') =>
       rows.reduce((a, r) => a + Number(r[k] || 0), 0);
 
     return {
@@ -542,6 +554,8 @@ export default function PerformanceUploadPage() {
       disbursal: sum('disbursal'),
       drop: sum('drop'),
       cashback: sum('cashback'),
+      grossApproval: sum('gross_approval'),
+      grossDisbursal: sum('gross_disbursal'),
       abnp: sum('abnp')
     };
   }, [rows]);
@@ -1076,12 +1090,80 @@ export default function PerformanceUploadPage() {
                   variant="h6"
                   sx={{
                     fontWeight: 800,
-                    fontSize: 25,
+                    fontSize: 22,
                     lineHeight: 1.2,
                     color: '#fff',
                   }}
                 >
                   {totals.logins.toLocaleString('en-IN')}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={2.4}>
+            <Paper
+              sx={{
+                p: 2.1,
+                borderRadius: 2.5,
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                boxShadow: '0 10px 22px rgba(29,78,216,0.35)',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -30,
+                  right: -30,
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                }}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1.2,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>
+                  </Box>
+                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+                </Box>
+
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 500, mb: 0.3 }}
+                >
+                  Total Gross Approval
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                                        fontSize: 22,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
+                >
+                  {rupee(totals.grossApproval)}
                 </Typography>
               </Box>
             </Paper>
@@ -1140,13 +1222,13 @@ export default function PerformanceUploadPage() {
                   variant="body2"
                   sx={{ color: '#fef3c7', fontWeight: 500, mb: 0.3 }}
                 >
-                  Total Approvals
+                  Total Net Approval
                 </Typography>
                 <Typography
                   variant="h6"
                   sx={{
                     fontWeight: 800,
-                    fontSize: 25,
+                    fontSize: 22,
                     lineHeight: 1.2,
                     color: '#fff',
                   }}
@@ -1156,8 +1238,146 @@ export default function PerformanceUploadPage() {
               </Box>
             </Paper>
           </Grid>
+        
 
-          {/* 3) Total ABNP (DARK SLATE) */}
+          <Grid item xs={12} md={2.4}>
+            <Paper
+              sx={{
+                p: 2.1,
+                borderRadius: 2.5,
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                boxShadow: '0 10px 22px rgba(109,40,217,0.35)',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -30,
+                  right: -30,
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                }}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1.2,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>
+                  </Box>
+                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+                </Box>
+
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 500, mb: 0.3 }}
+                >
+                  Total Gross Disbursal
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 22,
+
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
+                >
+                  {rupee(totals.grossDisbursal)}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={2.4}>
+            <Paper
+              sx={{
+                p: 2.1,
+                borderRadius: 2.5,
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                boxShadow: '0 10px 22px rgba(22,163,74,0.35)',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -30,
+                  right: -30,
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                }}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1.2,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <StarBorderIconLike />
+                  </Box>
+                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+                </Box>
+
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}
+                >
+                  Total Net Disbursal
+
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                                        fontSize: 22,
+                    lineHeight: 1.2,
+                    color: '#fff',
+                  }}
+                >
+                  {rupee(totals.disbursal)}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
           <Grid item xs={12} md={2.4}>
             <Paper
               sx={{
@@ -1216,82 +1436,12 @@ export default function PerformanceUploadPage() {
                   variant="h6"
                   sx={{
                     fontWeight: 800,
-                    fontSize: 25,
+                    fontSize: 22,
                     lineHeight: 1.2,
                     color: '#fff',
                   }}
                 >
                   {rupee(totals.abnp)}
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-
-          {/* 4) Total Disbursals (GREEN) */}
-          <Grid item xs={12} md={2.4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                boxShadow: '0 10px 22px rgba(22,163,74,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <StarBorderIconLike />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Disbursals
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 25,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.disbursal)}
                 </Typography>
               </Box>
             </Paper>
@@ -1356,7 +1506,7 @@ export default function PerformanceUploadPage() {
                   variant="h6"
                   sx={{
                     fontWeight: 800,
-                    fontSize: 25,
+                    fontSize: 22,
                     lineHeight: 1.2,
                     color: '#fff',
                   }}
@@ -1426,7 +1576,7 @@ export default function PerformanceUploadPage() {
                   variant="h6"
                   sx={{
                     fontWeight: 800,
-                    fontSize: 25,
+                    fontSize: 22,
                     lineHeight: 1.2,
                     color: '#fff',
                   }}
@@ -1679,6 +1829,13 @@ export default function PerformanceUploadPage() {
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Cashback (₹)
                     </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                      Gross Approval (₹)
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                      Gross Disbursal (₹)
+                    </TableCell>
+
 
                     <TableCell align="center" sx={{ fontWeight: 800 }}>
                       Team Total
@@ -1808,6 +1965,8 @@ export default function PerformanceUploadPage() {
                           />
                         </TableCell>
 
+
+
                         <TableCell align="right">
                           <Chip
                             size="small"
@@ -1829,6 +1988,21 @@ export default function PerformanceUploadPage() {
                               fontWeight: 800,
                               color: '#BE123C',
                             }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={rupee(Number(r.gross_approval || 0))}
+                            sx={{ bgcolor: '#E0F2FE', fontWeight: 800, color: '#1d4ed8' }}
+                          />
+                        </TableCell>
+
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={rupee(Number(r.gross_disbursal || 0))}
+                            sx={{ bgcolor: '#EDE9FE', fontWeight: 800, color: '#6d28d9' }}
                           />
                         </TableCell>
                         {/* Team Total Column */}
@@ -2004,96 +2178,118 @@ export default function PerformanceUploadPage() {
                   </Grid>
                 </Paper>
 
-             {/* Team Totals Summary */}
-<Grid container spacing={2} sx={{ mb: 3 }}>
+                {/* Team Totals Summary */}
+                <Grid container spacing={2} sx={{ mb: 3 }}>
 
-  {/* Team Members */}
-  <Grid item xs={6} md={3}>
-    <Paper
-      sx={{
-        p: 2,
-        textAlign: 'center',
-        bgcolor: '#DCFCE7',
-        borderRadius: 2,
-      }}
-    >
-      <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
-        Team Members
-      </Typography>
+                  {/* Team Members */}
+                  <Grid item xs={6} md={3}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        textAlign: 'center',
+                        bgcolor: '#DCFCE7',
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
+                        Team Members
+                      </Typography>
 
-      <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
-        {teamBreakdown.totals.memberCount}
-      </Typography>
-    </Paper>
-  </Grid>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
+                        {teamBreakdown.totals.memberCount}
+                      </Typography>
+                    </Paper>
+                  </Grid>
 
-  {/* Total Logins */}
-  <Grid item xs={6} md={3}>
-    <Paper
-      sx={{
-        p: 2,
-        textAlign: 'center',
-        bgcolor: '#E0F2FE',
-        borderRadius: 2,
-      }}
-    >
-      <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
-        Total Logins
-      </Typography>
+                  {/* Total Logins */}
+                  <Grid item xs={6} md={3}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        textAlign: 'center',
+                        bgcolor: '#E0F2FE',
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
+                        Total Logins
+                      </Typography>
 
-      <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E40AF' }}>
-        {teamBreakdown.totals.totalLogins.toLocaleString('en-IN')}
-      </Typography>
-    </Paper>
-  </Grid>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E40AF' }}>
+                        {teamBreakdown.totals.totalLogins.toLocaleString('en-IN')}
+                      </Typography>
+                    </Paper>
+                  </Grid>
 
-{/* Total Disbursal */}
-<Grid item xs={6} md={3}>
-  <Paper
-    sx={{
-      p: 2,
-      textAlign: 'center',
-      bgcolor: '#EDE9FE',     // light purple
-      borderRadius: 2,
-    }}
-  >
-    <Typography
-      variant="caption"
-      sx={{ color: '#6D28D9', fontWeight: 600 }}  // dark purple
-    >
-      Total Approval
-    </Typography>
+                  {/* Total Disbursal */}
+                  <Grid item xs={6} md={3}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        textAlign: 'center',
+                        bgcolor: '#EDE9FE',     // light purple
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{ color: '#6D28D9', fontWeight: 600 }}  // dark purple
+                      >
+                        Total Approval
+                      </Typography>
 
-    <Typography
-      variant="h5"
-      sx={{ fontWeight: 800, color: '#6D28D9' }}
-    >
-      {rupee(teamBreakdown.totals.totalApproval)}
-    </Typography>
-  </Paper>
-</Grid>
+                      <Typography
+                        variant="h5"
+                        sx={{ fontWeight: 800, color: '#6D28D9' }}
+                      >
+                        {rupee(teamBreakdown.totals.totalApproval)}
+                      </Typography>
+                    </Paper>
+                  </Grid>
 
-  {/* Total Disbursal */}
-  <Grid item xs={6} md={3}>
-    <Paper
-      sx={{
-        p: 2,
-        textAlign: 'center',
-        bgcolor: '#DCFCE7',   // green
-        borderRadius: 2,
-      }}
-    >
-      <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
-        Total Disbursal
-      </Typography>
+                  {/* Total Disbursal */}
+                  <Grid item xs={6} md={3}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        textAlign: 'center',
+                        bgcolor: '#DCFCE7',   // green
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
+                        Total Disbursal
+                      </Typography>
 
-      <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
-        {rupee(teamBreakdown.totals.totalDisbursal)}
-      </Typography>
-    </Paper>
-  </Grid>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
+                        {rupee(teamBreakdown.totals.totalDisbursal)}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#E0F2FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
+                        Total Gross Approval
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E40AF' }}>
+                        {rupee(teamBreakdown.totals.totalGrossApproval || 0)}
+                      </Typography>
+                    </Paper>
+                  </Grid>
 
-</Grid>
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
+                        Total Gross Disbursal
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
+                        {rupee(teamBreakdown.totals.totalGrossDisbursal || 0)}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+
+
+                </Grid>
 
 
                 {/* Member Breakdown Table */}
@@ -2281,7 +2477,7 @@ export default function PerformanceUploadPage() {
                 />
               </Grid>
 
-<Grid item xs={12} md={4}> <TextField label="Total Logins" type="number" value={form.total_logins} onChange={handleFormChange('total_logins')} fullWidth size="medium" /> </Grid>
+              <Grid item xs={12} md={4}> <TextField label="Total Logins" type="number" value={form.total_logins} onChange={handleFormChange('total_logins')} fullWidth size="medium" /> </Grid>
 
 
               {/* Approval */}
