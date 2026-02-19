@@ -1158,7 +1158,7 @@ export default function PerformanceUploadPage() {
                   variant="h6"
                   sx={{
                     fontWeight: 800,
-                                        fontSize: 22,
+                    fontSize: 22,
                     lineHeight: 1.2,
                     color: '#fff',
                   }}
@@ -1238,7 +1238,7 @@ export default function PerformanceUploadPage() {
               </Box>
             </Paper>
           </Grid>
-        
+
 
           <Grid item xs={12} md={2.4}>
             <Paper
@@ -1368,7 +1368,7 @@ export default function PerformanceUploadPage() {
                   variant="h6"
                   sx={{
                     fontWeight: 800,
-                                        fontSize: 22,
+                    fontSize: 22,
                     lineHeight: 1.2,
                     color: '#fff',
                   }}
@@ -2304,24 +2304,20 @@ export default function PerformanceUploadPage() {
                           <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 700 }}>Logins</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>
-                            Approvals (₹)
-                          </TableCell>
 
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>
-                            Disbursal (₹)
-                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>Approvals (₹)</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>Disbursal (₹)</TableCell>
 
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>
-                            Drop Amount (₹)
-                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>Drop (₹)</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>Cashback (₹)</TableCell>
 
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>
-                            Cashback Amount (₹)
-                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>Gross Approval (₹)</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>Gross Disbursal (₹)</TableCell>
 
+                          {/* <TableCell align="right" sx={{ fontWeight: 800 }}>ABNP (₹)</TableCell> */}
                         </TableRow>
                       </TableHead>
+
                       <TableBody>
                         {teamBreakdown.memberBreakdown.map((member, idx) => (
                           <TableRow key={idx} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
@@ -2330,15 +2326,17 @@ export default function PerformanceUploadPage() {
                                 {member.name}
                               </Typography>
                             </TableCell>
+
                             <TableCell>
                               <Typography variant="body2" sx={{ color: '#64748B' }}>
                                 {member.code}
                               </Typography>
                             </TableCell>
+
                             <TableCell align="right">
                               <Chip
                                 size="small"
-                                label={member.logins.toLocaleString('en-IN')}
+                                label={Number(member.logins || 0).toLocaleString('en-IN')}
                                 sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700 }}
                               />
                             </TableCell>
@@ -2346,43 +2344,55 @@ export default function PerformanceUploadPage() {
                             <TableCell align="right">
                               <Chip
                                 size="small"
-                                label={rupee(member.approval)}
+                                label={rupee(Number(member.approval || 0))}
                                 sx={{ bgcolor: '#E0F2FE', color: '#1E40AF', fontWeight: 700 }}
                               />
                             </TableCell>
+
                             <TableCell align="right">
                               <Chip
                                 size="small"
-                                label={rupee(member.disbursal)}
+                                label={rupee(Number(member.disbursal || 0))}
                                 sx={{ bgcolor: '#EDE9FE', color: '#6D28D9', fontWeight: 700 }}
                               />
                             </TableCell>
+
                             <TableCell align="right">
                               <Chip
                                 size="small"
                                 label={rupee(Number(member.drop || 0))}
-                                sx={{
-                                  bgcolor: '#FFE4E6',
-                                  fontWeight: 800,
-                                  color: '#BE123C',
-                                }}
+                                sx={{ bgcolor: '#FFE4E6', color: '#BE123C', fontWeight: 800 }}
                               />
                             </TableCell>
+
                             <TableCell align="right">
                               <Chip
                                 size="small"
                                 label={rupee(Number(member.cashback || 0))}
-                                sx={{
-                                  bgcolor: '#FFE4E6',
-                                  fontWeight: 800,
-                                  color: '#BE123C',
-                                }}
+                                sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 800 }}
+                              />
+                            </TableCell>
+
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={rupee(Number(member.grossApproval || 0))}
+                                sx={{ bgcolor: '#DBEAFE', color: '#1D4ED8', fontWeight: 800 }}
+                              />
+                            </TableCell>
+
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={rupee(Number(member.grossDisbursal || 0))}
+                                sx={{ bgcolor: '#EDE9FE', color: '#6D28D9', fontWeight: 800 }}
                               />
                             </TableCell>
 
                           </TableRow>
                         ))}
                       </TableBody>
+
                     </Table>
                   </TableContainer>
                 ) : (
