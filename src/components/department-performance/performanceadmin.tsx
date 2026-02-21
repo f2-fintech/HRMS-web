@@ -69,7 +69,7 @@ const splitIds = (value?: any): string[] => {
       if (Array.isArray(arr)) {
         return arr.map((x) => String(x).trim()).filter(Boolean);
       }
-    } catch {}
+    } catch { }
   }
 
   return s
@@ -90,7 +90,7 @@ const ALLOWED_TEAM_IDS: string[] = [
 ];
 
 const ALLOWED_TEAM_CODES: string[] = [
-  'Product ',
+  'Product',
   // 'HR',
 ];
 
@@ -199,10 +199,10 @@ export default function PerformanceAdmin() {
         const list: TeamApi[] = Array.isArray(data)
           ? data
           : Array.isArray(data?.teams)
-          ? data.teams
-          : Array.isArray(data?.data)
-          ? data.data
-          : [];
+            ? data.teams
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
 
         // ✅ Allowlist ONLY for non-admin
         const hasAllowList =
@@ -210,12 +210,12 @@ export default function PerformanceAdmin() {
 
         const filteredList = hasAllowList
           ? list.filter((t) => {
-              const id = String(t._id || '');
-              const code = String(t.code || '').toUpperCase();
-              const byId = ALLOWED_TEAM_IDS.includes(id);
-              const byCode = ALLOWED_TEAM_CODES.map((x) => String(x).toUpperCase()).includes(code);
-              return byId || byCode;
-            })
+            const id = String(t._id || '');
+            const code = String(t.code || '').toUpperCase();
+            const byId = ALLOWED_TEAM_IDS.includes(id);
+            const byCode = ALLOWED_TEAM_CODES.map((x) => String(x).toUpperCase()).includes(code);
+            return byId || byCode;
+          })
           : list;
 
         setTeams(filteredList);
