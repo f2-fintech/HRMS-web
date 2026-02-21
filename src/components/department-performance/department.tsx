@@ -1,4 +1,3 @@
-// app/(whatever)/department-performance/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -10,58 +9,44 @@ import PerformanceEmployee from './performanceemployee';
 
 type RoleView = 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
 
-const getRolePriority = (user: any) => {
-  const rpRaw =
-    user?.role_priority ??
-    user?.rolePriority ??
-    user?.role_priority_id ??
-    user?.rolePriorityId ??
-    user?.role?.priority ??
-    user?.role?.role_priority ??
-    user?.role; // ✅ IMPORTANT: your user.role = "1"
+const resolveRoleView = (user: any): RoleView => {
+  const raw = String(user?.designation || user?.role_name || user?.user_type || '')
+    .toLowerCase()
+    .trim();
 
-  const rp = Number(rpRaw);
-  return Number.isFinite(rp) ? rp : null;
+  const rp = Number(user?.role_priority);
+  const role = String(user?.role || '').trim();
+
+  const isAdmin =
+    rp === 1 ||
+    role === '1' ||
+    raw.includes('admin') ||
+    raw.includes('founder') ||
+    raw.includes('ceo');
+
+  const isTeamLeader =
+    raw.includes('team leader') || raw.includes('teamleader') || raw === 'tl' || raw.includes(' tl ');
+
+  const isManagerTitle = raw.includes('manager');
+
+  if (isAdmin) return 'ADMIN';
+  if (isTeamLeader) return 'EMPLOYEE';
+  if (isManagerTitle) return 'MANAGER';
+  return 'EMPLOYEE';
 };
 
-export default function DepartmentPerformance() {
-  const [role, setRole] = useState<RoleView | null>(null);
+export default function DepartmentPerformanceClient() {
+  const [role, setRole] = useState<RoleView>('EMPLOYEE');
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const rp = getRolePriority(user);
-
-    // ✅ HARD LOCK: role 1 => ADMIN
-    if (rp === 1) {
-      setRole('ADMIN');
-      console.log('ROLE RESOLVED => ADMIN', { rp, user });
-      return;
-    }
-
-    const raw = String(user?.designation || user?.role_name || user?.user_type || '')
-      .toLowerCase()
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    // ✅ Manager detection
-    const isManager = /\bmanager\b/.test(raw);
-
-    setRole(isManager ? 'MANAGER' : 'EMPLOYEE');
-
-    console.log('ROLE RESOLVED =>', { rp, raw, resolved: isManager ? 'MANAGER' : 'EMPLOYEE', user });
+    const view = resolveRoleView(user);
+    setRole(view);
   }, []);
-
-  if (!role) return null;
 
   return (
     <Box sx={{ p: 2 }}>
-      {role === 'ADMIN' ? (
-        <PerformanceAdmin />
-      ) : role === 'MANAGER' ? (
-        <PerformanceManager />
-      ) : (
-        <PerformanceEmployee />
-      )}
+      {role === 'ADMIN' ? <PerformanceAdmin /> : role === 'MANAGER' ? <PerformanceManager /> : <PerformanceEmployee />}
     </Box>
   );
 }
