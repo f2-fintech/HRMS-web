@@ -1,4 +1,4 @@
-// 'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { Box } from '@mui/material';
@@ -9,56 +9,45 @@ import PerformanceEmployee from './performanceemployee';
 
 type RoleView = 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
 
-const resolveRoleView = (user: any): RoleView => {
-  const raw = String(user?.designation || user?.role_name || user?.user_type || '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  const rpRaw =
-    user?.role_priority ??
-    user?.rolePriority ??
-    user?.role_priority_id ??
-    user?.rolePriorityId;
-
-  const rp = Number(rpRaw);
-  const role = String(user?.role || '').trim();
-
-  const isAdmin =
-    rp === 1 ||
-    role === '1' ||
-    raw.includes('admin') ||
-    raw.includes('founder') ||
-    raw.includes('ceo');
-
-  const isTeamLeader =
-    raw.includes('team leader') || raw.includes('teamleader') || raw === 'tl' || raw.includes(' tl ');
-
-  const isManagerTitle = raw.includes('manager');
-
-  if (isAdmin) return 'ADMIN';
-  if (isTeamLeader) return 'EMPLOYEE'; // TL ko employee view hi rakhna hai
-  if (isManagerTitle) return 'MANAGER';
-  return 'EMPLOYEE';
-};
-
-export default function DepartmentPerformanceClient() {
+export default function DepartmentPerformance() {
   const [role, setRole] = useState<RoleView>('EMPLOYEE');
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    setRole(resolveRoleView(user));
+
+    const roleId = String(user?.role || '').trim();          // ✅ "1"
+    const rp = Number(user?.role_priority);                  // may be NaN
+    const raw = String(user?.designation || user?.role_name || user?.user_type || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // ✅ HARD ADMIN RULE (MOST IMPORTANT)
+    const isAdmin = roleId === '1' || rp === 1 || raw.includes('admin') || raw.includes('founder') || raw.includes('ceo');
+
+    const isTeamLeader =
+      raw.includes('team leader') ||
+      raw === 'tl' ||
+      raw.includes(' teamleader ') ||
+      raw.includes(' team leader ') ||
+      raw.includes(' tl ');
+
+    const isManagerTitle = raw.includes('manager');
+
+    let view: RoleView = 'EMPLOYEE';
+
+    if (isAdmin) view = 'ADMIN';
+    else if (isManagerTitle) view = 'MANAGER';
+    else view = 'EMPLOYEE'; // TL bhi employee view
+
+    setRole(view);
+
+    console.log('ROLE DEBUG =>', { roleId, rp, raw, isAdmin, isTeamLeader, isManagerTitle, resolvedView: view, user });
   }, []);
 
   return (
     <Box sx={{ p: 2 }}>
-      {role === 'ADMIN' ? (
-        <PerformanceAdmin />
-      ) : role === 'MANAGER' ? (
-        <PerformanceManager />
-      ) : (
-        <PerformanceEmployee />
-      )}
+      {role === 'ADMIN' ? <PerformanceAdmin /> : role === 'MANAGER' ? <PerformanceManager /> : <PerformanceEmployee />}
     </Box>
   );
 }
