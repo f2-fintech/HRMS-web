@@ -1,9 +1,10 @@
-'use client';
+import dynamic from 'next/dynamic';
 
-import DepartmentPerformance from '@/components/department-performance/department';
+const DepartmentPerformance = dynamic(
+  () => import('@/components/department-performance/department'),
+  { ssr: false }
+);
 
-const DepartmentPerformanceGrid = () => {
+export default function DepartmentPerformanceGrid() {
   return <DepartmentPerformance />;
-};
-
-export default DepartmentPerformanceGrid;
+}
