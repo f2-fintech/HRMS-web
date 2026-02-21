@@ -15,7 +15,13 @@ import {
   TableHead,
   TableRow,
   Paper,
-  IconButton
+  IconButton,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Chip,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
@@ -46,6 +52,14 @@ type BalanceResponse = {
   months: MonthRow[]
 }
 
+type HighLeaveRow = {
+  employeeId: string
+  name: string
+  code?: string
+  location?: string
+  leaveLike: number
+}
+
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function fmt(n: any) {
@@ -72,15 +86,15 @@ function normalizeTo12Months(months: MonthRow[]): MonthRow[] {
         used_total: 0,
         extra: 0,
         used: 0,
-        closing: 0
-      }
+        closing: 0,
+      },
     )
   }
   return out
 }
 
-const IconUp = () => <ArrowUpwardIcon fontSize='small' sx={{ color: 'error.main', ml: 0.5 }} />
-const IconDown = () => <ArrowDownwardIcon fontSize='small' sx={{ color: 'text.secondary', ml: 0.5 }} />
+const IconUp = () => <ArrowUpwardIcon fontSize="small" sx={{ color: 'error.main', ml: 0.5 }} />
+const IconDown = () => <ArrowDownwardIcon fontSize="small" sx={{ color: 'text.secondary', ml: 0.5 }} />
 
 const UsedVsCreditIndicator = ({ used, credited }: { used: number; credited: number }) => {
   const u = Number(used ?? 0)
@@ -95,7 +109,7 @@ export default function LeaveBalancePanel({
   year,
   selectedMonth,
   title = 'Leave Balance',
-  onClose
+  onClose,
 }: {
   employeeId?: string | null
   year: string | number
@@ -107,19 +121,27 @@ export default function LeaveBalancePanel({
   const [data, setData] = useState<BalanceResponse | null>(null)
   const [error, setError] = useState<string>('')
 
+  // ✅ high leave list states
+  const [highLoading, setHighLoading] = useState(false)
+  const [highRows, setHighRows] = useState<HighLeaveRow[]>([])
+  const [highError, setHighError] = useState('')
+  const [highOpen, setHighOpen] = useState(false)
+  const threshold = 1.5
+
   const y = useMemo(() => Number(year || dayjs().format('YYYY')), [year])
   const sm = useMemo(() => Number(selectedMonth || dayjs().format('MM')), [selectedMonth])
 
   useEffect(() => {
     const run = async () => {
       setError('')
+      setHighError('')
       setData(null)
+      setHighRows([])
+
       if (!employeeId) return
 
       const user =
-        typeof window !== 'undefined'
-          ? JSON.parse(localStorage.getItem('user') || '{}')
-          : {}
+        typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       const company_id = user?.company_id
@@ -133,13 +155,14 @@ export default function LeaveBalancePanel({
 
       setLoading(true)
       try {
+        // ✅ 1) leave-balance
         const res = await fetch(url, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token} ${company_id}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
-          cache: 'no-store'
+          cache: 'no-store',
         })
 
         const raw = await res.json().catch(async () => await res.text())
@@ -151,6 +174,38 @@ export default function LeaveBalancePanel({
 
         const json = typeof raw === 'string' ? JSON.parse(raw) : raw
         setData(json)
+
+        // ✅ 2) high-leave-like list (same month/year as panel)
+        setHighLoading(true)
+        try {
+          const url2 =
+            `${process.env.NEXT_PUBLIC_APP_URL}` +
+            `/attendence/high-leave-like?month=${sm}&year=${y}&threshold=${threshold}`
+
+          const res2 = await fetch(url2, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token} ${company_id}`,
+              'Content-Type': 'application/json',
+            },
+            cache: 'no-store',
+          })
+
+          const raw2 = await res2.json().catch(async () => await res2.text())
+
+          if (!res2.ok) {
+            const msg2 = typeof raw2 === 'string' ? raw2 : raw2?.message
+            throw new Error(msg2 || 'Failed to fetch high leave list')
+          }
+
+          const json2 = typeof raw2 === 'string' ? JSON.parse(raw2) : raw2
+          const list2 = Array.isArray(json2) ? json2 : json2?.data || []
+          setHighRows(list2)
+        } catch (e2: any) {
+          setHighError(e2?.message || 'High leave list error')
+        } finally {
+          setHighLoading(false)
+        }
       } catch (e: any) {
         setError(e?.message || 'Something went wrong')
       } finally {
@@ -176,7 +231,7 @@ export default function LeaveBalancePanel({
     return normalizeTo12Months(data.months).sort((a, b) => Number(a.month) - Number(b.month))
   }, [data])
 
-  // ✅ FIX: Total Taken = sum of "Actual" only upto selectedMonth (sm)
+  // ✅ Total Taken upto selectedMonth
   const totalTaken = useMemo(() => {
     return (monthsDisplay || [])
       .filter(m => Number(m.month) <= sm)
@@ -187,43 +242,89 @@ export default function LeaveBalancePanel({
 
   return (
     <Card sx={{ borderRadius: 3 }}>
-      {loading && <LinearProgress />}
+      {(loading || highLoading) && <LinearProgress />}
 
       <CardContent>
-        <Box
-          display='flex'
-          alignItems='center'
-          justifyContent='space-between'
-          gap={2}
-          sx={{ mt: 0.5 }}
-        >
-          <Typography
-            variant='body1'
-            color='text.secondary'
-            sx={{ fontWeight: 600, fontSize: '16px' }}
-          >
+        <Box display="flex" alignItems="center" justifyContent="space-between" gap={2} sx={{ mt: 0.5 }}>
+          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600, fontSize: '16px' }}>
             Total Taken Leaves: <b>{fmt(totalTaken)}</b>
           </Typography>
 
           {onClose && (
-            <IconButton onClick={onClose} size='small'>
+            <IconButton onClick={onClose} size="small">
               <CloseIcon />
             </IconButton>
           )}
         </Box>
 
         {error && (
-          <Typography color='error' sx={{ mt: 2 }}>
+          <Typography color="error" sx={{ mt: 2 }}>
             {error}
           </Typography>
         )}
 
         {!error && data && (
           <>
+            {/* ✅ High Leave section */}
             <Divider sx={{ my: 2 }} />
 
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}>
+                {/* <Typography sx={{ fontWeight: 900 }}>
+                  High Leave + Absent (Month {String(sm).padStart(2, '0')}-{y}) &gt; {threshold}
+                </Typography> */}
+
+                {/* <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setHighOpen(true)}
+                  disabled={!!highError || highRows.length === 0}
+                  sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 800 }}
+                >
+                  View All
+                </Button> */}
+              </Box>
+{/* 
+              {highError && (
+                <Typography color="error" sx={{ mt: 1 }}>
+                  {highError}
+                </Typography>
+              )} */}
+{/* 
+              {!highLoading && !highError && (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                  {highRows.length === 0 ? (
+                    <Typography color="text.secondary">No employee crossed {threshold} ✅</Typography>
+                  ) : (
+                    highRows.slice(0, 10).map(r => (
+                      <Box
+                        key={r.employeeId}
+                        sx={{
+                          px: 1.2,
+                          py: 0.6,
+                          borderRadius: 999,
+                          border: '1px solid rgba(0,0,0,0.12)',
+                          display: 'inline-flex',
+                          gap: 0.8,
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Typography sx={{ fontWeight: 800, fontSize: 13 }}>{r.name}</Typography>
+                        <Typography sx={{ fontWeight: 900, fontSize: 13 }}>
+                          {Number(r.leaveLike ?? 0).toFixed(1)}
+                        </Typography>
+                      </Box>
+                    ))
+                  )}
+                </Box>
+              )} */}
+            </Box>
+
+            {/* ✅ Leave Balance Table */}
+            {/* <Divider sx={{ my: 2 }} /> */}
+
             <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-              <Table size='small'>
+              <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'rgba(0,0,0,0.04)' }}>
                     {['Month', 'Allowed', 'Accumulated', 'Actual', 'Extra', 'Balance'].map(h => (
@@ -254,24 +355,24 @@ export default function LeaveBalancePanel({
                           </Typography>
                         </TableCell>
 
-                        <TableCell align='center'>{fmt(credit)}</TableCell>
+                        <TableCell align="center">{fmt(credit)}</TableCell>
 
-                        <TableCell align='center'>
+                        <TableCell align="center">
                           <Typography fontWeight={isSel ? 900 : 600}>{fmt(available)}</Typography>
                         </TableCell>
 
-                        <TableCell align='center'>
-                          <Box display='inline-flex' alignItems='center' justifyContent='center'>
+                        <TableCell align="center">
+                          <Box display="inline-flex" alignItems="center" justifyContent="center">
                             <Typography fontWeight={isSel ? 900 : 600}>{fmt(taken)}</Typography>
                             <UsedVsCreditIndicator used={taken} credited={credit} />
                           </Box>
                         </TableCell>
 
-                        <TableCell align='center'>
+                        <TableCell align="center">
                           <Typography fontWeight={isSel ? 900 : 600}>{fmt(extra)}</Typography>
                         </TableCell>
 
-                        <TableCell align='center'>
+                        <TableCell align="center">
                           <Typography fontWeight={900}>{fmt(closing)}</Typography>
                         </TableCell>
                       </TableRow>
@@ -280,6 +381,77 @@ export default function LeaveBalancePanel({
                 </TableBody>
               </Table>
             </TableContainer>
+
+            {/* ✅ View All dialog */}
+            <Dialog open={highOpen} onClose={() => setHighOpen(false)} fullWidth maxWidth="md">
+              <DialogTitle sx={{ fontWeight: 900 }}>
+                High Leave + Absent &gt; {threshold} (Month {String(sm).padStart(2, '0')}-{y})
+              </DialogTitle>
+
+              <DialogContent dividers>
+                {highLoading && <LinearProgress />}
+
+                {highError && (
+                  <Typography color="error" sx={{ mt: 1 }}>
+                    {highError}
+                  </Typography>
+                )}
+
+                {!highLoading && !highError && (
+                  <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow sx={{ bgcolor: 'rgba(0,0,0,0.04)' }}>
+                          <TableCell sx={{ fontWeight: 900 }}>#</TableCell>
+                          <TableCell sx={{ fontWeight: 900 }}>Employee</TableCell>
+                          <TableCell sx={{ fontWeight: 900 }}>Code</TableCell>
+                          <TableCell sx={{ fontWeight: 900 }}>Location</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 900 }}>
+                            Leave+Absent
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+
+                      {/* <TableBody>
+                        {highRows.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5}>
+                              <Box sx={{ py: 3, textAlign: 'center' }}>
+                                <Typography color="text.secondary">
+                                  No employee crossed {threshold} ✅
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          highRows.map((r, idx) => (
+                            <TableRow key={r.employeeId} hover>
+                              <TableCell sx={{ fontWeight: 800 }}>{idx + 1}</TableCell>
+                              <TableCell>
+                                <Typography sx={{ fontWeight: 800 }}>{r.name}</Typography>
+                              </TableCell>
+                              <TableCell>{r.code || '—'}</TableCell>
+                              <TableCell>{r.location || '—'}</TableCell>
+                              <TableCell align="right">
+                                <Chip
+                                  size="small"
+                                  label={Number(r.leaveLike ?? 0).toFixed(1)}
+                                  sx={{ fontWeight: 900 }}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody> */}
+                    </Table>
+                  </TableContainer>
+                )}
+              </DialogContent>
+
+              <DialogActions>
+                <Button onClick={() => setHighOpen(false)}>Close</Button>
+              </DialogActions>
+            </Dialog>
           </>
         )}
       </CardContent>

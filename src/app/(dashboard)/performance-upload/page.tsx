@@ -2287,10 +2287,7 @@ export default function PerformanceUploadPage() {
                       </Typography>
                     </Paper>
                   </Grid>
-
-
                 </Grid>
-
 
                 {/* Member Breakdown Table */}
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
@@ -2304,10 +2301,8 @@ export default function PerformanceUploadPage() {
                           <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 700 }}>Logins</TableCell>
-
                           <TableCell align="right" sx={{ fontWeight: 800 }}>Approvals (₹)</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 800 }}>Disbursal (₹)</TableCell>
-
                           <TableCell align="right" sx={{ fontWeight: 800 }}>Drop (₹)</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 800 }}>Cashback (₹)</TableCell>
 
