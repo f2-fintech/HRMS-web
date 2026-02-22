@@ -42,29 +42,38 @@ const BreakControls: React.FC<BreakControlsProps> = ({
 }) => {
     const [isMobileDevice, setIsMobileDevice] = useState(false);
 
-const detectMobileDevice = () => {
-  if (typeof window === 'undefined') return false;
+    const detectMobileDevice = () => {
+        if (typeof window === 'undefined') return false;
 
-  const ua = navigator.userAgent || '';
-  const platform = navigator.platform || '';
+        const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
 
-  // ✅ If it's clearly Windows or Mac → always treat as desktop
-  if (/Win32|Win64|Windows|MacIntel|MacPPC|Mac68K/i.test(platform)) {
-    return false;
-  }
+        const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS|FxiOS|EdgiOS/i;
+        const isMobileUA = mobileRegex.test(userAgent);
 
-  // ✅ Chromium modern reliable check
-  const uaData = (navigator as any).userAgentData;
-  if (uaData && typeof uaData.mobile === 'boolean') {
-    return uaData.mobile;
-  }
+        const tabletRegex = /tablet|ipad|playbook|silk/i;
+        const isTablet = tabletRegex.test(userAgent);
 
-  // ✅ Phone detection only
-  const isPhone =
-    /Android.*Mobile|iPhone|iPod|IEMobile|Opera Mini|webOS/i.test(ua);
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-  return isPhone;
-};
+        const isSmallScreen = window.innerWidth < 1024 || window.innerHeight < 768;
+
+        const platform = navigator.platform || '';
+        const isMobilePlatform = /iPhone|iPad|iPod|Android|Linux armv/i.test(platform);
+
+        const hasMobileFeatures = (
+            'orientation' in window ||
+            'onorientationchange' in window ||
+            navigator.maxTouchPoints > 1
+        );
+
+        return (
+            isMobileUA ||
+            isTablet ||
+            isMobilePlatform ||
+            (isTouchDevice && isSmallScreen) ||
+            (hasMobileFeatures && isSmallScreen)
+        );
+    };
 
     useEffect(() => {
         const checkDevice = () => {
