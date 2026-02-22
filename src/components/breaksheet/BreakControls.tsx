@@ -42,38 +42,24 @@ const BreakControls: React.FC<BreakControlsProps> = ({
 }) => {
     const [isMobileDevice, setIsMobileDevice] = useState(false);
 
-    const detectMobileDevice = () => {
-        if (typeof window === 'undefined') return false;
+const detectMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
 
-        const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+  const uaDataMobile = (navigator as any).userAgentData?.mobile;
+  if (typeof uaDataMobile === 'boolean') return uaDataMobile;
 
-        const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS|FxiOS|EdgiOS/i;
-        const isMobileUA = mobileRegex.test(userAgent);
+  const ua = navigator.userAgent || '';
 
-        const tabletRegex = /tablet|ipad|playbook|silk/i;
-        const isTablet = tabletRegex.test(userAgent);
+  const isPhoneUA =
+    /Android.*Mobile|iPhone|iPod|IEMobile|Opera Mini|webOS/i.test(ua);
 
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isTabletUA =
+    /iPad|Android(?!.*Mobile)/i.test(ua);
 
-        const isSmallScreen = window.innerWidth < 1024 || window.innerHeight < 768;
+  return isPhoneUA;
 
-        const platform = navigator.platform || '';
-        const isMobilePlatform = /iPhone|iPad|iPod|Android|Linux armv/i.test(platform);
 
-        const hasMobileFeatures = (
-            'orientation' in window ||
-            'onorientationchange' in window ||
-            navigator.maxTouchPoints > 1
-        );
-
-        return (
-            isMobileUA ||
-            isTablet ||
-            isMobilePlatform ||
-            (isTouchDevice && isSmallScreen) ||
-            (hasMobileFeatures && isSmallScreen)
-        );
-    };
+};
 
     useEffect(() => {
         const checkDevice = () => {
