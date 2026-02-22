@@ -178,9 +178,7 @@ export default function HighLeaveListButton({
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={fetchList} disabled={loading}>
-            Refresh
-          </Button>
+        
           <Button onClick={() => setOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>

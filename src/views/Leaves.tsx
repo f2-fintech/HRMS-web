@@ -40,6 +40,7 @@ import AccordionLeaves from '@/components/leave/AccordionLeaves'
 import useDebounce from '@/utility/debounce/useDebounce'
 import { utility } from '@/utility'
 import LeaveBalancePanel from '@/components/leave/LeaveBalancePanel'
+import HighLeaveListButton from '@/components/HighLeaveListButton'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'bold',
@@ -138,7 +139,8 @@ export default function LeavesGrid() {
 
   const month = selectedDate.format('MM')
   const year = selectedDate.format('YYYY')
-
+const sm = Number(month)
+const y = Number(year)
   const handleDateChange = (newValue: Dayjs | null) => {
     if (newValue) setSelectedDate(newValue)
   }
@@ -508,6 +510,10 @@ export default function LeavesGrid() {
                   {showBalance ? 'Hide Leave Balance' : 'View Leave Balance'}
                 </StyledButton>
               )}
+
+              {userRole === '1' && (
+  <HighLeaveListButton month={sm} year={y} threshold={1.5} title='High Leave + Absent' />
+)}
 
               <StyledButton variant='contained' color='primary' startIcon={<AddIcon />} onClick={handleLeaveAddClick}>
                 Apply Leave
