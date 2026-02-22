@@ -179,8 +179,7 @@ export default function LeaveBalancePanel({
         setHighLoading(true)
         try {
           const url2 =
-            `${process.env.NEXT_PUBLIC_APP_URL}` +
-            `/attendence/high-leave-like?month=${sm}&year=${y}&threshold=${threshold}`
+            `${process.env.NEXT_PUBLIC_APP_URL}/attendence/high-leave-like?month=${sm}&year=${y}&threshold=${threshold}`
 
           const res2 = await fetch(url2, {
             method: 'GET',
