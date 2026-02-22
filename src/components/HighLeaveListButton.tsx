@@ -69,6 +69,8 @@ export default function HighLeaveListButton({
         `${process.env.NEXT_PUBLIC_APP_URL}` +
         `/attendence/high-leave-like?month=${m}&year=${y}&company_id=${company_id}&threshold=${threshold}`
 
+
+        console.log(url)
       const res = await fetch(url, {
         method: 'GET',
         headers: {
