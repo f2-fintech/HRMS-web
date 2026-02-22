@@ -45,20 +45,25 @@ const BreakControls: React.FC<BreakControlsProps> = ({
 const detectMobileDevice = () => {
   if (typeof window === 'undefined') return false;
 
-  const uaDataMobile = (navigator as any).userAgentData?.mobile;
-  if (typeof uaDataMobile === 'boolean') return uaDataMobile;
-
   const ua = navigator.userAgent || '';
+  const platform = navigator.platform || '';
 
-  const isPhoneUA =
+  // ✅ If it's clearly Windows or Mac → always treat as desktop
+  if (/Win32|Win64|Windows|MacIntel|MacPPC|Mac68K/i.test(platform)) {
+    return false;
+  }
+
+  // ✅ Chromium modern reliable check
+  const uaData = (navigator as any).userAgentData;
+  if (uaData && typeof uaData.mobile === 'boolean') {
+    return uaData.mobile;
+  }
+
+  // ✅ Phone detection only
+  const isPhone =
     /Android.*Mobile|iPhone|iPod|IEMobile|Opera Mini|webOS/i.test(ua);
 
-  const isTabletUA =
-    /iPad|Android(?!.*Mobile)/i.test(ua);
-
-  return isPhoneUA;
-
-
+  return isPhone;
 };
 
     useEffect(() => {
