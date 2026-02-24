@@ -436,85 +436,61 @@ const BreakSheet: React.FC = () => {
         setShowNotPunchedOut(prev => !prev)
     }
 
-    useEffect(() => {
-        const fetchEmployees = async () => {
-            try {
-                const employeesData = await fetchTotalShiftTime(selectedDate)
+ useEffect(() => {
+  const fetchEmployees = async () => {
+    const url = `${process.env.NEXT_PUBLIC_APP_URL}/punch/shift-summary?date=${selectedDate}&company_id=${companyId}`;
+    const res = await fetch(url);
+    const data = await res.json();
 
-                setAllEmployees(employeesData.employees)
-            } catch (error: any) {
-                error.message || 'Failed to fetch employee data'
-            } finally {
-            }
-        }
+    setAllEmployees(data.employees || []);
+  };
 
-        fetchEmployees()
-    }, [selectedDate])
+  fetchEmployees();
+}, [selectedDate, companyId]);
 
-    const handleExportShiftTime = () => {
-        // Month names array
-        const monthNames = [
-            'January',
-            'February',
-            'March',
-            'April',
-            'May',
-            'June',
-            'July',
-            'August',
-            'September',
-            'October',
-            'November',
-            'December'
-        ]
+const csvEscape = (val: any) => `"${String(val ?? '').replaceAll('"', '""')}"`;
 
-        // Get the selected month and year
-        const formattedMonth = monthNames[parseInt(selectedDate.split('-')[1], 10) - 1] // Convert month number to name
-        const formattedYear = selectedDate.split('-')[0]
-        const formattedDay = selectedDate.split('-')[2] // Extract the day from selectedDate
+const handleExportShiftTime = () => {
+  const monthNames = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+  ];
 
-        // Create the file name with selected date (e.g., shift_summary_12_January_2025.csv)
-        const fileName = `shift_summary_${formattedDay}_${formattedMonth}_${formattedYear}.csv`
+  const formattedMonth = monthNames[parseInt(selectedDate.split('-')[1], 10) - 1];
+  const formattedYear = selectedDate.split('-')[0];
+  const formattedDay = selectedDate.split('-')[2];
 
-        // Prepare data for export with employee details (first_name, last_name, location, totalShiftTime)
-        const csvContent = [
-            ['Employee Name', 'Location', 'Total Shift Time'],
-            ...allEmployees.map(emp => [
-                `${emp.first_name} ${emp.last_name}`,
-                emp.location,
-                emp.totalShiftTime // Assuming you have totalShiftTime in the employee object
-            ])
-        ]
-            .map(e => e.join(',')) // Join each row by commas
-            .join('\n') // Join rows with newline characters
+  const fileName = `shift_summary_${formattedDay}_${formattedMonth}_${formattedYear}.csv`;
 
-        // Create a blob from the CSV content
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-        const link = document.createElement('a')
+  const csvRows = [
+    ['Employee Name', 'Location', 'Punch In', 'Punch Out', 'Total Shift Time', 'Status'],
+    ...allEmployees.map(emp => [
+      `${emp.first_name ?? ''} ${emp.last_name ?? ''}`.trim(),
+      emp.location ?? '',
+      emp.punchIn ?? '',
+      emp.punchOut ?? '',
+      emp.totalShiftTime ?? '',
+      emp.status ?? ''
+    ])
+  ];
 
-        if (link.download !== undefined) {
-            // Create a download link
-            const url = URL.createObjectURL(blob)
+  const csvContent = csvRows
+    .map(row => row.map(csvEscape).join(','))
+    .join('\n');
 
-            link.setAttribute('href', url)
-            link.setAttribute('download', fileName) // Set the dynamic file name
-            link.style.visibility = 'hidden'
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-        }
-    }
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
 
-    // Early return for mobile employees (userRole > 2 means regular employee)
-    // Admin (role 1) and Manager (role 2) can access on any device
-    console.log('🔐 Access Check:', {
-        isMobile,
-        userRole,
-        userRoleType: typeof userRole,
-        userRoleNumber: Number(userRole),
-        isEmployee: Number(userRole) > 2,
-        shouldBlock: isMobile && Number(userRole) > 2
-    })
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', fileName);
+  link.style.visibility = 'hidden';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
     
     if (isMobile && Number(userRole) > 2) {
         return (
