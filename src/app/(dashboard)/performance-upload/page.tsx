@@ -1,9 +1,11 @@
 'use client';
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+
 import {
   Box,
   Button,
@@ -29,8 +31,9 @@ import {
   DialogActions,
   MenuItem,
 } from '@mui/material';
+
 import Autocomplete from '@mui/material/Autocomplete';
-import StarIcon from '@mui/icons-material/Star';
+
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -44,7 +47,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
 import GroupsIcon from '@mui/icons-material/Groups';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-
 
 /* ---------------- AXIOS ---------------- */
 const api = axios.create({
@@ -71,10 +73,6 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
-
-
-
-/* ---------------- Types ---------------- */
 type Row = {
   _id: string;
   date: string;
@@ -84,6 +82,8 @@ type Row = {
   login?: number;
   approval?: number;
   disbursal?: number;
+  drop?: number;
+  cashback?: number;
   abnp?: number;
   code?: string;
   gross_approval?: number;
@@ -108,7 +108,7 @@ type TeamTotalInfo = {
   teamTotalDisbursal: number;
   teamTotalDrop?: number;
   teamTotalCashback?: number;
-  teamTotalABNP?: number;       // ✅ NEW (optional)
+  teamTotalABNP?: number;
   teamTotalGrossApproval?: number;
   teamTotalGrossDisbursal?: number;
   memberCount: number;
@@ -136,7 +136,7 @@ type TeamBreakdown = {
     totalCashback: number;
     totalGrossApproval?: number;
     totalGrossDisbursal?: number;
-    totalABNP?: number; // ✅ NEW
+    totalABNP?: number;
     memberCount: number;
   };
 
@@ -146,16 +146,180 @@ type TeamBreakdown = {
     logins: number;
     approval: number;
     disbursal: number;
-    drop?: number;      // ✅ NEW
+    drop?: number;
     cashback?: number;
     grossApproval?: number;
     grossDisbursal?: number;
-    abnp?: number;      // ✅ NEW
+    abnp?: number;
   }[];
 };
+
 /* ---------------- Helpers ---------------- */
 const rupee = (n: number) =>
   `₹${Intl.NumberFormat('en-IN').format(Number(n || 0))}`;
+
+type KpiModalType =
+  | 'logins'
+  | 'grossApproval'
+  | 'netApproval'
+  | 'grossDisbursal'
+  | 'netDisbursal'
+  | 'abnd'
+  | 'drop'
+  | 'cashback';
+
+function kpiTitle(type: KpiModalType) {
+  switch (type) {
+    case 'logins':
+      return 'Login Cases';
+    case 'grossApproval':
+      return 'Gross Approval Cases';
+    case 'netApproval':
+      return 'Net Approval Cases';
+    case 'grossDisbursal':
+      return 'Gross Disbursal Cases';
+    case 'netDisbursal':
+      return 'Net Disbursal Cases';
+    case 'abnd':
+      return 'ABND Cases';
+    case 'drop':
+      return 'Drop Cases';
+    case 'cashback':
+      return 'Cashback Cases';
+    default:
+      return 'Cases';
+  }
+}
+
+function kpiMetricValue(type: KpiModalType, r: Row) {
+  switch (type) {
+    case 'logins':
+      return Number(r.login || 0);
+    case 'grossApproval':
+      return Number(r.gross_approval || 0);
+    case 'netApproval':
+      return Number(r.approval || 0);
+    case 'grossDisbursal':
+      return Number(r.gross_disbursal || 0);
+    case 'netDisbursal':
+      return Number(r.disbursal || 0);
+    case 'abnd':
+      return Number(r.abnp || 0);
+    case 'drop':
+      return Number(r.drop || 0);
+    case 'cashback':
+      return Number(r.cashback || 0);
+    default:
+      return 0;
+  }
+}
+
+function KpiCard({
+  title,
+  value,
+  leftIcon,
+  bg,
+  subColor,
+  onView,
+}: {
+  title: string;
+  value: string;
+  leftIcon: React.ReactNode;
+  bg: string;
+  subColor: string;
+  onView?: () => void;
+}) {
+  return (
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: bg,
+        boxShadow: '0 10px 22px rgba(15,23,42,0.18)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mb: 1.2,
+            alignItems: 'center',
+          }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {leftIcon}
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
+
+        <Typography
+          variant="body2"
+          sx={{ color: subColor, fontWeight: 500, mb: 0.3 }}
+        >
+          {title}
+        </Typography>
+
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            fontSize: 22,
+            lineHeight: 1.2,
+            color: '#fff',
+          }}
+        >
+          {value}
+        </Typography>
+
+        {onView && (
+          <Button
+            size="small"
+            onClick={onView}
+            startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              mt: 1.2,
+              borderRadius: 999,
+              textTransform: 'none',
+              fontWeight: 800,
+              px: 2,
+              bgcolor: 'rgba(255,255,255,0.18)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.25)',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+            }}
+          >
+            View
+          </Button>
+        )}
+      </Box>
+    </Paper>
+  );
+}
 
 export default function PerformanceUploadPage() {
   const router = useRouter();
@@ -169,18 +333,15 @@ export default function PerformanceUploadPage() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [user, setUser] = useState<any>(null);
 
-
   // search (with debounce)
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [isFallbackDate, setIsFallbackDate] = useState(false);
 
-
   // Manual form dialog state
   const [formOpen, setFormOpen] = useState(false);
   const [formSaving, setFormSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-
 
   const [form, setForm] = useState({
     employee_name: '',
@@ -189,13 +350,11 @@ export default function PerformanceUploadPage() {
     approval_lakh: '',
     disbursal_lakh: '',
     drop_lakh: '',
-    Cashback_lakh: '',
+    cashback_lakh: '',
     code: '',
   });
 
-
   const [amountUnit, setAmountUnit] = useState<'rupees' | 'lakhs'>('rupees');
-
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: null,
@@ -211,21 +370,26 @@ export default function PerformanceUploadPage() {
   const [teamBreakdown, setTeamBreakdown] = useState<TeamBreakdown | null>(null);
   const [teamBreakdownLoading, setTeamBreakdownLoading] = useState(false);
 
-
   // Manager/TL filter state
   const [managerTlFilter, setManagerTlFilter] = useState<string>('all');
-  const [managerTlList, setManagerTlList] = useState<{ code: string; name: string; role: string }[]>([]);
+  const [managerTlList, setManagerTlList] = useState<
+    { code: string; name: string; role: string }[]
+  >([]);
+
+  // ✅ ONE KPI modal for ALL boxes
+  const [kpiModalOpen, setKpiModalOpen] = useState(false);
+  const [kpiModalType, setKpiModalType] = useState<KpiModalType>('logins');
+
+  const openKpiModal = (type: KpiModalType) => {
+    setKpiModalType(type);
+    setKpiModalOpen(true);
+  };
 
   useEffect(() => {
-    const t = setTimeout(
-      () => setDebounced(search.trim().toLowerCase()),
-      300,
-    );
-
+    const t = setTimeout(() => setDebounced(search.trim().toLowerCase()), 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  // Build manager/TL list from teamTotals for filter dropdown
   useEffect(() => {
     const list: { code: string; name: string; role: string }[] = [];
     Object.entries(teamTotals).forEach(([code, info]) => {
@@ -237,44 +401,32 @@ export default function PerformanceUploadPage() {
         });
       }
     });
-    // Sort by role (Manager first) then name
     list.sort((a, b) => {
       if (a.role !== b.role) return a.role === 'Manager' ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
     setManagerTlList(list);
   }, [teamTotals]);
+
   useEffect(() => {
     const d = q?.get('date');
     setDate(d ? dayjs(d) : dayjs());
   }, [q]);
 
-
-  useEffect(() => {
-    const user =
-      typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('user') || '{}')
-        : {};
-
-    setIsAdmin(String((user as any)?.role) === '1');
-  }, []);
-
-  const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
   useEffect(() => {
     const u =
       typeof window !== 'undefined'
         ? JSON.parse(localStorage.getItem('user') || '{}')
         : {};
-
     setUser(u);
     setIsAdmin(String(u?.role) === '1');
   }, []);
-  const isAsstOpsManager = user?.designation === 'Asst. Ops Manager';
 
+  const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
+
+  const isAsstOpsManager = user?.designation === 'Asst. Ops Manager';
   const canUpload = isAdmin || isAsstOpsManager;
   const canAddRow = isAdmin || isAsstOpsManager;
-
-
 
   const fetchList = async () => {
     try {
@@ -292,9 +444,7 @@ export default function PerformanceUploadPage() {
         params: { company_id, date: dateStr },
       });
 
-      const raw: any[] = Array.isArray(res.data)
-        ? res.data
-        : res.data?.data || [];
+      const raw: any[] = Array.isArray(res.data) ? res.data : res.data?.data || [];
 
       const normalized: Row[] = raw.map((r) => {
         const login = Number(r.login ?? r.total_logins ?? 0);
@@ -305,8 +455,7 @@ export default function PerformanceUploadPage() {
         const gross_approval = Number(r.gross_approval ?? r.grossApproval ?? 0);
         const gross_disbursal = Number(r.gross_disbursal ?? r.grossDisbursal ?? 0);
 
-
-        const abnp = Math.max(approval - (disbursal + drop + cashback), 0); // ✅
+        const abnp = Math.max(approval - (disbursal + drop + cashback), 0);
 
         return {
           ...r,
@@ -325,9 +474,9 @@ export default function PerformanceUploadPage() {
         };
       });
 
-
       setRows(normalized);
 
+      // fallback: if today has no data -> jump to latest uploaded date
       if (!raw.length && dateStr === todayStr) {
         try {
           const datesRes = await api.get('/performance-upload/dates', {
@@ -335,14 +484,13 @@ export default function PerformanceUploadPage() {
           });
 
           const data = datesRes.data;
-
           const latestDate =
             data?.latest?.date ||
             (Array.isArray(data) && data.length ? data[0].date : null);
 
           if (latestDate && latestDate !== dateStr) {
-            setIsFallbackDate(true);        // UI ko pata chale ki fallback hua
-            setDate(dayjs(latestDate));     // ye useEffect → fetchList fir se call karega
+            setIsFallbackDate(true);
+            setDate(dayjs(latestDate));
           }
         } catch (err) {
           console.error('Failed to fetch latest date list', err);
@@ -355,7 +503,6 @@ export default function PerformanceUploadPage() {
       setLoading(false);
     }
   };
-
   const latestUploadedDate = useMemo(() => {
     if (!rows.length) return null;
 
@@ -366,13 +513,10 @@ export default function PerformanceUploadPage() {
   }, [rows]);
   const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
 
-
   useEffect(() => {
     if (dateStr) fetchList();
-
   }, [dateStr]);
 
-  // Fetch team totals when rows are loaded
   const fetchTeamTotals = async () => {
     try {
       setTeamTotalsLoading(true);
@@ -395,14 +539,9 @@ export default function PerformanceUploadPage() {
     }
   };
 
-  // Fetch team totals after rows are loaded
   useEffect(() => {
-    if (rows.length > 0) {
-      fetchTeamTotals();
-    }
-  }, [rows]);
+    if (rows.length > 0) fetchTeamTotals();  }, [rows]);
 
-  // Fetch team breakdown for modal
   const fetchTeamBreakdown = async (code: string) => {
     try {
       setTeamBreakdownLoading(true);
@@ -429,17 +568,17 @@ export default function PerformanceUploadPage() {
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     try {
       setUploading(true);
       const formData = new FormData();
-
       formData.append('file', file);
+
       await api.post('/performance-upload/file', formData, {
-        headers: { 'Content-Type': 'multipart/formdata' },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
+
       await fetchList();
       alert('Upload successful.');
     } catch (err: any) {
@@ -463,12 +602,10 @@ export default function PerformanceUploadPage() {
     }
   };
 
-
   const handleFormChange =
-    (field: keyof typeof form) =>
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        setForm((prev) => ({ ...prev, [field]: e.target.value }));
-      };
+    (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   const resetForm = () => {
     setForm({
@@ -491,7 +628,6 @@ export default function PerformanceUploadPage() {
   const onFormSubmit = async () => {
     if (!form.employee_name.trim() || !form.manager_tl.trim()) {
       alert('Employee Name and Manager/TL are required.');
-
       return;
     }
 
@@ -508,7 +644,6 @@ export default function PerformanceUploadPage() {
       const dropNumber = sanitizeMoney(form.drop_lakh);
       const cashbackNumber = sanitizeMoney(form.cashback_lakh);
 
-
       const multiplier = amountUnit === 'lakhs' ? 100000 : 1;
 
       const payload = {
@@ -521,7 +656,6 @@ export default function PerformanceUploadPage() {
         disbursal_amount: Math.round(disbursalNumber * multiplier),
         drop_amount: Math.round(dropNumber * multiplier),
         cashback_amount: Math.round(cashbackNumber * multiplier),
-
         company_id: company_id || undefined,
       };
 
@@ -545,8 +679,17 @@ export default function PerformanceUploadPage() {
 
   /* ------------ Totals ------------ */
   const totals = useMemo(() => {
-    const sum = (k: 'login' | 'approval' | 'disbursal' | 'drop' | 'cashback' | 'gross_approval' | 'gross_disbursal' | 'abnp') =>
-      rows.reduce((a, r) => a + Number(r[k] || 0), 0);
+    const sum = (
+      k:
+        | 'login'
+        | 'approval'
+        | 'disbursal'
+        | 'drop'
+        | 'cashback'
+        | 'gross_approval'
+        | 'gross_disbursal'
+        | 'abnp',
+    ) => rows.reduce((a, r) => a + Number(r[k] || 0), 0);
 
     return {
       logins: sum('login'),
@@ -556,14 +699,12 @@ export default function PerformanceUploadPage() {
       cashback: sum('cashback'),
       grossApproval: sum('gross_approval'),
       grossDisbursal: sum('gross_disbursal'),
-      abnp: sum('abnp')
+      abnp: sum('abnp'),
     };
   }, [rows]);
 
   const starPerformers = useMemo(() => {
-    if (!rows.length) {
-      return { approval: null as Row | null, disbursal: null as Row | null };
-    }
+    if (!rows.length) return { approval: null as Row | null, disbursal: null as Row | null };
 
     let approval: Row | null = null;
     let disbursal: Row | null = null;
@@ -572,30 +713,18 @@ export default function PerformanceUploadPage() {
       const approvalVal = Number(r.approval || 0);
       const disbursalVal = Number(r.disbursal || 0);
 
-      if (!approval || approvalVal > Number(approval.approval || 0)) {
-        approval = r;
-      }
-
-      if (!disbursal || disbursalVal > Number(disbursal.disbursal || 0)) {
-        disbursal = r;
-      }
+      if (!approval || approvalVal > Number(approval.approval || 0)) approval = r;
+      if (!disbursal || disbursalVal > Number(disbursal.disbursal || 0)) disbursal = r;
     });
 
     return { approval, disbursal };
   }, [rows]);
 
-
-
-
   const managerOptions = useMemo(() => {
     const set = new Set<string>();
-
     rows.forEach((r) => {
-      if (r.manager_tl && String(r.manager_tl).trim()) {
-        set.add(String(r.manager_tl).trim());
-      }
+      if (r.manager_tl && String(r.manager_tl).trim()) set.add(String(r.manager_tl).trim());
     });
-
     return Array.from(set);
   }, [rows]);
 
@@ -617,16 +746,12 @@ export default function PerformanceUploadPage() {
         const name = (r.employee_name || '').toLowerCase();
         const id = (r.employee_id || '').toLowerCase();
         const code = (r.code || '').toLowerCase();
-
-        return (
-          name.includes(debounced) || id.includes(debounced) || code.includes(debounced)
-        );
+        return name.includes(debounced) || id.includes(debounced) || code.includes(debounced);
       });
     }
 
     return result;
   }, [rows, debounced, managerTlFilter, teamTotals]);
-
 
   const sortedRows: Row[] = useMemo(() => {
     if (!sortConfig.key) return filteredRows;
@@ -637,7 +762,6 @@ export default function PerformanceUploadPage() {
     data.sort((a, b) => {
       const aVal = Number(a[key!] || 0);
       const bVal = Number(b[key!] || 0);
-
       if (direction === 'asc') return aVal - bVal;
       return bVal - aVal;
     });
@@ -645,10 +769,13 @@ export default function PerformanceUploadPage() {
     return data;
   }, [filteredRows, sortConfig]);
 
-
-
-
-
+  // ✅ KPI modal rows based on selected KPI type (value > 0)
+  const kpiModalRows = useMemo(() => {
+    return rows
+      .map((r) => ({ ...r, __metric: kpiMetricValue(kpiModalType, r) }))
+      .filter((r: any) => Number(r.__metric || 0) > 0)
+      .sort((a: any, b: any) => Number(b.__metric || 0) - Number(a.__metric || 0));
+  }, [rows, kpiModalType]);
 
   const rowBg = (r: Row) => {
     const hasAny =
@@ -660,11 +787,8 @@ export default function PerformanceUploadPage() {
       ? 'linear-gradient(90deg, rgba(34,197,94,0.08) 0%, transparent 100%)'
       : 'transparent';
   };
-  const showStar = (value: number) => {
-    return Number(value || 0) > 0;
-  };
 
-
+  const showStar = (value: number) => Number(value || 0) > 0;
 
   return (
     <Box
@@ -685,7 +809,6 @@ export default function PerformanceUploadPage() {
           gap: 3,
         }}
       >
-
         <Paper
           elevation={0}
           sx={{
@@ -696,7 +819,6 @@ export default function PerformanceUploadPage() {
             boxShadow: '0 10px 35px rgba(15,23,42,0.10)',
           }}
         >
-
           <Box
             sx={{
               display: 'flex',
@@ -707,7 +829,6 @@ export default function PerformanceUploadPage() {
               mb: 3,
             }}
           >
-
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <IconButton
                 onClick={() => router.back()}
@@ -716,10 +837,7 @@ export default function PerformanceUploadPage() {
                   height: 40,
                   borderRadius: 2,
                   bgcolor: '#e0e7ff',
-                  '&:hover': {
-                    bgcolor: '#c7d2fe',
-                    transform: 'scale(1.03)',
-                  },
+                  '&:hover': { bgcolor: '#c7d2fe', transform: 'scale(1.03)' },
                   transition: 'all 0.18s ease',
                 }}
               >
@@ -727,30 +845,17 @@ export default function PerformanceUploadPage() {
               </IconButton>
 
               <Box>
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 800, color: '#0f172a' }}
-                >
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>
                   Performance Uploads
                 </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#64748b', mt: 0.3 }}
-                >
+                <Typography variant="body2" sx={{ color: '#64748b', mt: 0.3 }}>
                   Daily login, approval & disbursal tracking panel
+                  {isFallbackDate ? ' (showing latest uploaded date)' : ''}
                 </Typography>
               </Box>
             </Box>
 
-
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: 1,
-              }}
-            >
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
               <Button
                 onClick={() => {
                   const header = [
@@ -760,6 +865,10 @@ export default function PerformanceUploadPage() {
                     'login',
                     'approval',
                     'disbursal',
+                    'drop',
+                    'cashback',
+                    'gross_approval',
+                    'gross_disbursal',
                     'code',
                     '_id',
                   ];
@@ -771,20 +880,18 @@ export default function PerformanceUploadPage() {
                     Number(r.login || 0),
                     Number(r.approval || 0),
                     Number(r.disbursal || 0),
+                    Number(r.drop || 0),
+                    Number(r.cashback || 0),
+                    Number(r.gross_approval || 0),
+                    Number(r.gross_disbursal || 0),
                     r.code || '',
                     r._id || '',
                   ]);
 
-                  const csv = [header, ...body]
-                    .map((r) => r.join(','))
-                    .join('\n');
-
-                  const blob = new Blob([csv], {
-                    type: 'text/csv;charset=utf-8;',
-                  });
+                  const csv = [header, ...body].map((r) => r.join(',')).join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
 
                   const a = document.createElement('a');
-
                   a.href = URL.createObjectURL(blob);
                   a.download = `performance_uploaded_${dateStr}.csv`;
                   document.body.appendChild(a);
@@ -803,10 +910,7 @@ export default function PerformanceUploadPage() {
                   color: '#0f172a',
                   borderWidth: 1,
                   borderStyle: 'solid',
-                  '&:hover': {
-                    bgcolor: '#f9fafb',
-                    borderColor: '#94a3b8',
-                  },
+                  '&:hover': { bgcolor: '#f9fafb', borderColor: '#94a3b8' },
                 }}
               >
                 Export
@@ -830,9 +934,7 @@ export default function PerformanceUploadPage() {
                       px: 2.5,
                       bgcolor: '#4f46e5',
                       boxShadow: '0 8px 20px rgba(79,70,229,0.35)',
-                      '&:hover': {
-                        bgcolor: '#4338ca',
-                      },
+                      '&:hover': { bgcolor: '#4338ca' },
                     }}
                   >
                     Add Row
@@ -870,6 +972,7 @@ export default function PerformanceUploadPage() {
               )}
             </Box>
           </Box>
+
           <Box
             sx={{
               display: 'flex',
@@ -885,18 +988,11 @@ export default function PerformanceUploadPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search employee / id / code..."
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                }
-              }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon
-                      fontSize="small"
-                      sx={{ color: '#64748b', ml: 1 }}
-                    />
+                    <SearchIcon fontSize="small" sx={{ color: '#64748b', ml: 1 }} />
                   </InputAdornment>
                 ),
                 endAdornment: search && (
@@ -911,49 +1007,34 @@ export default function PerformanceUploadPage() {
                         p: 0.2,
                         color: '#475569',
                         bgcolor: 'transparent !important',
-                        '&:hover': {
-                          bgcolor: 'transparent !important',
-                          color: '#1e293b',
-
-                        },
-                        '& .MuiTouchRipple-root': {
-                          display: 'none',
-                        },
+                        '&:hover': { bgcolor: 'transparent !important', color: '#1e293b' },
+                        '& .MuiTouchRipple-root': { display: 'none' },
                       }}
                     >
-                      <CloseIcon sx={{ fontSize: 8 }} />
+                      <CloseIcon sx={{ fontSize: 14 }} />
                     </IconButton>
-
                   </InputAdornment>
                 ),
               }}
             />
+
             <TextField
               type="date"
               size="small"
               label="Date"
               value={dateStr}
               onChange={(e) => setDate(dayjs(e.target.value))}
-              sx={{
-                minWidth: 160,
-                '& .MuiOutlinedInput-root': { borderRadius: 3 },
-              }}
+              sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+              InputLabelProps={{ shrink: true }}
             />
 
-
-            {/* Manager/TL Filter Dropdown */}
             <TextField
               select
               size="small"
               label="Filter by Manager/TL"
               value={managerTlFilter}
               onChange={(e) => setManagerTlFilter(e.target.value)}
-              sx={{
-                minWidth: 200,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                },
-              }}
+              sx={{ minWidth: 220, '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             >
               <MenuItem value="all">
                 <em>All Employees</em>
@@ -971,14 +1052,13 @@ export default function PerformanceUploadPage() {
                         color: item.role === 'Manager' ? '#1e40af' : '#166534',
                       }}
                     />
-                    <span>{item.code} - {item.name}</span>
+                    <span>
+                      {item.code} - {item.name}
+                    </span>
                   </Box>
                 </MenuItem>
               ))}
             </TextField>
-
-
-
 
             <Stack
               direction="row"
@@ -1030,566 +1110,99 @@ export default function PerformanceUploadPage() {
             </Stack>
           </Box>
         </Paper>
+
+        {/* KPI CARDS */}
         <Grid container spacing={2}>
-          {/* 1) Total Logins (ORANGE) */}
           <Grid item xs={12} md={2.4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)',
-                boxShadow: '0 10px 22px rgba(249,115,22,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <CheckCircleIcon sx={{ fontSize: 22 }} />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#ffedd5', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Logins
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 22,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {totals.logins.toLocaleString('en-IN')}
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={2.4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                boxShadow: '0 10px 22px rgba(29,78,216,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Gross Approval
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 22,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.grossApproval)}
-                </Typography>
-              </Box>
-            </Paper>
+            <KpiCard
+              title="Total Logins"
+              value={totals.logins.toLocaleString('en-IN')}
+              leftIcon={<CheckCircleIcon sx={{ fontSize: 22 }} />}
+              bg="linear-gradient(135deg, #fb923c 0%, #f97316 100%)"
+              subColor="#ffedd5"
+              onView={() => openKpiModal('logins')}
+            />
           </Grid>
 
-          {/* 2) Total Approvals (YELLOW) */}
           <Grid item xs={12} md={2.4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
-                boxShadow: '0 10px 22px rgba(234,179,8,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <EmojiEventsIcon sx={{ fontSize: 22 }} />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#fef3c7', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Net Approval
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 22,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.approvals)}
-                </Typography>
-              </Box>
-            </Paper>
+            <KpiCard
+              title="Total Gross Approval"
+              value={rupee(totals.grossApproval)}
+              leftIcon={<span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>}
+              bg="linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
+              subColor="rgba(255,255,255,0.85)"
+              onView={() => openKpiModal('grossApproval')}
+            />
           </Grid>
 
-
           <Grid item xs={12} md={2.4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-                boxShadow: '0 10px 22px rgba(109,40,217,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Gross Disbursal
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 22,
-
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.grossDisbursal)}
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={2.4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                boxShadow: '0 10px 22px rgba(22,163,74,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <StarBorderIconLike />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Net Disbursal
-
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 22,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.disbursal)}
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={2.4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
-                boxShadow: '0 10px 22px rgba(15,23,42,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <span style={{ fontSize: 16, lineHeight: 1 }}>Δ</span>
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total ABND
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 22,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.abnp)}
-                </Typography>
-              </Box>
-            </Paper>
+            <KpiCard
+              title="Total Net Approval"
+              value={rupee(totals.approvals)}
+              leftIcon={<EmojiEventsIcon sx={{ fontSize: 22 }} />}
+              bg="linear-gradient(135deg, #facc15 0%, #eab308 100%)"
+              subColor="#fef3c7"
+              onView={() => openKpiModal('netApproval')}
+            />
           </Grid>
 
-          {/* 5) Total Drop (RED) */}
           <Grid item xs={12} md={2.4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                boxShadow: '0 10px 22px rgba(185,28,28,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>↓</span>
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#fee2e2', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Drop
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 22,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.drop)}
-                </Typography>
-              </Box>
-            </Paper>
+            <KpiCard
+              title="Total Gross Disbursal"
+              value={rupee(totals.grossDisbursal)}
+              leftIcon={<span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>}
+              bg="linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)"
+              subColor="rgba(255,255,255,0.85)"
+              onView={() => openKpiModal('grossDisbursal')}
+            />
           </Grid>
 
-          {/* 6) Total Cashback (CYAN) */}
           <Grid item xs={12} md={2.4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
-                boxShadow: '0 10px 22px rgba(14,116,144,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
+            <KpiCard
+              title="Total Net Disbursal"
+              value={rupee(totals.disbursal)}
+              leftIcon={<StarBorderIconLike />}
+              bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
+              subColor="#dcfce7"
+              onView={() => openKpiModal('netDisbursal')}
+            />
+          </Grid>
 
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#cffafe', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Cashback
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 22,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.cashback)}
-                </Typography>
-              </Box>
-            </Paper>
+          <Grid item xs={12} md={2.4}>
+            <KpiCard
+              title="Total ABND"
+              value={rupee(totals.abnp)}
+              leftIcon={<span style={{ fontSize: 16, lineHeight: 1 }}>Δ</span>}
+              bg="linear-gradient(135deg, #0f172a 0%, #334155 100%)"
+              subColor="rgba(255,255,255,0.85)"
+              onView={() => openKpiModal('abnd')}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={2.4}>
+            <KpiCard
+              title="Total Drop"
+              value={rupee(totals.drop)}
+              leftIcon={<span style={{ fontSize: 18, lineHeight: 1 }}>↓</span>}
+              bg="linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)"
+              subColor="#fee2e2"
+              onView={() => openKpiModal('drop')}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={2.4}>
+            <KpiCard
+              title="Total Cashback"
+              value={rupee(totals.cashback)}
+              leftIcon={<span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>}
+              bg="linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)"
+              subColor="#cffafe"
+              onView={() => openKpiModal('cashback')}
+            />
           </Grid>
         </Grid>
 
-
-
+        {/* STAR PERFORMERS */}
         {(starPerformers.approval || starPerformers.disbursal) && (
           <Paper
             sx={{
@@ -1600,9 +1213,7 @@ export default function PerformanceUploadPage() {
               boxShadow: '0 12px 30px rgba(15,23,42,0.08)',
             }}
           >
-            <Box
-              sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}
-            >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
               <Box
                 sx={{
                   width: 40,
@@ -1646,38 +1257,16 @@ export default function PerformanceUploadPage() {
                       }}
                     />
                     <Box sx={{ position: 'relative' }}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          mb: 0.5,
-                        }}
-                      >
-                        <EmojiEventsIcon
-                          sx={{ fontSize: 20, color: '#15803d' }}
-                        />
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: '#166534' }}
-                        >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <EmojiEventsIcon sx={{ fontSize: 20, color: '#15803d' }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#166534' }}>
                           Top Approval
                         </Typography>
                       </Box>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ fontWeight: 800, color: '#022c22' }}
-                      >
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#022c22' }}>
                         {starPerformers.approval.employee_name || '-'}
                       </Typography>
-                      <Typography
-                        variant="h5"
-                        sx={{
-                          fontWeight: 800,
-                          mt: 0.5,
-                          color: '#16a34a',
-                        }}
-                      >
+                      <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: '#16a34a' }}>
                         {rupee(Number(starPerformers.approval.approval || 0))}
                       </Typography>
                     </Box>
@@ -1693,8 +1282,7 @@ export default function PerformanceUploadPage() {
                       borderRadius: 2.5,
                       position: 'relative',
                       overflow: 'hidden',
-                      background:
-                        'linear-gradient(135deg, #eef2ff 0%, #c7d2fe 50%, #e0e7ff 100%)',
+                      background: 'linear-gradient(135deg, #eef2ff 0%, #c7d2fe 50%, #e0e7ff 100%)',
                       border: '1px solid #e0f2fe',
                     }}
                   >
@@ -1710,39 +1298,17 @@ export default function PerformanceUploadPage() {
                       }}
                     />
                     <Box sx={{ position: 'relative' }}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          mb: 0.5,
-                        }}
-                      >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                         <StarBorderIconLike />
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: '#3730a3' }}
-                        >
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#3730a3' }}>
                           Top Disbursal
                         </Typography>
                       </Box>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ fontWeight: 800, color: '#020617' }}
-                      >
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#020617' }}>
                         {starPerformers.disbursal.employee_name || '-'}
                       </Typography>
-                      <Typography
-                        variant="h5"
-                        sx={{
-                          fontWeight: 800,
-                          mt: 0.5,
-                          color: '#4f46e5',
-                        }}
-                      >
-                        {rupee(
-                          Number(starPerformers.disbursal.disbursal || 0),
-                        )}
+                      <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: '#4f46e5' }}>
+                        {rupee(Number(starPerformers.disbursal.disbursal || 0))}
                       </Typography>
                     </Box>
                   </Paper>
@@ -1789,37 +1355,25 @@ export default function PerformanceUploadPage() {
                 No records found
               </Typography>
               <Typography variant="body2" sx={{ color: '#6b7280' }}>
-                {search
-                  ? `No results for “${search}”`
-                  : 'No data available for selected date'}
+                {search ? `No results for “${search}”` : 'No data available for selected date'}
               </Typography>
             </Box>
           ) : (
             <TableContainer>
               <Table size="large">
                 <TableHead>
-                  <TableRow
-                    sx={{
-                      background:
-                        'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)',
-                    }}
-                  >
-                    <TableCell sx={{ fontWeight: 800 }}>S.No.</TableCell>   {/* 👈 NEW */}
-
+                  <TableRow sx={{ background: 'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)' }}>
+                    <TableCell sx={{ fontWeight: 800 }}>S.No.</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Employee</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Code</TableCell>
-
                     <TableCell sx={{ fontWeight: 800 }}>Manager / TL</TableCell>
-
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Logins
                     </TableCell>
-
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Approvals (₹)
                     </TableCell>
-
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Disbursal (₹)
                     </TableCell>
@@ -1835,17 +1389,15 @@ export default function PerformanceUploadPage() {
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Gross Disbursal (₹)
                     </TableCell>
-
-
                     <TableCell align="center" sx={{ fontWeight: 800 }}>
                       Team Total
                     </TableCell>
-
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Actions
                     </TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
                   {sortedRows.map((r, index) => {
                     const teamInfo = r.code ? teamTotals[r.code] : null;
@@ -1857,9 +1409,10 @@ export default function PerformanceUploadPage() {
                             {index + 1}
                           </Typography>
                         </TableCell>
+
                         <TableCell>
                           <Typography variant="body2" sx={{ color: '#4b5563' }}>
-                            {r.date ? dayjs(r.date).format("DD-MM-YYYY") : '—'}
+                            {r.date ? dayjs(r.date).format('DD-MM-YYYY') : '—'}
                           </Typography>
                         </TableCell>
 
@@ -1869,16 +1422,18 @@ export default function PerformanceUploadPage() {
                               {r.employee_name || '-'}
                             </Typography>
 
-                            {showStar(r.drop) && (
-                              <Tooltip title={`Drop Amount: ${rupee(r.drop)}`} arrow>
-                                <span style={{ color: "#E11D48", fontSize: "16px", cursor: "pointer" }}>★</span>
+                            {showStar(Number(r.drop || 0)) && (
+                              <Tooltip title={`Drop Amount: ${rupee(Number(r.drop || 0))}`} arrow>
+                                <span style={{ color: '#E11D48', fontSize: 16, cursor: 'pointer' }}>
+                                  ★
+                                </span>
                               </Tooltip>
                             )}
 
-                            {showStar(r.cashback) && (
-                              <Tooltip title={`Cashback Amount: ${rupee(r.cashback)}`} arrow>
-                                <span style={{ color: "#1D4ED8", fontSize: "16px", cursor: "pointer" }}>#
-
+                            {showStar(Number(r.cashback || 0)) && (
+                              <Tooltip title={`Cashback Amount: ${rupee(Number(r.cashback || 0))}`} arrow>
+                                <span style={{ color: '#1D4ED8', fontSize: 16, cursor: 'pointer' }}>
+                                  #
                                 </span>
                               </Tooltip>
                             )}
@@ -1916,85 +1471,60 @@ export default function PerformanceUploadPage() {
                             <Chip
                               size="small"
                               label={r.manager_tl}
-                              sx={{
-                                bgcolor: '#F3E8FF',
-                                fontWeight: 600,
-                                color: '#6b21a8',
-                              }}
+                              sx={{ bgcolor: '#F3E8FF', fontWeight: 600, color: '#6b21a8' }}
                             />
                           ) : (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            <Typography variant="caption" color="text.secondary">
                               —
                             </Typography>
                           )}
                         </TableCell>
+
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={Number(r.login || 0)}
-                            sx={{
-                              bgcolor: '#DCFCE7',
-                              fontWeight: 800,
-                              color: '#166534',
-                            }}
+                            sx={{ bgcolor: '#DCFCE7', fontWeight: 800, color: '#166534' }}
                           />
                         </TableCell>
+
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={rupee(Number(r.approval || 0))}
-                            sx={{
-                              bgcolor: '#E0F2FE',
-                              fontWeight: 800,
-                              color: '#1d4ed8',
-                            }}
+                            sx={{ bgcolor: '#E0F2FE', fontWeight: 800, color: '#1d4ed8' }}
                           />
                         </TableCell>
+
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={rupee(Number(r.disbursal || 0))}
-                            sx={{
-                              bgcolor: '#EDE9FE',
-                              fontWeight: 800,
-                              color: '#6d28d9',
-                            }}
+                            sx={{ bgcolor: '#EDE9FE', fontWeight: 800, color: '#6d28d9' }}
                           />
                         </TableCell>
-
-
 
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={rupee(Number(r.drop || r.drop_amount || 0))}
-                            sx={{
-                              bgcolor: '#FFE4E6',
-                              fontWeight: 800,
-                              color: '#BE123C',
-                            }}
+                            sx={{ bgcolor: '#FFE4E6', fontWeight: 800, color: '#BE123C' }}
                           />
-
                         </TableCell>
+
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={rupee(Number(r.cashback || r.cashback_amount || 0))}
-                            sx={{
-                              bgcolor: '#FFE4E6',
-                              fontWeight: 800,
-                              color: '#BE123C',
-                            }}
+                            sx={{ bgcolor: '#CFFAFE', fontWeight: 800, color: '#0E7490' }}
                           />
                         </TableCell>
+
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={rupee(Number(r.gross_approval || 0))}
-                            sx={{ bgcolor: '#E0F2FE', fontWeight: 800, color: '#1d4ed8' }}
+                            sx={{ bgcolor: '#DBEAFE', fontWeight: 800, color: '#1d4ed8' }}
                           />
                         </TableCell>
 
@@ -2005,11 +1535,10 @@ export default function PerformanceUploadPage() {
                             sx={{ bgcolor: '#EDE9FE', fontWeight: 800, color: '#6d28d9' }}
                           />
                         </TableCell>
-                        {/* Team Total Column */}
+
                         <TableCell align="center">
                           {teamInfo ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-
                               <Tooltip title={`${teamInfo.memberCount} team members`}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                   <GroupsIcon sx={{ fontSize: 16, color: '#6b7280' }} />
@@ -2018,36 +1547,12 @@ export default function PerformanceUploadPage() {
                                   </Typography>
                                 </Box>
                               </Tooltip>
-                              {/* <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                <Chip
-                                  size="small"
-                                  label={rupee(teamInfo.teamTotalApproval)}
-                                  sx={{
-                                    bgcolor: '#DCFCE7',
-                                    fontWeight: 700,
-                                    color: '#166534',
-                                    fontSize: '0.7rem',
-                                  }}
-                                />
-                                <Chip
-                                  size="small"
-                                  label={rupee(teamInfo.teamTotalDisbursal)}
-                                  sx={{
-                                    bgcolor: '#FCE7F3',
-                                    fontWeight: 700,
-                                    color: '#9D174D',
-                                    fontSize: '0.7rem',
-                                  }}
-                                />
-                              </Box> */}
+
                               <Tooltip title="View Team Breakdown">
                                 <IconButton
                                   size="small"
                                   onClick={() => fetchTeamBreakdown(r.code!)}
-                                  sx={{
-                                    bgcolor: '#EEF2FF',
-                                    '&:hover': { bgcolor: '#C7D2FE' },
-                                  }}
+                                  sx={{ bgcolor: '#EEF2FF', '&:hover': { bgcolor: '#C7D2FE' } }}
                                 >
                                   <VisibilityIcon sx={{ fontSize: 16, color: '#4F46E5' }} />
                                 </IconButton>
@@ -2061,7 +1566,6 @@ export default function PerformanceUploadPage() {
                         </TableCell>
 
                         <TableCell align="right">
-
                           {canAddRow ? (
                             <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                               <Tooltip title="Edit row">
@@ -2070,7 +1574,6 @@ export default function PerformanceUploadPage() {
                                   size="small"
                                   onClick={() => {
                                     setEditingId(r._id);
-
                                     if (r.date) setDate(dayjs(r.date));
 
                                     setForm({
@@ -2105,16 +1608,123 @@ export default function PerformanceUploadPage() {
                               —
                             </Typography>
                           )}
-
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })}
                 </TableBody>
               </Table>
             </TableContainer>
           )}
         </Paper>
+
+        {/* ✅ ONE KPI VIEW MODAL (for ALL boxes) */}
+        <Dialog
+          open={kpiModalOpen}
+          onClose={() => setKpiModalOpen(false)}
+          fullWidth
+          maxWidth="lg"
+          PaperProps={{
+            sx: { borderRadius: 3, boxShadow: '0 25px 60px rgba(15,23,42,0.35)' },
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 900, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <VisibilityIcon sx={{ color: '#0E7490' }} />
+            {kpiTitle(kpiModalType)} ({kpiModalRows.length})
+          </DialogTitle>
+
+          <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
+            {kpiModalRows.length === 0 ? (
+              <Box sx={{ textAlign: 'center', p: 3, bgcolor: '#F8FAFC', borderRadius: 2 }}>
+                <Typography color="text.secondary">No records found for this KPI.</Typography>
+              </Box>
+            ) : (
+              <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#F1F5F9' }}>
+                      <TableCell sx={{ fontWeight: 800 }}>S.No.</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>Employee</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>Code</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>Manager / TL</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 900, color: '#0E7490' }}>
+                        Value
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+
+                  <TableBody>
+                    {kpiModalRows.map((r: any, idx: number) => (
+                      <TableRow key={r._id} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+                        <TableCell>
+                          <Typography sx={{ fontWeight: 800 }}>{idx + 1}</Typography>
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                            {r.date ? dayjs(r.date).format('DD-MM-YYYY') : '—'}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography sx={{ fontWeight: 800, color: '#1E293B' }}>
+                            {r.employee_name || '-'}
+                          </Typography>
+                          {r.employee_id && (
+                            <Typography variant="caption" sx={{ color: '#64748B' }}>
+                              {r.employee_id}
+                            </Typography>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: '#64748B' }}>
+                            {r.code || '—'}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell>
+                          {r.manager_tl ? (
+                            <Chip
+                              size="small"
+                              label={r.manager_tl}
+                              sx={{ bgcolor: '#F3E8FF', fontWeight: 700, color: '#6b21a8' }}
+                            />
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">
+                              —
+                            </Typography>
+                          )}
+                        </TableCell>
+
+                        <TableCell align="right">
+                          {kpiModalType === 'logins' ? (
+                            <Chip
+                              size="small"
+                              label={Number(r.__metric || 0).toLocaleString('en-IN')}
+                              sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 900 }}
+                            />
+                          ) : (
+                            <Chip
+                              size="small"
+                              label={rupee(Number(r.__metric || 0))}
+                              sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 900 }}
+                            />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button onClick={() => setKpiModalOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
 
         {/* ========== Team Breakdown Modal ========== */}
         <Dialog
@@ -2136,15 +1746,17 @@ export default function PerformanceUploadPage() {
             <GroupsIcon sx={{ color: '#4F46E5' }} />
             Team Performance Breakdown
           </DialogTitle>
+
           <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
             {teamBreakdownLoading ? (
               <Box sx={{ p: 3, textAlign: 'center' }}>
                 <LinearProgress />
-                <Typography variant="body2" sx={{ mt: 1 }}>Loading team data...</Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Loading team data...
+                </Typography>
               </Box>
             ) : teamBreakdown ? (
               <Box>
-                {/* Employee Info */}
                 <Paper sx={{ p: 2, mb: 3, bgcolor: '#F8FAFC', borderRadius: 2 }}>
                   <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} md={6}>
@@ -2156,7 +1768,13 @@ export default function PerformanceUploadPage() {
                       </Typography>
                       <Chip
                         size="small"
-                        label={teamBreakdown.role === 'manager' ? 'Manager' : teamBreakdown.role === 'team_leader' ? 'Team Leader' : 'Employee'}
+                        label={
+                          teamBreakdown.role === 'manager'
+                            ? 'Manager'
+                            : teamBreakdown.role === 'team_leader'
+                            ? 'Team Leader'
+                            : 'Employee'
+                        }
                         sx={{
                           mt: 1,
                           bgcolor: teamBreakdown.role === 'manager' ? '#FEF3C7' : '#DBEAFE',
@@ -2168,7 +1786,9 @@ export default function PerformanceUploadPage() {
                     <Grid item xs={12} md={6}>
                       {teamBreakdown.team && (
                         <Box sx={{ textAlign: { md: 'right' } }}>
-                          <Typography variant="body2" sx={{ color: '#64748B' }}>Team</Typography>
+                          <Typography variant="body2" sx={{ color: '#64748B' }}>
+                            Team
+                          </Typography>
                           <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#4F46E5' }}>
                             {teamBreakdown.team.name}
                           </Typography>
@@ -2178,94 +1798,51 @@ export default function PerformanceUploadPage() {
                   </Grid>
                 </Paper>
 
-                {/* Team Totals Summary */}
                 <Grid container spacing={2} sx={{ mb: 3 }}>
-
-                  {/* Team Members */}
                   <Grid item xs={6} md={3}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        textAlign: 'center',
-                        bgcolor: '#DCFCE7',
-                        borderRadius: 2,
-                      }}
-                    >
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#DCFCE7', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
                         Team Members
                       </Typography>
-
                       <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
                         {teamBreakdown.totals.memberCount}
                       </Typography>
                     </Paper>
                   </Grid>
 
-                  {/* Total Logins */}
                   <Grid item xs={6} md={3}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        textAlign: 'center',
-                        bgcolor: '#E0F2FE',
-                        borderRadius: 2,
-                      }}
-                    >
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#E0F2FE', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
                         Total Logins
                       </Typography>
-
                       <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E40AF' }}>
                         {teamBreakdown.totals.totalLogins.toLocaleString('en-IN')}
                       </Typography>
                     </Paper>
                   </Grid>
 
-                  {/* Total Disbursal */}
                   <Grid item xs={6} md={3}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        textAlign: 'center',
-                        bgcolor: '#EDE9FE',     // light purple
-                        borderRadius: 2,
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
-                        sx={{ color: '#6D28D9', fontWeight: 600 }}  // dark purple
-                      >
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
                         Total Approval
                       </Typography>
-
-                      <Typography
-                        variant="h5"
-                        sx={{ fontWeight: 800, color: '#6D28D9' }}
-                      >
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
                         {rupee(teamBreakdown.totals.totalApproval)}
                       </Typography>
                     </Paper>
                   </Grid>
 
-                  {/* Total Disbursal */}
                   <Grid item xs={6} md={3}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        textAlign: 'center',
-                        bgcolor: '#DCFCE7',   // green
-                        borderRadius: 2,
-                      }}
-                    >
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#DCFCE7', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
                         Total Disbursal
                       </Typography>
-
                       <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
                         {rupee(teamBreakdown.totals.totalDisbursal)}
                       </Typography>
                     </Paper>
                   </Grid>
+
                   <Grid item xs={6} md={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#E0F2FE', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
@@ -2289,10 +1866,10 @@ export default function PerformanceUploadPage() {
                   </Grid>
                 </Grid>
 
-                {/* Member Breakdown Table */}
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
                   Member-wise Breakdown
                 </Typography>
+
                 {teamBreakdown.memberBreakdown.length > 0 ? (
                   <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
                     <Table size="small">
@@ -2300,16 +1877,27 @@ export default function PerformanceUploadPage() {
                         <TableRow sx={{ bgcolor: '#F1F5F9' }}>
                           <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Logins</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>Approvals (₹)</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>Disbursal (₹)</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>Drop (₹)</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>Cashback (₹)</TableCell>
-
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>Gross Approval (₹)</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 800 }}>Gross Disbursal (₹)</TableCell>
-
-                          {/* <TableCell align="right" sx={{ fontWeight: 800 }}>ABNP (₹)</TableCell> */}
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>
+                            Logins
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Approvals (₹)
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Disbursal (₹)
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Drop (₹)
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Cashback (₹)
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Gross Approval (₹)
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Gross Disbursal (₹)
+                          </TableCell>
                         </TableRow>
                       </TableHead>
 
@@ -2383,11 +1971,9 @@ export default function PerformanceUploadPage() {
                                 sx={{ bgcolor: '#EDE9FE', color: '#6D28D9', fontWeight: 800 }}
                               />
                             </TableCell>
-
                           </TableRow>
                         ))}
                       </TableBody>
-
                     </Table>
                   </TableContainer>
                 ) : (
@@ -2404,6 +1990,7 @@ export default function PerformanceUploadPage() {
               </Box>
             )}
           </DialogContent>
+
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button
               onClick={() => {
@@ -2437,6 +2024,7 @@ export default function PerformanceUploadPage() {
           <DialogTitle sx={{ fontWeight: 800 }}>
             {editingId ? 'Edit Performance' : 'Add Performance'}
           </DialogTitle>
+
           <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
             <Grid container spacing={2.5}>
               <Grid item xs={12} md={6}>
@@ -2449,6 +2037,7 @@ export default function PerformanceUploadPage() {
                   required
                 />
               </Grid>
+
               <Grid item xs={12} md={4}>
                 <TextField
                   label="Code (optional)"
@@ -2471,51 +2060,62 @@ export default function PerformanceUploadPage() {
                     setForm((prev) => ({ ...prev, manager_tl: value }))
                   }
                   renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Manager / TL"
-                      fullWidth
-                      size="medium"
-                      required
-                    />
+                    <TextField {...params} label="Manager / TL" fullWidth size="medium" required />
                   )}
                 />
               </Grid>
 
-              <Grid item xs={12} md={4}> <TextField label="Total Logins" type="number" value={form.total_logins} onChange={handleFormChange('total_logins')} fullWidth size="medium" /> </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Total Logins"
+                  type="number"
+                  value={form.total_logins}
+                  onChange={handleFormChange('total_logins')}
+                  fullWidth
+                  size="medium"
+                />
+              </Grid>
 
+              <Grid item xs={12} md={12}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" sx={{ color: '#475569', fontWeight: 700 }}>
+                    Amount Unit:
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant={amountUnit === 'rupees' ? 'contained' : 'outlined'}
+                    onClick={() => setAmountUnit('rupees')}
+                    sx={{ borderRadius: 999, textTransform: 'none' }}
+                  >
+                    Rupees
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={amountUnit === 'lakhs' ? 'contained' : 'outlined'}
+                    onClick={() => setAmountUnit('lakhs')}
+                    sx={{ borderRadius: 999, textTransform: 'none' }}
+                  >
+                    Lakhs
+                  </Button>
+                </Stack>
+              </Grid>
 
               {/* Approval */}
               <Grid item xs={12} md={4}>
                 <TextField
-                  label={
-                    amountUnit === 'rupees'
-                      ? 'Approval (₹ in Rupees)'
-                      : 'Approval (₹ in Lakhs)'
-                  }
+                  label={amountUnit === 'rupees' ? 'Approval (₹ in Rupees)' : 'Approval (₹ in Lakhs)'}
                   type="text"
                   value={form.approval_lakh ?? ''}
                   onChange={(e) => {
                     const val = e.target.value;
-
                     const isAllowed = /^[0-9,]*$/.test(val) || val === '';
-
                     if (!isAllowed) return;
-                    setForm((prev) => ({
-                      ...prev,
-                      approval_lakh: val,
-                    }));
+                    setForm((prev) => ({ ...prev, approval_lakh: val }));
                   }}
                   onBlur={() => {
                     const raw = (form.approval_lakh || '').replace(/,/g, '');
-
                     if (raw === '' || isNaN(Number(raw))) return;
-                    const formatted = Number(raw).toLocaleString('en-IN');
-
-                    setForm((prev) => ({
-                      ...prev,
-                      approval_lakh: formatted,
-                    }));
+                    setForm((prev) => ({ ...prev, approval_lakh: Number(raw).toLocaleString('en-IN') }));
                   }}
                   fullWidth
                   size="medium"
@@ -2525,100 +2125,69 @@ export default function PerformanceUploadPage() {
               {/* Disbursal */}
               <Grid item xs={12} md={4}>
                 <TextField
-                  label={
-                    amountUnit === 'rupees'
-                      ? 'Disbursal (₹ in Rupees)'
-                      : 'Disbursal (₹ in Lakhs)'
-                  }
+                  label={amountUnit === 'rupees' ? 'Disbursal (₹ in Rupees)' : 'Disbursal (₹ in Lakhs)'}
                   type="text"
                   value={form.disbursal_lakh ?? ''}
                   onChange={(e) => {
                     const val = e.target.value;
-
                     const isAllowed = /^[0-9,]*$/.test(val) || val === '';
-
                     if (!isAllowed) return;
-                    setForm((prev) => ({
-                      ...prev,
-                      disbursal_lakh: val,
-                    }));
+                    setForm((prev) => ({ ...prev, disbursal_lakh: val }));
                   }}
                   onBlur={() => {
                     const raw = (form.disbursal_lakh || '').replace(/,/g, '');
-
                     if (raw === '' || isNaN(Number(raw))) return;
-                    const formatted = Number(raw).toLocaleString('en-IN');
-
-                    setForm((prev) => ({
-                      ...prev,
-                      disbursal_lakh: formatted,
-                    }));
+                    setForm((prev) => ({ ...prev, disbursal_lakh: Number(raw).toLocaleString('en-IN') }));
                   }}
                   fullWidth
                   size="medium"
                 />
               </Grid>
-              {/* Drop Amount */}
+
+              {/* Drop */}
               <Grid item xs={12} md={4}>
                 <TextField
-                  label={
-                    amountUnit === 'rupees'
-                      ? 'Drop Amount (₹ in Rupees)'
-                      : 'Drop Amount (₹ in Lakhs)'
-                  }
+                  label={amountUnit === 'rupees' ? 'Drop Amount (₹ in Rupees)' : 'Drop Amount (₹ in Lakhs)'}
                   type="text"
                   value={form.drop_lakh ?? ''}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (/^[0-9,]*$/.test(val) || val === '') {
-                      setForm((prev) => ({ ...prev, drop_lakh: val }));
-                    }
+                    if (/^[0-9,]*$/.test(val) || val === '') setForm((prev) => ({ ...prev, drop_lakh: val }));
                   }}
                   onBlur={() => {
                     const raw = (form.drop_lakh || '').replace(/,/g, '');
                     if (raw !== '' && !isNaN(Number(raw))) {
-                      setForm((prev) => ({
-                        ...prev,
-                        drop_lakh: Number(raw).toLocaleString('en-IN'),
-                      }));
+                      setForm((prev) => ({ ...prev, drop_lakh: Number(raw).toLocaleString('en-IN') }));
                     }
                   }}
                   fullWidth
                   size="medium"
                 />
               </Grid>
+
+              {/* Cashback */}
               <Grid item xs={12} md={4}>
                 <TextField
-                  label={
-                    amountUnit === 'rupees'
-                      ? 'Cashback Amount (₹ in Rupees)'
-                      : 'Cashback Amount (₹ in Lakhs)'
-                  }
+                  label={amountUnit === 'rupees' ? 'Cashback Amount (₹ in Rupees)' : 'Cashback Amount (₹ in Lakhs)'}
                   type="text"
                   value={form.cashback_lakh ?? ''}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (/^[0-9,]*$/.test(val) || val === '') {
-                      setForm((prev) => ({ ...prev, cashback_lakh: val }));
-                    }
+                    if (/^[0-9,]*$/.test(val) || val === '') setForm((prev) => ({ ...prev, cashback_lakh: val }));
                   }}
                   onBlur={() => {
                     const raw = (form.cashback_lakh || '').replace(/,/g, '');
                     if (raw !== '' && !isNaN(Number(raw))) {
-                      setForm((prev) => ({
-                        ...prev,
-                        cashback_lakh: Number(raw).toLocaleString('en-IN'),
-                      }));
+                      setForm((prev) => ({ ...prev, cashback_lakh: Number(raw).toLocaleString('en-IN') }));
                     }
                   }}
                   fullWidth
                   size="medium"
                 />
               </Grid>
-
-
             </Grid>
           </DialogContent>
+
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button
               onClick={() => {
@@ -2631,11 +2200,7 @@ export default function PerformanceUploadPage() {
             >
               Cancel
             </Button>
-            <Button
-              variant="contained"
-              onClick={onFormSubmit}
-              disabled={formSaving}
-            >
+            <Button variant="contained" onClick={onFormSubmit} disabled={formSaving}>
               {formSaving ? 'Saving…' : editingId ? 'Update Row' : 'Save Row'}
             </Button>
           </DialogActions>
@@ -2645,10 +2210,6 @@ export default function PerformanceUploadPage() {
   );
 }
 
-/**
- * Small helper "star" icon using simple shape,
- * so we don't add a new MUI icon import.
- */
 function StarBorderIconLike() {
   return (
     <Box
@@ -2662,11 +2223,7 @@ function StarBorderIconLike() {
         justifyContent: 'center',
       }}
     >
-      <StarIconInside />
+      <span style={{ fontSize: 14, lineHeight: 1 }}>★</span>
     </Box>
   );
-}
-
-function StarIconInside() {
-  return <span style={{ fontSize: 14, lineHeight: 1 }}>★</span>;
 }
