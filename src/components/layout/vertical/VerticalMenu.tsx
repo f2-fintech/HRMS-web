@@ -3,18 +3,8 @@ import { useEffect, useState } from 'react'
 
 import Chip from '@mui/material/Chip'
 import { useTheme } from '@mui/material/styles'
-
-// Third-party Imports
 import PerfectScrollbar from 'react-perfect-scrollbar'
-
-// Type Imports
 import HolidayVillageIcon from '@mui/icons-material/HolidayVillage'
-
-// Component Imports
-
-// Hook Imports
-
-// Styled Component Imports
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import GroupIcon from '@mui/icons-material/Group'
@@ -30,20 +20,16 @@ import GavelIcon from '@mui/icons-material/Gavel'
 
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-// import ArticleIcon from '@mui/icons-material/Article';
-
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { Menu, SubMenu, MenuItem, MenuSection } from '@menu/vertical-menu'
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
-
-// Style Imports
 import menuItemStyles from '@core/styles/vertical/menuItemStyles'
 import menuSectionStyles from '@core/styles/vertical/menuSectionStyles'
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
 import SupportAgentIcon from '@mui/icons-material/SupportAgent'
 import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
-
+import VideoCallIcon from '@mui/icons-material/VideoCall'
 
 type RenderExpandIconProps = {
   open?: boolean
@@ -67,13 +53,10 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
-
     setUserRole(user.role || null)
   }, [])
 
   return (
-    // eslint-disable-next-line lines-around-comment
-    /* Custom scrollbar instead of browser scroll, remove if you want browser scroll only */
     <ScrollWrapper
       {...(isBreakpointReached
         ? {
@@ -85,8 +68,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           onScrollY: container => scrollMenu(container, true)
         })}
     >
-      {/* Incase you also want to scroll NavHeader to scroll with Vertical Menu, remove NavHeader from above and paste it below this comment */}
-      {/* Vertical Menu */}
+    
       <Menu
         menuItemStyles={menuItemStyles(theme)}
         renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
@@ -175,15 +157,16 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           }
           {userRole !== "0" &&
             <>
-              <MenuItem href={`/holidays`} icon={<EventIcon />}>
-                Holiday
-              </MenuItem>
+              
               <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
                 Attendance
               </MenuItem>
               <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
                 Leaves
               </MenuItem>
+             <MenuItem href={`/meetings`} icon={<VideoCallIcon />}>
+  Meetings
+</MenuItem>
               <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
                 Teams
               </MenuItem>
@@ -191,25 +174,29 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
                 Break Sheet
               </MenuItem>
-              <MenuItem href={`/fine`} icon={<GavelIcon />}>
-                Fine
-              </MenuItem>
-              <MenuItem href={`/performance`} icon={<HeadsetMicIcon/>}>
+              <MenuItem href={`/performance`} icon={<HeadsetMicIcon />}>
                 Performance
               </MenuItem>
               <MenuItem href={`/departmentPerformance`} icon={<AssessmentIcon />}>
                 Support Function
               </MenuItem>
+              <MenuItem href={`/fine`} icon={<GavelIcon />}>
+                Fine
+              </MenuItem>
+
               {/* <MenuItem href={`/pages`} icon={<ArticleIcon />}>
                 Pages
               </MenuItem> */}
-              <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
-                Query
-              </MenuItem>
               <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
                 Expense Tracker
               </MenuItem>
+              <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
+                Query
+              </MenuItem>
 
+ <MenuItem href={`/holidays`} icon={<EventIcon />}>
+                Holiday
+              </MenuItem>
               <MenuItem href={`/assests`} icon={<InventoryIcon />}>
                 Assets
               </MenuItem>
