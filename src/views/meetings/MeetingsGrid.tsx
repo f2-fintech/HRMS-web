@@ -834,15 +834,7 @@ const MeetingsGrid = () => {
             </Box>
 
             <Stack direction="row" spacing={1.5} alignItems="center">
-              <Button
-                variant="outlined"
-                startIcon={listLoading ? <CircularProgress size={14} sx={{ color: '#7C3AED' }} /> : <RefreshIcon />}
-                onClick={fetchMeetings}
-                disabled={listLoading}
-                size="small"
-              >
-                Refresh
-              </Button>
+            
 
               <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate} size="small">
                 New Meeting
