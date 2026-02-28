@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -21,10 +20,6 @@ import {
   Typography,
   InputAdornment,
   Tooltip,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -120,7 +115,7 @@ type Meeting = {
   attendee_employee_ids?: string[];
   attendee_emails?: string[];
 
-  status?: MeetingStatus; // ✅ IMPORTANT: show cancelled/completed etc
+  status?: MeetingStatus;
   createdAt?: string;
 };
 
@@ -217,7 +212,9 @@ const MeetingCard = ({
           left: 0,
           right: 0,
           height: '2px',
-          background: isCancelled ? 'linear-gradient(90deg, #EF4444, #F97316)' : 'linear-gradient(90deg, #7C3AED, #EC4899)',
+          background: isCancelled
+            ? 'linear-gradient(90deg, #EF4444, #F97316)'
+            : 'linear-gradient(90deg, #7C3AED, #EC4899)',
           opacity: 0,
           transition: 'opacity 0.25s ease',
         },
@@ -255,7 +252,6 @@ const MeetingCard = ({
                 {m.title}
               </Typography>
 
-              {/* ✅ Status Chip */}
               <Chip
                 icon={s.icon}
                 label={s.label}
@@ -348,9 +344,12 @@ const MeetingCard = ({
           </Box>
         </Stack>
 
-        {/* Right actions */}
         <Stack direction="row" spacing={1} alignItems="center">
-          <Tooltip title={isCancelled ? 'Cancelled meeting cannot be edited' : isCompleted ? 'Completed meeting cannot be edited' : 'Edit meeting'}>
+          <Tooltip
+            title={
+              isCancelled ? 'Cancelled meeting cannot be edited' : isCompleted ? 'Completed meeting cannot be edited' : 'Edit meeting'
+            }
+          >
             <span>
               <IconButton
                 onClick={() => onEdit(m)}
@@ -419,47 +418,47 @@ const MeetingsGrid = () => {
     remarks: '',
   });
 
-  // ✅ Status Filter dropdown
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'SCHEDULED' | 'UPDATED' | 'CANCELLED' | 'COMPLETED'>('ALL');
 
-  // ✅ Cancel modal
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelId, setCancelId] = useState<string>('');
   const [cancelReason, setCancelReason] = useState<string>('');
   const [canceling, setCanceling] = useState(false);
 
-  // ✅ Edit modal
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState<string>('');
   const [updating, setUpdating] = useState(false);
 
+  // ✅ Always return consistent auth: "Bearer <token> <companyId>"
+  const getAuth = () => {
+    const tokenRaw = localStorage.getItem('token') || '';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const cid = String(user?.company_id || user?.companyId || '');
+
+    if (!tokenRaw || !cid) return { auth: '', company_id: cid, user };
+
+    const baseBearer = tokenRaw.toLowerCase().startsWith('bearer ')
+      ? tokenRaw.split(' ').slice(0, 2).join(' ')
+      : `Bearer ${tokenRaw}`;
+
+    return { auth: `${baseBearer} ${cid}`, company_id: cid, user };
+  };
+
   useEffect(() => {
     try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const cid = String(user?.company_id || user?.companyId || '');
-      setCompanyId(cid);
-
-      const rawToken = localStorage.getItem('token') || '';
-      let finalAuth = rawToken;
-
-      // backend format: "Bearer <token> <companyId>"
-      if (rawToken && !rawToken.toLowerCase().startsWith('bearer ')) {
-        finalAuth = `Bearer ${rawToken} ${cid}`;
-      } else if (rawToken && rawToken.toLowerCase().startsWith('bearer ') && rawToken.split(' ').length < 3) {
-        finalAuth = `${rawToken} ${cid}`;
-      }
-
-      setAuthHeader(finalAuth);
+      const { auth, company_id } = getAuth();
+      setCompanyId(company_id);
+      setAuthHeader(auth);
     } catch {
       setCompanyId('');
       setAuthHeader('');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showToast = (msg: string, type: 'success' | 'error') => setToast({ open: true, msg, type });
 
-  const empLabel = (e: Employee) =>
-    `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || e?.work_email || e?.email || '';
+  const empLabel = (e: Employee) => `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || e?.work_email || e?.email || '';
 
   const normalizeList = (data: any) => {
     if (Array.isArray(data)) return data;
@@ -470,16 +469,14 @@ const MeetingsGrid = () => {
     return [];
   };
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (): Promise<Employee[]> => {
     try {
       setEmpLoading(true);
-      const token = localStorage.getItem('token');
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const company_id = user?.company_id;
+      const { auth, company_id } = getAuth();
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/get?page=1&limit=200`, {
         headers: {
-          Authorization: `Bearer ${token} ${company_id}`,
+          Authorization: auth,
           'Content-Type': 'application/json',
         },
       });
@@ -490,11 +487,14 @@ const MeetingsGrid = () => {
       }
 
       const data = await response.json().catch(() => ({}));
-      setEmployees(normalizeList(data) as Employee[]);
+      const list = normalizeList(data) as Employee[];
+      setEmployees(list);
+      return list;
     } catch (e: any) {
       console.error(e);
       setEmployees([]);
       showToast(e?.message || 'Employees fetch failed', 'error');
+      return [];
     } finally {
       setEmpLoading(false);
     }
@@ -503,15 +503,13 @@ const MeetingsGrid = () => {
   const fetchMeetings = async () => {
     try {
       setListLoading(true);
-      const token = localStorage.getItem('token');
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const company_id = user?.company_id;
+      const { auth, company_id } = getAuth();
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/meetings/list?company_id=${encodeURIComponent(company_id)}&page=1&limit=200`,
         {
           headers: {
-            Authorization: `Bearer ${token} ${company_id}`,
+            Authorization: auth,
             'Content-Type': 'application/json',
           },
         },
@@ -538,7 +536,6 @@ const MeetingsGrid = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authHeader, companyId]);
 
-  // ✅ Dropdown filter applied here
   const filteredMeetings = useMemo(() => {
     const s = statusFilter;
     if (s === 'ALL') return meetings;
@@ -550,19 +547,12 @@ const MeetingsGrid = () => {
     [meetings],
   );
 
-  const completedCount = useMemo(
-    () => meetings.filter((m) => String(m.status || '').toUpperCase() === 'COMPLETED').length,
-    [meetings],
-  );
+  const completedCount = useMemo(() => meetings.filter((m) => String(m.status || '').toUpperCase() === 'COMPLETED').length, [meetings]);
 
-  const cancelledCount = useMemo(
-    () => meetings.filter((m) => String(m.status || '').toUpperCase() === 'CANCELLED').length,
-    [meetings],
-  );
+  const cancelledCount = useMemo(() => meetings.filter((m) => String(m.status || '').toUpperCase() === 'CANCELLED').length, [meetings]);
 
   const canSave = Boolean(form.title.trim() && form.start_time && companyId);
 
-  // ─── Create ──────────────────────────────────────────────────────────────────
   const handleOpenCreate = async () => {
     setForm({ title: '', start_time: '', end_time: '', meeting_link: '', remarks: '' });
     setSelectedEmployees([]);
@@ -571,9 +561,11 @@ const MeetingsGrid = () => {
     await fetchEmployees();
     setOpen(true);
   };
+
   const handleCloseCreate = () => setOpen(false);
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const addEmailFromInput = () => {
     const email = emailInput.trim();
     if (!email) return;
@@ -581,6 +573,7 @@ const MeetingsGrid = () => {
     setExtraEmails((prev) => (prev.includes(email) ? prev : [...prev, email]));
     setEmailInput('');
   };
+
   const removeEmail = (email: string) => setExtraEmails((prev) => prev.filter((e) => e !== email));
 
   const handleCreate = async () => {
@@ -588,25 +581,21 @@ const MeetingsGrid = () => {
       if (!canSave) return;
       setSaving(true);
 
-      const token = localStorage.getItem('token') || '';
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-      const company_id = String(user?.company_id || user?.companyId || '');
-      const created_by = String(user?._id || user?.id || ''); // ✅ fallback + string
+      const { auth, company_id, user } = getAuth();
+      const created_by = String(user?._id || user?.id || '');
 
       if (!company_id) throw new Error('company_id missing. Please login again.');
       if (!created_by) throw new Error('created_by missing. Please login again.');
+      if (!auth) throw new Error('Auth missing. Please login again.');
 
       const payload = {
         title: form.title.trim(),
         start_time: new Date(form.start_time).toISOString(),
-        end_time: form.end_time
-          ? new Date(form.end_time).toISOString()
-          : new Date(form.start_time).toISOString(),
+        end_time: form.end_time ? new Date(form.end_time).toISOString() : new Date(form.start_time).toISOString(),
         meeting_link: form.meeting_link?.trim(),
         remarks: form.remarks?.trim(),
         company_id,
-        created_by, // ✅ ALWAYS STRING
+        created_by,
         attendee_employee_ids: selectedEmployees.map((e) => e._id),
         attendee_emails: extraEmails,
       };
@@ -614,7 +603,7 @@ const MeetingsGrid = () => {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/meetings/create`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token} ${company_id}`,
+          Authorization: auth,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
@@ -635,12 +624,14 @@ const MeetingsGrid = () => {
       setSaving(false);
     }
   };
+
   // ─── Cancel ──────────────────────────────────────────────────────────────────
   const openCancelDialog = (id: string) => {
     setCancelId(id);
     setCancelReason('');
     setCancelOpen(true);
   };
+
   const closeCancelDialog = () => {
     setCancelOpen(false);
     setCancelId('');
@@ -652,10 +643,11 @@ const MeetingsGrid = () => {
       if (!cancelId) return;
 
       setCanceling(true);
-      const token = localStorage.getItem('token') || '';
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+      const { auth, user } = getAuth();
       const deleted_by = String(user?._id || user?.id || '');
       if (!deleted_by) throw new Error('user_id missing. Please login again.');
+      if (!auth) throw new Error('Auth missing. Please login again.');
 
       const qs = new URLSearchParams();
       qs.set('deleted_by', deleted_by);
@@ -666,7 +658,7 @@ const MeetingsGrid = () => {
         {
           method: 'DELETE',
           headers: {
-            Authorization: token.toLowerCase().startsWith('bearer ') ? token : `Bearer ${token}`,
+            Authorization: auth, // ✅ ALWAYS Bearer <token> <companyId>
             'Content-Type': 'application/json',
           },
         },
@@ -688,9 +680,9 @@ const MeetingsGrid = () => {
     }
   };
 
-  // ─── Edit/Update (same as earlier, keep your existing update impl if already) ─
+  // ─── Edit/Update ─────────────────────────────────────────────────────────────
   const openEditDialog = async (m: Meeting) => {
-    await fetchEmployees();
+    const list = await fetchEmployees();
     setEditId(m._id);
 
     setForm({
@@ -701,11 +693,10 @@ const MeetingsGrid = () => {
       remarks: m.remarks || '',
     });
 
-    const selected = employees.filter((e) => (m.attendee_employee_ids || []).includes(e._id));
+    const selected = list.filter((e) => (m.attendee_employee_ids || []).includes(e._id));
     setSelectedEmployees(selected);
     setExtraEmails(m.attendee_emails || []);
     setEmailInput('');
-
     setEditOpen(true);
   };
 
@@ -721,9 +712,9 @@ const MeetingsGrid = () => {
       if (!canUpdate) return;
 
       setUpdating(true);
-      const token = localStorage.getItem('token');
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const company_id = user?.company_id;
+
+      const { auth, company_id } = getAuth();
+      if (!auth) throw new Error('Auth missing. Please login again.');
 
       const payload: any = {
         title: form.title.trim(),
@@ -739,7 +730,7 @@ const MeetingsGrid = () => {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/meetings/update/${encodeURIComponent(editId)}`, {
         method: 'PUT',
         headers: {
-          Authorization: `Bearer ${token} ${company_id}`,
+          Authorization: auth,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
@@ -840,28 +831,9 @@ const MeetingsGrid = () => {
                   }}
                 />
               </Stack>
-
-
             </Box>
 
             <Stack direction="row" spacing={1.5} alignItems="center">
-              {/* ✅ Status Dropdown filter */}
-              {/* <FormControl size="small" sx={{ minWidth: 170 }}>
-                <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select
-                  labelId="status-filter-label"
-                  label="Status"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
-                >
-                  <MenuItem value="ALL">All</MenuItem>
-                  <MenuItem value="SCHEDULED">Scheduled</MenuItem>
-                  <MenuItem value="UPDATED">Updated</MenuItem>
-                  <MenuItem value="COMPLETED">Completed</MenuItem>
-                  <MenuItem value="CANCELLED">Cancelled</MenuItem>
-                </Select>
-              </FormControl> */}
-
               <Button
                 variant="outlined"
                 startIcon={listLoading ? <CircularProgress size={14} sx={{ color: '#7C3AED' }} /> : <RefreshIcon />}
@@ -897,11 +869,9 @@ const MeetingsGrid = () => {
             }}
           >
             <VideoCallIcon sx={{ fontSize: 52, color: '#E9D5FF', mb: 2 }} />
-            <Typography sx={{ color: '#6B7280', fontWeight: 600, mb: 0.5 }}>
-              No meetings for selected status
-            </Typography>
+            <Typography sx={{ color: '#6B7280', fontWeight: 600, mb: 0.5 }}>No meetings found</Typography>
             <Typography sx={{ color: '#9CA3AF', fontSize: '0.875rem', mb: 3 }}>
-              Change the status filter or create a new meeting.
+              Create a new meeting to get started.
             </Typography>
             <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate} size="small">
               Create Meeting
@@ -915,17 +885,12 @@ const MeetingsGrid = () => {
           </Stack>
         )}
 
-        {/* Create Dialog (same as your existing create dialog) */}
+        {/* Create Dialog */}
         <Dialog open={open} onClose={handleCloseCreate} fullWidth maxWidth="sm">
           <DialogTitle>Schedule a Meeting</DialogTitle>
           <DialogContent sx={{ px: 3.5, pb: 1 }}>
             <Stack spacing={2.5} sx={{ mt: 1.5 }}>
-              <TextField
-                label="Meeting Title"
-                value={form.title}
-                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                fullWidth
-              />
+              <TextField label="Meeting Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} fullWidth />
 
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                 <TextField
@@ -977,9 +942,7 @@ const MeetingsGrid = () => {
                 onChange={(_, val) => setSelectedEmployees(val)}
                 getOptionLabel={(opt) => empLabel(opt)}
                 isOptionEqualToValue={(opt, val) => opt._id === val._id}
-                renderInput={(params) => (
-                  <TextField {...params} label="Attendees (Employees)" placeholder="Search employees..." />
-                )}
+                renderInput={(params) => <TextField {...params} label="Attendees (Employees)" placeholder="Search employees..." />}
               />
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
@@ -1009,9 +972,7 @@ const MeetingsGrid = () => {
                 </Stack>
               )}
 
-              {!authHeader && (
-                <Alert severity="warning">Auth token missing. Please log in again.</Alert>
-              )}
+              {!authHeader && <Alert severity="warning">Auth token missing. Please log in again.</Alert>}
             </Stack>
           </DialogContent>
 
@@ -1032,17 +993,12 @@ const MeetingsGrid = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Edit Dialog (same as update) */}
+        {/* Edit Dialog */}
         <Dialog open={editOpen} onClose={closeEditDialog} fullWidth maxWidth="sm">
           <DialogTitle>Update Meeting</DialogTitle>
           <DialogContent sx={{ px: 3.5, pb: 1 }}>
             <Stack spacing={2.5} sx={{ mt: 1.5 }}>
-              <TextField
-                label="Meeting Title"
-                value={form.title}
-                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                fullWidth
-              />
+              <TextField label="Meeting Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} fullWidth />
 
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                 <TextField
@@ -1063,12 +1019,7 @@ const MeetingsGrid = () => {
                 />
               </Stack>
 
-              <TextField
-                label="Meeting Link"
-                value={form.meeting_link}
-                onChange={(e) => setForm((p) => ({ ...p, meeting_link: e.target.value }))}
-                fullWidth
-              />
+              <TextField label="Meeting Link" value={form.meeting_link} onChange={(e) => setForm((p) => ({ ...p, meeting_link: e.target.value }))} fullWidth />
 
               <TextField
                 label="Remarks / Agenda"
@@ -1087,9 +1038,7 @@ const MeetingsGrid = () => {
                 onChange={(_, val) => setSelectedEmployees(val)}
                 getOptionLabel={(opt) => empLabel(opt)}
                 isOptionEqualToValue={(opt, val) => opt._id === val._id}
-                renderInput={(params) => (
-                  <TextField {...params} label="Attendees (Employees)" placeholder="Search employees..." />
-                )}
+                renderInput={(params) => <TextField {...params} label="Attendees (Employees)" placeholder="Search employees..." />}
               />
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
@@ -1202,4 +1151,4 @@ const MeetingsGrid = () => {
   );
 };
 
-export default MeetingsGrid;  
+export default MeetingsGrid;
