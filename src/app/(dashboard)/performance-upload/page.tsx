@@ -111,6 +111,9 @@ type TeamTotalInfo = {
   teamTotalABNP?: number;
   teamTotalGrossApproval?: number;
   teamTotalGrossDisbursal?: number;
+    teamTotalHold?: number;
+    teamTotalReject?:number;
+
   memberCount: number;
   memberCodes: string[];
 };
@@ -132,6 +135,8 @@ type TeamBreakdown = {
     totalLogins: number;
     totalApproval: number;
     totalDisbursal: number;
+    totalHold: number;
+    totalRejected: number;
     totalDrop: number;
     totalCashback: number;
     totalGrossApproval?: number;
@@ -144,6 +149,8 @@ type TeamBreakdown = {
     code: string;
     name: string;
     logins: number;
+    hold: number;
+    rejected: number;
     approval: number;
     disbursal: number;
     drop?: number;
@@ -160,6 +167,9 @@ const rupee = (n: number) =>
 
 type KpiModalType =
   | 'logins'
+  | 'rejected'
+  | 'hold'
+  | 'inProcess'
   | 'grossApproval'
   | 'netApproval'
   | 'grossDisbursal'
@@ -172,6 +182,12 @@ function kpiTitle(type: KpiModalType) {
   switch (type) {
     case 'logins':
       return 'Login Cases';
+    case 'rejected':
+      return 'Rejected Cases';
+    case 'hold':
+      return 'Hold Cases';
+    case 'inProcess':
+      return 'In Process Cases';
     case 'grossApproval':
       return 'Gross Approval Cases';
     case 'netApproval':
@@ -195,6 +211,12 @@ function kpiMetricValue(type: KpiModalType, r: Row) {
   switch (type) {
     case 'logins':
       return Number(r.login || 0);
+    case 'rejected':
+      return Number(r.rejected || 0);
+    case 'hold':
+      return Number(r.hold || 0);
+    case 'inProcess':
+      return Number(r.in_process || 0);
     case 'grossApproval':
       return Number(r.gross_approval || 0);
     case 'netApproval':
@@ -213,6 +235,7 @@ function kpiMetricValue(type: KpiModalType, r: Row) {
       return 0;
   }
 }
+
 
 function KpiCard({
   title,
@@ -263,8 +286,8 @@ function KpiCard({
         >
           <Box
             sx={{
-              width: 40,
-              height: 40,
+              width: 30,
+              height: 30,
               borderRadius: 2,
               bgcolor: 'rgba(255,255,255,0.22)',
               display: 'flex',
@@ -347,6 +370,8 @@ export default function PerformanceUploadPage() {
     employee_name: '',
     manager_tl: '',
     total_logins: '',
+    total_rejected: '',
+    total_hold: '',
     approval_lakh: '',
     disbursal_lakh: '',
     drop_lakh: '',
@@ -376,7 +401,6 @@ export default function PerformanceUploadPage() {
     { code: string; name: string; role: string }[]
   >([]);
 
-  // ✅ ONE KPI modal for ALL boxes
   const [kpiModalOpen, setKpiModalOpen] = useState(false);
   const [kpiModalType, setKpiModalType] = useState<KpiModalType>('logins');
 
@@ -448,6 +472,10 @@ export default function PerformanceUploadPage() {
 
       const normalized: Row[] = raw.map((r) => {
         const login = Number(r.login ?? r.total_logins ?? 0);
+        const rejected = Number(r.rejected ?? r.total_rejected ?? 0);
+        const hold = Number(r.hold ?? r.total_hold ?? 0);
+        const in_process = Number(r.in_process ?? 0);
+
         const approval = Number(r.approval ?? r.approval_amount ?? 0);
         const disbursal = Number(r.disbursal ?? r.disbursal_amount ?? 0);
         const drop = Number(r.drop ?? r.drop_amount ?? 0);
@@ -460,6 +488,9 @@ export default function PerformanceUploadPage() {
         return {
           ...r,
           login,
+          rejected,
+          hold,
+          in_process,
           approval,
           disbursal,
           drop,
@@ -540,7 +571,8 @@ export default function PerformanceUploadPage() {
   };
 
   useEffect(() => {
-    if (rows.length > 0) fetchTeamTotals();  }, [rows]);
+    if (rows.length > 0) fetchTeamTotals();
+  }, [rows]);
 
   const fetchTeamBreakdown = async (code: string) => {
     try {
@@ -612,6 +644,8 @@ export default function PerformanceUploadPage() {
       employee_name: '',
       manager_tl: '',
       total_logins: '',
+      total_rejected: '',
+      total_hold: '',
       approval_lakh: '',
       disbursal_lakh: '',
       drop_lakh: '',
@@ -652,12 +686,15 @@ export default function PerformanceUploadPage() {
         code: form.code?.trim() || undefined,
         manager_tl: form.manager_tl.trim(),
         total_logins: Number(form.total_logins || 0),
+        total_rejected: Number(form.total_rejected || 0),
+        total_hold: Number(form.total_hold || 0),
         approval_amount: Math.round(approvalNumber * multiplier),
         disbursal_amount: Math.round(disbursalNumber * multiplier),
         drop_amount: Math.round(dropNumber * multiplier),
         cashback_amount: Math.round(cashbackNumber * multiplier),
         company_id: company_id || undefined,
       };
+
 
       if (editingId) {
         await api.patch(`/performance-upload/${editingId}`, payload);
@@ -682,6 +719,9 @@ export default function PerformanceUploadPage() {
     const sum = (
       k:
         | 'login'
+        | 'rejected'
+        | 'hold'
+        | 'in_process'
         | 'approval'
         | 'disbursal'
         | 'drop'
@@ -693,6 +733,9 @@ export default function PerformanceUploadPage() {
 
     return {
       logins: sum('login'),
+      rejected: sum('rejected'),
+      hold: sum('hold'),
+      inProcess: sum('in_process'),
       approvals: sum('approval'),
       disbursal: sum('disbursal'),
       drop: sum('drop'),
@@ -863,6 +906,9 @@ export default function PerformanceUploadPage() {
                     'employee_name',
                     'manager_tl',
                     'login',
+                    'rejected',
+                    'hold',
+                    'in_process',
                     'approval',
                     'disbursal',
                     'drop',
@@ -878,6 +924,9 @@ export default function PerformanceUploadPage() {
                     r.employee_name || '',
                     r.manager_tl || '',
                     Number(r.login || 0),
+                    Number(r.rejected || 0),
+                    Number(r.hold || 0),
+                    Number(r.in_process || 0),
                     Number(r.approval || 0),
                     Number(r.disbursal || 0),
                     Number(r.drop || 0),
@@ -1110,10 +1159,9 @@ export default function PerformanceUploadPage() {
             </Stack>
           </Box>
         </Paper>
-
-        {/* KPI CARDS */}
         <Grid container spacing={2}>
-          <Grid item xs={12} md={2.4}>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="Total Logins"
               value={totals.logins.toLocaleString('en-IN')}
@@ -1123,19 +1171,30 @@ export default function PerformanceUploadPage() {
               onView={() => openKpiModal('logins')}
             />
           </Grid>
+            <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="In Process"
+              value={totals.inProcess.toLocaleString('en-IN')}
+              leftIcon={<span style={{ fontSize: 18 }}>⟳</span>}
+              bg="linear-gradient(135deg, #6366f1 0%, #4338ca 100%)"
+              subColor="#e0e7ff"
+              onView={() => openKpiModal('inProcess')}
+            />
+          </Grid>
 
-          <Grid item xs={12} md={2.4}>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="Total Gross Approval"
               value={rupee(totals.grossApproval)}
-              leftIcon={<span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>}
+              leftIcon={<span style={{ fontSize: 18 }}>₹</span>}
               bg="linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
               subColor="rgba(255,255,255,0.85)"
               onView={() => openKpiModal('grossApproval')}
             />
           </Grid>
 
-          <Grid item xs={12} md={2.4}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="Total Net Approval"
               value={rupee(totals.approvals)}
@@ -1146,18 +1205,18 @@ export default function PerformanceUploadPage() {
             />
           </Grid>
 
-          <Grid item xs={12} md={2.4}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="Total Gross Disbursal"
               value={rupee(totals.grossDisbursal)}
-              leftIcon={<span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>}
+              leftIcon={<span style={{ fontSize: 18 }}>₹</span>}
               bg="linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)"
               subColor="rgba(255,255,255,0.85)"
               onView={() => openKpiModal('grossDisbursal')}
             />
           </Grid>
 
-          <Grid item xs={12} md={2.4}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="Total Net Disbursal"
               value={rupee(totals.disbursal)}
@@ -1168,38 +1227,62 @@ export default function PerformanceUploadPage() {
             />
           </Grid>
 
-          <Grid item xs={12} md={2.4}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="Total ABND"
               value={rupee(totals.abnp)}
-              leftIcon={<span style={{ fontSize: 16, lineHeight: 1 }}>Δ</span>}
+              leftIcon={<span style={{ fontSize: 16 }}>Δ</span>}
               bg="linear-gradient(135deg, #0f172a 0%, #334155 100%)"
               subColor="rgba(255,255,255,0.85)"
               onView={() => openKpiModal('abnd')}
             />
           </Grid>
 
-          <Grid item xs={12} md={2.4}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="Total Drop"
               value={rupee(totals.drop)}
-              leftIcon={<span style={{ fontSize: 18, lineHeight: 1 }}>↓</span>}
+              leftIcon={<span style={{ fontSize: 18 }}>↓</span>}
               bg="linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)"
               subColor="#fee2e2"
               onView={() => openKpiModal('drop')}
             />
           </Grid>
 
-          <Grid item xs={12} md={2.4}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="Total Cashback"
               value={rupee(totals.cashback)}
-              leftIcon={<span style={{ fontSize: 18, lineHeight: 1 }}>₹</span>}
+              leftIcon={<span style={{ fontSize: 18 }}>₹</span>}
               bg="linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)"
               subColor="#cffafe"
               onView={() => openKpiModal('cashback')}
             />
           </Grid>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Hold"
+              value={totals.hold.toLocaleString('en-IN')}
+              leftIcon={<span style={{ fontSize: 18 }}>⏸</span>}
+              bg="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+              subColor="#fef3c7"
+              onView={() => openKpiModal('hold')}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Rejected"
+              value={totals.rejected.toLocaleString('en-IN')}
+              leftIcon={<span style={{ fontSize: 18 }}>✕</span>}
+              bg="linear-gradient(135deg, #dc2626 0%, #991b1b 100%)"
+              subColor="#fee2e2"
+              onView={() => openKpiModal('rejected')}
+            />
+          </Grid>
+
+        
         </Grid>
 
         {/* STAR PERFORMERS */}
@@ -1371,6 +1454,12 @@ export default function PerformanceUploadPage() {
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Logins
                     </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#EEF2FF' }}>
+                      Rejected
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#EEF2FF' }}>
+                      Hold
+                    </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Approvals (₹)
                     </TableCell>
@@ -1487,6 +1576,20 @@ export default function PerformanceUploadPage() {
                             sx={{ bgcolor: '#DCFCE7', fontWeight: 800, color: '#166534' }}
                           />
                         </TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={Number(r.rejected || 0)}
+                            sx={{ bgcolor: '#FEE2E2', fontWeight: 800, color: '#B91C1C' }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={Number(r.hold || 0)}
+                            sx={{ bgcolor: '#CFFAFE', fontWeight: 800, color: '#0E7490' }}
+                          />
+                        </TableCell>
 
                         <TableCell align="right">
                           <Chip
@@ -1584,6 +1687,10 @@ export default function PerformanceUploadPage() {
                                       disbursal_lakh: r.disbursal ? Number(r.disbursal).toLocaleString('en-IN') : '',
                                       drop_lakh: r.drop ? Number(r.drop).toLocaleString('en-IN') : '',
                                       cashback_lakh: r.cashback ? Number(r.cashback).toLocaleString('en-IN') : '',
+                                      total_logins: String(r.login ?? r.total_logins ?? 0 || ''),
+                                      total_hold: String(r.hold ?? r.total_hold ?? 0 || ''),
+                                      total_rejected: String(r.total_rejected ?? r.rejected ?? 0),
+
                                       code: r.code || '',
                                     });
 
@@ -1697,22 +1804,21 @@ export default function PerformanceUploadPage() {
                             </Typography>
                           )}
                         </TableCell>
-
-                        <TableCell align="right">
-                          {kpiModalType === 'logins' ? (
-                            <Chip
-                              size="small"
-                              label={Number(r.__metric || 0).toLocaleString('en-IN')}
-                              sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 900 }}
-                            />
-                          ) : (
-                            <Chip
-                              size="small"
-                              label={rupee(Number(r.__metric || 0))}
-                              sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 900 }}
-                            />
-                          )}
-                        </TableCell>
+<TableCell align="right">
+  {['logins', 'rejected', 'hold', 'inProcess'].includes(kpiModalType) ? (
+    <Chip
+      size="small"
+      label={Number(r.__metric || 0).toLocaleString('en-IN')}
+      sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 900 }}
+    />
+  ) : (
+    <Chip
+      size="small"
+      label={rupee(Number(r.__metric || 0))}
+      sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 900 }}
+    />
+  )}
+</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1772,8 +1878,8 @@ export default function PerformanceUploadPage() {
                           teamBreakdown.role === 'manager'
                             ? 'Manager'
                             : teamBreakdown.role === 'team_leader'
-                            ? 'Team Leader'
-                            : 'Employee'
+                              ? 'Team Leader'
+                              : 'Employee'
                         }
                         sx={{
                           mt: 1,
@@ -1864,6 +1970,28 @@ export default function PerformanceUploadPage() {
                       </Typography>
                     </Paper>
                   </Grid>
+                     <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
+                        Total Hold
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
+                        {(teamBreakdown.totals.totalHold || 0)}
+                      </Typography>
+                      
+                    </Paper>
+                  </Grid>
+                    <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
+                        Total Reject
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
+                        {(teamBreakdown.totals.totalRejected || 0)}
+                      </Typography>
+                      
+                    </Paper>
+                  </Grid>
                 </Grid>
 
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
@@ -1898,6 +2026,10 @@ export default function PerformanceUploadPage() {
                           <TableCell align="right" sx={{ fontWeight: 800 }}>
                             Gross Disbursal (₹)
                           </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Rejected                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Hold                          </TableCell>
                         </TableRow>
                       </TableHead>
 
@@ -1963,14 +2095,29 @@ export default function PerformanceUploadPage() {
                                 sx={{ bgcolor: '#DBEAFE', color: '#1D4ED8', fontWeight: 800 }}
                               />
                             </TableCell>
-
-                            <TableCell align="right">
+  <TableCell align="right">
                               <Chip
                                 size="small"
                                 label={rupee(Number(member.grossDisbursal || 0))}
                                 sx={{ bgcolor: '#EDE9FE', color: '#6D28D9', fontWeight: 800 }}
                               />
                             </TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={Number(member.rejected || 0).toLocaleString('en-IN')}
+                                sx={{ bgcolor: '#FEE2E2', color: '#B91C1C', fontWeight: 800 }}
+                              />
+                            </TableCell>
+
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={Number(member.hold || 0).toLocaleString('en-IN')}
+                                sx={{ bgcolor: '#FEF3C7', color: '#92400E', fontWeight: 800 }}
+                              />
+                            </TableCell>
+                          
                           </TableRow>
                         ))}
                       </TableBody>
@@ -2076,29 +2223,7 @@ export default function PerformanceUploadPage() {
                 />
               </Grid>
 
-              <Grid item xs={12} md={12}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" sx={{ color: '#475569', fontWeight: 700 }}>
-                    Amount Unit:
-                  </Typography>
-                  <Button
-                    size="small"
-                    variant={amountUnit === 'rupees' ? 'contained' : 'outlined'}
-                    onClick={() => setAmountUnit('rupees')}
-                    sx={{ borderRadius: 999, textTransform: 'none' }}
-                  >
-                    Rupees
-                  </Button>
-                  <Button
-                    size="small"
-                    variant={amountUnit === 'lakhs' ? 'contained' : 'outlined'}
-                    onClick={() => setAmountUnit('lakhs')}
-                    sx={{ borderRadius: 999, textTransform: 'none' }}
-                  >
-                    Lakhs
-                  </Button>
-                </Stack>
-              </Grid>
+
 
               {/* Approval */}
               <Grid item xs={12} md={4}>
@@ -2144,6 +2269,7 @@ export default function PerformanceUploadPage() {
                 />
               </Grid>
 
+
               {/* Drop */}
               <Grid item xs={12} md={4}>
                 <TextField
@@ -2181,6 +2307,29 @@ export default function PerformanceUploadPage() {
                       setForm((prev) => ({ ...prev, cashback_lakh: Number(raw).toLocaleString('en-IN') }));
                     }
                   }}
+                  fullWidth
+                  size="medium"
+                />
+              </Grid>
+              {/* Hold */}
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Total Hold"
+                  type="number"
+                  value={form.total_hold}
+                  onChange={handleFormChange('total_hold')}
+                  fullWidth
+                  size="medium"
+                />
+              </Grid>
+
+              {/* Rejected */}
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Total Rejected"
+                  type="number"
+                  value={form.total_rejected}
+                  onChange={handleFormChange('total_rejected')}
                   fullWidth
                   size="medium"
                 />
