@@ -525,7 +525,8 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               onChange={value => {
                 setFormData({
                   ...formData,
-                  contact: value.replace(/^(\+91|91)/, "")
+                  // contact: value.replace(/^(\+91|91)/, "")
+                  contact: value.replace(/^(\+91)/, "")
                 })
               }}
               inputProps={{
@@ -641,7 +642,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             }}
           />
         </Grid>
-    <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label='Relation'
