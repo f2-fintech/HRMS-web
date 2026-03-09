@@ -26,7 +26,6 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import VideoCallIcon from '@mui/icons-material/VideoCall';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import GroupIcon from '@mui/icons-material/Group';
@@ -111,33 +110,61 @@ type Meeting = {
   remarks?: string;
   meeting_link?: string;
   company_id?: string;
-
   attendee_employee_ids?: string[];
   attendee_emails?: string[];
-
   status?: MeetingStatus;
   createdAt?: string;
 };
 
 type FormState = {
   title: string;
-  start_time: string;
-  end_time: string;
+  start_time: string; // datetime-local
+  end_time: string; // datetime-local
   meeting_link: string;
   remarks: string;
 };
 
+// ─── Date Helpers ──────────────────────────────────────────────────────────────
+const pad = (n: number) => String(n).padStart(2, '0');
+
+const toLocalDateTimeInput = (value?: string | Date) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const localInputToIso = (value: string) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString();
+};
+
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { date: '', time: '' };
+
   return {
-    date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    date: d.toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }),
+    time: d.toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }),
   };
 };
 
 const statusUi = (status?: string) => {
   const s = String(status || 'SCHEDULED').toUpperCase();
-  if (s === 'CANCELLED')
+
+  if (s === 'CANCELLED') {
     return {
       label: 'Cancelled',
       color: '#EF4444',
@@ -145,7 +172,9 @@ const statusUi = (status?: string) => {
       border: 'rgba(239,68,68,0.25)',
       icon: <CancelIcon sx={{ fontSize: '13px !important' }} />,
     };
-  if (s === 'COMPLETED')
+  }
+
+  if (s === 'COMPLETED') {
     return {
       label: 'Completed',
       color: '#059669',
@@ -153,7 +182,9 @@ const statusUi = (status?: string) => {
       border: 'rgba(16,185,129,0.25)',
       icon: <CheckCircleIcon sx={{ fontSize: '13px !important' }} />,
     };
-  if (s === 'UPDATED')
+  }
+
+  if (s === 'UPDATED') {
     return {
       label: 'Updated',
       color: '#2563EB',
@@ -161,6 +192,7 @@ const statusUi = (status?: string) => {
       border: 'rgba(37,99,235,0.25)',
       icon: <UpdateIcon sx={{ fontSize: '13px !important' }} />,
     };
+  }
 
   return {
     label: 'Scheduled',
@@ -418,7 +450,7 @@ const MeetingsGrid = () => {
     remarks: '',
   });
 
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'SCHEDULED' | 'UPDATED' | 'CANCELLED' | 'COMPLETED'>('ALL');
+  const [statusFilter] = useState<'ALL' | 'SCHEDULED' | 'UPDATED' | 'CANCELLED' | 'COMPLETED'>('ALL');
 
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelId, setCancelId] = useState<string>('');
@@ -429,7 +461,6 @@ const MeetingsGrid = () => {
   const [editId, setEditId] = useState<string>('');
   const [updating, setUpdating] = useState(false);
 
-  // ✅ Always return consistent auth: "Bearer <token> <companyId>"
   const getAuth = () => {
     const tokenRaw = localStorage.getItem('token') || '';
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -453,12 +484,12 @@ const MeetingsGrid = () => {
       setCompanyId('');
       setAuthHeader('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showToast = (msg: string, type: 'success' | 'error') => setToast({ open: true, msg, type });
 
-  const empLabel = (e: Employee) => `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || e?.work_email || e?.email || '';
+  const empLabel = (e: Employee) =>
+    `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || e?.work_email || e?.email || '';
 
   const normalizeList = (data: any) => {
     if (Array.isArray(data)) return data;
@@ -472,7 +503,7 @@ const MeetingsGrid = () => {
   const fetchEmployees = async (): Promise<Employee[]> => {
     try {
       setEmpLoading(true);
-      const { auth, company_id } = getAuth();
+      const { auth } = getAuth();
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/get?page=1&limit=200`, {
         headers: {
@@ -533,13 +564,11 @@ const MeetingsGrid = () => {
 
   useEffect(() => {
     if (authHeader && companyId) fetchMeetings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authHeader, companyId]);
 
   const filteredMeetings = useMemo(() => {
-    const s = statusFilter;
-    if (s === 'ALL') return meetings;
-    return meetings.filter((m) => String(m.status || 'SCHEDULED').toUpperCase() === s);
+    if (statusFilter === 'ALL') return meetings;
+    return meetings.filter((m) => String(m.status || 'SCHEDULED').toUpperCase() === statusFilter);
   }, [meetings, statusFilter]);
 
   const upcomingCount = useMemo(
@@ -547,9 +576,15 @@ const MeetingsGrid = () => {
     [meetings],
   );
 
-  const completedCount = useMemo(() => meetings.filter((m) => String(m.status || '').toUpperCase() === 'COMPLETED').length, [meetings]);
+  const completedCount = useMemo(
+    () => meetings.filter((m) => String(m.status || '').toUpperCase() === 'COMPLETED').length,
+    [meetings],
+  );
 
-  const cancelledCount = useMemo(() => meetings.filter((m) => String(m.status || '').toUpperCase() === 'CANCELLED').length, [meetings]);
+  const cancelledCount = useMemo(
+    () => meetings.filter((m) => String(m.status || '').toUpperCase() === 'CANCELLED').length,
+    [meetings],
+  );
 
   const canSave = Boolean(form.title.trim() && form.start_time && companyId);
 
@@ -590,8 +625,8 @@ const MeetingsGrid = () => {
 
       const payload = {
         title: form.title.trim(),
-        start_time: new Date(form.start_time).toISOString(),
-        end_time: form.end_time ? new Date(form.end_time).toISOString() : new Date(form.start_time).toISOString(),
+        start_time: localInputToIso(form.start_time),
+        end_time: form.end_time ? localInputToIso(form.end_time) : localInputToIso(form.start_time),
         meeting_link: form.meeting_link?.trim(),
         remarks: form.remarks?.trim(),
         company_id,
@@ -625,7 +660,6 @@ const MeetingsGrid = () => {
     }
   };
 
-  // ─── Cancel ──────────────────────────────────────────────────────────────────
   const openCancelDialog = (id: string) => {
     setCancelId(id);
     setCancelReason('');
@@ -646,6 +680,7 @@ const MeetingsGrid = () => {
 
       const { auth, user } = getAuth();
       const deleted_by = String(user?._id || user?.id || '');
+
       if (!deleted_by) throw new Error('user_id missing. Please login again.');
       if (!auth) throw new Error('Auth missing. Please login again.');
 
@@ -658,7 +693,7 @@ const MeetingsGrid = () => {
         {
           method: 'DELETE',
           headers: {
-            Authorization: auth, // ✅ ALWAYS Bearer <token> <companyId>
+            Authorization: auth,
             'Content-Type': 'application/json',
           },
         },
@@ -680,15 +715,14 @@ const MeetingsGrid = () => {
     }
   };
 
-  // ─── Edit/Update ─────────────────────────────────────────────────────────────
   const openEditDialog = async (m: Meeting) => {
     const list = await fetchEmployees();
     setEditId(m._id);
 
     setForm({
       title: m.title || '',
-      start_time: m.start_time ? new Date(m.start_time).toISOString().slice(0, 16) : '',
-      end_time: m.end_time ? new Date(m.end_time).toISOString().slice(0, 16) : '',
+      start_time: toLocalDateTimeInput(m.start_time),
+      end_time: toLocalDateTimeInput(m.end_time),
       meeting_link: m.meeting_link || '',
       remarks: m.remarks || '',
     });
@@ -716,10 +750,10 @@ const MeetingsGrid = () => {
       const { auth, company_id } = getAuth();
       if (!auth) throw new Error('Auth missing. Please login again.');
 
-      const payload: any = {
+      const payload = {
         title: form.title.trim(),
-        start_time: new Date(form.start_time).toISOString(),
-        end_time: form.end_time ? new Date(form.end_time).toISOString() : new Date(form.start_time).toISOString(),
+        start_time: localInputToIso(form.start_time),
+        end_time: form.end_time ? localInputToIso(form.end_time) : localInputToIso(form.start_time),
         meeting_link: form.meeting_link?.trim(),
         remarks: form.remarks?.trim(),
         company_id,
@@ -767,7 +801,6 @@ const MeetingsGrid = () => {
           fontFamily: '"DM Sans", sans-serif',
         }}
       >
-        {/* Header */}
         <Box sx={{ mb: 3 }}>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
@@ -776,7 +809,7 @@ const MeetingsGrid = () => {
             spacing={2}
           >
             <Box>
-              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.5 }}>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.5, flexWrap: 'wrap' }}>
                 <Box
                   sx={{
                     width: 36,
@@ -790,6 +823,7 @@ const MeetingsGrid = () => {
                 >
                   <VideoCallIcon sx={{ color: '#ffffff', fontSize: 20 }} />
                 </Box>
+
                 <Typography variant="h5" sx={{ color: '#1E1B4B' }}>
                   Meetings
                 </Typography>
@@ -834,8 +868,6 @@ const MeetingsGrid = () => {
             </Box>
 
             <Stack direction="row" spacing={1.5} alignItems="center">
-            
-
               <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate} size="small">
                 New Meeting
               </Button>
@@ -843,7 +875,6 @@ const MeetingsGrid = () => {
           </Stack>
         </Box>
 
-        {/* List */}
         {listLoading ? (
           <Stack alignItems="center" justifyContent="center" sx={{ py: 10 }} spacing={2}>
             <CircularProgress sx={{ color: '#7C3AED' }} size={36} thickness={3} />
@@ -877,12 +908,16 @@ const MeetingsGrid = () => {
           </Stack>
         )}
 
-        {/* Create Dialog */}
         <Dialog open={open} onClose={handleCloseCreate} fullWidth maxWidth="sm">
           <DialogTitle>Schedule a Meeting</DialogTitle>
           <DialogContent sx={{ px: 3.5, pb: 1 }}>
             <Stack spacing={2.5} sx={{ mt: 1.5 }}>
-              <TextField label="Meeting Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} fullWidth />
+              <TextField
+                label="Meeting Title"
+                value={form.title}
+                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                fullWidth
+              />
 
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                 <TextField
@@ -985,12 +1020,16 @@ const MeetingsGrid = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Edit Dialog */}
         <Dialog open={editOpen} onClose={closeEditDialog} fullWidth maxWidth="sm">
           <DialogTitle>Update Meeting</DialogTitle>
           <DialogContent sx={{ px: 3.5, pb: 1 }}>
             <Stack spacing={2.5} sx={{ mt: 1.5 }}>
-              <TextField label="Meeting Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} fullWidth />
+              <TextField
+                label="Meeting Title"
+                value={form.title}
+                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                fullWidth
+              />
 
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                 <TextField
@@ -1011,7 +1050,12 @@ const MeetingsGrid = () => {
                 />
               </Stack>
 
-              <TextField label="Meeting Link" value={form.meeting_link} onChange={(e) => setForm((p) => ({ ...p, meeting_link: e.target.value }))} fullWidth />
+              <TextField
+                label="Meeting Link"
+                value={form.meeting_link}
+                onChange={(e) => setForm((p) => ({ ...p, meeting_link: e.target.value }))}
+                fullWidth
+              />
 
               <TextField
                 label="Remarks / Agenda"
@@ -1079,7 +1123,6 @@ const MeetingsGrid = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Cancel Dialog */}
         <Dialog open={cancelOpen} onClose={closeCancelDialog} fullWidth maxWidth="sm">
           <DialogTitle>Cancel Meeting</DialogTitle>
           <DialogContent sx={{ px: 3.5, pb: 1 }}>
@@ -1115,7 +1158,6 @@ const MeetingsGrid = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Toast */}
         <Snackbar
           open={toast.open}
           autoHideDuration={3000}
