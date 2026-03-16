@@ -31,6 +31,7 @@ import {
   DialogActions,
   MenuItem,
 } from '@mui/material';
+import LoginIcon from "@mui/icons-material/Login";
 
 import Autocomplete from '@mui/material/Autocomplete';
 
@@ -964,7 +965,23 @@ export default function PerformanceUploadPage() {
               >
                 Export
               </Button>
-
+<Button
+  size="small"
+  variant="contained"
+  startIcon={<LoginIcon sx={{ fontSize: 18 }} />}
+  onClick={() => router.push("/today-login")}
+  sx={{
+    borderRadius: 999,
+    textTransform: "none",
+    fontWeight: 600,
+    px: 2.5,
+    bgcolor: "#06b6d4",
+    boxShadow: "0 8px 20px rgba(6,182,212,0.35)",
+    "&:hover": { bgcolor: "#0891b2" },
+  }}
+>
+  Today Login
+</Button>
               {canAddRow && (
                 <>
                   <Button
@@ -1281,7 +1298,16 @@ export default function PerformanceUploadPage() {
               onView={() => openKpiModal('rejected')}
             />
           </Grid>
-
+        <Grid item xs={12} sm={6} md={4} lg={3}>
+  <KpiCard
+    title="Total Login"
+    // value={totals.logins.toLocaleString('en-IN')}
+    leftIcon={<span style={{ fontSize: 18 }}>✓</span>}
+    bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
+    subColor="#dcfce7"
+    onView={() => router.push("/today-login")}
+  />
+</Grid>
         
         </Grid>
 
