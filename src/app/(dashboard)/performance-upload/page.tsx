@@ -112,8 +112,8 @@ type TeamTotalInfo = {
   teamTotalABNP?: number;
   teamTotalGrossApproval?: number;
   teamTotalGrossDisbursal?: number;
-    teamTotalHold?: number;
-    teamTotalReject?:number;
+  teamTotalHold?: number;
+  teamTotalReject?: number;
 
   memberCount: number;
   memberCodes: string[];
@@ -965,23 +965,23 @@ export default function PerformanceUploadPage() {
               >
                 Export
               </Button>
-<Button
-  size="small"
-  variant="contained"
-  startIcon={<LoginIcon sx={{ fontSize: 18 }} />}
-  onClick={() => router.push("/today-login")}
-  sx={{
-    borderRadius: 999,
-    textTransform: "none",
-    fontWeight: 600,
-    px: 2.5,
-    bgcolor: "#06b6d4",
-    boxShadow: "0 8px 20px rgba(6,182,212,0.35)",
-    "&:hover": { bgcolor: "#0891b2" },
-  }}
->
-  Today Login
-</Button>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<LoginIcon sx={{ fontSize: 18 }} />}
+                onClick={() => router.push("/today-login")}
+                sx={{
+                  borderRadius: 999,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: 2.5,
+                  bgcolor: "#06b6d4",
+                  boxShadow: "0 8px 20px rgba(6,182,212,0.35)",
+                  "&:hover": { bgcolor: "#0891b2" },
+                }}
+              >
+                Today Login
+              </Button>
               {canAddRow && (
                 <>
                   <Button
@@ -1188,7 +1188,7 @@ export default function PerformanceUploadPage() {
               onView={() => openKpiModal('logins')}
             />
           </Grid>
-            <Grid item xs={12} sm={6} md={4} lg={3}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="In Process"
               value={totals.inProcess.toLocaleString('en-IN')}
@@ -1298,17 +1298,17 @@ export default function PerformanceUploadPage() {
               onView={() => openKpiModal('rejected')}
             />
           </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-  <KpiCard
-    title="Total Login"
-    // value={totals.logins.toLocaleString('en-IN')}
-    leftIcon={<span style={{ fontSize: 18 }}>✓</span>}
-    bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
-    subColor="#dcfce7"
-    onView={() => router.push("/today-login")}
-  />
-</Grid>
-        
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Today Login"
+              // value={totals.logins.toLocaleString('en-IN')}
+              leftIcon={<span style={{ fontSize: 18 }}>✓</span>}
+              bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
+              subColor="#dcfce7"
+              onView={() => router.push("/today-login")}
+            />
+          </Grid>
+
         </Grid>
 
         {/* STAR PERFORMERS */}
@@ -1830,21 +1830,21 @@ export default function PerformanceUploadPage() {
                             </Typography>
                           )}
                         </TableCell>
-<TableCell align="right">
-  {['logins', 'rejected', 'hold', 'inProcess'].includes(kpiModalType) ? (
-    <Chip
-      size="small"
-      label={Number(r.__metric || 0).toLocaleString('en-IN')}
-      sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 900 }}
-    />
-  ) : (
-    <Chip
-      size="small"
-      label={rupee(Number(r.__metric || 0))}
-      sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 900 }}
-    />
-  )}
-</TableCell>
+                        <TableCell align="right">
+                          {['logins', 'rejected', 'hold', 'inProcess'].includes(kpiModalType) ? (
+                            <Chip
+                              size="small"
+                              label={Number(r.__metric || 0).toLocaleString('en-IN')}
+                              sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 900 }}
+                            />
+                          ) : (
+                            <Chip
+                              size="small"
+                              label={rupee(Number(r.__metric || 0))}
+                              sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 900 }}
+                            />
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1996,7 +1996,7 @@ export default function PerformanceUploadPage() {
                       </Typography>
                     </Paper>
                   </Grid>
-                     <Grid item xs={6} md={3}>
+                  <Grid item xs={6} md={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
                         Total Hold
@@ -2004,10 +2004,10 @@ export default function PerformanceUploadPage() {
                       <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
                         {(teamBreakdown.totals.totalHold || 0)}
                       </Typography>
-                      
+
                     </Paper>
                   </Grid>
-                    <Grid item xs={6} md={3}>
+                  <Grid item xs={6} md={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
                         Total Reject
@@ -2015,7 +2015,7 @@ export default function PerformanceUploadPage() {
                       <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
                         {(teamBreakdown.totals.totalRejected || 0)}
                       </Typography>
-                      
+
                     </Paper>
                   </Grid>
                 </Grid>
@@ -2121,7 +2121,7 @@ export default function PerformanceUploadPage() {
                                 sx={{ bgcolor: '#DBEAFE', color: '#1D4ED8', fontWeight: 800 }}
                               />
                             </TableCell>
-  <TableCell align="right">
+                            <TableCell align="right">
                               <Chip
                                 size="small"
                                 label={rupee(Number(member.grossDisbursal || 0))}
@@ -2143,7 +2143,7 @@ export default function PerformanceUploadPage() {
                                 sx={{ bgcolor: '#FEF3C7', color: '#92400E', fontWeight: 800 }}
                               />
                             </TableCell>
-                          
+
                           </TableRow>
                         ))}
                       </TableBody>
