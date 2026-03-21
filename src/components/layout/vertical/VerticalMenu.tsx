@@ -197,9 +197,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
  <MenuItem href={`/holidays`} icon={<EventIcon />}>
                 Holiday
               </MenuItem>
-              <MenuItem href={`/assests`} icon={<InventoryIcon />}>
+              {/* <MenuItem href={`/assests`} icon={<InventoryIcon />}>
                 Assets
-              </MenuItem>
+              </MenuItem> */}
               <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
                 Seating Plan
               </MenuItem>

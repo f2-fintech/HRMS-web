@@ -170,54 +170,25 @@ type TeamConfig = {
 
 const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
 
-  // admin
-  // '695df229e3d5943c537019ce': {
-  //   categories: [
-  //     'tea',
-  //     'water',
-  //     'stationary',
-  //     'leave_encashment',
-  //     'bonus',
-  //     'overtime',
-  //     'advance_payment',
-  //     'leave_encashment',
-  //     'conveyance_petrol',
-  //     'travel_reimbursement',
-  //     'overtime',
-  //     'bonus',
-  //     'incentives',
-  //     'other',
-  //     'expense_channel',
-  //     'payout',
-  //     'cashback_to_customer',
-  //     'referral_partner',
-  //     'Harpreet_singh_Management',
-  //     'Abhinav_Awal_Management',
-  //     'other',
-
-  //   ],
-  //   approvals: ['company_approval'],
-  // },
-  // admin
+  
   '674abf192cb3ff920ea4a894': {
     categories: [
       'advance_payment',
-      'leave_encashment', //spelling wrong
-
+      'leave_encashment',
       'travel_reimbursement',
       'overtime',
       'bonus',
       'incentives',
       'other',
       'expense_channel',
-      'payout',//sourcer payment
+      'payout',
       'cashback_to_customer',
       'referral_partner',
 
     ],
     approvals: ['company_approval'],
   },
-  //HR
+
   '680789b86a3572ff9478bcd2': {
     categories: [
       'cake',
@@ -251,7 +222,6 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
       'data_purchase',
       'overtime',
       'advertisement',
-      // 'convenience_petrol',
       'cab',
       'travel_reimbursement',
       'collab_events_marketing',
@@ -264,8 +234,6 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
-
-
   '6957a5422381863817eb481d': {
     categories: [
       'sim',
@@ -294,7 +262,6 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
   },
   '695df229e3d5943c537019ce': {
     categories: [
-      // 'advance_payment',
       'stationary',
       'water',
       'tea',
