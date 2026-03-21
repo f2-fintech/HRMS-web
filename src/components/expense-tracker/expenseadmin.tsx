@@ -149,47 +149,13 @@ const companyApprovalOptions = [
 
 type CompanyApprovalValue = (typeof companyApprovalOptions)[number]['value'];
 
-const ALLOWED_TEAM_IDS: string[] = [
-  '674abf192cb3ff920ea4a894',
-  '680789b86a3572ff9478bcd2',
-  '68078bdd6a3572ff9478bd50',
-  '68078c506a3572ff9478bd6c',
-  '68e8feb4fa8c01760efccf87',
-  '693d0c7f5c4e2f15ce95cf0b',
-  '6957a5422381863817eb481d',
-  '695cb6645585adfa28e9bea3',
-  '695ce778b71faf497ee89a54',
-  '695df229e3d5943c537019ce',
-
-];
-
 type TeamConfig = {
   categories: CompanyAdminValue[];
   approvals: CompanyApprovalValue[];
 };
 
-const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
-
-  
-  '674abf192cb3ff920ea4a894': {
-    categories: [
-      'advance_payment',
-      'leave_encashment',
-      'travel_reimbursement',
-      'overtime',
-      'bonus',
-      'incentives',
-      'other',
-      'expense_channel',
-      'payout',
-      'cashback_to_customer',
-      'referral_partner',
-
-    ],
-    approvals: ['company_approval'],
-  },
-
-  '680789b86a3572ff9478bcd2': {
+const TEAM_CONFIG_MAP = {
+  'HR Team': {
     categories: [
       'cake',
       'stationary',
@@ -216,25 +182,50 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
     approvals: ['company_approval'],
   },
 
-  // Marketing
-  '68078bdd6a3572ff9478bd50': {
+  'Marketing Team': {
     categories: [
       'data_purchase',
-      'overtime',
       'advertisement',
-      'cab',
+     
       'travel_reimbursement',
       'collab_events_marketing',
       'community_building_expense',
       'food_beverages',
-      'advertisement',
       'incentives',
       'contests',
-      'other',
+      'other'   // ✅ add
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
-  '6957a5422381863817eb481d': {
+
+  'IT TEAM': {
+    categories: [
+      'sim',
+      'system_rent',
+      'dialer',
+      'internet',
+      'cloud_ai',
+      'travel_reimbursement',
+      'advance_payment',
+      'other'   // ✅ add
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  
+  'Product Team': {
+    categories: [
+     'travel_reimbursement',
+      'advance_payment',
+      'other' ,
+      'leave_encashment',
+        'overtime',
+
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+
+  'IT Infra': {
     categories: [
       'sim',
       'system_rent',
@@ -248,7 +239,7 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
-  '68078c506a3572ff9478bd6c': {
+  'IT Development': {
     categories: [
       'bonus',
       'overtime',
@@ -260,67 +251,7 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
-  '695df229e3d5943c537019ce': {
-    categories: [
-      'stationary',
-      'water',
-      'tea',
-      'repairs',
-      'maintenance',
-      'travel_reimbursement',
-      'food_beverages',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
-      'other',
-
-    ],
-    approvals: ['company_approval', 'expense_channel'],
-  },
-  '695ce778b71faf497ee89a54': {
-    categories: [
-      'payout',
-      'gifting',
-      'data_purchase',
-      'advance_payment',
-      'rent_bareilly',
-      'rent_noida_first_floor',
-      'company_outing',
-      'it_consultancy',
-      'travel_reimbursement',
-      'food_beverages',
-      'referral_partner',
-      'Harpreet_singh_Management',
-      'community_building_expense',
-      'Abhinav_Awal_Management',
-      'other',
-    ],
-    approvals: ['company_approval', 'expense_channel'],
-  },
-  '68e8feb4fa8c01760efccf87': {
-    categories: [
-      'bonus',
-      'travel_reimbursement',
-      'overtime',
-      'advance_payment',
-      'other',
-    ],
-    approvals: ['company_approval', 'expense_channel'],
-  },
-  '695cb6645585adfa28e9bea3': {
-    categories: [
-      'bonus',
-      'overtime',
-      'travel_reimbursement',
-      'leave_encashment',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
-      'other',
-    ],
-    approvals: ['company_approval', 'expense_channel'],
-  },
-
-
-  '693d0c7f5c4e2f15ce95cf0b': {
+  'Ops & Credit': {
     categories: [
       'bonus',
       'payout',
@@ -334,14 +265,43 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
       'advance_payment',
       'travel_reimbursement',
       'other',
+
     ],
-    approvals: [
-      'company_approval',
-      'expense_channel'
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  'Sales Team': {
+    categories: [
+      'bonus',
+      'payout',
+      'incentives',
+      'overtime',
+      
+      'leave_encashment',
+
+      'advance_payment',
+      'travel_reimbursement',
+      'other',
+
     ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+  'CREDIT TEAM': {
+    categories: [
+      'bonus',
+      'payout',
+      'incentives',
+      'overtime',
+      'cashback_to_customer',
+      'expense_channel',
+      'referral_partner',
+      'advance_payment',
+      'travel_reimbursement',
+      'other'   // ✅ add
+    ],
+    approvals: ['company_approval', 'expense_channel'],
   },
 };
-
 type EmployeeType = {
   _id: string;
   first_name: string;
@@ -562,49 +522,35 @@ export default function ExpenseAdmin() {
       try {
         setTeamsLoading(true);
 
-        const token = localStorage.getItem('token') || '';
-        const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
-        const company_id = (user as any)?.company_id || '';
-        const cid = localStorage.getItem('company_id') || company_id || '';
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-        const resp = await fetch(`${API_BASE_URL}/teams/get-all-teams`, {
+        const cid = user?.company_id;
+        if (!cid) {
+          console.error("Company ID missing in localStorage");
+          return;
+        }
+
+        const resp = await fetch(`${API_BASE_URL}/teams/get-allowed-team`, {
+          method: 'GET',
           headers: {
-            Authorization: `Bearer ${token} ${cid}`,
+            Authorization: `Bearer ${token}`,
+            'x-company-id': cid,
           },
         });
 
-        const rawText = await resp.text();
-        let json: any = {};
-        try {
-          json = rawText ? JSON.parse(rawText) : {};
-        } catch {
-          console.error('Teams API non-JSON:', rawText);
-          json = {};
-        }
+        const data = await resp.json();
+        console.log("Allowed Teams:", data);
 
-        if (!resp.ok) {
-          console.error('Teams API failed:', resp.status, json || rawText);
+        if (!Array.isArray(data)) {
+          console.error("Expected array but got:", data);
           setTeams([]);
           return;
         }
 
-        const teamArr: any[] =
-          Array.isArray(json) ? json : Array.isArray(json?.teams) ? json.teams : Array.isArray(json?.data) ? json.data : [];
-
-        let filteredTeams = teamArr;
-        if (ALLOWED_TEAM_IDS.length) {
-          filteredTeams = teamArr.filter((t: any) => ALLOWED_TEAM_IDS.includes(String(t._id)));
-        }
-
-        const cleaned: TeamType[] = filteredTeams
-          .map((t: any) => ({ _id: String(t._id), name: t.name || '', code: t.code || '' }))
-          .filter((t) => t._id);
-
-        cleaned.sort((a, b) => String(a.name || a.code || '').localeCompare(String(b.name || b.code || '')));
-
-        setTeams(cleaned);
-      } catch (e) {
-        console.error('fetchTeams error:', e);
+        setTeams(data);
+      } catch (err) {
+        console.error("Team fetch error", err);
         setTeams([]);
       } finally {
         setTeamsLoading(false);
@@ -698,11 +644,18 @@ export default function ExpenseAdmin() {
     setInvoiceDate('');
   };
 
-  const filteredCompanyAdminOptions = useMemo(() => {
-    if (!department) return companyAdminOptions.filter((o) => o.value === '');
-    const allowed = TEAM_CONFIG_MAP[String(department)]?.categories || [];
-    return companyAdminOptions.filter((o) => o.value === '' || allowed.includes(o.value));
-  }, [department]);
+ const filteredCompanyAdminOptions = useMemo(() => {
+  if (!department) return companyAdminOptions.filter((o) => o.value === '');
+
+  const teamObj = teams.find((t) => t._id === department);
+  const teamName = teamObj?.name;
+
+  const allowed = TEAM_CONFIG_MAP[teamName]?.categories || ['other'];
+
+  return companyAdminOptions.filter(
+    (o) => o.value === '' || allowed.includes(o.value)
+  );
+}, [department, teams]);
 
   //   const cfg = TEAM_CONFIG_MAP[String(department)];
 
@@ -738,7 +691,7 @@ export default function ExpenseAdmin() {
       setCompanyApproval('company_approval');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [department]);
+  }, [teams]);
 
   // LIST STATES
   const [page, setPage] = useState(1);
@@ -1412,8 +1365,8 @@ export default function ExpenseAdmin() {
                     }}
                     renderValue={(selected) => {
                       if (!selected) return teamsLoading ? 'Loading teams...' : 'You are from which Department';
-                      const found = teams.find((t) => t._id === selected);
-                      return found?.name || found?.code || 'Unnamed Team';
+                     const found = teams.find((t) => t._id === selected);
+                      return found?.name || 'Unnamed Team';
                     }}
                   >
                     <MenuItem
