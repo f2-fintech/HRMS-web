@@ -171,7 +171,7 @@ const TEAM_CONFIG_MAP = {
       'stationary',
       'bonus',
       'contests',
-      'leave_encashment',
+      
       'bonus',
       'overtime',
       'advance_payment',
@@ -217,7 +217,7 @@ const TEAM_CONFIG_MAP = {
      'travel_reimbursement',
       'advance_payment',
       'other' ,
-      'leave_encashment',
+      
         'overtime',
 
     ],
@@ -260,8 +260,7 @@ const TEAM_CONFIG_MAP = {
       'cashback_to_customer',
       'expense_channel',
       'referral_partner',
-      'leave_encashment',
-
+      
       'advance_payment',
       'travel_reimbursement',
       'other',
@@ -276,8 +275,7 @@ const TEAM_CONFIG_MAP = {
       'incentives',
       'overtime',
       
-      'leave_encashment',
-
+      
       'advance_payment',
       'travel_reimbursement',
       'other',
