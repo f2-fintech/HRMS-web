@@ -171,7 +171,7 @@ const TEAM_CONFIG_MAP = {
       'stationary',
       'bonus',
       'contests',
-      
+      'leave_encashment',
       'bonus',
       'overtime',
       'advance_payment',
@@ -217,7 +217,7 @@ const TEAM_CONFIG_MAP = {
      'travel_reimbursement',
       'advance_payment',
       'other' ,
-      
+      'leave_encashment',
         'overtime',
 
     ],
@@ -235,6 +235,7 @@ const TEAM_CONFIG_MAP = {
       'internet',
       'incentives',
       'cloud_ai',
+       // 'leave_encashment',
       'other',
     ],
     approvals: ['company_approval', 'expense_channel'],
@@ -244,7 +245,7 @@ const TEAM_CONFIG_MAP = {
       'bonus',
       'overtime',
       'advance_payment',
-      'leave_encashment',
+      // 'leave_encashment',
       'incentives',
       'cloud_ai',
       'other',
@@ -260,7 +261,8 @@ const TEAM_CONFIG_MAP = {
       'cashback_to_customer',
       'expense_channel',
       'referral_partner',
-      
+      // 'leave_encashment',
+
       'advance_payment',
       'travel_reimbursement',
       'other',
@@ -275,7 +277,8 @@ const TEAM_CONFIG_MAP = {
       'incentives',
       'overtime',
       
-      
+      // 'leave_encashment',
+
       'advance_payment',
       'travel_reimbursement',
       'other',
