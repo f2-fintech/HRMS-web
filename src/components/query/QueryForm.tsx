@@ -47,20 +47,7 @@ const statuses = ['Pending', 'Resolved', 'On Process'];
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 
-const ALLOWED_TEAM_IDS: string[] = [
-  '695ce778b71faf497ee89a54',
-  '68078c506a3572ff9478bd6c',
-  '68e8feb4fa8c01760efccf87',
-  '693d0c7f5c4e2f15ce95cf0b',
-  '6957a5422381863817eb481d',
-  '695cc3c45585adfa28ea6dbf',
-  '695cb6645585adfa28e9bea3',
-  '674abf5e2cb3ff920ea4a898',
-  '680789b86a3572ff9478bcd2',
-  '68078bdd6a3572ff9478bd50',
-  '695df229e3d5943c537019ce',
- 
-];
+
 
 const ALLOWED_TEAM_NAMES: string[] = [
   'HR TEAM',
@@ -156,147 +143,177 @@ const QueryForm: React.FC<QueryFormProps> = ({
   // =========================
   // initial load: employees + teams + edit prefill
   // =========================
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // employees
-        const empRes = await apiResponse();
-        const empData = Array.isArray(empRes)
-          ? empRes
-          : empRes.employees || empRes.data || empRes.results || [];
-        setAllEmployees(empData);
-        setEmployees(empData);
+useEffect(() => {
+  const fetchData = async () => {
+    setLoading(true);
 
-        // teams
-        const token = localStorage.getItem('token') || '';
-        const cid =
-          localStorage.getItem('company_id') || company_id || '';
+    try {
+     
+      const empRes = await apiResponse();
 
-        const resp = await fetch(`${API_BASE_URL}/teams/get-all-teams`, {
+      const empData = Array.isArray(empRes)
+        ? empRes
+        : empRes?.employees ||
+          empRes?.data ||
+          empRes?.results ||
+          [];
+
+      setAllEmployees(empData);
+      setEmployees(empData);
+
+      
+      const token = localStorage.getItem('token') || '';
+      const cid =
+        localStorage.getItem('company_id') || company_id || '';
+
+      const resp = await fetch(
+        `${API_BASE_URL}/teams/get-allowed-team` ,
+        {
+          method: 'GET',
           headers: {
-            Authorization: `Bearer ${token} ${cid}`,
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'x-company-id': cid,
           },
+        },
+      );
+
+      if (!resp.ok) {
+        throw new Error(`Teams API failed: ${resp.status}`);
+      }
+
+      const json = await resp.json();
+
+      console.log('🔥 TEAM API RESPONSE:', json);
+      let teamArr: any[] = [];
+
+      if (Array.isArray(json)) {
+        teamArr = json;
+      } else if (Array.isArray(json?.data)) {
+        teamArr = json.data;
+      } else if (Array.isArray(json?.teams)) {
+        teamArr = json.teams;
+      } else if (Array.isArray(json?.data?.teams)) {
+        teamArr = json.data.teams;
+      } else if (Array.isArray(json?.result)) {
+        teamArr = json.result;
+      }
+
+    
+    let filteredTeams = teamArr.filter((team: any) =>
+  ALLOWED_TEAM_NAMES.some(
+    name =>
+    
+      (team?.name || '').toLowerCase().trim()
+  )
+);
+      console.log('✅ FILTERED TEAMS:', filteredTeams);
+
+      // =========================
+      // 5. EDIT MODE PREFILL
+      // =========================
+      if (query) {
+        setFormData({
+          toQuery: query.toQuery?._id || query.toQuery || '',
+          queryType: query.queryType || '',
+          description: query.description || '',
+          status: query.status || 'Pending',
+          company_id: query.company_id,
         });
 
-        const json = await resp.json();
-        const teamArr: any[] = Array.isArray(json) ? json : json.teams || [];
+        // ===== MY DEPARTMENT =====
+        let myDept: any = null;
 
-        let filteredTeams = teamArr;
+        if (query.fromDepartment) {
+          const fromDeptId =
+            typeof query.fromDepartment === 'string'
+              ? query.fromDepartment
+              : query.fromDepartment._id;
 
-        if (ALLOWED_TEAM_IDS.length || ALLOWED_TEAM_NAMES.length) {
-          filteredTeams = teamArr.filter((t: any) => {
-            const idAllowed = ALLOWED_TEAM_IDS.length
-              ? ALLOWED_TEAM_IDS.includes(t._id)
-              : false;
-            const nameAllowed = ALLOWED_TEAM_NAMES.length
-              ? ALLOWED_TEAM_NAMES.includes(t.name)
-              : false;
-            return ALLOWED_TEAM_IDS.length || ALLOWED_TEAM_NAMES.length
-              ? idAllowed || nameAllowed
-              : true;
-          });
+          myDept =
+            teamArr.find(
+              (t: any) => String(t._id) === String(fromDeptId),
+            ) || null;
         }
 
-        // edit mode pre-fill
-        if (query) {
-          setFormData({
-            toQuery: query.toQuery?._id || query.toQuery || '',
-            queryType: query.queryType || '',
-            description: query.description || '',
-            status: query.status || 'Pending',
-            company_id: query.company_id,
-          });
+        if (!myDept) {
+          const createdByEmp = empData.find(
+            (e: any) =>
+              e._id === (query.employee?._id || query.employee),
+          );
 
-          // ----- FROM DEPARTMENT (you are from which dept) -----
-          let myDept: any = null;
-
-          // 1) try: backend se direct fromDepartment
-          if (query.fromDepartment) {
-            const fromDeptId =
-              typeof query.fromDepartment === 'string'
-                ? query.fromDepartment
-                : query.fromDepartment._id;
+          if (createdByEmp) {
             myDept =
-              teamArr.find((t: any) => String(t._id) === String(fromDeptId)) ||
-              null;
+              teamArr.find((t: any) =>
+                getTeamEmployeeIds(t).includes(createdByEmp._id),
+              ) || null;
           }
-
-          // 2) fallback: creator employee ke basis pe
-          if (!myDept) {
-            const createdByEmp = empData.find(
-              (e: any) => e._id === (query.employee?._id || query.employee),
-            );
-
-            if (createdByEmp) {
-              myDept =
-                teamArr.find((t: any) =>
-                  getTeamEmployeeIds(t).includes(createdByEmp._id),
-                ) || null;
-            }
-          }
-
-          if (myDept) {
-            if (!filteredTeams.some((t: any) => t._id === myDept._id)) {
-              filteredTeams = [...filteredTeams, myDept];
-            }
-            setMyDepartment(myDept);
-          }
-
-          // ----- QUERY DEPARTMENT (query is for which dept) -----
-          let qDept: any = null;
-
-          // 1) try: backend se direct queryDepartment
-          if (query.queryDepartment) {
-            const qDeptId =
-              typeof query.queryDepartment === 'string'
-                ? query.queryDepartment
-                : query.queryDepartment._id;
-            qDept =
-              teamArr.find((t: any) => String(t._id) === String(qDeptId)) ||
-              null;
-          }
-
-          // 2) fallback: toQuery employee ke basis pe
-          if (!qDept) {
-            const toQueryEmp = empData.find(
-              (e: any) =>
-                e._id === (query.toQuery?._id || query.toQuery),
-            );
-
-            if (toQueryEmp) {
-              const empId = toQueryEmp._id;
-              qDept =
-                teamArr.find((t: any) =>
-                  getTeamEmployeeIds(t).includes(empId),
-                ) || null;
-            }
-          }
-
-          if (qDept) {
-            if (!filteredTeams.some((t: any) => t._id === qDept._id)) {
-              filteredTeams = [...filteredTeams, qDept];
-            }
-
-            setQueryDepartment(qDept);
-            filterEmployeesByTeam(qDept, empData);
-          }
-
-          setReplies(query.replies || []);
         }
 
-        setTeams(filteredTeams);
-      } catch (err) {
-        console.error('Error loading teams/employees', err);
-      } finally {
-        setLoading(false);
+        if (myDept) {
+          if (!filteredTeams.some((t: any) => t._id === myDept._id)) {
+            filteredTeams = [...filteredTeams, myDept];
+          }
+          setMyDepartment(myDept);
+        }
+
+        // ===== QUERY DEPARTMENT =====
+        let qDept: any = null;
+
+        if (query.queryDepartment) {
+          const qDeptId =
+            typeof query.queryDepartment === 'string'
+              ? query.queryDepartment
+              : query.queryDepartment._id;
+
+          qDept =
+            teamArr.find(
+              (t: any) => String(t._id) === String(qDeptId),
+            ) || null;
+        }
+
+        if (!qDept) {
+          const toQueryEmp = empData.find(
+            (e: any) =>
+              e._id === (query.toQuery?._id || query.toQuery),
+          );
+
+          if (toQueryEmp) {
+            qDept =
+              teamArr.find((t: any) =>
+                getTeamEmployeeIds(t).includes(toQueryEmp._id),
+              ) || null;
+          }
+        }
+
+        if (qDept) {
+          if (!filteredTeams.some((t: any) => t._id === qDept._id)) {
+            filteredTeams = [...filteredTeams, qDept];
+          }
+
+          setQueryDepartment(qDept);
+          filterEmployeesByTeam(qDept, empData);
+        }
+
+        setReplies(query.replies || []);
       }
-    };
 
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+      // =========================
+      // 6. FINAL SET
+      // =========================
+      setTeams(filteredTeams);
+    } catch (err: any) {
+      console.error(
+        '❌ Error loading teams/employees:',
+        err?.message || err,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  fetchData();
+}, [query]);
   // =========================
   // handlers
   // =========================
@@ -401,7 +418,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
       console.error('Submission error:', err?.response?.data || err.message);
       alert(
         err?.response?.data?.message ||
-          'Error while creating/updating query. Please try again.',
+        'Error while creating/updating query. Please try again.',
       );
     } finally {
       setSubmitting(false);
@@ -468,7 +485,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
       console.error('Reply error:', err?.response?.data || err.message);
       alert(
         err?.response?.data?.message ||
-          'Reply send karte waqt error aaya. Please try again.',
+        'Reply send karte waqt error aaya. Please try again.',
       );
     } finally {
       setReplySubmitting(false);
@@ -814,8 +831,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
                       >
                         <Typography fontWeight={600} variant="subtitle2">
                           {r?.employee
-                            ? `${r.employee.first_name || ''} ${
-                                r.employee.last_name || ''
+                            ? `${r.employee.first_name || ''} ${r.employee.last_name || ''
                               }`.trim()
                             : 'User'}
                         </Typography>
