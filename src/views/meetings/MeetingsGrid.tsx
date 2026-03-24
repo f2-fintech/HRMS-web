@@ -118,10 +118,13 @@ type Meeting = {
 
 type FormState = {
   title: string;
-  start_time: string; // datetime-local
-  end_time: string; // datetime-local
+  start_time: string;
+  end_time: string;
+  meeting_type: 'virtual' | 'physical';
+  location: string;
   meeting_link: string;
   remarks: string;
+
 };
 
 // ─── Date Helpers ──────────────────────────────────────────────────────────────
@@ -446,12 +449,13 @@ const MeetingsGrid = () => {
     title: '',
     start_time: '',
     end_time: '',
+    meeting_type: 'virtual',
+    location: '',
     meeting_link: '',
     remarks: '',
   });
 
   const [statusFilter] = useState<'ALL' | 'SCHEDULED' | 'UPDATED' | 'CANCELLED' | 'COMPLETED'>('ALL');
-
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelId, setCancelId] = useState<string>('');
   const [cancelReason, setCancelReason] = useState<string>('');
@@ -589,14 +593,21 @@ const MeetingsGrid = () => {
   const canSave = Boolean(form.title.trim() && form.start_time && companyId);
 
   const handleOpenCreate = async () => {
-    setForm({ title: '', start_time: '', end_time: '', meeting_link: '', remarks: '' });
+    setForm({
+      title: '',
+      start_time: '',
+      end_time: '',
+      meeting_type: 'virtual',
+      location: '',
+      meeting_link: '',
+      remarks: '',
+    });
     setSelectedEmployees([]);
     setExtraEmails([]);
     setEmailInput('');
     await fetchEmployees();
     setOpen(true);
   };
-
   const handleCloseCreate = () => setOpen(false);
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -627,6 +638,8 @@ const MeetingsGrid = () => {
         title: form.title.trim(),
         start_time: localInputToIso(form.start_time),
         end_time: form.end_time ? localInputToIso(form.end_time) : localInputToIso(form.start_time),
+        meeting_type: form.meeting_type,
+        location: form.location,
         meeting_link: form.meeting_link?.trim(),
         remarks: form.remarks?.trim(),
         company_id,
@@ -939,18 +952,48 @@ const MeetingsGrid = () => {
               </Stack>
 
               <TextField
-                label="Meeting Link"
-                value={form.meeting_link}
-                onChange={(e) => setForm((p) => ({ ...p, meeting_link: e.target.value }))}
-                fullWidth
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LinkIcon sx={{ color: '#475569', fontSize: 18 }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
+                select
+                label="Meeting Type"
+                value={form.meeting_type}
+                onChange={(e) => {
+                  const type = e.target.value as 'virtual' | 'physical';
+                  setForm((p) => ({
+                    ...p,
+                    meeting_type: type,
+                    meeting_link: type === 'virtual' ? p.meeting_link : '',
+                    location: type === 'physical' ? p.location : '',
+                  }));
+                }} fullWidth
+                SelectProps={{ native: true }}
+              >
+                <option value="virtual">Virtual</option>
+                <option value="physical">Physical</option>
+              </TextField>
+
+              {form.meeting_type === 'virtual' && (
+                <TextField
+                  label="Meeting Link"
+                  value={form.meeting_link}
+                  onChange={(e) => setForm((p) => ({ ...p, meeting_link: e.target.value }))}
+                  fullWidth
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LinkIcon sx={{ color: '#475569', fontSize: 18 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+
+              {form.meeting_type === 'physical' && (
+                <TextField
+                  label="Location"
+                  value={form.location}
+                  onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
+                  fullWidth
+                />
+              )}
 
               <TextField
                 label="Remarks / Agenda"
@@ -974,7 +1017,7 @@ const MeetingsGrid = () => {
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
                 <TextField
-                  label="Expect Employees (Email)"
+                  label="Except Employees (Email)"
                   value={emailInput}
                   size="small"
                   onChange={(e) => setEmailInput(e.target.value)}
@@ -1050,12 +1093,30 @@ const MeetingsGrid = () => {
                 />
               </Stack>
 
-              <TextField
-                label="Meeting Link"
-                value={form.meeting_link}
-                onChange={(e) => setForm((p) => ({ ...p, meeting_link: e.target.value }))}
-                fullWidth
-              />
+              {form.meeting_type === 'virtual' && (
+                <TextField
+                  label="Meeting Link"
+                  value={form.meeting_link}
+                  onChange={(e) => setForm((p) => ({ ...p, meeting_link: e.target.value }))}
+                  fullWidth
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LinkIcon sx={{ color: '#475569', fontSize: 18 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+
+              {form.meeting_type === 'physical' && (
+                <TextField
+                  label="Location"
+                  value={form.location}
+                  onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
+                  fullWidth
+                />
+              )}
 
               <TextField
                 label="Remarks / Agenda"
