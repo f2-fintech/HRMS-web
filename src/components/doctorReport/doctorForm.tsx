@@ -203,11 +203,12 @@ const DoctorVisitReportPage = () => {
           background: #fff; border: 1px solid #e2e8f0;
           border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05);
           overflow: hidden;
+           margin: 0 auto;
         }
         .vr-thead,
         .vr-trow {
           display: grid;
-          grid-template-columns: 1.8fr 1.8fr 1.2fr 70px 90px 80px 100px;
+  grid-template-columns: 1.6fr 1.6fr 1.6fr 1.8fr 0.8fr 1fr 0.9fr;
           column-gap: 10px;
           padding: 0 20px;
           width: 100%;
@@ -374,14 +375,19 @@ const DoctorVisitReportPage = () => {
 
           <div className="vr-card">
             <div className="vr-thead">
-
-              <div>Doctor / Clinic</div>
+              <div>Created By</div>
+              <div>Doctor/Clinic</div>
+              <div>Mob/Spec</div>
+              {/* <div>Specialization</div> */}
               <div>Address</div>
-              <div>Type</div>
-              <div className="col-hide">Pts</div>
+              {/* <div>Type</div> */}
+              {/* <div className="col-hide">Pts</div> */}
               <div className="col-hide">Fees</div>
-              <div>Open?</div>
+              {/* <div>clinicType</div> */}
+
               <div>Status</div>
+              <div>Open?</div>
+
             </div>
 
             {loading ? (
@@ -399,55 +405,54 @@ const DoctorVisitReportPage = () => {
                 const sc = statusColor(r.finalStatus);
                 const oc = openColor(r.clinicOpenDuringVisit);
                 return (
-                  /*
-                    ROW — exactly 7 direct <div> children:
-                    [1] Doctor+Clinic  (two lines inside ONE wrapper div)
-                    [2] Address
-                    [3] Type badge
-                    [4] Patients       (hidden on small screens)
-                    [5] Fees           (hidden on small screens)
-                    [6] Open badge
-                    [7] Status badge
-                  */
+
                   <div className="vr-trow" key={r._id} onClick={() => setSelected(r)}>
 
-                    {/* col 1 — Doctor name + clinic sub-label, ONE grid cell */}
+                    <div>
+                      <div className="c-main">{r.employeeName}</div>
+                      {/* <div className="c-sub">{r.employeeCode}</div> */}
+                    </div>
                     <div>
                       <div className="c-main">{r.doctorName}</div>
                       <div className="c-sub">{r.clinicName}</div>
+                    </div>
+                    <div>
+                      <div className="c-main">{r.doctorMobile}</div>
+                      <div className="c-sub">{r.doctorSpecialization}</div>
                     </div>
 
                     {/* col 2 — Address (2-line clamp) */}
                     <div className="c-addr">{r.clinicAddress || '—'}</div>
 
                     {/* col 3 — Clinic type */}
-                    <div>
-                      <span className="vr-pill-badge" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#475569' }}>
-                        {r.clinicType?.split(' ')[0] || '—'}
-                      </span>
-                    </div>
+
 
                     {/* col 4 — Patients */}
-                    <div className="c-sec col-hide">{r.patientsSeen ?? '—'}</div>
+                    {/* <div className="c-sec col-hide">{r.patientsSeen ?? '—'}</div> */}
 
                     {/* col 5 — Fees */}
                     <div className="c-sec col-hide">
                       {r.consultationFees ? `₹${r.consultationFees}` : '—'}
                     </div>
 
-                    {/* col 6 — Open / Closed */}
+                    {/* <div>
+                      <span className="vr-pill-badge" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#475569' }}>
+                        {r.clinicType?.split(' ')[0] || '—'}
+                      </span>
+                    </div> */}
+                    <div>
+                      <span className="vr-pill-badge" style={{ background: sc.bg, borderColor: sc.border, color: sc.text }}>
+                        {r.finalStatus}
+                      </span>
+                    </div>
                     <div>
                       <span className="vr-pill-badge" style={{ background: oc.bg, borderColor: oc.border, color: oc.text }}>
                         {r.clinicOpenDuringVisit ? 'Open' : 'Closed'}
                       </span>
                     </div>
 
-                    {/* col 7 — Status */}
-                    <div>
-                      <span className="vr-pill-badge" style={{ background: sc.bg, borderColor: sc.border, color: sc.text }}>
-                        {r.finalStatus}
-                      </span>
-                    </div>
+
+
 
                   </div>
                 );
@@ -486,6 +491,9 @@ const DoctorVisitReportPage = () => {
               <div className="vr-dsec-title">🏥 Doctor &amp; Clinic</div>
               <div className="vr-dgrid">
                 <div className="vr-dfield"><div className="vr-dlabel">Doctor</div><div className="vr-dvalue">{selected.doctorName}</div></div>
+                <div className="vr-dfield"><div className="vr-dlabel">Mobile</div><div className="vr-dvalue">{selected.doctorMobile}</div></div>
+                <div className="vr-dfield"><div className="vr-dlabel">Specialization</div><div className="vr-dvalue">{selected.doctorSpecialization}</div></div>
+
                 <div className="vr-dfield"><div className="vr-dlabel">SFDC ID</div><div className="vr-dvalue">{selected.sfdcId || '—'}</div></div>
                 <div className="vr-dfield"><div className="vr-dlabel">Clinic</div><div className="vr-dvalue">{selected.clinicName}</div></div>
                 <div className="vr-dfield"><div className="vr-dlabel">Type</div><div className="vr-dvalue">{selected.clinicType || '—'}</div></div>
