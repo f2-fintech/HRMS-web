@@ -139,6 +139,8 @@ const DoctorVisitReportPage = () => {
           content: ''; position: absolute; top: -50px; right: -50px;
           width: 220px; height: 220px; border-radius: 50%;
           background: rgba(255,255,255,0.06);
+            pointer-events: none;
+
         }
         .vr-badge {
           display: inline-flex; align-items: center; gap: 6px;
@@ -454,7 +456,7 @@ const DoctorVisitReportPage = () => {
                         style={{ cursor: 'pointer', fontSize: 16 }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelected(r);     
+                          setSelected(r);
                         }}
                       >
                         👁️
@@ -464,8 +466,8 @@ const DoctorVisitReportPage = () => {
                         style={{ cursor: 'pointer', fontSize: 16 }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditTarget(r);   
-                          setOpenCreate(true); 
+                          setEditTarget(r);
+                          setOpenCreate(true);
                         }}
                       >
                         ✏️
