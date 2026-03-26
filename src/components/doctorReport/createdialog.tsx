@@ -45,28 +45,35 @@ const CreateVisitReportDialog = ({ open, onClose, refresh }: any) => {
         }
     };
 
-    const handleSubmit = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const payload = {
-                ...formData,
-                clinicOpenDuringVisit: formData.clinicOpenDuringVisit === 'Yes',
-                clinicExistenceYears: Number(formData.clinicExistenceYears),
-                approxArea: Number(formData.approxArea),
-                patientsSeen: Number(formData.patientsSeen),
-                consultationFees: Number(formData.consultationFees),
-            };
-            await axios.post('http://localhost:5500/visit-report/create-report', payload, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            alert('Report Created Successfully');
-            refresh();
-            onClose();
-        } catch (err) {
-            alert('Error creating report');
-            console.log(err);
-        }
+   const handleSubmit = async () => {
+  try {
+    const token = localStorage.getItem('token');
+
+    const payload = {
+      ...formData,
+      clinicOpenDuringVisit: formData.clinicOpenDuringVisit === 'Yes',
+      clinicExistenceYears: Number(formData.clinicExistenceYears),
+      approxArea: Number(formData.approxArea),
+      patientsSeen: Number(formData.patientsSeen),
+      consultationFees: Number(formData.consultationFees),
     };
+
+    await axios.post(
+      `${process.env.NEXT_PUBLIC_APP_URL}/visit-report/create-report`,
+      payload,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    alert('Report Created Successfully');
+    refresh();
+    onClose();
+  } catch (err) {
+    alert('Error creating report');
+    console.log(err);
+  }
+};
 
     if (!open) return null;
 

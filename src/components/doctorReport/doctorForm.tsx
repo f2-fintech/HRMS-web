@@ -75,11 +75,19 @@ const DoctorVisitReportPage = () => {
   const getReports = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5500/visit-report/user-reports', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setReports(res.data);
-    } catch {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/visit-report/user-reports`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+      setReports(data);
+    } catch (err) {
+      console.log(err);
       setReports(DEMO);
     } finally {
       setLoading(false);
@@ -363,10 +371,10 @@ const DoctorVisitReportPage = () => {
               <button className={`vr-pill${filterStatus === 'Negative' ? ' p-neg' : ''}`} onClick={() => setFilterStatus('Negative')}>❌ Negative</button>
             </div>
           </div>
-          
+
           <div className="vr-card">
             <div className="vr-thead">
-              
+
               <div>Doctor / Clinic</div>
               <div>Address</div>
               <div>Type</div>
