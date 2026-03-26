@@ -82,7 +82,7 @@ const CreateVisitReportDialog = ({ open, onClose, refresh, editData }: any) => {
             };
 
             if (editData?._id) {
-                
+
                 await axios.put(
                     `${process.env.NEXT_PUBLIC_APP_URL}/visit-report/${editData._id}`,
                     payload,
@@ -90,7 +90,7 @@ const CreateVisitReportDialog = ({ open, onClose, refresh, editData }: any) => {
                 );
                 alert('Report Updated Successfully');
             } else {
-                
+
                 await axios.post(
                     `${process.env.NEXT_PUBLIC_APP_URL}/visit-report/create-report`,
                     payload,
@@ -280,8 +280,16 @@ const CreateVisitReportDialog = ({ open, onClose, refresh, editData }: any) => {
                                 {editData ? 'Update the details below and save changes.' : 'Fill all details after visiting the clinic.'}
                             </div>
                         </div>
-                        <button className="cvrd-close" onClick={onClose}>✕</button>
-                    </div>
+                        <button
+                            className="cvrd-close"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onClose();
+                            }}
+                            style={{ position: 'relative', zIndex: 10000 }}
+                        >
+                            ✕
+                        </button>                    </div>
 
                     {/* ── Body ── */}
                     <div className="cvrd-body">

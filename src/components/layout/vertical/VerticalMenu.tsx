@@ -69,7 +69,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           onScrollY: container => scrollMenu(container, true)
         })}
     >
-    
+
       <Menu
         menuItemStyles={menuItemStyles(theme)}
         renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
@@ -158,29 +158,36 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           }
           {userRole !== "0" &&
             <>
-              
+
               <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
                 Attendance
               </MenuItem>
               <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
                 Leaves
               </MenuItem>
-             <MenuItem href={`/meetings`} icon={<VideoCallIcon />}>
-  Meetings
-</MenuItem>
-              <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
-                Teams
+              <MenuItem href={`/meetings`} icon={<VideoCallIcon />}>
+                Meetings
               </MenuItem>
-
               <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
                 Break Sheet
               </MenuItem>
+
               <MenuItem href={`/performance`} icon={<HeadsetMicIcon />}>
                 Performance
+              </MenuItem>
+                <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
+                Expense Tracker
+              </MenuItem>
+              <MenuItem href={`/doctor-report`} icon={<LocalHospitalIcon />}>
+                Doctor Visit Report
               </MenuItem>
               <MenuItem href={`/departmentPerformance`} icon={<AssessmentIcon />}>
                 Support Function
               </MenuItem>
+               <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
+                Teams
+              </MenuItem>
+
               <MenuItem href={`/fine`} icon={<GavelIcon />}>
                 Fine
               </MenuItem>
@@ -188,17 +195,12 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               {/* <MenuItem href={`/pages`} icon={<ArticleIcon />}>
                 Pages
               </MenuItem> */}
-              <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
-                Expense Tracker
-              </MenuItem>
-              <MenuItem href={`/doctor-report`} icon={<LocalHospitalIcon />}>
-  Doctor Visit Report
-</MenuItem>
+            
               <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
                 Query
               </MenuItem>
 
- <MenuItem href={`/holidays`} icon={<EventIcon />}>
+              <MenuItem href={`/holidays`} icon={<EventIcon />}>
                 Holiday
               </MenuItem>
               {/* <MenuItem href={`/assests`} icon={<InventoryIcon />}>
