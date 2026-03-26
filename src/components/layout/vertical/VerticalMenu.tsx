@@ -30,6 +30,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
 import SupportAgentIcon from '@mui/icons-material/SupportAgent'
 import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
 import VideoCallIcon from '@mui/icons-material/VideoCall'
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 
 type RenderExpandIconProps = {
   open?: boolean
@@ -190,6 +191,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
                 Expense Tracker
               </MenuItem>
+              <MenuItem href={`/doctor-report`} icon={<LocalHospitalIcon />}>
+  Doctor Visit Report
+</MenuItem>
               <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
                 Query
               </MenuItem>
