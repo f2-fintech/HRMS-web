@@ -70,6 +70,7 @@ const DoctorVisitReportPage = () => {
   const [filterStatus, setFilterStatus] = useState<'All' | 'Positive' | 'Negative'>('All');
   const [selected, setSelected] = useState<any | null>(null);
   const [openCreate, setOpenCreate] = useState(false);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
 
   const getReports = async () => {
@@ -386,7 +387,7 @@ const DoctorVisitReportPage = () => {
               {/* <div>clinicType</div> */}
 
               <div>Status</div>
-              <div>Open?</div>
+              <div>Action</div>
 
             </div>
 
@@ -445,12 +446,31 @@ const DoctorVisitReportPage = () => {
                         {r.finalStatus}
                       </span>
                     </div>
-                    <div>
-                      <span className="vr-pill-badge" style={{ background: oc.bg, borderColor: oc.border, color: oc.text }}>
-                        {r.clinicOpenDuringVisit ? 'Open' : 'Closed'}
+
+
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <span
+                        title="View"
+                        style={{ cursor: 'pointer', fontSize: 16 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(r);     
+                        }}
+                      >
+                        👁️
+                      </span>
+                      <span
+                        title="Edit"
+                        style={{ cursor: 'pointer', fontSize: 16 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditTarget(r);   
+                          setOpenCreate(true); 
+                        }}
+                      >
+                        ✏️
                       </span>
                     </div>
-
 
 
 
@@ -473,6 +493,19 @@ const DoctorVisitReportPage = () => {
 
             <div className="vr-dhead">
               <div className="vr-dtitle">Report Details</div>
+              <button
+                className="vr-close"
+                style={{ marginLeft: "70px" }}
+
+                title="Edit Report"
+                onClick={() => {
+                  setEditTarget(selected);
+                  setSelected(null);
+                  setOpenCreate(true);
+                }}
+              >
+                ✏️
+              </button>
               <button className="vr-close" onClick={() => setSelected(null)}>✕</button>
             </div>
 
@@ -569,6 +602,7 @@ const DoctorVisitReportPage = () => {
         open={openCreate}
         onClose={() => setOpenCreate(false)}
         refresh={getReports}
+        editData={editTarget}
       />
     </>
   );
