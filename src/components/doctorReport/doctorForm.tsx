@@ -423,27 +423,7 @@ const DoctorVisitReportPage = () => {
                       <div className="c-main">{r.doctorMobile}</div>
 
                     </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {(Array.isArray(r.doctorSpecialization)
-                        ? r.doctorSpecialization
-                        : r.doctorSpecialization?.split(',')
-                      )?.map((spec: string, i: number) => (
-                        <span
-                          key={i}
-                          style={{
-                            background: '#eef2ff',
-                            border: '1px solid #c7d2fe',
-                            color: '#1565c0',
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {spec.trim()}
-                        </span>
-                      ))}
-                    </div>
+                    <div className="c-sub">{r.doctorSpecialization}</div>
                     {/* col 2 — Address (2-line clamp) */}
                     <div className="c-addr">{r.clinicAddress || '—'}</div>
 
@@ -547,31 +527,8 @@ const DoctorVisitReportPage = () => {
               <div className="vr-dgrid">
                 <div className="vr-dfield"><div className="vr-dlabel">Doctor</div><div className="vr-dvalue">{selected.doctorName}</div></div>
                 <div className="vr-dfield"><div className="vr-dlabel">Mobile</div><div className="vr-dvalue">{selected.doctorMobile}</div></div>
-                <div className="vr-dfield">
-                  <div className="vr-dlabel">Specialization</div>
+                <div className="vr-dfield"><div className="vr-dlabel">Specialization</div><div className="vr-dvalue">{selected.doctorSpecialization}</div></div>
 
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {(Array.isArray(selected.doctorSpecialization)
-                      ? selected.doctorSpecialization
-                      : selected.doctorSpecialization?.split(',')
-                    )?.map((spec: string, i: number) => (
-                      <span
-                        key={i}
-                        style={{
-                          background: '#e8f0fe',
-                          border: '1px solid #bfdbfe',
-                          color: '#1565c0',
-                          padding: '4px 10px',
-                          borderRadius: 6,
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {spec.trim()}
-                      </span>
-                    ))}
-                  </div>
-                </div>
                 <div className="vr-dfield"><div className="vr-dlabel">SFDC ID</div><div className="vr-dvalue">{selected.sfdcId || '—'}</div></div>
                 <div className="vr-dfield"><div className="vr-dlabel">Clinic</div><div className="vr-dvalue">{selected.clinicName}</div></div>
                 <div className="vr-dfield"><div className="vr-dlabel">Type</div><div className="vr-dvalue">{selected.clinicType || '—'}</div></div>
