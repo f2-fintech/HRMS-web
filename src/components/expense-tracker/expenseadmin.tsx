@@ -186,7 +186,7 @@ const TEAM_CONFIG_MAP = {
     categories: [
       'data_purchase',
       'advertisement',
-     
+
       'travel_reimbursement',
       'collab_events_marketing',
       'community_building_expense',
@@ -194,6 +194,15 @@ const TEAM_CONFIG_MAP = {
       'incentives',
       'contests',
       'other'   // ✅ add
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  'F2 Management': {
+    categories: [
+      'data_purchase',
+      'travel_reimbursement',
+      'food_beverages',
+      'other'
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
@@ -211,14 +220,14 @@ const TEAM_CONFIG_MAP = {
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
-  
+
   'Product Team': {
     categories: [
-     'travel_reimbursement',
+      'travel_reimbursement',
       'advance_payment',
-      'other' ,
+      'other',
       'leave_encashment',
-        'overtime',
+      'overtime',
 
     ],
     approvals: ['company_approval', 'expense_channel'],
@@ -235,7 +244,7 @@ const TEAM_CONFIG_MAP = {
       'internet',
       'incentives',
       'cloud_ai',
-       // 'leave_encashment',
+      // 'leave_encashment',
       'other',
     ],
     approvals: ['company_approval', 'expense_channel'],
@@ -276,7 +285,7 @@ const TEAM_CONFIG_MAP = {
       'payout',
       'incentives',
       'overtime',
-      
+
       // 'leave_encashment',
 
       'advance_payment',
@@ -645,18 +654,18 @@ export default function ExpenseAdmin() {
     setInvoiceDate('');
   };
 
- const filteredCompanyAdminOptions = useMemo(() => {
-  if (!department) return companyAdminOptions.filter((o) => o.value === '');
+  const filteredCompanyAdminOptions = useMemo(() => {
+    if (!department) return companyAdminOptions.filter((o) => o.value === '');
 
-  const teamObj = teams.find((t) => t._id === department);
-  const teamName = teamObj?.name;
+    const teamObj = teams.find((t) => t._id === department);
+    const teamName = teamObj?.name;
 
-  const allowed = TEAM_CONFIG_MAP[teamName]?.categories || ['other'];
+    const allowed = TEAM_CONFIG_MAP[teamName]?.categories || ['other'];
 
-  return companyAdminOptions.filter(
-    (o) => o.value === '' || allowed.includes(o.value)
-  );
-}, [department, teams]);
+    return companyAdminOptions.filter(
+      (o) => o.value === '' || allowed.includes(o.value)
+    );
+  }, [department, teams]);
 
   //   const cfg = TEAM_CONFIG_MAP[String(department)];
 
@@ -1366,7 +1375,7 @@ export default function ExpenseAdmin() {
                     }}
                     renderValue={(selected) => {
                       if (!selected) return teamsLoading ? 'Loading teams...' : 'You are from which Department';
-                     const found = teams.find((t) => t._id === selected);
+                      const found = teams.find((t) => t._id === selected);
                       return found?.name || 'Unnamed Team';
                     }}
                   >
