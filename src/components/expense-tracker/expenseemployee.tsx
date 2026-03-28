@@ -120,19 +120,6 @@ const companyApprovalOptions = [
 
 type CompanyApprovalValue = (typeof companyApprovalOptions)[number]['value'];
 
-// const ALLOWED_TEAM_IDS: string[] = [
-//   '674abf192cb3ff920ea4a894',
-//   '680789b86a3572ff9478bcd2',
-//   '68078bdd6a3572ff9478bd50',
-//   '68078c506a3572ff9478bd6c',
-//   '68e8feb4fa8c01760efccf87',
-//   '693d0c7f5c4e2f15ce95cf0b',
-//   '6957a5422381863817eb481d',
-//   '695cb6645585adfa28e9bea3',
-//   '695ce778b71faf497ee89a54',
-//   '695df229e3d5943c537019ce',
-// ];
-
 type TeamType = { _id: string; name: string; code: string };
 
 type TeamConfig = {
@@ -171,14 +158,24 @@ const TEAM_CONFIG_MAP = {
     categories: [
       'data_purchase',
       'advertisement',
-     
+
       'travel_reimbursement',
       'collab_events_marketing',
       'community_building_expense',
       'food_beverages',
       'incentives',
       'contests',
-      'other'   // ✅ add
+      'other'
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+  'F2 Management': {
+    categories: [
+      'data_purchase',
+      'travel_reimbursement',
+      'food_beverages',
+      'other'
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
@@ -192,18 +189,18 @@ const TEAM_CONFIG_MAP = {
       'cloud_ai',
       'travel_reimbursement',
       'advance_payment',
-      'other'   // ✅ add
+      'other'  
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
-  
+
   'Product Team': {
     categories: [
-     'travel_reimbursement',
+      'travel_reimbursement',
       'advance_payment',
-      'other' ,
+      'other',
       'leave_encashment',
-        'overtime',
+      'overtime',
 
     ],
     approvals: ['company_approval', 'expense_channel'],
@@ -220,7 +217,7 @@ const TEAM_CONFIG_MAP = {
       'internet',
       'incentives',
       'cloud_ai',
-       // 'leave_encashment',
+      // 'leave_encashment',
       'other',
     ],
     approvals: ['company_approval', 'expense_channel'],
@@ -261,7 +258,7 @@ const TEAM_CONFIG_MAP = {
       'payout',
       'incentives',
       'overtime',
-      
+
       // 'leave_encashment',
 
       'advance_payment',
@@ -283,169 +280,11 @@ const TEAM_CONFIG_MAP = {
       'referral_partner',
       'advance_payment',
       'travel_reimbursement',
-      'other'   // ✅ add
+      'other'   
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
 };
-// const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
-//   // admin
-//   '674abf192cb3ff920ea4a894': {
-//     categories: [
-//       'advance_payment',
-//       'leave_encashment',
-//       'conveyance_petrol',
-//       'travel_reimbursement',
-//       'overtime',
-//       'bonus',
-//       'incentives',
-//       'other',
-//       'expense_channel',
-//       'payout',
-//       'cashback_to_customer',
-//       'referral_partner',
-//       'Harpreet_singh_Management',
-//       'Abhinav_Awal_Management',
-//     ],
-//     approvals: ['company_approval'],
-//   },
-//   // HR
-//   '680789b86a3572ff9478bcd2': {
-//     categories: [
-//       'cake',
-//       'stationary',
-//       'tea',
-//       'water',
-//       'decor',
-//       'gifting',
-//       'food_beverages',
-//       'company_outing',
-//       'overtime',
-//       'rent_noida_first_floor',
-//       'rent_bareilly',
-//       'bonus',
-//       'contests',
-//       'leave_encashment',
-//       'advance_payment',
-//       'other',
-//     ],
-//     approvals: ['company_approval'],
-//   },
-//   // Sales
-//   '68078bdd6a3572ff9478bd50': {
-//     categories: [
-//       'data_purchase',
-//       'overtime',
-//       'advertisement',
-//       'conveyance_petrol',
-//       'cab',
-//       'travel_reimbursement',
-//       'collab_events_marketing',
-//       'community_building_expense',
-//       'food_beverages',
-//       'incentives',
-//       'contests',
-//       'other',
-//     ],
-//     approvals: ['company_approval', 'expense_channel'],
-//   },
-//   '6957a5422381863817eb481d': {
-//     categories: [
-//       'sim',
-//       'system_rent',
-//       'advance_payment',
-//       'dialer',
-//       'travel_reimbursement',
-//       'internet',
-//       'incentives',
-//       'bonus', 'overtime', 
-//       'cloud_ai',
-//       'other',
-//     ],
-//     approvals: ['company_approval', 'expense_channel'],
-//   },
-//   '68078c506a3572ff9478bd6c': {
-//     categories: ['bonus', 'overtime', 'advance_payment', 'incentives', 'cloud_ai', 'other'],
-//     approvals: ['company_approval', 'expense_channel'],
-//   },
-//   // admin (final)
-//   '695df229e3d5943c537019ce': {
-//     categories: [
-//       'stationary',
-//       'water',
-//       'tea',
-//       'repairs',
-//       'maintenance',
-//       'conveyance_petrol',
-//       'food_beverages',
-//       'Harpreet_singh_Management',
-//       'Abhinav_Awal_Management',
-
-//       'other',
-//     ],
-//     approvals: ['company_approval', 'expense_channel'],
-//   },
-//   '695ce778b71faf497ee89a54': {
-//     categories: [
-//       'payout',
-//       'gifting',
-//       'data_purchase',
-//       'advance_payment',
-//       'rent_bareilly',
-//       'rent_noida_first_floor',
-//       'company_outing',
-//       'it_consultancy',
-//       'conveyance_petrol',
-//       'food_beverages',
-//       'referral_partner',
-//       'Harpreet_singh_Management',
-//       'community_building_expense',
-//       'Abhinav_Awal_Management',
-//       'other',
-//     ],
-//     approvals: ['company_approval', 'expense_channel'],
-//   },
-//   '68e8feb4fa8c01760efccf87': {
-//     categories: [
-//       'bonus',
-//       'cab',
-//       'payout',
-//       'overtime',
-//       'advance_payment',
-
-//       'cashback_to_customer',
-//       'expense_channel',
-//       'Harpreet_singh_Management',
-//       'Abhinav_Awal_Management',
-//       'other',
-//     ],
-//     approvals: ['company_approval', 'expense_channel'],
-//   },
-//   '695cb6645585adfa28e9bea3': {
-//     categories: ['bonus', 'overtime', 'Harpreet_singh_Management', 'Abhinav_Awal_Management', 'other'],
-//     approvals: ['company_approval', 'expense_channel'],
-//   },
-//   '693d0c7f5c4e2f15ce95cf0b': {
-//     categories: [
-//       'bonus',
-//       'payout',
-//       'incentives',
-//       'overtime',
-//       'cashback_to_customer',
-//       'expense_channel',
-//       'referral_partner',
-//       'company_approval',
-//       'data_purchase',
-//       'Harpreet_singh_Management',
-//       'Abhinav_Awal_Management',
-//       'advance_payment',
-//       'travel_reimbursement',
-//       'community_building_expense',
-//       'other',
-//     ],
-//     approvals: ['company_approval', 'expense_channel'],
-//   },
-// };
 
 type EmployeeType = {
   _id: string;
@@ -923,18 +762,18 @@ export default function ExpenseEmployee() {
   //   return companyAdminOptions.filter((o) => o.value === '' || allowed.includes(o.value));
   // }, [department]);
 
- const filteredCompanyAdminOptions = useMemo(() => {
-  if (!department) return companyAdminOptions.filter((o) => o.value === '');
+  const filteredCompanyAdminOptions = useMemo(() => {
+    if (!department) return companyAdminOptions.filter((o) => o.value === '');
 
-  const teamObj = teams.find((t) => t._id === department);
-  const teamName = teamObj?.name;
+    const teamObj = teams.find((t) => t._id === department);
+    const teamName = teamObj?.name;
 
-  const allowed = TEAM_CONFIG_MAP[teamName]?.categories || ['other'];
+    const allowed = TEAM_CONFIG_MAP[teamName]?.categories || ['other'];
 
-  return companyAdminOptions.filter(
-    (o) => o.value === '' || allowed.includes(o.value)
-  );
-}, [department, teams]);
+    return companyAdminOptions.filter(
+      (o) => o.value === '' || allowed.includes(o.value)
+    );
+  }, [department, teams]);
 
   const load = async () => {
     try {
@@ -1041,7 +880,7 @@ export default function ExpenseEmployee() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin, myIds.join('|')]);
-    const cfg = TEAM_CONFIG_MAP[String(department)];
+  const cfg = TEAM_CONFIG_MAP[String(department)];
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
