@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const CreateVisitReportDialog = ({ open, onClose, refresh, editData }: any) => {
+const CreateVisitReportDialog = ({ open, onClose, refresh, editData, snackbar }: any) => {
 
     const emptyForm = {
         doctorName: '',
@@ -88,7 +88,7 @@ const CreateVisitReportDialog = ({ open, onClose, refresh, editData }: any) => {
                     payload,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-                alert('Report Updated Successfully');
+                snackbar('Report Updated Successfully');
             } else {
 
                 await axios.post(
@@ -96,16 +96,17 @@ const CreateVisitReportDialog = ({ open, onClose, refresh, editData }: any) => {
                     payload,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-                alert('Report Created Successfully');
+                snackbar('Report Created Successfully');
             }
 
             refresh();
             onClose();
         } catch (err) {
-            alert(editData?._id ? 'Error updating report' : 'Error creating report');
+            snackbar(editData?._id ? 'Error updating report' : 'Error creating report');
             console.log(err);
         }
     };
+    
 
     if (!open) return null;
 

@@ -7,9 +7,6 @@ import { createExpense, listExpenses, todayISO, adminVerifyExpense } from './exp
 
 import { Snackbar, Alert, MenuItem, Select } from '@mui/material';
 
-/** =========================
- * Helpers
- * ========================= */
 const getFileNameFromUrl = (url: string) => {
   try {
     const clean = String(url || '').split('?')[0];
@@ -142,7 +139,155 @@ type TeamConfig = {
   categories: CompanyAdminValue[];
   approvals: CompanyApprovalValue[];
 };
+const TEAM_CONFIG_MAP = {
+  'HR Team': {
+    categories: [
+      'cake',
+      'stationary',
+      'tea',
+      'water',
+      'decor',
+      'gifting',
+      'food_beverages',
+      'company_outing',
+      'overtime',
+      'rent_noida_first_floor',
+      'rent_bareilly',
+      'stationary',
+      'bonus',
+      'contests',
+      'leave_encashment',
+      'bonus',
+      'overtime',
+      'advance_payment',
+      'Harpreet_singh_Management',
+      'Abhinav_Awal_Management',
+      'other',
+    ],
+    approvals: ['company_approval'],
+  },
 
+  'Marketing Team': {
+    categories: [
+      'data_purchase',
+      'advertisement',
+     
+      'travel_reimbursement',
+      'collab_events_marketing',
+      'community_building_expense',
+      'food_beverages',
+      'incentives',
+      'contests',
+      'other'   // ✅ add
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+  'IT TEAM': {
+    categories: [
+      'sim',
+      'system_rent',
+      'dialer',
+      'internet',
+      'cloud_ai',
+      'travel_reimbursement',
+      'advance_payment',
+      'other'   // ✅ add
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  
+  'Product Team': {
+    categories: [
+     'travel_reimbursement',
+      'advance_payment',
+      'other' ,
+      'leave_encashment',
+        'overtime',
+
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+
+  'IT Infra': {
+    categories: [
+      'sim',
+      'system_rent',
+      'advance_payment',
+      'dialer',
+      'travel_reimbursement',
+      'internet',
+      'incentives',
+      'cloud_ai',
+       // 'leave_encashment',
+      'other',
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  'IT Development': {
+    categories: [
+      'bonus',
+      'overtime',
+      'advance_payment',
+      // 'leave_encashment',
+      'incentives',
+      'cloud_ai',
+      'other',
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  'Ops & Credit': {
+    categories: [
+      'bonus',
+      'payout',
+      'incentives',
+      'overtime',
+      'cashback_to_customer',
+      'expense_channel',
+      'referral_partner',
+      // 'leave_encashment',
+
+      'advance_payment',
+      'travel_reimbursement',
+      'other',
+
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  'Sales Team': {
+    categories: [
+      'bonus',
+      'payout',
+      'incentives',
+      'overtime',
+      
+      // 'leave_encashment',
+
+      'advance_payment',
+      'travel_reimbursement',
+      'other',
+
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+  'CREDIT TEAM': {
+    categories: [
+      'bonus',
+      'payout',
+      'incentives',
+      'overtime',
+      'cashback_to_customer',
+      'expense_channel',
+      'referral_partner',
+      'advance_payment',
+      'travel_reimbursement',
+      'other'   // ✅ add
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+};
 // const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
 //   // admin
 //   '674abf192cb3ff920ea4a894': {
@@ -778,7 +923,18 @@ export default function ExpenseEmployee() {
   //   return companyAdminOptions.filter((o) => o.value === '' || allowed.includes(o.value));
   // }, [department]);
 
-  const filteredCompanyAdminOptions = companyAdminOptions;
+ const filteredCompanyAdminOptions = useMemo(() => {
+  if (!department) return companyAdminOptions.filter((o) => o.value === '');
+
+  const teamObj = teams.find((t) => t._id === department);
+  const teamName = teamObj?.name;
+
+  const allowed = TEAM_CONFIG_MAP[teamName]?.categories || ['other'];
+
+  return companyAdminOptions.filter(
+    (o) => o.value === '' || allowed.includes(o.value)
+  );
+}, [department, teams]);
 
   const load = async () => {
     try {
@@ -885,6 +1041,7 @@ export default function ExpenseEmployee() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin, myIds.join('|')]);
+    const cfg = TEAM_CONFIG_MAP[String(department)];
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
