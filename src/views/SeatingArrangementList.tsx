@@ -52,6 +52,7 @@ export default function SeatingArrangementList() {
     const userData = JSON.parse(localStorage.getItem('user') || '{}')
     const userRole = userData.role
     const userId = userData.id
+    const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false)
 
     const fetchData = useCallback(() => {
         if (userRole === '1') {
@@ -134,6 +135,35 @@ export default function SeatingArrangementList() {
         }
     }
 
+    const handleDeleteAll = async () => {
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL}/seating-arrangement/delete-all?company_id=${userData.company_id}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            )
+
+            if (response.ok) {
+                setSnackbarMessage('All seating deleted successfully.')
+                setSnackbarSeverity('success')
+                fetchData()
+            } else {
+                setSnackbarMessage('Failed to delete all seating.')
+                setSnackbarSeverity('error')
+            }
+        } catch (error) {
+            setSnackbarMessage('Error deleting all seating.')
+            setSnackbarSeverity('error')
+        } finally {
+            setSnackbarOpen(true)
+            setDeleteAllDialogOpen(false)
+        }
+    }
+
     const handleCancelDelete = () => {
         setConfirmDialogOpen(false)
         setDeleteId(null)
@@ -201,19 +231,20 @@ export default function SeatingArrangementList() {
             columns.push({
                 field: 'actions',
                 headerName: 'Actions',
-                minWidth: 150,
+                minWidth: 140,
                 headerAlign: 'center',
                 align: 'center',
                 renderCell: params => (
                     <Box display='flex' gap={1} justifyContent='center'>
-                        <Button
-                            variant='contained'
+                        <IconButton
+                            // variant='contained'
                             color='info'
-                            startIcon={<EditIcon />}
+                            // startIcon={<EditIcon />}
                             onClick={() => handleEditSeatingArrangement(params.row)}
+
                         >
-                            Edit
-                        </Button>
+                            <EditIcon />
+                        </IconButton>
                         <IconButton color='error' onClick={() => handleDeleteConfirmation(params.row._id)}>
                             <DeleteIcon />
                         </IconButton>
@@ -281,7 +312,19 @@ export default function SeatingArrangementList() {
                     </Button>
                 </DialogActions>
             </Dialog>
-
+            <Dialog open={deleteAllDialogOpen} onClose={() => setDeleteAllDialogOpen(false)}>
+                <DialogContent>
+                    <Alert severity="warning">
+                        Are you sure you want to delete ALL seating arrangements?
+                    </Alert>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setDeleteAllDialogOpen(false)}>Cancel</Button>
+                    <Button color="error" onClick={handleDeleteAll}>
+                        Delete All
+                    </Button>
+                </DialogActions>
+            </Dialog>
             <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
                 <div>
                     <Typography style={{ fontSize: '2em' }} variant="h5" gutterBottom>
@@ -294,17 +337,31 @@ export default function SeatingArrangementList() {
 
                 <Box display="flex" flexDirection="column" alignItems="flex-end">
                     {userRole === '1' && (
-                        <Tooltip title="Add Spot" arrow>
-                            <Button
-                                style={{ borderRadius: '10rem', marginBottom: '0.5rem' }} // Adds spacing between button and link
-                                variant="contained"
-                                color="primary"
-                                startIcon={<AddIcon />}
-                                onClick={handleAddSeatingArrangement}
-                            >
-                                Add Spot
-                            </Button>
-                        </Tooltip>
+                        <Box display="flex" gap={1} mb={1}>
+                            <Tooltip title="Add Spot" arrow>
+                                <Button
+                                    style={{ borderRadius: '10rem' }}
+                                    variant="contained"
+                                    color="primary"
+                                    startIcon={<AddIcon />}
+                                    onClick={handleAddSeatingArrangement}
+                                >
+                                    Add Spot
+                                </Button>
+                            </Tooltip>
+
+                            <Tooltip title="Delete All" arrow>
+                                <Button
+                                    variant="contained"
+                                    color="error"
+                                    startIcon={<DeleteIcon />}
+                                    onClick={() => setDeleteAllDialogOpen(true)}
+                                    sx={{ borderRadius: '10rem' }}
+                                >
+                                    Delete All
+                                </Button>
+                            </Tooltip>
+                        </Box>
                     )}
 
                     <Link href="/seat-layout" passHref>

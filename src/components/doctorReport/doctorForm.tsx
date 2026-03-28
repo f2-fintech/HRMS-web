@@ -1,7 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 import CreateReportDialog from './createdialog';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const statusColor = (s: string) =>
   s === 'Positive'
@@ -11,7 +15,7 @@ const statusColor = (s: string) =>
 const openColor = (v: boolean) =>
   v
     ? { bg: '#e8f0fe', border: '#1976d2', text: '#1565c0' }
-    : { bg: '#f1f5f9', border: '#94a3b8', text: '#64748b' };
+    : { bg: '#f1f5f989', border: '#94a3b8', text: '#64748b' };
 
 const ambienceIcon = (a: string) =>
   a === 'Good' ? '😊' : a === 'Average' ? '😐' : '😟';
@@ -72,7 +76,18 @@ const DoctorVisitReportPage = () => {
   const [openCreate, setOpenCreate] = useState(false);
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
 
+  const showSnackbar = (
+    message: string,
+    severity: 'success' | 'error' | 'info' | 'warning' = 'success'
+  ) => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
   const getReports = async () => {
     setLoading(true);
     try {
@@ -87,14 +102,42 @@ const DoctorVisitReportPage = () => {
 
       const data = await res.json();
       setReports(data);
+      // showSnackbar('Reports loaded successfully', 'success');
     } catch (err) {
       console.log(err);
       setReports(DEMO);
+      showSnackbar('Failed to load reports', 'error');
+
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this report?')) return;
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/visit-report/${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.ok) {
+        showSnackbar('Report deleted successfully', 'success');
+        getReports();
+      } else {
+        showSnackbar('Failed to delete report', 'error');
+      }
+    } catch (err) {
+      console.log(err);
+      showSnackbar('Error deleting report', 'error');
+    }
+  };
   useEffect(() => { getReports(); }, []);
 
   const filtered = reports.filter((r) => {
@@ -461,17 +504,25 @@ const DoctorVisitReportPage = () => {
                       >
                         👁️
                       </span>
-                      <span
-                        title="Edit"
-                        style={{ cursor: 'pointer', fontSize: 16 }}
+                      <EditIcon
+                        titleAccess="Edit"
+                        style={{ cursor: 'pointer', fontSize: 20, color: '#1976d2' }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditTarget(r);
                           setOpenCreate(true);
                         }}
-                      >
-                        ✏️
-                      </span>
+                      />
+
+                      <DeleteOutlineIcon
+                        titleAccess="Delete"
+                        style={{ cursor: 'pointer', fontSize: 20, color: '#ef4444' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(r._id);
+                        }}
+                      />
+
                     </div>
 
 
@@ -605,7 +656,23 @@ const DoctorVisitReportPage = () => {
         onClose={() => setOpenCreate(false)}
         refresh={getReports}
         editData={editTarget}
+        snackbar={showSnackbar}
       />
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={3000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setOpenSnackbar(false)}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 };
