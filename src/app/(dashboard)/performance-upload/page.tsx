@@ -449,7 +449,8 @@ export default function PerformanceUploadPage() {
 
   const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
 
-  const isAsstOpsManager = user?.designation === 'Asst. Ops Manager';
+  const isAsstOpsManager = ['Asst. Ops Manager', 'Ops Manager', 'Assistant Growth Manager', 'Sr. Operations & Alliances Manager', 'Ops Executive']
+    .includes(user?.designation);
   const canUpload = isAdmin || isAsstOpsManager;
   const canAddRow = isAdmin || isAsstOpsManager;
 
