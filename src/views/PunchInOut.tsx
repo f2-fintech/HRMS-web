@@ -24,9 +24,10 @@ const WHITELIST_EMPLOYEE_IDS = [
     '66c881fe269ecefff3411649',
     '66bca6192f1270380b77aac5',
     '66bc8bfe2f1270380b77a920',
-     // '66bca3782f1270380b77aaa3',
-     // '66c6e8a6258826c691d89299',
-      //'67ed14bb93ea9c1052f942b5'
+    // '699e8d1b1cf053581b8a4d6e',
+    // '66bca3782f1270380b77aaa3',
+    // '66c6e8a6258826c691d89299',
+    //'67ed14bb93ea9c1052f942b5'
 ];
 
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
@@ -81,6 +82,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         // Whitelist users can use any device
         if (isWhitelistedUser) return false;
+
+
+
+
 
         const ua = navigator.userAgent.toLowerCase();
 
@@ -313,85 +318,128 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchIn = async () => {
-        // Mobile device check - block if not whitelisted
+        // Mobile device check
         if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Please use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
+            alert('🚫 Punch In allowed only from Desktop/Laptop');
             return;
         }
 
-        const now = new Date()
-        const startTime = now.toLocaleTimeString('en-US', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        })
-
-        const punchData = {
-            punchIn: startTime,
-            punchOut: '',
-            totalTime: '00h 00m 00s',
-            date: currentDate,
-            employee: employeeId,
-            company_id: company_id
+        if (!navigator.geolocation) {
+            alert("Location not supported");
+            return;
         }
 
-        setPunchState({
-            ...punchState,
-            isPunchIn: true,
-            startTime,
-            isPunchInDisabled: true,
-            isPunchOutDisabled: false
-        })
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
 
-        await dispatch(addPunch(punchData)).unwrap();
+                const now = new Date();
 
-        startPunchInTimer(now.getTime())
-    }
+                const startTime = now.toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
 
+                const punchData = {
+                    punchIn: startTime,
+                    punchOut: '',
+                    totalTime: '00h 00m 00s',
+                    date: currentDate,
+                    employee: employeeId,
+                    company_id: company_id,
+                    latitude: latitude,
+                    longitude: longitude
+                };
+
+                setPunchState({
+                    ...punchState,
+                    isPunchIn: true,
+                    startTime,
+                    isPunchInDisabled: true,
+                    isPunchOutDisabled: false
+                });
+
+                try {
+                    await dispatch(addPunch(punchData)).unwrap();
+                    startPunchInTimer(now.getTime());
+                } catch (error) {
+                    alert(error?.message || "Punch In failed (Outside office range)");
+                }
+            },
+            (error) => {
+                alert("Please enable location");
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    };
     const handlePunchOut = async () => {
-        // Mobile device check - block if not whitelisted
         if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH OUT BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch Out.\n✅ Please use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
+            alert('Punch Out only allowed from Desktop');
             return;
         }
 
-        const now = new Date()
-
-        const endTime = now.toLocaleTimeString('en-US', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        })
-
-        const confirmation = window.confirm('Are you sure you want to punch out?')
-
-        if (!confirmation) {
-            return
+        if (!navigator.geolocation) {
+            alert("Location not supported");
+            return;
         }
 
-        stopPunchTimer()
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
 
-        setPunchState({
-            isPunchIn: false,
-            startTime: '',
-            endTime,
-            totalTime: timer,
-            isPunchInDisabled: false,
-            isPunchOutDisabled: true
-        })
+                const now = new Date();
 
-        const punchData = {
-            punchOut: endTime,
-            totalTime: timer
-        }
+                const endTime = now.toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
 
-        await dispatch(updatePunch({ employeeId, punchData })).unwrap()
+                const confirmation = window.confirm('Are you sure you want to punch out?')
+                if (!confirmation) return;
 
-        dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
-        dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
-    }
+                stopPunchTimer();
+
+                setPunchState({
+                    isPunchIn: false,
+                    startTime: '',
+                    endTime,
+                    totalTime: timer,
+                    isPunchInDisabled: false,
+                    isPunchOutDisabled: true
+                });
+
+                const punchData = {
+                    punchOut: endTime,
+                    totalTime: timer,
+                    latitude: latitude,
+                    longitude: longitude
+                };
+
+                await dispatch(updatePunch({ employeeId, punchData })).unwrap();
+
+                dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }));
+                dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }));
+            },
+            () => {
+                alert("Please enable location");
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    };
 
     useEffect(() => {
         if (punch.length > 0) {
