@@ -27,7 +27,7 @@ const WHITELIST_EMPLOYEE_IDS = [
     // '699e8d1b1cf053581b8a4d6e',
     // '66bca3782f1270380b77aaa3',
     // '66c6e8a6258826c691d89299',
-    //'67ed14bb93ea9c1052f942b5'
+    '67ed14bb93ea9c1052f942b5'
 ];
 
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
