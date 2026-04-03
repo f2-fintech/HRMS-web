@@ -92,8 +92,9 @@ const BreakControls: React.FC<BreakControlsProps> = ({
   }, []);
 
   // ✅ mobile allow logic
-  const isMobileAllowed = employeeId ? MOBILE_BREAK_ALLOWED_IDS.has(employeeId) : false;
-
+ const isMobileAllowed = employeeId
+    ? MOBILE_BREAK_ALLOWED_IDS.has(employeeId)
+    : false;
   // ✅ if device is mobile AND ID is not allowed => block
   const blockMobile = isMobileDevice && !isMobileAllowed;
 
