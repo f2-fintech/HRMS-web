@@ -1527,14 +1527,32 @@ export default function PerformanceUploadPage() {
                         </TableCell>
 
                         <TableCell>
-                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: '#4b5563',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: { xs: '90px', sm: '110px', md: '120px' }
+                            }}
+                          >
                             {r.date ? dayjs(r.date).format('DD-MM-YYYY') : '—'}
                           </Typography>
                         </TableCell>
 
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography sx={{ fontWeight: 700, color: '#6b21a8' }}>
+                            <Typography
+                              sx={{
+                                fontWeight: 600,
+                                color: '#6b21a8',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '180px' // width adjust kar sakte ho
+                              }}
+                            >
                               {r.employee_name || '-'}
                             </Typography>
 
@@ -1554,7 +1572,7 @@ export default function PerformanceUploadPage() {
                               </Tooltip>
                             )}
 
-                            {teamInfo && (
+                            {/* {teamInfo && (
                               <Chip
                                 size="small"
                                 label={teamInfo.role === 'manager' ? 'Manager' : 'TL'}
@@ -1566,7 +1584,7 @@ export default function PerformanceUploadPage() {
                                   height: 20,
                                 }}
                               />
-                            )}
+                            )} */}
                           </Box>
 
                           {r.employee_id && (
@@ -1577,7 +1595,16 @@ export default function PerformanceUploadPage() {
                         </TableCell>
 
                         <TableCell>
-                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: '#4b5563',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '120px' // adjust as needed
+                            }}
+                          >
                             {r.code || '—'}
                           </Typography>
                         </TableCell>
