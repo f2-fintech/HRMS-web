@@ -24,9 +24,11 @@ interface BreakControlsProps {
 
 
 const MOBILE_BREAK_ALLOWED_IDS = new Set<string>([
+  '66c881fe269ecefff3411649',
   '66bca8d72f1270380b77ab12',
   '66bc8bfe2f1270380b77a920',
   '66bca6192f1270380b77aac5',
+  '699e8d1b1cf053581b8a4d6e',
 ]);
 
 const BreakControls: React.FC<BreakControlsProps> = ({
@@ -152,11 +154,10 @@ const BreakControls: React.FC<BreakControlsProps> = ({
               value={breakType}
               onChange={(e) => setBreakType(e.target.value)}
               disabled={isDisabled || blockMobile}
-              className={`w-full py-3 px-4 border ${
-                isDisabled || blockMobile
-                  ? 'bg-gray-100 border-gray-300'
-                  : 'border-gray-300'
-              } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+              className={`w-full py-3 px-4 border ${isDisabled || blockMobile
+                ? 'bg-gray-100 border-gray-300'
+                : 'border-gray-300'
+                } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
               appearance-none text-gray-700`}
             >
               {breakOptions.map((option) => (
@@ -199,13 +200,11 @@ const BreakControls: React.FC<BreakControlsProps> = ({
                 setSpecifyError('');
               }}
               disabled={blockMobile}
-              className={`w-full py-3 px-4 border ${
-                specifyError ? 'border-red-500' : 'border-gray-300'
-              } rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
-                specifyError
+              className={`w-full py-3 px-4 border ${specifyError ? 'border-red-500' : 'border-gray-300'
+                } rounded-lg shadow-sm focus:outline-none focus:ring-2 ${specifyError
                   ? 'focus:ring-red-500 focus:border-red-500'
                   : 'focus:ring-indigo-500 focus:border-indigo-500'
-              } ${blockMobile ? 'bg-gray-100' : ''}`}
+                } ${blockMobile ? 'bg-gray-100' : ''}`}
             />
 
             {specifyError && (
@@ -221,10 +220,9 @@ const BreakControls: React.FC<BreakControlsProps> = ({
             disabled={isStartDisabled}
             title={blockMobile ? 'Only available on laptop/desktop (ID not allowed)' : ''}
             className={`w-full py-3 px-4 rounded-lg flex items-center justify-center shadow-md transition-all duration-300
-              ${
-                timerRunning
-                  ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
-                  : isStartDisabled
+              ${timerRunning
+                ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
+                : isStartDisabled
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white h-[100%]'
               }`}
@@ -263,16 +261,15 @@ const BreakControls: React.FC<BreakControlsProps> = ({
         </div>
 
         {/* End Break Button */}
-        <div className="col-span-1 hidden sm:block">
+        <div className="col-span-1">
           <button
             onClick={handleEndBreak}
             disabled={isEndDisabled}
             title={blockMobile ? 'Only available on laptop/desktop (ID not allowed)' : ''}
             className={`w-full py-3 px-4 rounded-lg flex items-center justify-center shadow-md transition-all duration-300
-              ${
-                isEndDisabled
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white'
+              ${isEndDisabled
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white'
               }`}
           >
             <Timer className="mr-2" />
