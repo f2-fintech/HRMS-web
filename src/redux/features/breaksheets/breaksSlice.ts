@@ -12,6 +12,7 @@ export interface Break {
     date: string
     employee: string
     company_id: string
+    remarks?: string;
 }
 
 export const fetchBreaksById = createAsyncThunk('breaks/fetchBreaksById', async (employeeId: string | null) => {
@@ -149,6 +150,42 @@ export const updateLatestBreak = createAsyncThunk(
 );
 
 
+export const updateRemarks = createAsyncThunk(
+  'breaks/updateRemarks',
+  async ({ breakId, remarks }: { breakId: string; remarks: string }) => {
+    const { isTokenExpired } = utility();
+    const token = localStorage.getItem('token');
+    const { company_id } =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage?.getItem("user")!)
+        : {};
+
+    if (!token || isTokenExpired(token)) {
+      if (token) localStorage.removeItem('token');
+      window.location.href = '/login';
+      return { error: token ? "Token expired" : "No token found" };
+    }
+
+    const response = await fetch(
+      `${BASE_URL}/breaksheet/update-remarks/${breakId}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ remarks }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to update remarks');
+    }
+
+    return await response.json();
+  }
+);
+
 const initialState = {
     breaks: [] as Break[],
     loading: false,
@@ -201,7 +238,26 @@ const breaksSlice = createSlice({
             .addCase(updateLatestBreak.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.error.message || 'Failed to update latest break';
-            });
+            })
+               .addCase(updateRemarks.pending, (state) => {
+            state.loading = true;
+        })
+                .addCase(updateRemarks.fulfilled, (state, action) => {
+            const index = state.breaks.findIndex(
+                (b) => (b.id || (b as any)._id) === (action.payload.id || action.payload._id)
+            );
+
+            if (index !== -1) {
+                state.breaks[index] = action.payload;
+            }
+
+            state.loading = false;
+        })
+        .addCase(updateRemarks.rejected, (state, action) => {
+            state.loading = false;
+            state.error = action.error.message || 'Failed to update remarks';
+        });
+            
     }
 })
 

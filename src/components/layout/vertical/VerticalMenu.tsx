@@ -1,37 +1,34 @@
 // MUI Imports
 import { useEffect, useState } from 'react'
-
-import Chip from '@mui/material/Chip'
 import { useTheme } from '@mui/material/styles'
 import PerfectScrollbar from 'react-perfect-scrollbar'
 import HolidayVillageIcon from '@mui/icons-material/HolidayVillage'
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'
 import GroupIcon from '@mui/icons-material/Group'
-import InventoryIcon from '@mui/icons-material/Inventory'
 import EventIcon from '@mui/icons-material/Event'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import DescriptionIcon from '@mui/icons-material/Description'
-import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled'
 import FreeBreakfastIcon from '@mui/icons-material/FreeBreakfast'
 import ProductionQuantityLimitsIcon from '@mui/icons-material/ProductionQuantityLimits'
 import SchoolIcon from '@mui/icons-material/School'
 import GavelIcon from '@mui/icons-material/Gavel'
+import QueryStatsIcon from '@mui/icons-material/QueryStats'
+import AssessmentIcon from '@mui/icons-material/Assessment'
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
+import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
+import VideoCallIcon from '@mui/icons-material/VideoCall'
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital'
 
-import QueryStatsIcon from '@mui/icons-material/QueryStats';
-import AssessmentIcon from '@mui/icons-material/Assessment';
+// Menu Imports
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
 import useVerticalNav from '@menu/hooks/useVerticalNav'
-import { Menu, SubMenu, MenuItem, MenuSection } from '@menu/vertical-menu'
+import { Menu, MenuItem, MenuSection } from '@menu/vertical-menu'
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 import menuItemStyles from '@core/styles/vertical/menuItemStyles'
 import menuSectionStyles from '@core/styles/vertical/menuSectionStyles'
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
-import SupportAgentIcon from '@mui/icons-material/SupportAgent'
-import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
-import VideoCallIcon from '@mui/icons-material/VideoCall'
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 
+// Expand Icon
 type RenderExpandIconProps = {
   open?: boolean
   transitionDuration?: VerticalMenuContextProps['transitionDuration']
@@ -44,7 +41,6 @@ const RenderExpandIcon = ({ open, transitionDuration }: RenderExpandIconProps) =
 )
 
 const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectScrollbar: boolean) => void }) => {
-  // Hooks
   const theme = useTheme()
   const { isBreakpointReached, transitionDuration } = useVerticalNav()
 
@@ -54,7 +50,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
-    setUserRole(user.role || null)
+    setUserRole(user.role || '')
   }, [])
 
   return (
@@ -69,14 +65,15 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           onScrollY: container => scrollMenu(container, true)
         })}
     >
-
       <Menu
         menuItemStyles={menuItemStyles(theme)}
         renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
         renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
         menuSectionStyles={menuSectionStyles(theme)}
       >
-        {/* <SubMenu
+
+        {/* 🏠 DASHBOARD */}
+          {/* <SubMenu
           label='Dashboard13'
           icon={<i className='ri-home-smile-line' />}
           suffix={<Chip label='5' size='small' color='error' />}
@@ -134,94 +131,25 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           </MenuItem>
         </SubMenu> */}
 
-        <MenuItem
-          href={`/`}
-          icon={<i className='ri-dashboard-line' />}
-
-        // suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
-        >
+        <MenuItem href={`/`} icon={<i className='ri-dashboard-line' />}>
           Dashboard
         </MenuItem>
-        <MenuSection label='Apps & Pages'>
-          {userRole === "0" &&
-            <MenuItem href={`/company`} icon={<i className='ri-user-3-line' />}>
-              company
+
+        {/* 👥 PEOPLE */}
+        <MenuSection label='Employee Management'>
+          {userRole === "0" && (
+            <MenuItem href={`/company`} icon={<i className='ri-building-line' />}>
+              Company
             </MenuItem>
-          }
+          )}
+
           <MenuItem href={`/employees`} icon={<i className='ri-user-3-line' />}>
             Employees
           </MenuItem>
-          {userRole === "0" &&
-            <MenuItem href={`/payment`} icon={<i className='ri-user-3-line' />}>
-              Payment
-            </MenuItem>
-          }
-          {userRole !== "0" &&
-            <>
 
-              <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
-                Attendance
-              </MenuItem>
-              <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
-                Leaves
-              </MenuItem>
-              <MenuItem href={`/meetings`} icon={<VideoCallIcon />}>
-                Meetings
-              </MenuItem>
-              <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
-                Break Sheet
-              </MenuItem>
-
-              <MenuItem href={`/performance`} icon={<HeadsetMicIcon />}>
-                Performance
-              </MenuItem>
-                <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
-                Expense Tracker
-              </MenuItem>
-              <MenuItem href={`/doctor-report`} icon={<LocalHospitalIcon />}>
-                Doctor Visit Report
-              </MenuItem>
-              <MenuItem href={`/departmentPerformance`} icon={<AssessmentIcon />}>
-                Support Function
-              </MenuItem>
-               <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
-                Teams
-              </MenuItem>
-
-              <MenuItem href={`/fine`} icon={<GavelIcon />}>
-                Fine
-              </MenuItem>
-
-              {/* <MenuItem href={`/pages`} icon={<ArticleIcon />}>
-                Pages
-              </MenuItem> */}
-            
-              <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
-                Query
-              </MenuItem>
-
-              <MenuItem href={`/holidays`} icon={<EventIcon />}>
-                Holiday
-              </MenuItem>
-              {/* <MenuItem href={`/assests`} icon={<InventoryIcon />}>
-                Assets
-              </MenuItem> */}
-              <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
-                Seating Plan
-              </MenuItem>
-              <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
-                Policy
-              </MenuItem><MenuItem href={`/roombook`} icon={<MeetingRoomIcon />}>
-                Room Booking
-              </MenuItem>
-            </>
-          }
-
-          {userRole === '1' && (
-            <MenuItem href={`/inventory`} icon={<ProductionQuantityLimitsIcon />}>
-              Inventory
-            </MenuItem>
-          )}
+          <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
+            Teams
+          </MenuItem>
 
           {userRole === '1' && (
             <MenuItem href={`/designation`} icon={<SchoolIcon />}>
@@ -229,14 +157,98 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             </MenuItem>
           )}
 
-          {/* 
-          <MenuItem href={`/timesheets`} icon={<AccessTimeFilledIcon />}>
-            Time Sheet
-          </MenuItem> */}
-
+          <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
+            Seating Plan
+          </MenuItem>
         </MenuSection>
+
+  
+        {userRole !== "0" && (
+          <MenuSection label='Attendance & Time'>
+            <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
+              Attendance
+            </MenuItem>
+
+            <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
+              Leaves
+            </MenuItem>
+
+            <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
+              Break Management
+            </MenuItem>
+
+            <MenuItem href={`/holidays`} icon={<EventIcon />}>
+              Holiday
+            </MenuItem>
+
+            <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
+              Policies
+            </MenuItem>
+          </MenuSection>
+        )}
+
+      
+        {userRole !== "0" && (
+          <MenuSection label='Performance & Reporting'>
+            <MenuItem href={`/performance`} icon={<HeadsetMicIcon />}>
+              Performance
+            </MenuItem>
+
+            <MenuItem href={`/doctor-report`} icon={<LocalHospitalIcon />}>
+              Field Visit Report
+            </MenuItem>
+          </MenuSection>
+        )}
+
+
+        {userRole !== "0" && (
+          <MenuSection label='Finance & Expense'>
+            <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
+              Expense Tracker
+            </MenuItem>
+
+            <MenuItem href={`/fine`} icon={<GavelIcon />}>
+              Fine
+            </MenuItem>
+          </MenuSection>
+        )}
+
+     
+        {userRole !== "0" && (
+          <MenuSection label='Operations & Support'>
+            <MenuItem href={`/departmentPerformance`} icon={<AssessmentIcon />}>
+              Support Operations
+            </MenuItem>
+
+            <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
+              Raise Query
+            </MenuItem>
+          </MenuSection>
+        )}
+
+        {/* 📅 MEETING & SCHEDULING */}
+        {userRole !== "0" && (
+          <MenuSection label='Meeting & Scheduling'>
+            <MenuItem href={`/meetings`} icon={<VideoCallIcon />}>
+              Meetings
+            </MenuItem>
+
+            <MenuItem href={`/roombook`} icon={<MeetingRoomIcon />}>
+              Workspace Booking         </MenuItem>
+          </MenuSection>
+        )}
+
+
+        {userRole === '1' && (
+          <MenuSection label='Assets & Inventory'>
+            <MenuItem href={`/inventory`} icon={<ProductionQuantityLimitsIcon />}>
+              Assets / Inventory
+            </MenuItem>
+          </MenuSection>
+        )}
+
       </Menu>
-    </ScrollWrapper >
+    </ScrollWrapper>
   )
 }
 
