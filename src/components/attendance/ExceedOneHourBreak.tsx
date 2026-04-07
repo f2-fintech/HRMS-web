@@ -8,11 +8,16 @@ interface Employee {
     image: string
     location: string
     totalBreakTime: string // Keep as string to match backend response
+    breaks?: {
+        remarks?: string
+    }[]
 }
 
 const ExceedOneHourBreak: React.FC<{ employee: Employee }> = ({ employee }) => {
     const { first_name, last_name, image, location, totalBreakTime } = employee
-
+    const latestRemark = employee.breaks
+        ?.filter(b => b.remarks)
+        ?.slice(-1)[0];
     return (
         <Card sx={{ maxWidth: 345, margin: '10px', boxShadow: 3 }}>
             <CardContent>
@@ -39,6 +44,22 @@ const ExceedOneHourBreak: React.FC<{ employee: Employee }> = ({ employee }) => {
                     <Typography color='white' variant='body2'>
                         Total: {totalBreakTime}
                     </Typography>
+                    {latestRemark && (
+                        <Box
+                            sx={{
+                                mt: 1,
+                                px: 1.5,
+                                py: 0.5,
+                                backgroundColor: '#fff3e0',
+                                borderRadius: '6px',
+                                borderLeft: '3px solid orange'
+                            }}
+                        >
+                            <Typography variant='caption' color='text.secondary'>
+                                💬 {latestRemark.remarks}
+                            </Typography>
+                        </Box>
+                    )}
                 </Box>
             </CardContent>
         </Card>

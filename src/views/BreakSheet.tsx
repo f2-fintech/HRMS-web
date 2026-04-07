@@ -35,6 +35,7 @@ import { formatTime, convertToMilliseconds, getTimestampFromTime } from '@/utili
 import NotPunchedOutPage from './NotPunchedOutPage'
 import ExceedOneHourBreak from '@/components/attendance/ExceedOneHourBreak'
 import Link from 'next/link'
+import { updateRemarks } from '@/redux/features/breaksheets/breaksSlice';
 
 const BreakSheet: React.FC = () => {
     const dispatch: AppDispatch = useDispatch()
@@ -92,20 +93,20 @@ const BreakSheet: React.FC = () => {
     useEffect(() => {
         const checkDevice = () => {
             // Check 1: Touch capability
-            const hasTouch = ('ontouchstart' in window) || 
-                           (navigator.maxTouchPoints > 0) ||
-                           ((navigator as any).msMaxTouchPoints > 0)
-            
+            const hasTouch = ('ontouchstart' in window) ||
+                (navigator.maxTouchPoints > 0) ||
+                ((navigator as any).msMaxTouchPoints > 0)
+
             // Check 2: User Agent
             const ua = navigator.userAgent.toLowerCase()
             const isMobileUA = /android|webos|iphone|ipod|blackberry|iemobile|opera mini/i.test(ua)
-            
+
             // Check 3: Pointer type (coarse = touch device)
             const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches
-            
+
             // Check 4: Screen width
             const smallScreen = window.innerWidth < 768
-            
+
             // Debug logging
             console.log('🔍 Mobile Detection Debug:', {
                 hasTouch,
@@ -116,7 +117,7 @@ const BreakSheet: React.FC = () => {
                 screenWidth: window.innerWidth,
                 maxTouchPoints: navigator.maxTouchPoints
             })
-            
+
             // Return true if at least 2 conditions match for better accuracy
             const conditions = [
                 hasTouch && smallScreen,
@@ -125,15 +126,15 @@ const BreakSheet: React.FC = () => {
             ]
             const matchCount = conditions.filter(Boolean).length
             const isMobileDevice = matchCount >= 2 || (isMobileUA && hasTouch)
-            
+
             console.log('📱 Is Mobile Device:', isMobileDevice, '| Match Count:', matchCount)
-            
+
             setIsMobile(isMobileDevice)
         }
-        
+
         checkDevice()
         window.addEventListener('resize', checkDevice)
-        
+
         return () => window.removeEventListener('resize', checkDevice)
     }, [])
 
@@ -149,6 +150,8 @@ const BreakSheet: React.FC = () => {
                 `${process.env.NEXT_PUBLIC_APP_URL}/breaksheet/long-breaks?companyId=${companyId}&date=${selectedDate}`
             )
             const data = await response.json()
+        
+
             setExceedBreakEmployees(data)
             setShowExceedBreaks(true) // Show the exceed break list
         } catch (error) {
@@ -436,62 +439,62 @@ const BreakSheet: React.FC = () => {
         setShowNotPunchedOut(prev => !prev)
     }
 
- useEffect(() => {
-  const fetchEmployees = async () => {
-    const url = `${process.env.NEXT_PUBLIC_APP_URL}/punch/shift-summary?date=${selectedDate}&company_id=${companyId}`;
-    const res = await fetch(url);
-    const data = await res.json();
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            const url = `${process.env.NEXT_PUBLIC_APP_URL}/punch/shift-summary?date=${selectedDate}&company_id=${companyId}`;
+            const res = await fetch(url);
+            const data = await res.json();
 
-    setAllEmployees(data.employees || []);
-  };
+            setAllEmployees(data.employees || []);
+        };
 
-  fetchEmployees();
-}, [selectedDate, companyId]);
+        fetchEmployees();
+    }, [selectedDate, companyId]);
 
-const csvEscape = (val: any) => `"${String(val ?? '').replaceAll('"', '""')}"`;
+    const csvEscape = (val: any) => `"${String(val ?? '').replaceAll('"', '""')}"`;
 
-const handleExportShiftTime = () => {
-  const monthNames = [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December'
-  ];
+    const handleExportShiftTime = () => {
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
 
-  const formattedMonth = monthNames[parseInt(selectedDate.split('-')[1], 10) - 1];
-  const formattedYear = selectedDate.split('-')[0];
-  const formattedDay = selectedDate.split('-')[2];
+        const formattedMonth = monthNames[parseInt(selectedDate.split('-')[1], 10) - 1];
+        const formattedYear = selectedDate.split('-')[0];
+        const formattedDay = selectedDate.split('-')[2];
 
-  const fileName = `shift_summary_${formattedDay}_${formattedMonth}_${formattedYear}.csv`;
+        const fileName = `shift_summary_${formattedDay}_${formattedMonth}_${formattedYear}.csv`;
 
-  const csvRows = [
-    ['Employee Name', 'Location', 'Punch In', 'Punch Out', 'Total Shift Time', 'Status'],
-    ...allEmployees.map(emp => [
-      `${emp.first_name ?? ''} ${emp.last_name ?? ''}`.trim(),
-      emp.location ?? '',
-      emp.punchIn ?? '',
-      emp.punchOut ?? '',
-      emp.totalShiftTime ?? '',
-      emp.status ?? ''
-    ])
-  ];
+        const csvRows = [
+            ['Employee Name', 'Location', 'Punch In', 'Punch Out', 'Total Shift Time', 'Status'],
+            ...allEmployees.map(emp => [
+                `${emp.first_name ?? ''} ${emp.last_name ?? ''}`.trim(),
+                emp.location ?? '',
+                emp.punchIn ?? '',
+                emp.punchOut ?? '',
+                emp.totalShiftTime ?? '',
+                emp.status ?? ''
+            ])
+        ];
 
-  const csvContent = csvRows
-    .map(row => row.map(csvEscape).join(','))
-    .join('\n');
+        const csvContent = csvRows
+            .map(row => row.map(csvEscape).join(','))
+            .join('\n');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
 
-  const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
-  link.setAttribute('download', fileName);
-  link.style.visibility = 'hidden';
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.style.visibility = 'hidden';
 
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
-    
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     if (isMobile && Number(userRole) > 2) {
         return (
             <Box
@@ -798,7 +801,14 @@ const handleExportShiftTime = () => {
                             <h2 className="text-lg font-semibold">Breaks Taken on {selectedDate}</h2>
                         </div>
 
-                        <BreakList filteredBreaks={filteredBreaks} userRole={userRole} handleEditClick={handleEditClick} />
+                        <BreakList
+                            filteredBreaks={filteredBreaks}
+                            userRole={userRole}
+                            handleEditClick={handleEditClick}
+                            updateRemarks={(breakId: string, remarks: string) => {
+                                dispatch(updateRemarks({ breakId, remarks }));
+                            }}
+                        />
                     </div>
                 </div>
             </div>
