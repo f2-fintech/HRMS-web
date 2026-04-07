@@ -29,6 +29,7 @@ import profilesReducer from './features/profileEmployeee/profilesSlice';
 import performanceReducer from './features/performances/performanceSlice';
 import pagesReducer from './features/pages/pagesSlice';
 import databasesReducer from './features/databases/databasesSlice';
+import payrollReducer from './features/payroll/payrollSlice';
 
 
 
@@ -81,6 +82,7 @@ const appReducer = combineReducers({
   performances: performanceReducer,
   pages: pagesReducer,
   databases: databasesReducer,
+  payroll: payrollReducer,
 })
 
 // Root reducer with RESET functionality
