@@ -141,7 +141,7 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
                                         </Box>
                                     </Box>
                                 )}
-                                {/* {userRole === '1' && (
+                            {/* {userRole === '1' && (
                                     <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
                                         <Tooltip title='Edit Break'>
                                             <IconButton
