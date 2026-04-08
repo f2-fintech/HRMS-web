@@ -1,24 +1,26 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+
 import { useRouter } from 'next/navigation'
+
+import { useSelector, useDispatch } from 'react-redux'
 import { Box, Grid, Typography, TextField, Button, Dialog, DialogContent, Autocomplete } from '@mui/material'
 import FormControl from '@mui/material/FormControl'
 import AddIcon from '@mui/icons-material/Add'
+
+import { toast, ToastContainer } from 'react-toastify'
+
 import { fetchEmployees, resetEmployees } from '../redux/features/employees/employeesSlice'
 import { fetchDesignations } from '@/redux/features/designation/designationSlice'
 import Loader from '../components/loader/loader'
 import EmployeeForm from '@/components/employee/EmployeeForm'
 import EmployeeCard from '@/components/employee/EmployeeCard'
 import { utility } from '@/utility'
-import { toast, ToastContainer } from 'react-toastify'
 import { deleteEmployee } from '@/redux/features/employees/employeesSlice'
 import 'react-toastify/dist/ReactToastify.css'
-import { RootState } from '@/redux/store'
+import type { RootState } from '@/redux/store'
 import useDebounce from '@/utility/debounce/useDebounce'
-import AttendanceSummary from '@/utility/attendancesummry/AttendanceSummary'
-import EmployeeStatsWithBlinkingStatus from '@/utility/totalempattendancesummary/EmployeeStatsWithBlinkingStatus'
 
 const { isTokenExpired } = utility()
 
@@ -26,7 +28,6 @@ export default function EmployeeGrid() {
   const dispatch = useDispatch()
   const { employees, hasMore, loading, error } = useSelector((state: RootState) => state.employees)
   const { designations } = useSelector((state: RootState) => state.designations)
-  const [viewAttendanceData, setViewAttendanceData] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [userRole, setUserRole] = useState('')
   const [selectedEmployee, setSelectedEmployee] = useState(null)
@@ -37,7 +38,9 @@ export default function EmployeeGrid() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const router = useRouter()
 
-  const capitalizeWords = (name: String) => {
+  const capitalizeWords = (name: string) => {
+    if (!name) return ''
+
     return name
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -51,14 +54,15 @@ export default function EmployeeGrid() {
     } else {
       if (userRole === '') {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
+
         setUserRole(user.role)
       }
     }
   }, [token, userRole, router])
 
   useEffect(() => {
-    dispatch(fetchDesignations({ page: 1, limit: 0, keyword: '' }))
-  }, [])
+    dispatch(fetchDesignations({ page: 1, limit: 100, keyword: '' }))
+  }, [dispatch])
 
   useEffect(() => {
     if (searchName === '' && selectedDesignation === '') {
@@ -70,7 +74,9 @@ export default function EmployeeGrid() {
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 && !loading && hasMore) {
       setPage(prevPage => {
         const nextPage = prevPage + 1
+
         dispatch(fetchEmployees({ page: nextPage, limit: 12, search: searchName, designation: selectedDesignation }))
+
         return nextPage
       })
     }
@@ -78,6 +84,7 @@ export default function EmployeeGrid() {
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll)
+
     return () => window.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
 
@@ -93,11 +100,11 @@ export default function EmployeeGrid() {
 
   const handleClose = () => {
     setShowForm(false)
-    setViewAttendanceData(null)
   }
 
   const handleDelete = async id => {
     const confirmDelete = confirm('Are you sure you want to delete this employee?')
+
     if (!confirmDelete) return
 
     try {
@@ -105,7 +112,7 @@ export default function EmployeeGrid() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer'
+          Authorization: `Bearer ${token}`
         }
       })
 
@@ -114,6 +121,7 @@ export default function EmployeeGrid() {
         toast.success('Employee deleted successfully.')
       } else {
         const errorResult = await response.json()
+
         toast.error(`Failed to delete employee: ${errorResult.message}`)
       }
     } catch (error) {
@@ -121,8 +129,6 @@ export default function EmployeeGrid() {
       toast.error('Error deleting employee. Please try again.')
     }
   }
-
-
 
   const debouncedSearchName = useDebounce(searchName, 500)
   const debouncedDesignation = useDebounce(selectedDesignation, 500)
@@ -146,24 +152,22 @@ export default function EmployeeGrid() {
 
     setSelectedDesignation('')
     setSearchName(searchValue)
+
     if (searchValue === '') {
       setPage(1)
       dispatch(resetEmployees())
     }
   }
 
-  const handleDesignationChange = e => {
-    const designationValue = e.target.value
-
+  const handleDesignationChange = newValue => {
     setSearchName('')
-    setSelectedDesignation(designationValue === null ? '' : designationValue)
-    if (designationValue === '') {
+    setSelectedDesignation(newValue || '')
+
+    if (!newValue) {
       setPage(1)
       dispatch(resetEmployees())
     }
   }
-
-  console.log("role>>>", userRole)
 
   return (
     <>
@@ -180,47 +184,47 @@ export default function EmployeeGrid() {
             />
           </DialogContent>
         </Dialog>
+
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
           <Box>
-            <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
+            <Typography sx={{ fontSize: '2em' }} variant='h5' gutterBottom>
               Employee
             </Typography>
-            <Typography style={{ fontSize: '1em', fontWeight: 'bold' }} variant='subtitle1' gutterBottom>
+            <Typography sx={{ fontSize: '1em', fontWeight: 'bold' }} variant='subtitle1' gutterBottom>
               Dashboard / Employee
             </Typography>
           </Box>
-          <Box display='flex' alignItems='center'>
-            {Number(userRole) <= 1 && <Button
-              style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
-              variant='contained'
-              color='warning'
-              startIcon={<AddIcon />}
-              onClick={handleAddEmployeeClick}
-            >
-              Add Employee
-            </Button>}
-            {Number(userRole) === 1 && <Button
-              variant='contained'
-              onClick={() => router.push('/deleted-emp')}
-              sx={{
-                backgroundColor: '#ffebee',
-                borderRadius: '3rem',
-                fontWeight: 'bold',
-                color: '#d32f2f',
-                borderColor: '#d32f2f',
-                '&:hover': {
+          <Box display='flex' alignItems='center' gap={2}>
+            {Number(userRole) <= 1 && (
+              <Button
+                sx={{ borderRadius: 50, backgroundColor: '#ff902f', '&:hover': { backgroundColor: '#e67e22' } }}
+                variant='contained'
+                startIcon={<AddIcon />}
+                onClick={handleAddEmployeeClick}
+              >
+                Add Employee
+              </Button>
+            )}
+            {Number(userRole) === 1 && (
+              <Button
+                variant='contained'
+                onClick={() => router.push('/deleted-emp')}
+                sx={{
                   backgroundColor: '#ffebee',
-                  color: '#b71c1e',
-                  borderColor: '#b71c1c'
-                }
-              }}
-            >
-              Ex Employees
-            </Button>}
+                  borderRadius: '3rem',
+                  fontWeight: 'bold',
+                  color: '#d32f2f',
+                  border: '1px solid #d32f2f',
+                  '&:hover': { backgroundColor: '#f8d7da' }
+                }}
+              >
+                Ex Employees
+              </Button>
+            )}
           </Box>
-
         </Box>
-        <Grid container spacing={6} alignItems='center' mb={2}>
+
+        <Grid container spacing={4} alignItems='center' mb={4}>
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -234,22 +238,21 @@ export default function EmployeeGrid() {
             <FormControl fullWidth>
               <Autocomplete
                 id='designation-select'
-                options={designations
-                  .map(designation => designation.title)
-                  .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))}
-                getOptionLabel={option => option}
+
+                // Use a Set to ensure unique values from both new and old fields
+                options={Array.from(new Set(designations.map(d => d.title || d.designation)))}
+                getOptionLabel={option => option || ''}
                 renderInput={params => <TextField {...params} label='Select Designation' variant='outlined' />}
                 value={selectedDesignation}
-                onChange={(event, newValue) => {
-                  handleDesignationChange({ target: { name: 'designation', value: newValue } })
-                }}
+                onChange={(event, newValue) => handleDesignationChange(newValue)}
               />
             </FormControl>
           </Grid>
         </Grid>
-        <Grid container spacing={6}>
+
+        <Grid container spacing={4}>
           {error ? (
-            <Typography>Error: {error}</Typography>
+            <Typography sx={{ p: 4 }}>Error: {error}</Typography>
           ) : (
             employees.map((employee: any) => (
               <Grid item xs={12} sm={6} md={3} key={employee._id}>
@@ -264,7 +267,7 @@ export default function EmployeeGrid() {
             ))
           )}
         </Grid>
-        {loading ? <Loader /> : <div></div>}
+        {loading && <Loader />}
       </Box>
     </>
   )

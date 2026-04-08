@@ -20,16 +20,21 @@ import GavelIcon from '@mui/icons-material/Gavel'
 
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
+
+import SupportAgentIcon from '@mui/icons-material/SupportAgent'
+
+import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
+
+import VideoCallIcon from '@mui/icons-material/VideoCall'
+
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { Menu, SubMenu, MenuItem, MenuSection } from '@menu/vertical-menu'
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 import menuItemStyles from '@core/styles/vertical/menuItemStyles'
 import menuSectionStyles from '@core/styles/vertical/menuSectionStyles'
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
-import SupportAgentIcon from '@mui/icons-material/SupportAgent'
-import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
-import VideoCallIcon from '@mui/icons-material/VideoCall'
 
 type RenderExpandIconProps = {
   open?: boolean
@@ -53,6 +58,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
+
     setUserRole(user.role || null)
   }, [])
 
@@ -68,7 +74,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           onScrollY: container => scrollMenu(container, true)
         })}
     >
-    
+
       <Menu
         menuItemStyles={menuItemStyles(theme)}
         renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
@@ -157,16 +163,16 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           }
           {userRole !== "0" &&
             <>
-              
+
               <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
                 Attendance
               </MenuItem>
               <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
                 Leaves
               </MenuItem>
-             <MenuItem href={`/meetings`} icon={<VideoCallIcon />}>
-  Meetings
-</MenuItem>
+              <MenuItem href={`/meetings`} icon={<VideoCallIcon />}>
+                Meetings
+              </MenuItem>
               <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
                 Teams
               </MenuItem>
@@ -177,9 +183,15 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               <MenuItem href={`/performance`} icon={<HeadsetMicIcon />}>
                 Performance
               </MenuItem>
-              <MenuItem href={`/departmentPerformance`} icon={<AssessmentIcon />}>
+
+              {/* <MenuItem href={`/incentive-calculator`} icon={<AssessmentIcon />}>
+                Incentive Calculator
+              </MenuItem> */}
+
+              <MenuItem href={`/departmentPerformance`} icon={<HolidayVillageIcon />}>
                 Support Function
               </MenuItem>
+
               <MenuItem href={`/fine`} icon={<GavelIcon />}>
                 Fine
               </MenuItem>
@@ -190,11 +202,12 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
                 Expense Tracker
               </MenuItem>
+
               <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
                 Query
               </MenuItem>
 
- <MenuItem href={`/holidays`} icon={<EventIcon />}>
+              <MenuItem href={`/holidays`} icon={<EventIcon />}>
                 Holiday
               </MenuItem>
               <MenuItem href={`/assests`} icon={<InventoryIcon />}>
