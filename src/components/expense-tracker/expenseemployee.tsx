@@ -7,9 +7,6 @@ import { createExpense, listExpenses, todayISO, adminVerifyExpense } from './exp
 
 import { Snackbar, Alert, MenuItem, Select } from '@mui/material';
 
-/** =========================
- * Helpers
- * ========================= */
 const getFileNameFromUrl = (url: string) => {
   try {
     const clean = String(url || '').split('?')[0];
@@ -123,49 +120,14 @@ const companyApprovalOptions = [
 
 type CompanyApprovalValue = (typeof companyApprovalOptions)[number]['value'];
 
-const ALLOWED_TEAM_IDS: string[] = [
-  '674abf192cb3ff920ea4a894',
-  '680789b86a3572ff9478bcd2',
-  '68078bdd6a3572ff9478bd50',
-  '68078c506a3572ff9478bd6c',
-  '68e8feb4fa8c01760efccf87',
-  '693d0c7f5c4e2f15ce95cf0b',
-  '6957a5422381863817eb481d',
-  '695cb6645585adfa28e9bea3',
-  '695ce778b71faf497ee89a54',
-  '695df229e3d5943c537019ce',
-];
-
 type TeamType = { _id: string; name: string; code: string };
 
 type TeamConfig = {
   categories: CompanyAdminValue[];
   approvals: CompanyApprovalValue[];
 };
-
-const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
-  // admin
-  '674abf192cb3ff920ea4a894': {
-    categories: [
-      'advance_payment',
-      'leave_encashment',
-      'conveyance_petrol',
-      'travel_reimbursement',
-      'overtime',
-      'bonus',
-      'incentives',
-      'other',
-      'expense_channel',
-      'payout',
-      'cashback_to_customer',
-      'referral_partner',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
-    ],
-    approvals: ['company_approval'],
-  },
-  // HR
-  '680789b86a3572ff9478bcd2': {
+const TEAM_CONFIG_MAP = {
+  'HR Team': {
     categories: [
       'cake',
       'stationary',
@@ -178,33 +140,74 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
       'overtime',
       'rent_noida_first_floor',
       'rent_bareilly',
+      'stationary',
       'bonus',
       'contests',
       'leave_encashment',
+      'bonus',
+      'overtime',
       'advance_payment',
+      'Harpreet_singh_Management',
+      'Abhinav_Awal_Management',
       'other',
     ],
     approvals: ['company_approval'],
   },
-  // Sales
-  '68078bdd6a3572ff9478bd50': {
+
+  'Marketing Team': {
     categories: [
       'data_purchase',
-      'overtime',
       'advertisement',
-      'conveyance_petrol',
-      'cab',
+
       'travel_reimbursement',
       'collab_events_marketing',
       'community_building_expense',
       'food_beverages',
       'incentives',
       'contests',
-      'other',
+      'other'
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
-  '6957a5422381863817eb481d': {
+
+  'F2 Management': {
+    categories: [
+      'data_purchase',
+      'travel_reimbursement',
+      'food_beverages',
+      'other'
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+  'IT TEAM': {
+    categories: [
+      'sim',
+      'system_rent',
+      'dialer',
+      'internet',
+      'cloud_ai',
+      'travel_reimbursement',
+      'advance_payment',
+      'other'  
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+  'Product Team': {
+    categories: [
+      'travel_reimbursement',
+      'advance_payment',
+      'other',
+      'leave_encashment',
+      'overtime',
+
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+
+  'IT Infra': {
     categories: [
       'sim',
       'system_rent',
@@ -213,74 +216,25 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
       'travel_reimbursement',
       'internet',
       'incentives',
-      'bonus', 'overtime', 
+      'cloud_ai',
+      // 'leave_encashment',
+      'other',
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  'IT Development': {
+    categories: [
+      'bonus',
+      'overtime',
+      'advance_payment',
+      // 'leave_encashment',
+      'incentives',
       'cloud_ai',
       'other',
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
-  '68078c506a3572ff9478bd6c': {
-    categories: ['bonus', 'overtime', 'advance_payment', 'incentives', 'cloud_ai', 'other'],
-    approvals: ['company_approval', 'expense_channel'],
-  },
-  // admin (final)
-  '695df229e3d5943c537019ce': {
-    categories: [
-      'stationary',
-      'water',
-      'tea',
-      'repairs',
-      'maintenance',
-      'conveyance_petrol',
-      'food_beverages',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
-      
-      'other',
-    ],
-    approvals: ['company_approval', 'expense_channel'],
-  },
-  '695ce778b71faf497ee89a54': {
-    categories: [
-      'payout',
-      'gifting',
-      'data_purchase',
-      'advance_payment',
-      'rent_bareilly',
-      'rent_noida_first_floor',
-      'company_outing',
-      'it_consultancy',
-      'conveyance_petrol',
-      'food_beverages',
-      'referral_partner',
-      'Harpreet_singh_Management',
-      'community_building_expense',
-      'Abhinav_Awal_Management',
-      'other',
-    ],
-    approvals: ['company_approval', 'expense_channel'],
-  },
-  '68e8feb4fa8c01760efccf87': {
-    categories: [
-      'bonus',
-      'cab',
-      'payout',
-      'overtime',
-      'advance_payment',
-     
-      'cashback_to_customer',
-      'expense_channel',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
-      'other',
-    ],
-    approvals: ['company_approval', 'expense_channel'],
-  },
-  '695cb6645585adfa28e9bea3': {
-    categories: ['bonus', 'overtime', 'Harpreet_singh_Management', 'Abhinav_Awal_Management', 'other'],
-    approvals: ['company_approval', 'expense_channel'],
-  },
-  '693d0c7f5c4e2f15ce95cf0b': {
+  'Ops & Credit': {
     categories: [
       'bonus',
       'payout',
@@ -289,14 +243,44 @@ const TEAM_CONFIG_MAP: Record<string, TeamConfig> = {
       'cashback_to_customer',
       'expense_channel',
       'referral_partner',
-      'company_approval',
-      'data_purchase',
-      'Harpreet_singh_Management',
-      'Abhinav_Awal_Management',
+      // 'leave_encashment',
+
       'advance_payment',
       'travel_reimbursement',
-      'community_building_expense',
       'other',
+
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+  'Sales Team': {
+    categories: [
+      'bonus',
+      'payout',
+      'incentives',
+      'overtime',
+
+      // 'leave_encashment',
+
+      'advance_payment',
+      'travel_reimbursement',
+      'other',
+
+    ],
+    approvals: ['company_approval', 'expense_channel'],
+  },
+
+  'CREDIT TEAM': {
+    categories: [
+      'bonus',
+      'payout',
+      'incentives',
+      'overtime',
+      'cashback_to_customer',
+      'expense_channel',
+      'referral_partner',
+      'advance_payment',
+      'travel_reimbursement',
+      'other'   
     ],
     approvals: ['company_approval', 'expense_channel'],
   },
@@ -772,11 +756,24 @@ export default function ExpenseEmployee() {
     setInvoiceDate('');
   };
 
+  // const filteredCompanyAdminOptions = useMemo(() => {
+  //   if (!department) return companyAdminOptions.filter((o) => o.value === '');
+  //   const allowed = TEAM_CONFIG_MAP[String(department)]?.categories || [];
+  //   return companyAdminOptions.filter((o) => o.value === '' || allowed.includes(o.value));
+  // }, [department]);
+
   const filteredCompanyAdminOptions = useMemo(() => {
     if (!department) return companyAdminOptions.filter((o) => o.value === '');
-    const allowed = TEAM_CONFIG_MAP[String(department)]?.categories || [];
-    return companyAdminOptions.filter((o) => o.value === '' || allowed.includes(o.value));
-  }, [department]);
+
+    const teamObj = teams.find((t) => t._id === department);
+    const teamName = teamObj?.name;
+
+    const allowed = TEAM_CONFIG_MAP[teamName]?.categories || ['other'];
+
+    return companyAdminOptions.filter(
+      (o) => o.value === '' || allowed.includes(o.value)
+    );
+  }, [department, teams]);
 
   const load = async () => {
     try {
@@ -824,9 +821,10 @@ export default function ExpenseEmployee() {
         const company_id = (user as any)?.company_id || '';
         const cid = localStorage.getItem('company_id') || company_id || '';
 
-        const resp = await fetch(`${base}/teams/get-all-teams`, {
+        const resp = await fetch(`${base}/teams/get-allowed-team`, {
           headers: {
-            Authorization: `Bearer ${token} ${cid}`,
+            Authorization: `Bearer ${token}`,
+            'x-company-id': company_id,
           },
         });
 
@@ -854,9 +852,9 @@ export default function ExpenseEmployee() {
               : [];
 
         let filteredTeams = teamArr;
-        if (ALLOWED_TEAM_IDS.length) {
-          filteredTeams = teamArr.filter((t: any) => ALLOWED_TEAM_IDS.includes(String(t._id)));
-        }
+        // if (ALLOWED_TEAM_IDS.length) {
+        //   filteredTeams = teamArr.filter((t: any) => ALLOWED_TEAM_IDS.includes(String(t._id)));
+        // }
 
         const cleaned: TeamType[] = filteredTeams
           .map((t: any) => ({ _id: String(t._id), name: t.name || '', code: t.code || '' }))
@@ -882,6 +880,7 @@ export default function ExpenseEmployee() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, isAdmin, myIds.join('|')]);
+  const cfg = TEAM_CONFIG_MAP[String(department)];
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1264,8 +1263,9 @@ export default function ExpenseEmployee() {
 
                   <Select
                     value={companyAdmin}
+                    disabled={false}
                     onChange={(e) => setCompanyAdmin(e.target.value as CompanyAdminValue)}
-                    disabled={!department}
+                    // disabled={!department}
                     displayEmpty
                     renderValue={(selected) => {
                       if (!selected) return 'Choose Category';
@@ -1882,97 +1882,97 @@ export default function ExpenseEmployee() {
                           );
                         })()}
                       </td>
-<td style={{ padding: 12, borderBottom: `1px solid ${ui.border}` }}>
-  {(() => {
-    const urls =
-      normalizeUrls(r.admin_attachments).length
-        ? normalizeUrls(r.admin_attachments)
-        : normalizeUrls(r.admin_attachment);
+                      <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}` }}>
+                        {(() => {
+                          const urls =
+                            normalizeUrls(r.admin_attachments).length
+                              ? normalizeUrls(r.admin_attachments)
+                              : normalizeUrls(r.admin_attachment);
 
-    if (!urls.length) return <span style={{ fontSize: 11, color: ui.muted }}>—</span>;
+                          if (!urls.length) return <span style={{ fontSize: 11, color: ui.muted }}>—</span>;
 
-    return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-        {urls.map((url: string, i: number) => {
-          const name = prettyFileName(url) || `Admin File ${i + 1}`;
-          const img = isImageUrl(url);
+                          return (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                              {urls.map((url: string, i: number) => {
+                                const name = prettyFileName(url) || `Admin File ${i + 1}`;
+                                const img = isImageUrl(url);
 
-          return (
-            <a
-              key={i}
-              href={url}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 12px',
-                borderRadius: 14,
-                border: `1px solid ${ui.border}`,
-                background: 'rgba(255,255,255,0.9)',
-                boxShadow: '0 8px 18px rgba(2,6,23,0.06)',
-                textDecoration: 'none',
-                color: ui.text,
-                maxWidth: 300,
-              }}
-            >
-              {img ? (
-                <img
-                  src={url}
-                  alt={name}
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    objectFit: 'cover',
-                    border: `1px solid ${ui.border2}`,
-                    flexShrink: 0,
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    background: 'rgba(16,185,129,0.12)',
-                    border: '1px solid rgba(16,185,129,0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 900,
-                    color: '#047857',
-                    fontSize: 11,
-                    flexShrink: 0,
-                  }}
-                >
-                  PDF
-                </div>
-              )}
+                                return (
+                                  <a
+                                    key={i}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 10,
+                                      padding: '8px 12px',
+                                      borderRadius: 14,
+                                      border: `1px solid ${ui.border}`,
+                                      background: 'rgba(255,255,255,0.9)',
+                                      boxShadow: '0 8px 18px rgba(2,6,23,0.06)',
+                                      textDecoration: 'none',
+                                      color: ui.text,
+                                      maxWidth: 300,
+                                    }}
+                                  >
+                                    {img ? (
+                                      <img
+                                        src={url}
+                                        alt={name}
+                                        style={{
+                                          width: 36,
+                                          height: 36,
+                                          borderRadius: 8,
+                                          objectFit: 'cover',
+                                          border: `1px solid ${ui.border2}`,
+                                          flexShrink: 0,
+                                        }}
+                                      />
+                                    ) : (
+                                      <div
+                                        style={{
+                                          width: 36,
+                                          height: 36,
+                                          borderRadius: 8,
+                                          background: 'rgba(16,185,129,0.12)',
+                                          border: '1px solid rgba(16,185,129,0.25)',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontWeight: 900,
+                                          color: '#047857',
+                                          fontSize: 11,
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        PDF
+                                      </div>
+                                    )}
 
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: 180,
-                }}
-                title={name}
-              >
-                {name}
-              </span>
+                                    <span
+                                      style={{
+                                        fontSize: 12,
+                                        fontWeight: 900,
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        maxWidth: 180,
+                                      }}
+                                      title={name}
+                                    >
+                                      {name}
+                                    </span>
 
-              <span style={{ marginLeft: 'auto', color: ui.muted, fontWeight: 900 }}>↗</span>
-            </a>
-          );
-        })}
-      </div>
-    );
-  })()}
-</td>
+                                    <span style={{ marginLeft: 'auto', color: ui.muted, fontWeight: 900 }}>↗</span>
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </td>
 
                       {/* Action */}
                       <td style={{ padding: 12, borderBottom: `1px solid ${ui.border}`, fontSize: 12, whiteSpace: 'nowrap' }}>

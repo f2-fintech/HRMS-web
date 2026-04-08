@@ -31,6 +31,7 @@ import {
   DialogActions,
   MenuItem,
 } from '@mui/material';
+import LoginIcon from "@mui/icons-material/Login";
 
 import Autocomplete from '@mui/material/Autocomplete';
 
@@ -111,8 +112,8 @@ type TeamTotalInfo = {
   teamTotalABNP?: number;
   teamTotalGrossApproval?: number;
   teamTotalGrossDisbursal?: number;
-    teamTotalHold?: number;
-    teamTotalReject?:number;
+  teamTotalHold?: number;
+  teamTotalReject?: number;
 
   memberCount: number;
   memberCodes: string[];
@@ -448,9 +449,11 @@ export default function PerformanceUploadPage() {
 
   const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
 
-  const isAsstOpsManager = user?.designation === 'Asst. Ops Manager';
+  const isAsstOpsManager = ['Asst. Ops Manager', 'Ops Manager', 'Assistant Growth Manager', 'Sr. Operations & Alliances Manager', 'Ops Executive']
+    .includes(user?.designation);
   const canUpload = isAdmin || isAsstOpsManager;
   const canAddRow = isAdmin || isAsstOpsManager;
+  const canDeleteAll = isAdmin || isAsstOpsManager;
 
   const fetchList = async () => {
     try {
@@ -634,6 +637,32 @@ export default function PerformanceUploadPage() {
     }
   };
 
+  const onDeleteByDate = async () => {
+  if (!dateStr) {
+    alert('Select date first');
+    return;
+  }
+
+  const confirmDelete = confirm(`Delete ALL data for ${dateStr}?`);
+  if (!confirmDelete) return;
+
+  try {
+    const company_id =
+      localStorage.getItem('company_id') ||
+      JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+      '';
+
+    await api.delete('/performance-upload/delete-by-date', {
+      params: { date: dateStr, company_id },
+    });
+
+    alert('All records deleted for selected date');
+    await fetchList();
+  } catch (e) {
+    console.error(e);
+    alert('Delete failed');
+  }
+};
   const handleFormChange =
     (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -892,8 +921,8 @@ export default function PerformanceUploadPage() {
                   Performance Uploads
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#64748b', mt: 0.3 }}>
-                  Daily login, approval & disbursal tracking panel
-                  {isFallbackDate ? ' (showing latest uploaded date)' : ''}
+                  Daily login, approval, disbursal tracking panel
+                  {isFallbackDate }
                 </Typography>
               </Box>
             </Box>
@@ -964,7 +993,23 @@ export default function PerformanceUploadPage() {
               >
                 Export
               </Button>
-
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<LoginIcon sx={{ fontSize: 18 }} />}
+                onClick={() => router.push("/today-login")}
+                sx={{
+                  borderRadius: 999,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: 2.5,
+                  bgcolor: "#06b6d4",
+                  boxShadow: "0 8px 20px rgba(6,182,212,0.35)",
+                  "&:hover": { bgcolor: "#0891b2" },
+                }}
+              >
+                Today Login
+              </Button>
               {canAddRow && (
                 <>
                   <Button
@@ -1019,8 +1064,28 @@ export default function PerformanceUploadPage() {
                   )}
                 </>
               )}
+              {canDeleteAll && (
+  <Button
+    size="small"
+    variant="contained"
+    startIcon={<DeleteIcon sx={{ fontSize: 18 }} />}
+    onClick={onDeleteByDate}
+    sx={{
+      borderRadius: 999,
+      textTransform: 'none',
+      fontWeight: 600,
+      px: 2.5,
+      bgcolor: '#dc2626',
+      boxShadow: '0 8px 20px rgba(220,38,38,0.35)',
+      '&:hover': { bgcolor: '#b91c1c' },
+    }}
+  >
+    Delete(datewise)
+  </Button>
+)}
             </Box>
           </Box>
+    
 
           <Box
             sx={{
@@ -1171,7 +1236,7 @@ export default function PerformanceUploadPage() {
               onView={() => openKpiModal('logins')}
             />
           </Grid>
-            <Grid item xs={12} sm={6} md={4} lg={3}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <KpiCard
               title="In Process"
               value={totals.inProcess.toLocaleString('en-IN')}
@@ -1281,8 +1346,17 @@ export default function PerformanceUploadPage() {
               onView={() => openKpiModal('rejected')}
             />
           </Grid>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Today Login"
+              // value={totals.logins.toLocaleString('en-IN')}
+              leftIcon={<span style={{ fontSize: 18 }}>✓</span>}
+              bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
+              subColor="#dcfce7"
+              onView={() => router.push("/today-login")}
+            />
+          </Grid>
 
-        
         </Grid>
 
         {/* STAR PERFORMERS */}
@@ -1500,14 +1574,32 @@ export default function PerformanceUploadPage() {
                         </TableCell>
 
                         <TableCell>
-                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: '#4b5563',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: { xs: '90px', sm: '110px', md: '120px' }
+                            }}
+                          >
                             {r.date ? dayjs(r.date).format('DD-MM-YYYY') : '—'}
                           </Typography>
                         </TableCell>
 
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography sx={{ fontWeight: 700, color: '#6b21a8' }}>
+                            <Typography
+                              sx={{
+                                fontWeight: 600,
+                                color: '#6b21a8',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '180px' // width adjust kar sakte ho
+                              }}
+                            >
                               {r.employee_name || '-'}
                             </Typography>
 
@@ -1527,7 +1619,7 @@ export default function PerformanceUploadPage() {
                               </Tooltip>
                             )}
 
-                            {teamInfo && (
+                            {/* {teamInfo && (
                               <Chip
                                 size="small"
                                 label={teamInfo.role === 'manager' ? 'Manager' : 'TL'}
@@ -1539,7 +1631,7 @@ export default function PerformanceUploadPage() {
                                   height: 20,
                                 }}
                               />
-                            )}
+                            )} */}
                           </Box>
 
                           {r.employee_id && (
@@ -1550,7 +1642,16 @@ export default function PerformanceUploadPage() {
                         </TableCell>
 
                         <TableCell>
-                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: '#4b5563',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '120px' // adjust as needed
+                            }}
+                          >
                             {r.code || '—'}
                           </Typography>
                         </TableCell>
@@ -1804,21 +1905,21 @@ export default function PerformanceUploadPage() {
                             </Typography>
                           )}
                         </TableCell>
-<TableCell align="right">
-  {['logins', 'rejected', 'hold', 'inProcess'].includes(kpiModalType) ? (
-    <Chip
-      size="small"
-      label={Number(r.__metric || 0).toLocaleString('en-IN')}
-      sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 900 }}
-    />
-  ) : (
-    <Chip
-      size="small"
-      label={rupee(Number(r.__metric || 0))}
-      sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 900 }}
-    />
-  )}
-</TableCell>
+                        <TableCell align="right">
+                          {['logins', 'rejected', 'hold', 'inProcess'].includes(kpiModalType) ? (
+                            <Chip
+                              size="small"
+                              label={Number(r.__metric || 0).toLocaleString('en-IN')}
+                              sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 900 }}
+                            />
+                          ) : (
+                            <Chip
+                              size="small"
+                              label={rupee(Number(r.__metric || 0))}
+                              sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 900 }}
+                            />
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1970,7 +2071,7 @@ export default function PerformanceUploadPage() {
                       </Typography>
                     </Paper>
                   </Grid>
-                     <Grid item xs={6} md={3}>
+                  <Grid item xs={6} md={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
                         Total Hold
@@ -1978,10 +2079,10 @@ export default function PerformanceUploadPage() {
                       <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
                         {(teamBreakdown.totals.totalHold || 0)}
                       </Typography>
-                      
+
                     </Paper>
                   </Grid>
-                    <Grid item xs={6} md={3}>
+                  <Grid item xs={6} md={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
                         Total Reject
@@ -1989,7 +2090,7 @@ export default function PerformanceUploadPage() {
                       <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
                         {(teamBreakdown.totals.totalRejected || 0)}
                       </Typography>
-                      
+
                     </Paper>
                   </Grid>
                 </Grid>
@@ -2095,7 +2196,7 @@ export default function PerformanceUploadPage() {
                                 sx={{ bgcolor: '#DBEAFE', color: '#1D4ED8', fontWeight: 800 }}
                               />
                             </TableCell>
-  <TableCell align="right">
+                            <TableCell align="right">
                               <Chip
                                 size="small"
                                 label={rupee(Number(member.grossDisbursal || 0))}
@@ -2117,7 +2218,7 @@ export default function PerformanceUploadPage() {
                                 sx={{ bgcolor: '#FEF3C7', color: '#92400E', fontWeight: 800 }}
                               />
                             </TableCell>
-                          
+
                           </TableRow>
                         ))}
                       </TableBody>

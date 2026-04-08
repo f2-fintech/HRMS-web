@@ -22,8 +22,12 @@ interface PunchInOutProps {
 const WHITELIST_EMPLOYEE_IDS = [
     '66bca8d72f1270380b77ab12',
     '66c881fe269ecefff3411649',
-  '66bca6192f1270380b77aac5',
-  '66bc8bfe2f1270380b77a920',
+    '66bca6192f1270380b77aac5',
+    '66bc8bfe2f1270380b77a920',
+     // '66bca3782f1270380b77aaa3',
+     // '66c6e8a6258826c691d89299',
+      //'67ed14bb93ea9c1052f942b5'
+
 ];
 
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
@@ -78,6 +82,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         // Whitelist users can use any device
         if (isWhitelistedUser) return false;
+
+
+
+
 
         const ua = navigator.userAgent.toLowerCase();
 
@@ -343,8 +351,45 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         await dispatch(addPunch(punchData)).unwrap();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         startPunchInTimer(now.getTime())
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     const handlePunchOut = async () => {
         // Mobile device check - block if not whitelisted
@@ -370,6 +415,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         stopPunchTimer()
 
+
+
+
         setPunchState({
             isPunchIn: false,
             startTime: '',
@@ -384,11 +432,44 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             totalTime: timer
         }
 
+
+
         await dispatch(updatePunch({ employeeId, punchData })).unwrap()
+
 
         dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
         dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     useEffect(() => {
         if (punch.length > 0) {
