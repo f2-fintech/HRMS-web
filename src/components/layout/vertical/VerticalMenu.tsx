@@ -97,60 +97,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             </MenuItem>
           }
 
-          {userRole !== "0" &&
-            <>
-              <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
-                Attendance
-              </MenuItem>
-              <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
-                Leaves
-              </MenuItem>
-              <MenuItem href={`/meetings`} icon={<VideoCallIcon />}>
-                Meetings
-              </MenuItem>
-              <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
-                Teams
-              </MenuItem>
-              <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
-                Break Sheet
-              </MenuItem>
-              <MenuItem href={`/performance`} icon={<HeadsetMicIcon />}>
-                Performance
-              </MenuItem>
-
-              {/* <MenuItem href={`/incentive-calculator`} icon={<AssessmentIcon />}>
-                Incentive Calculator
-              </MenuItem> */}
-
-              <MenuItem href={`/departmentPerformance`} icon={<HolidayVillageIcon />}>
-                Support Function
-              </MenuItem>
-              <MenuItem href={`/fine`} icon={<GavelIcon />}>
-                Fine
-              </MenuItem>
-              <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
-                Expense Tracker
-              </MenuItem>
-              <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
-                Query
-              </MenuItem>
-              <MenuItem href={`/holidays`} icon={<EventIcon />}>
-                Holiday
-              </MenuItem>
-              <MenuItem href={`/assests`} icon={<InventoryIcon />}>
-                Assets
-              </MenuItem>
-              <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
-                Seating Plan
-              </MenuItem>
-              <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
-                Policy
-              </MenuItem>
-              <MenuItem href={`/roombook`} icon={<MeetingRoomIcon />}>
-                Room Booking
-              </MenuItem>
-            </>
-          }
+        
 
           <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
             Teams
