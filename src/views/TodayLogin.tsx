@@ -12,29 +12,29 @@ type Row = {
     _id: string;
     date: string;
     employee_name: string;
-    tl_name: string;
+    // tl_name: string;
     manager: string;
     login_poc?: string;
     customer_name?: string;
-    location_state?: string;
+    // location_state?: string;
     city?: string;
     lender?: string;
     loan_amount?: number;
     credit_poc?: string;
     ops_poc?: string;
     banker_details?: string;
-    status?: "login" | "reject";
+    status?: "login" | "reject" | "approved" | "disbursed"
 };
 
 type FormData = Omit<Row, "_id" | "date">;
 
 const EMPTY_FORM: FormData = {
     employee_name: "",
-    tl_name: "",
+    // tl_name: "",
     manager: "",
     login_poc: "",
     customer_name: "",
-    location_state: "",
+    // location_state: "",
     city: "",
     lender: "",
     loan_amount: 0,
@@ -46,11 +46,11 @@ const EMPTY_FORM: FormData = {
 
 const FIELDS: { key: keyof FormData; label: string; type?: string }[] = [
     { key: "employee_name", label: "Employee Name" },
-    { key: "tl_name", label: "TL Name" },
+    // { key: "tl_name", label: "TL Name" },
     { key: "manager", label: "Manager" },
     { key: "login_poc", label: "Login POC" },
     { key: "customer_name", label: "Customer Name" },
-    { key: "location_state", label: "State" },
+    // { key: "location_state", label: "State" },
     { key: "city", label: "City" },
     { key: "lender", label: "Lender" },
     { key: "loan_amount", label: "Loan Amount", type: "number" },
@@ -61,13 +61,13 @@ const FIELDS: { key: keyof FormData; label: string; type?: string }[] = [
 
 const TABLE_COLS = [
     { label: "Employee", key: "employee_name" },
-    { label: "TL", key: "tl_name" },
+    // { label: "TL", key: "tl_name" },
     { label: "Manager", key: "manager" },
     { label: "Login POC", key: "login_poc" },
     { label: "Credit POC", key: "credit_poc" },
     { label: "Ops POC", key: "ops_poc" },
     { label: "Customer", key: "customer_name" },
-    { label: "State", key: "location_state" },
+    // { label: "State", key: "location_state" },
     { label: "City", key: "city" },
     { label: "Lender", key: "lender" },
     { label: "Banker", key: "banker_details" },
@@ -366,11 +366,11 @@ export default function TodayLogin() {
             const mapped = json.map((r) => ({
                 date,
                 employee_name: String(r["EMP NAME"] ?? ""),
-                tl_name: String(r["TL NAME"] ?? ""),
+                // tl_name: String(r["TL NAME"] ?? ""),
                 manager: String(r["MANAGER"] ?? ""),
                 login_poc: String(r["LOGIN POC"] ?? ""),
                 customer_name: String(r["CUSTOMER NAME"] ?? ""),
-                location_state: String(r["LOCATION STATE"] ?? ""),
+                // location_state: String(r["LOCATION STATE"] ?? ""),
                 city: String(r["CITY"] ?? ""),
                 lender: String(r["LENDER"] ?? ""),
                 loan_amount: Number(r["LOAN AMOUNT"] ?? 0),
@@ -394,7 +394,7 @@ export default function TodayLogin() {
         const matchFilter = activeFilter === "all" || r.status === activeFilter;
         const matchSearch =
             !search ||
-            [r.employee_name, r.tl_name, r.manager, r.customer_name, r.city]
+            [r.employee_name, r.manager, r.customer_name, r.city]
                 .join(" ")
                 .toLowerCase()
                 .includes(search.toLowerCase());
@@ -574,12 +574,17 @@ export default function TodayLogin() {
                                 <select
                                     value={form.status || "login"}
                                     onChange={(e) =>
-                                        setForm((p) => ({ ...p, status: e.target.value as "login" | "reject" }))
+                                        setForm((p) => ({
+                                            ...p,
+                                            status: e.target.value as "login" | "reject" | "approved" | "disbursed",
+                                        }))
                                     }
                                     style={inputSx}
                                 >
                                     <option value="login">Login</option>
+                                    <option value="approved">Approved</option>
                                     <option value="reject">Reject</option>
+                                    <option value="disbursed">Disbursed</option>
                                 </select>
                             </div>
                         </div>
