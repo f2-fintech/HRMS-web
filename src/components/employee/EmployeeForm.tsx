@@ -39,7 +39,9 @@ import { toast, ToastContainer } from 'react-toastify'
 
 import type { AppDispatch, RootState } from '../../redux/store'
 import { addOrUpdateEmployee } from '@/redux/features/employees/employeesSlice'
-import { fetchDesignations } from '@/redux/features/designation/designationSlice'
+import {
+  fetchDesignationList,
+} from '@/redux/features/designation/designationV2Slice'
 import { fetchCompanies } from '@/redux/features/company/companyslice'
 
 import { utility } from '@/utility'
@@ -47,9 +49,14 @@ import { utility } from '@/utility'
 import 'react-toastify/dist/ReactToastify.css'
 import LocationDropdown from '@/utility/locationdropdown/LocationDropdown'
 import { useSettings } from '@/@core/hooks/useSettings'
+import {
+  fetchDepartments,
+} from '@/redux/features/designation/departmentDesignationsSlice'
+
+
 
 const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }) => {
-  const { designations } = useSelector((state: RootState) => state.designations)
+  const { designations: allDesignations = [] } = useSelector((state: RootState) => state.designationV2)
   const { companies } = useSelector((state: RootState) => state.companies)
 
   const { settings } = useSettings()
@@ -66,7 +73,9 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     role_priority: '',
     dob: '',
     gender: '',
-    designation: '',
+    designation_id: '', // Added primary ID field
+    designation: '',    // Keep for legacy/title if needed
+    salary: '',
     password: '',
     confirm_password: '',
     joining_date: '',
@@ -76,7 +85,8 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     code: '',
     location: '',
     company_id: '',
-    manager_id: ''
+    manager_id: '',
+    department_id: ''
   })
 
   const [imageFocus, setImageFocus] = useState(false)
@@ -92,56 +102,98 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
 
   const formBackgroundColor = settings.mode === 'dark' ? '#333' : '#f5f5f5'
   const textColor = settings.mode === 'dark' ? '#fff' : '#000'
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState('')
+  const { departments } = useSelector((state: RootState) => state.department)
 
+  // Populate form when editing + show password fields when creating
   useEffect(() => {
-    if (employee) {
-      const selected = employees.find(t => t._id === employee)
+    if (employee && employees.length > 0) {
+      const selected = employees.find(t => t._id === employee);
 
       if (selected) {
+        const designationObj = selected.designation_id;
+        const deptId = designationObj?.department_id?._id || selected.department_id || '';
+
         setFormData({
-          first_name: selected.first_name,
-          last_name: selected.last_name,
-          email: selected.email,
-          work_email: selected.work_email,
-          contact: selected.contact,
-          emergencycontact: selected.emergencycontact,
-          relation_name: selected.relation_name,
-          relation: selected.relation,
-          role_priority: selected.role_priority,
-          dob: selected.dob,
-          gender: selected.gender,
-          designation: selected.designation,
-          password: selected.password,
+          first_name: selected.first_name || '',
+          last_name: selected.last_name || '',
+          email: selected.email || '',
+          work_email: selected.work_email || '',
+          contact: selected.contact || '',
+          emergencycontact: selected.emergencycontact || '',
+          relation_name: selected.relation_name || '',
+          relation: selected.relation || '',
+          role_priority: selected.role_priority || '',
+          dob: selected.dob || '',
+          gender: selected.gender || '',
+          designation: designationObj?.title || selected.designation || '',
+          designation_id: designationObj?._id || '',
+          salary: selected.salary || '',
+          password: '',
           confirm_password: '',
-          joining_date: selected.joining_date,
-          leaving_date: selected.leaving_date,
-          status: selected.status,
-          image: selected.image,
-          code: selected.code,
-          location: selected.location,
-          company_id: selected.company_id,
-          manager_id: selected.manager_id || ''
-        })
-        setImagePreviewUrl(selected.image)
+          joining_date: selected.joining_date || '',
+          leaving_date: selected.leaving_date || '',
+          status: selected.status || 'active',
+          image: selected.image || '',
+          code: selected.code || '',
+          location: selected.location || '',
+          company_id: selected.company_id || '',
+          manager_id: selected.manager_id || '',
+          department_id: deptId
+        });
+
+        setSelectedDepartmentId(deptId);
+        setImagePreviewUrl(selected.image || null);
       }
+    }
+    else if (!employee) {
+      // ✅ When creating new employee - always show password fields
+      setIsPasswordFieldVisible(true);
+      setFormData(prev => ({
+        ...prev,
+        password: '',
+        confirm_password: ''
+      }));
     }
 
     if (role !== '0' && company_id) {
-      setFormData(prev => ({
-        ...prev,
-        company_id: company_id
+      setFormData(prev => ({ ...prev, company_id }));
+    }
+  }, [employee, employees, role, company_id]); // Run when the employee data is ready // Added allDesignations to dependency to re-check once loaded
+
+  // Auto select correct designation when editing
+  useEffect(() => {
+    if (employee && selectedDepartmentId && formData.designation) {
+      const matchingDes = allDesignations.find(
+        (des: any) =>
+          des.department_id === selectedDepartmentId &&
+          des.title === formData.designation
+      )
+
+      if (!matchingDes) {
+
+      }
+    }
+  }, [selectedDepartmentId, formData.designation, allDesignations, employee])
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const company_id = user?.company_id
+
+    if (company_id) {
+      dispatch(fetchDesignationList({
+        company_id,
+        page: 1,
+        limit: 100,           // Fetch many so all designations are available
       }))
     }
 
-    if (!employee) {
-      setIsPasswordFieldVisible(true)
-    }
-  }, [employee, employees])
+    dispatch(fetchCompanies({ page: 1, limit: 0, keyword: '' }))
+  }, [dispatch])
 
   useEffect(() => {
-    dispatch(fetchDesignations({ page: 1, limit: 0, keyword: '' }))
-    dispatch(fetchCompanies({ page: 1, limit: 0, keyword: '' }))
-  }, [])
+    dispatch(fetchDepartments())
+  }, [dispatch])
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
@@ -249,41 +301,68 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
   const validate = () => {
     const newErrors = {}
 
-    const requiredFields =
-      role !== '0'
-        ? [
-          'first_name',
-          'last_name',
-          'email',
-          'work_email',
-          'contact',
-          'role_priority',
-          'dob',
-          'gender',
-          'designation',
-          'joining_date',
-          'password',
-          'code',
-          'location'
-        ]
-        : ['first_name', 'last_name', 'email', 'password', 'role_priority', 'company_id', 'gender']
+    const requiredFields = role !== '0'
+      ? [
+        'first_name',
+        'last_name',
+        'email',
+        'work_email',
+        'contact',
+        'role_priority',
+        'dob',
+        'gender',
+        'designation_id',
+        'salary',
+        'joining_date',
+        'code',
+        'location',
+        'department_id'
+      ]
+      : ['first_name', 'last_name', 'email', 'password', 'role_priority', 'company_id', 'gender']
 
     requiredFields.forEach(field => {
       if (!formData[field]) {
-        newErrors[field] = `${field.replace('_', ' ')} is require`
+        const friendlyName = field.replace('_id', '').replace('_', ' ')
+
+        newErrors[field] = `${friendlyName} is required`
       }
     })
 
+    // ✅ Password is REQUIRED only during CREATE, not during EDIT
+    if (!employee) {
+      if (!formData.password) {
+        newErrors.password = 'Password is required'
+      }
+
+      if (!formData.confirm_password) {
+        newErrors.confirm_password = 'Confirm Password is required'
+      }
+
+      if (formData.password !== formData.confirm_password) {
+        newErrors.confirm_password = 'Passwords do not match'
+      }
+    }
+    else if (isPasswordFieldVisible) {
+      // During edit, password is only required if user clicked "Change Password"
+      if (formData.password !== formData.confirm_password) {
+        newErrors.confirm_password = 'Passwords do not match'
+      }
+    }
+
+    // Email validations
     if (formData.email && !validateEmail('email', formData.email)) {
-      newErrors.email = errors.email
+      newErrors.email = errors.email || 'Invalid email address'
     }
 
     if (formData.work_email && !validateEmail('work_email', formData.work_email)) {
-      newErrors.work_email = errors.work_email
+      newErrors.work_email = errors.work_email || 'Invalid work email address'
     }
 
-    if (formData.password !== formData.confirm_password && isPasswordFieldVisible) {
-      newErrors.confirm_password = 'Passwords do not match'
+    // Contact validation
+    const plainContact = formData.contact ? formData.contact.replace(/^(\+91|91)/, '').trim() : ''
+
+    if (formData.contact && plainContact.length !== 10) {
+      newErrors.contact = 'Please enter a valid 10-digit mobile number'
     }
 
     setErrors(newErrors)
@@ -295,6 +374,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     if (!validate()) return
 
     const method = employee ? 'PUT' : 'POST'
+
     const url = employee
       ? `${process.env.NEXT_PUBLIC_APP_URL}/employees/update/${employee}`
       : `${process.env.NEXT_PUBLIC_APP_URL}/employees/create`
@@ -525,6 +605,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               onChange={value => {
                 setFormData({
                   ...formData,
+
                   // contact: value.replace(/^(\+91|91)/, "")
                   contact: value.replace(/^(\+91)/, "")
                 })
@@ -583,6 +664,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               containerStyle={{
                 display: 'flex',
                 alignItems: 'center',
+
                 // border: `1px solid ${settings.mode === 'dark' ? '#fff' : '#000'}`,
                 borderRadius: '4px',
                 padding: '10px', // Padding for the container
@@ -894,21 +976,12 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 name='password'
                 value={formData.password}
                 onChange={handleChange}
-                autoComplete='off'
+                required={!employee}                    // ← Only required on Create
                 InputProps={{
-                  startAdornment: (
-                    <InputAdornment position='start'>
-                      <LockResetIcon color='action' />
-                    </InputAdornment>
-                  ),
+                  startAdornment: <InputAdornment position='start'><LockResetIcon color='action' /></InputAdornment>,
                   endAdornment: (
                     <InputAdornment position='end'>
-                      <IconButton
-                        size='small'
-                        edge='end'
-                        onClick={handleClickShowPassword}
-                        onMouseDown={e => e.preventDefault()}
-                      >
+                      <IconButton onClick={handleClickShowPassword}>
                         {isPasswordShown ? <VisibilityOffIcon /> : <VisibilityIcon />}
                       </IconButton>
                     </InputAdornment>
@@ -918,6 +991,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 helperText={errors.password}
               />
             </Grid>
+
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -926,21 +1000,12 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
                 name='confirm_password'
                 value={formData.confirm_password}
                 onChange={handleChange}
-                autoComplete='off'
+                required={!employee}                    // ← Only required on Create
                 InputProps={{
-                  startAdornment: (
-                    <InputAdornment position='start'>
-                      <LockResetIcon color='action' />
-                    </InputAdornment>
-                  ),
+                  startAdornment: <InputAdornment position='start'><LockResetIcon color='action' /></InputAdornment>,
                   endAdornment: (
                     <InputAdornment position='end'>
-                      <IconButton
-                        size='small'
-                        edge='end'
-                        onClick={handleClickShowPassword}
-                        onMouseDown={e => e.preventDefault()}
-                      >
+                      <IconButton onClick={handleClickShowPassword}>
                         {isPasswordShown ? <VisibilityOffIcon /> : <VisibilityIcon />}
                       </IconButton>
                     </InputAdornment>
@@ -1038,46 +1103,93 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
           </FormControl>
         </Grid>
         {/* ====================== DESIGNATION SELECT ====================== */}
-        {role > 0 && (
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth error={!!errors.designation}>
-              <Autocomplete
-                id="designation-select"
-                options={designations
-                  .map(d => d.title)
-                  .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
-                }
-                value={formData.designation}
-                getOptionLabel={option => option}
-                onChange={(e, value) => {
-                  handleChange({
-                    target: { name: "designation", value: value }
-                  })
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Select Designation"
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <BadgeIcon color="action" />
-                        </InputAdornment>
-                      )
-                    }}
-                  />
-                )}
-              />
+        {/* Department Selection */}
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth error={!!errors.department_id}>
+            <InputLabel id="dept-label">Select Department *</InputLabel>
+            <Select
+              labelId="dept-label"
+              label="Select Department *"
+              value={selectedDepartmentId}
+              onChange={(e) => {
+                const dId = e.target.value;
 
-              {errors.designation && (
-                <Typography color="error">{errors.designation}</Typography>
-              )}
+                setSelectedDepartmentId(dId);
+
+                // Reset designation when department changes
+                setFormData(prev => ({ ...prev, department_id: dId, designation_id: '' }));
+              }}
+            >
+              <MenuItem value="">Select Department</MenuItem>
+              {departments.map((dept: any) => (
+                <MenuItem key={dept._id} value={dept._id}>{dept.department}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* Designation Selection */}
+        {selectedDepartmentId && (
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth error={!!errors.designation_id}>
+              <InputLabel id="desig-label">Select Designation *</InputLabel>
+              <Select
+                labelId="desig-label"
+                label="Select Designation *"
+                value={formData.designation_id || ''}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const obj = allDesignations.find(d => d._id === id);
+
+                  setFormData(prev => ({
+                    ...prev,
+                    designation_id: id,
+                    designation: obj?.title || ''
+                  }));
+                }}
+              >
+                <MenuItem value="">Select Designation</MenuItem>
+                {allDesignations
+                  .filter((des: any) => {
+                    // FIX: Match the ID string regardless of whether the list 
+                    // data is a string or a populated object
+                    const desDeptId = des.department_id?._id || des.department_id;
+
+
+                    return desDeptId === selectedDepartmentId;
+                  })
+                  .map((des: any) => (
+                    <MenuItem key={des._id} value={des._id}>
+                      {des.title}
+                    </MenuItem>
+                  ))}
+              </Select>
+              {errors.designation_id && <Typography color="error">{errors.designation_id}</Typography>}
             </FormControl>
           </Grid>
         )}
 
-
+        {/* Salary Input Field */}
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label="Salary (Monthly)"
+            name="salary"
+            type="number"
+            value={formData.salary}
+            onChange={handleChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  ₹
+                </InputAdornment>
+              )
+            }}
+            placeholder="65000"
+            error={!!errors.salary}
+            helperText={errors.salary}
+          />
+        </Grid>
 
 
         {role === '0' ? (
