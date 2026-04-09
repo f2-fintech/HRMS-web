@@ -997,7 +997,7 @@ export default function PerformanceUploadPage() {
                 size="small"
                 variant="contained"
                 startIcon={<LoginIcon sx={{ fontSize: 18 }} />}
-                onClick={() => router.push("/today-login")}
+                onClick={() => router.push("/todaylogin")}
                 sx={{
                   borderRadius: 999,
                   textTransform: "none",
@@ -1353,7 +1353,7 @@ export default function PerformanceUploadPage() {
               leftIcon={<span style={{ fontSize: 18 }}>✓</span>}
               bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
               subColor="#dcfce7"
-              onView={() => router.push("/today-login")}
+              onView={() => router.push("/todaylogin ")}
             />
           </Grid>
 
