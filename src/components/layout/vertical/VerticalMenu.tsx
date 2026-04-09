@@ -1,5 +1,6 @@
 // MUI Imports
 import { useEffect, useState } from 'react'
+
 import { useTheme } from '@mui/material/styles'
 import PerfectScrollbar from 'react-perfect-scrollbar'
 import HolidayVillageIcon from '@mui/icons-material/HolidayVillage'
@@ -19,17 +20,9 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
 import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
 import VideoCallIcon from '@mui/icons-material/VideoCall'
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital'
-
-import QueryStatsIcon from '@mui/icons-material/QueryStats';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
-
 import SupportAgentIcon from '@mui/icons-material/SupportAgent'
 
-import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
-
-import VideoCallIcon from '@mui/icons-material/VideoCall'
+import InventoryIcon from '@mui/icons-material/Inventory';
 
 // Menu Imports
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
@@ -57,7 +50,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
 
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
-  const [userRole, setUserRole] = useState<string>('')
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -77,73 +70,12 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           onScrollY: container => scrollMenu(container, true)
         })}
     >
-
       <Menu
         menuItemStyles={menuItemStyles(theme)}
         renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
         renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
         menuSectionStyles={menuSectionStyles(theme)}
       >
-
-        {/* 🏠 DASHBOARD */}
-          {/* <SubMenu
-          label='Dashboard13'
-          icon={<i className='ri-home-smile-line' />}
-          suffix={<Chip label='5' size='small' color='error' />}
-        >
-          <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/dashboards/crm`}
-            suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
-            target='_blank'
-          >
-            CRM
-          </MenuItem>
-          <MenuItem href='/'>Analytics</MenuItem>
-          <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/dashboards/ecommerce`}
-            suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
-            target='_blank'
-
-          >
-            eCommerce
-          </MenuItem>
-          <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/dashboards/academy`}
-            suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
-            target='_blank'
-          >
-            Academy
-          </MenuItem>
-          <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/dashboards/logistics`}
-            suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
-            target='_blank'
-          >
-            Logistics
-          </MenuItem>
-        </SubMenu>
-        <SubMenu
-          label='Front Pages'
-          icon={<i className='ri-file-copy-line' />}
-          suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
-        >
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/landing-page`} target='_blank'>
-            Landing
-          </MenuItem>
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/pricing`} target='_blank'>
-            Pricing
-          </MenuItem>
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/payment`} target='_blank'>
-            Payment
-          </MenuItem>
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/checkout`} target='_blank'>
-            Checkout
-          </MenuItem>
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/help-center`} target='_blank'>
-            Help Center
-          </MenuItem>
-        </SubMenu> */}
-
         <MenuItem href={`/`} icon={<i className='ri-dashboard-line' />}>
           Dashboard
         </MenuItem>
@@ -164,9 +96,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               Payment
             </MenuItem>
           }
+
           {userRole !== "0" &&
             <>
-
               <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
                 Attendance
               </MenuItem>
@@ -179,7 +111,6 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
                 Teams
               </MenuItem>
-
               <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
                 Break Sheet
               </MenuItem>
@@ -194,22 +125,15 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               <MenuItem href={`/departmentPerformance`} icon={<HolidayVillageIcon />}>
                 Support Function
               </MenuItem>
-
               <MenuItem href={`/fine`} icon={<GavelIcon />}>
                 Fine
               </MenuItem>
-
-              {/* <MenuItem href={`/pages`} icon={<ArticleIcon />}>
-                Pages
-              </MenuItem> */}
               <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
                 Expense Tracker
               </MenuItem>
-
               <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
                 Query
               </MenuItem>
-
               <MenuItem href={`/holidays`} icon={<EventIcon />}>
                 Holiday
               </MenuItem>
@@ -221,7 +145,8 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               </MenuItem>
               <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
                 Policy
-              </MenuItem><MenuItem href={`/roombook`} icon={<MeetingRoomIcon />}>
+              </MenuItem>
+              <MenuItem href={`/roombook`} icon={<MeetingRoomIcon />}>
                 Room Booking
               </MenuItem>
             </>
@@ -242,82 +167,70 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           </MenuItem>
         </MenuSection>
 
-  
         {userRole !== "0" && (
           <MenuSection label='Attendance & Time'>
             <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
               Attendance
             </MenuItem>
-
             <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
               Leaves
             </MenuItem>
-
             <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
               Break Management
             </MenuItem>
-
             <MenuItem href={`/holidays`} icon={<EventIcon />}>
               Holiday
             </MenuItem>
-
             <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
               Policies
             </MenuItem>
           </MenuSection>
         )}
 
-      
+
         {userRole !== "0" && (
           <MenuSection label='Performance & Reporting'>
             <MenuItem href={`/performance`} icon={<HeadsetMicIcon />}>
               Performance
             </MenuItem>
-
             <MenuItem href={`/doctor-report`} icon={<LocalHospitalIcon />}>
               Field Visit Report
             </MenuItem>
           </MenuSection>
         )}
 
-
         {userRole !== "0" && (
           <MenuSection label='Finance & Expense'>
             <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
               Expense Tracker
             </MenuItem>
-
             <MenuItem href={`/fine`} icon={<GavelIcon />}>
               Fine
             </MenuItem>
           </MenuSection>
         )}
 
-     
         {userRole !== "0" && (
           <MenuSection label='Operations & Support'>
             <MenuItem href={`/departmentPerformance`} icon={<AssessmentIcon />}>
               Support Operations
             </MenuItem>
-
             <MenuItem href={`/queries`} icon={<QueryStatsIcon />}>
               Raise Query
             </MenuItem>
           </MenuSection>
         )}
 
-        {/* 📅 MEETING & SCHEDULING */}
         {userRole !== "0" && (
           <MenuSection label='Meeting & Scheduling'>
             <MenuItem href={`/meetings`} icon={<VideoCallIcon />}>
               Meetings
             </MenuItem>
-
             <MenuItem href={`/roombook`} icon={<MeetingRoomIcon />}>
-              Workspace Booking         </MenuItem>
+              Workspace Booking
+            </MenuItem>
           </MenuSection>
         )}
-
 
         {userRole === '1' && (
           <MenuSection label='Assets & Inventory'>
@@ -326,7 +239,6 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             </MenuItem>
           </MenuSection>
         )}
-
       </Menu>
     </ScrollWrapper>
   )

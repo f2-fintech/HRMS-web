@@ -641,7 +641,7 @@ const Designation = () => {
               onChange={(e) => setSelectedLevelFilter(e.target.value)}
             >
               <MenuItem value="">All Levels</MenuItem>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+              {[1, 2, 3, 4,].map((num) => (
                 <MenuItem key={num} value={num.toString()}>
                   L{num}
                 </MenuItem>
@@ -945,7 +945,7 @@ const Designation = () => {
                         onChange={(e) => updateLevel(index, 'level', e.target.value)}
                         sx={{ height: 48 }}
                       >
-                        {Array.from({ length: 12 }, (_, i) => (
+                        {Array.from({ length: 4 }, (_, i) => (
                           <MenuItem key={i} value={`L${i + 1}`}>L{i + 1}</MenuItem>
                         ))}
                       </Select>
