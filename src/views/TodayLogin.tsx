@@ -5,25 +5,42 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 
 const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_APP_URL });
+function getDuration(start?: string, end?: string) {
+    if (!start || !end) return null;
 
+    const diff = new Date(end).getTime() - new Date(start).getTime();
+    if (diff <= 0) return null;
+
+    const mins = Math.floor(diff / 60000);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Row = {
     _id: string;
     date: string;
+    createdAt?: string;
     employee_name: string;
     // tl_name: string;
     manager: string;
     login_poc?: string;
-    customer_name?: string;
+
     // location_state?: string;
+    customer_loan_id?: string;
+    credit_eligibility?: string;
+    credit_tat?: string;
+    login_tat?: string;
+
     city?: string;
     lender?: string;
     loan_amount?: number;
     credit_poc?: string;
     ops_poc?: string;
     banker_details?: string;
-    status?: "login" | "reject" | "approved" | "disbursed"
+    status?: "login" | "reject" | "approved" | "disbursed" | "hold" | "drop"
 };
 
 type FormData = Omit<Row, "_id" | "date">;
@@ -33,7 +50,7 @@ const EMPTY_FORM: FormData = {
     // tl_name: "",
     manager: "",
     login_poc: "",
-    customer_name: "",
+    customer_loan_id: "",
     // location_state: "",
     city: "",
     lender: "",
@@ -41,6 +58,7 @@ const EMPTY_FORM: FormData = {
     credit_poc: "",
     ops_poc: "",
     banker_details: "",
+    credit_eligibility: "",
     status: "login",
 };
 
@@ -49,7 +67,7 @@ const FIELDS: { key: keyof FormData; label: string; type?: string }[] = [
     // { key: "tl_name", label: "TL Name" },
     { key: "manager", label: "Manager" },
     { key: "login_poc", label: "Login POC" },
-    { key: "customer_name", label: "Customer Name" },
+    { key: "customer_loan_id", label: "Customer ID" },
     // { key: "location_state", label: "State" },
     { key: "city", label: "City" },
     { key: "lender", label: "Lender" },
@@ -57,22 +75,29 @@ const FIELDS: { key: keyof FormData; label: string; type?: string }[] = [
     { key: "credit_poc", label: "Credit POC" },
     { key: "ops_poc", label: "Ops POC" },
     { key: "banker_details", label: "Banker Name & No" },
+    { key: "credit_eligibility", label: "Credit Eligibility" },
 ];
 
 const TABLE_COLS = [
+    { label: "Case Received Time", key: "createdAt" },
     { label: "Employee", key: "employee_name" },
     // { label: "TL", key: "tl_name" },
     { label: "Manager", key: "manager" },
     { label: "Login POC", key: "login_poc" },
     { label: "Credit POC", key: "credit_poc" },
     { label: "Ops POC", key: "ops_poc" },
-    { label: "Customer", key: "customer_name" },
+    { label: "Customer ID", key: "customer_loan_id" },
     // { label: "State", key: "location_state" },
     { label: "City", key: "city" },
     { label: "Lender", key: "lender" },
     { label: "Banker", key: "banker_details" },
     { label: "Loan Amount", key: "loan_amount" },
     { label: "Status", key: "status" },
+    { label: "Login Tat", key: "login_tat" },
+    { label: "Credit Tat", key: "credit_tat" },
+    { label: "Credit Eligibility", key: "credit_eligibility" },
+    // { label: "TAT", key: "tat_duration" },
+
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -250,7 +275,9 @@ export default function TodayLogin() {
     const toastId = useRef(0);
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
     const [search, setSearch] = useState("");
-    const [activeFilter, setActiveFilter] = useState<"all" | "login" | "reject">("all");
+    const [activeFilter, setActiveFilter] = useState<
+        "all" | "login" | "approved" | "reject" | "disbursed" | "hold" | "drop"
+    >("all");
     const fileRef = useRef<HTMLInputElement>(null);
 
     const [user, setUser] = useState<any>(null);
@@ -369,7 +396,7 @@ export default function TodayLogin() {
                 // tl_name: String(r["TL NAME"] ?? ""),
                 manager: String(r["MANAGER"] ?? ""),
                 login_poc: String(r["LOGIN POC"] ?? ""),
-                customer_name: String(r["CUSTOMER NAME"] ?? ""),
+                customer_loan_id: String(r["CUSTOMER ID"] ?? ""),
                 // location_state: String(r["LOCATION STATE"] ?? ""),
                 city: String(r["CITY"] ?? ""),
                 lender: String(r["LENDER"] ?? ""),
@@ -394,7 +421,7 @@ export default function TodayLogin() {
         const matchFilter = activeFilter === "all" || r.status === activeFilter;
         const matchSearch =
             !search ||
-            [r.employee_name, r.manager, r.customer_name, r.city]
+            [r.employee_name, r.manager, r.customer_loan_id, r.city]
                 .join(" ")
                 .toLowerCase()
                 .includes(search.toLowerCase());
@@ -549,6 +576,7 @@ export default function TodayLogin() {
                                     <input
                                         className="dl-input"
                                         type={type ?? "text"}
+                                        placeholder={key === "banker_details" ? "Rahul Sharma - 9876543210" : ""}
                                         value={String(form[key] ?? "")}
                                         onChange={(e) => handleChange(key, e.target.value)}
                                         style={inputSx}
@@ -576,7 +604,7 @@ export default function TodayLogin() {
                                     onChange={(e) =>
                                         setForm((p) => ({
                                             ...p,
-                                            status: e.target.value as "login" | "reject" | "approved" | "disbursed",
+                                            status: e.target.value as "login" | "reject" | "approved" | "disbursed" | "hold" | "drop",
                                         }))
                                     }
                                     style={inputSx}
@@ -585,6 +613,8 @@ export default function TodayLogin() {
                                     <option value="approved">Approved</option>
                                     <option value="reject">Reject</option>
                                     <option value="disbursed">Disbursed</option>
+                                    <option value="hold">Hold</option>
+                                    <option value="drop">Drop</option>
                                 </select>
                             </div>
                         </div>
@@ -909,6 +939,7 @@ export default function TodayLogin() {
                                                     style={{ borderBottom: "0.5px solid #EBF4FF", transition: "background .1s" }}
                                                 >
                                                     {TABLE_COLS.map((col) => {
+
                                                         if (col.key === "employee_name") {
                                                             return (
                                                                 <td key={col.key} style={{ padding: "10px 14px" }}>
@@ -938,6 +969,7 @@ export default function TodayLogin() {
                                                             );
                                                         }
 
+
                                                         if (col.key === "loan_amount") {
                                                             return (
                                                                 <td
@@ -950,6 +982,18 @@ export default function TodayLogin() {
                                                         }
 
                                                         if (col.key === "status") {
+                                                            const statusConfig = {
+                                                                login: { bg: "#D1FAE5", color: "#065F46", label: "Login" },
+                                                                approved: { bg: "#DBEAFE", color: "#1E40AF", label: "Approved" },
+                                                                reject: { bg: "#FEE2E2", color: "#991B1B", label: "Rejected" },
+                                                                disbursed: { bg: "#FEF3C7", color: "#92400E", label: "Disbursed" },
+                                                                hold: { bg: "#E5E7EB", color: "#374151", label: "Hold" },
+                                                                drop: { bg: "#FCA5A5", color: "#7F1D1D", label: "Drop" },
+                                                            };
+
+
+                                                            const s = statusConfig[r.status || "login"];
+
                                                             return (
                                                                 <td key={col.key} style={{ padding: "10px 14px" }}>
                                                                     <span
@@ -958,17 +1002,138 @@ export default function TodayLogin() {
                                                                             borderRadius: 20,
                                                                             fontSize: 11,
                                                                             fontWeight: 600,
-                                                                            background: r.status === "reject" ? "#FEE2E2" : "#D1FAE5",
-                                                                            color: r.status === "reject" ? "#991B1B" : "#065F46",
+                                                                            background: s.bg,
+                                                                            color: s.color,
                                                                         }}
                                                                     >
-                                                                        {r.status === "reject" ? "Rejected" : "Login"}
+                                                                        {s.label}
                                                                     </span>
                                                                 </td>
                                                             );
                                                         }
-
                                                         const value = r[col.key as keyof Row];
+
+                                                        if (col.key === "credit_eligibility") {
+                                                            return (
+                                                                <td key={col.key} style={{ padding: "10px 14px", fontWeight: 500 }}>
+                                                                    {value || "—"}
+                                                                </td>
+                                                            );
+                                                        }
+                                                        if (col.key === "createdAt") {
+                                                            const dateVal = value ? new Date(value as string) : null;
+
+                                                            const time = dateVal
+                                                                ? dateVal.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                                                                : "";
+
+                                                            const date = dateVal
+                                                                ? dateVal.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
+                                                                : "";
+
+                                                            return (
+                                                                <td key={col.key} style={{ padding: "10px 14px" }}>
+                                                                    {dateVal ? (
+                                                                        <div
+                                                                            style={{
+                                                                                display: "inline-flex",
+                                                                                flexDirection: "column",
+                                                                                padding: "4px 10px",
+                                                                                borderRadius: 10,
+                                                                                background: "#F1F5F9",
+                                                                                border: "0.5px solid #CBD5F5",
+                                                                                minWidth: 90,
+                                                                            }}
+                                                                        >
+                                                                            <span style={{ fontSize: 11, fontWeight: 600, color: "#334155" }}>
+                                                                                {time}
+                                                                            </span>
+                                                                            <span style={{ fontSize: 10, color: "#64748B" }}>
+                                                                                {date}
+                                                                            </span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        "—"
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        }
+                                                        // if (col.key === "tat_duration") {
+                                                        //     const duration = getDuration(r.login_tat, r.credit_tat);
+
+                                                        //     return (
+                                                        //         <td key={col.key} style={{ padding: "10px 14px" }}>
+                                                        //             {duration ? (
+                                                        //                 <span
+                                                        //                     style={{
+                                                        //                         padding: "4px 10px",
+                                                        //                         borderRadius: 20,
+                                                        //                         fontSize: 11,
+                                                        //                         fontWeight: 600,
+                                                        //                         background: "#EEF2FF",
+                                                        //                         color: "#3730A3",
+                                                        //                         border: "0.5px solid #C7D2FE",
+                                                        //                     }}
+                                                        //                 >
+                                                        //                     ⏱ {duration}
+                                                        //                 </span>
+                                                        //             ) : (
+                                                        //                 "—"
+                                                        //             )}
+                                                        //         </td>
+                                                        //     );
+                                                        // }
+                                                        if (col.key === "login_tat" || col.key === "credit_tat") {
+                                                            const dateVal = value ? new Date(value as string) : null;
+
+                                                            const time = dateVal
+                                                                ? dateVal.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                                                                : "";
+
+                                                            const date = dateVal
+                                                                ? dateVal.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
+                                                                : "";
+
+                                                            const isLogin = col.key === "login_tat";
+
+                                                            return (
+                                                                <td key={col.key} style={{ padding: "10px 14px" }}>
+                                                                    {dateVal ? (
+                                                                        <div
+                                                                            style={{
+                                                                                display: "inline-flex",
+                                                                                flexDirection: "column",
+                                                                                padding: "4px 10px",
+                                                                                borderRadius: 10,
+                                                                                // background: isLogin ? "#E0F2FE" : "#F0FDF4",
+                                                                                // border: `0.5px solid ${isLogin ? "#7DD3FC" : "#86EFAC"}`,
+                                                                                minWidth: 90,
+                                                                            }}
+                                                                        >
+                                                                            <span
+                                                                                style={{
+                                                                                    fontSize: 11,
+                                                                                    fontWeight: 600,
+                                                                                    color: isLogin ? "#0369A1" : "#166534",
+                                                                                }}
+                                                                            >
+                                                                                {time}
+                                                                            </span>
+                                                                            <span
+                                                                                style={{
+                                                                                    fontSize: 10,
+                                                                                    color: "#64748B",
+                                                                                }}
+                                                                            >
+                                                                                {date}
+                                                                            </span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        "—"
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        }
                                                         return (
                                                             <td
                                                                 key={col.key}
