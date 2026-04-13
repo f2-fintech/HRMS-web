@@ -29,7 +29,9 @@ import profilesReducer from './features/profileEmployeee/profilesSlice';
 import performanceReducer from './features/performances/performanceSlice';
 import pagesReducer from './features/pages/pagesSlice';
 import databasesReducer from './features/databases/databasesSlice';
-import payrollReducer from './features/payroll/payrollSlice';
+import incentiveTargetReducer from './features/incentiveTarget/incentiveTargetSlice';
+import departmentReducer from './features/designation/departmentDesignationsSlice';
+import designationV2Reducer from './features/designation/designationV2Slice';
 
 
 
@@ -82,7 +84,9 @@ const appReducer = combineReducers({
   performances: performanceReducer,
   pages: pagesReducer,
   databases: databasesReducer,
-  payroll: payrollReducer,
+  incentiveTarget: incentiveTargetReducer,
+  department: departmentReducer,
+  designationV2: designationV2Reducer,
 })
 
 // Root reducer with RESET functionality

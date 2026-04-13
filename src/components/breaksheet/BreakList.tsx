@@ -9,13 +9,18 @@ interface BreakListProps {
     filteredBreaks: Break[];
     userRole: string | number;
     handleEditClick: (breakToEdit: Break) => void;
+    updateRemarks: (breakId: string, remarks: string) => void;
+
 }
 
-const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleEditClick }) => {
+const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleEditClick, updateRemarks }) => {
+    const [editingId, setEditingId] = React.useState<string | null>(null);
+    const [remarks, setRemarks] = React.useState('');
+
     return (
         <Grid container spacing={2}>
             {filteredBreaks.map((breakEntry, index) => (
-                <Grid item xs={12} sm={6} md={3} key={index}>
+                <Grid item xs={12} sm={6} md={3} key={breakEntry._id}>
                     <Card
                         elevation={2}
                         sx={{
@@ -56,8 +61,87 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
                                         Duration: {breakEntry.duration}
                                     </Typography>
                                 </Stack>
+                                {breakEntry.remarks && (
+                                    <Typography variant='body2' color='text.secondary'>
+                                        Remarks: {breakEntry.remarks}
+                                    </Typography>
+                                )}
 
-                                {/* {userRole === '1' && (
+                               
+                                <Box>
+                                    <button
+                                        onClick={() => {
+                                            setEditingId(breakEntry._id);
+                                            setRemarks(breakEntry.remarks || '');
+                                        }}
+                                        style={{
+                                            padding: '6px 12px',
+                                            fontSize: '12px',
+                                            borderRadius: '20px',
+                                            border: '1px solid #1976d2',
+                                            background: breakEntry.remarks ? '#e3f2fd' : '#f5f5f5',
+                                            color: '#1976d2',
+                                            cursor: 'pointer',
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        {breakEntry.remarks ? '✏️ Edit Remarks' : '+ Add Remarks'}
+                                    </button>
+                                </Box>
+
+                                {/* ✅ Inline Input */}
+                                {editingId === breakEntry._id && (
+                                    <Box sx={{ mt: 1 }}>
+                                        <input
+                                            value={remarks}
+                                            onChange={(e) => setRemarks(e.target.value)}
+                                            placeholder="Add remarks"
+                                            style={{
+                                                width: '100%',
+                                                padding: '6px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #ccc'
+                                            }}
+                                        />
+
+                                        <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                            <button
+                                                onClick={() => {
+                                                    updateRemarks(breakEntry._id, remarks);
+                                                    setEditingId(null);
+                                                }}
+                                                style={{
+                                                    padding: '4px 10px',
+                                                    background: '#1976d2',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Save
+                                            </button>
+
+                                            <button
+                                                onClick={() => {
+                                                    setEditingId(null);
+                                                    setRemarks('');
+                                                }}
+                                                style={{
+                                                    padding: '4px 10px',
+                                                    background: '#e0e0e0',
+                                                    color: '#333',
+                                                    border: 'none',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </Box>
+                                    </Box>
+                                )}
+                            {/* {userRole === '1' && (
                                     <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
                                         <Tooltip title='Edit Break'>
                                             <IconButton
@@ -76,7 +160,7 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
                                             </IconButton>
                                         </Tooltip>
                                     </Box>
-                                )} */}
+                                )}  */}
                             </Stack>
                         </CardContent>
                     </Card>

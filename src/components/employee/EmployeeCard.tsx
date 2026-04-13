@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
-import type { AppDispatch } from '../../redux/store'
+
 import { useRouter } from 'next/navigation'
+
 import {
   Card,
   CardContent,
@@ -21,8 +21,9 @@ import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EmailIcon from '@mui/icons-material/Email'
 import RestoreIcon from '@mui/icons-material/Restore';
+
 import Loader from '../loader/loader'
-import { useSettings } from '@core/hooks/useSettings' // Importing useSettings hook
+import { useSettings } from '@core/hooks/useSettings'
 import 'react-toastify/dist/ReactToastify.css'
 
 const StyledCard = styled(Card)(({ theme, mode }) => ({
@@ -30,7 +31,7 @@ const StyledCard = styled(Card)(({ theme, mode }) => ({
   borderRadius: '16px',
   boxShadow: '0 4px 20px 0 rgba(0,0,0,0.12)',
   transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-  background: mode === 'dark' ? '#444' : '#fff', // Apply dark mode background color
+  background: mode === 'dark' ? '#444' : '#fff',
   '&:hover': {
     transform: 'translateY(-5px)',
     boxShadow: '0 12px 30px 0 rgba(0,0,0,0.16)',
@@ -63,8 +64,8 @@ const EmailContainer = styled(Box)(({ theme }) => ({
 const EmailTypography = styled(Typography)(({ theme, mode }) => ({
   fontSize: '0.875rem',
   textAlign: 'center',
-  color: mode === 'dark' ? theme.palette.text.primary : theme.palette.text.secondary, // Set text color based on theme
-  backgroundColor: mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200], // Set background color based on theme
+  color: mode === 'dark' ? theme.palette.text.primary : theme.palette.text.secondary,
+  backgroundColor: mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200],
   padding: theme.spacing(0.5),
   borderRadius: theme.shape.borderRadius,
   wordBreak: 'break-all',
@@ -78,9 +79,11 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
   const [userRole, setUserRole] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const dispatch: AppDispatch = useDispatch()
 
-  const { settings } = useSettings() // Getting the settings object to determine mode
+  const { settings } = useSettings()
+
+  // 1. Get Designation (Checks nested object first for new data, falls back to old string)
+  const designationDisplay = employee.designation_id?.title || employee.designation || 'N/A';
 
   const handleMenuOpen = event => {
     event.stopPropagation()
@@ -94,6 +97,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
   useEffect(() => {
     if (userRole === '') {
       const user = JSON.parse(localStorage.getItem('user') || '{}')
+
       setUserRole(user.role)
     }
   }, [userRole])
@@ -172,12 +176,12 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
                   Profile
                 </MenuItem>
               }
-
             </Menu>
           </Box>
           <Tooltip title="View Profile" arrow>
             <StyledAvatar alt={employee.first_name} src={employee?.image} mode={settings.mode} onClick={() => handleCardClick()} />
           </Tooltip>
+
           <Typography
             variant='h5'
             component='div'
@@ -186,17 +190,21 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
           >
             {capitalizeWords(employee.first_name)} {capitalizeWords(employee.last_name)}
           </Typography>
+
+          {/* DESIGNATION DISPLAY - Cleaned up to show only title */}
           <Typography
             variant='subtitle1'
             color={settings.mode === 'dark' ? 'white' : 'black'}
             align='center'
-            sx={{ mt: 1 }}
+            sx={{ mt: 1, fontWeight: 500 }}
           >
-            {employee.designation}
+            {designationDisplay}
           </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
             <StyledChip label={employee.status} color={getStatusColor(employee.status)} size='small' />
           </Box>
+
           <EmailContainer>
             <Tooltip title='Click to send email' arrow>
               <EmailTypography mode={settings.mode} onClick={handleEmailClick}>
@@ -205,11 +213,12 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
               </EmailTypography>
             </Tooltip>
           </EmailContainer>
+
           <Typography
             variant='subtitle1'
             color={settings.mode === 'dark' ? 'white' : 'black'}
             align='center'
-            sx={{ mt: 2 }}
+            sx={{ mt: 2, opacity: 0.8 }}
           >
             {employee.code}
           </Typography>
