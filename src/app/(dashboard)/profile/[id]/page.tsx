@@ -18,7 +18,9 @@ import {
     useTheme,
     styled,
     DialogTitle,
-    Tooltip
+    Tooltip,
+    Tabs,
+    Tab
 } from '@mui/material'
 import EmailIcon from '@mui/icons-material/Email'
 import PhoneIcon from '@mui/icons-material/Phone'
@@ -28,12 +30,13 @@ import CloseIcon from '@mui/icons-material/Close'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import { CircularProgressbar } from 'react-circular-progressbar'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ProfileAttendance from '@/components/profile/ProfileAttendance'
+import ProfilePerformance from '@/components/profile/ProfilePerformance'
 
 import 'react-circular-progressbar/dist/styles.css'
 
 const StyledCard = styled(Card)(({ theme }) => ({
     width: '95%',
-    maxWidth: '900px',
     margin: theme.spacing(10),
     padding: theme.spacing(4),
     paddingTop: theme.spacing(10), // Increased top padding
@@ -89,6 +92,11 @@ const Profile = () => {
     const [saveloading, setSaveLoading] = useState(false)
     const [previewUrl, setPreviewUrl] = useState(null)
     const [checkVerify, setCheckVerify] = useState(false)
+    const [verticalTabValue, setVerticalTabValue] = useState(0)
+
+    const handleVerticalTabChange = (event, newValue) => {
+        setVerticalTabValue(newValue)
+    }
 
     const router = useRouter();
 
@@ -363,6 +371,9 @@ const Profile = () => {
                             <Typography variant='h6' color='text.secondary' sx={{ mb: 2, fontWeight: 500 }}>
                                 {userData?.designation}
                             </Typography>
+                            <Typography variant='subtitle1' color='text.secondary' sx={{ mb: 2, fontWeight: 500 }}>
+                                DOJ: {userData?.joining_date ? new Date(userData.joining_date).toLocaleDateString() : 'N/A'}
+                            </Typography>
 
                             <Box sx={{ display: 'flex', mb: 3, flexWrap: 'wrap' }}>
                                 <Tooltip title='Send Email' arrow>
@@ -414,12 +425,47 @@ const Profile = () => {
                         </Box>
                     </Box>
 
-                    <ProfileForm
-                        profileId={userId}
-                        logedUser={user}
-                        setCalculateFilledTabsCount={setCalculateFilledTabsCount}
-                        setCheckVerify={setCheckVerify}
-                    />
+                    {/* Vertical Tabs Structure */}
+                    <Box sx={{ flexGrow: 1, display: 'flex', mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', overflow: 'hidden' }}>
+                        <Tabs
+                            orientation='vertical'
+                            variant='scrollable'
+                            value={verticalTabValue}
+                            onChange={handleVerticalTabChange}
+                            sx={{ borderRight: 1, borderColor: 'divider', minWidth: 150 }}
+                        >
+                            <Tab label='Overview' />
+                            <Tab label='Attendance' />
+                            <Tab label='Performance' />
+                        </Tabs>
+
+                        <Box sx={{ flexGrow: 1, pl: 3, pt: 1, minWidth: 0, overflow: 'hidden', minHeight: '400px' }}>
+                            {verticalTabValue === 0 && (
+                                <ProfileForm
+                                    profileId={userId}
+                                    logedUser={user}
+                                    setCalculateFilledTabsCount={setCalculateFilledTabsCount}
+                                    setCheckVerify={setCheckVerify}
+                                />
+                            )}
+                            {verticalTabValue === 1 && (
+                                <Box>
+                                    <ProfileAttendance
+                                        profileId={userId}
+                                        employeeName={userData ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() : ''}
+                                    />
+                                </Box>
+                            )}
+                            {verticalTabValue === 2 && (
+                                <Box>
+                                    <ProfilePerformance
+                                        profileId={userId}
+                                        employeeCode={userData?.code || ''}
+                                    />
+                                </Box>
+                            )}
+                        </Box>
+                    </Box>
                 </CardContent>
             </StyledCard>
         </Box>
