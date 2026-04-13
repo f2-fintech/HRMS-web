@@ -12,70 +12,28 @@ type RoleView = 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
 export default function DepartmentPerformance() {
   const [role, setRole] = useState<RoleView>('EMPLOYEE');
 
-useEffect(() => {
+  useEffect(() => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  const rp = Number(user?.role_priority);
-  const raw = String(
-    user?.designation ||
-    user?.role ||
-    user?.user_type ||
-    ''
-  )
-    .toLowerCase()
-    .trim();
-
-  const isAdmin =
-    rp === 1 || raw.includes('admin');
-
-  const isTeamLeader =
-    raw.includes('team leader') ||
-    raw.includes('tl');
-
-  const isManagerTitle =
-    raw.includes('manager');
+  const roleStr = String(user?.role || '').trim();          // "1" / "2" / "3"
+  const rp = Number(user?.role_priority);                   // optional
+  const desig = String(user?.designation || '').toLowerCase().trim();
 
   let view: RoleView = 'EMPLOYEE';
 
-  if (isAdmin) {
-    view = 'ADMIN';
-  }
-  else if (isTeamLeader) {
-    // 👉 Team Leader ALWAYS employee view
-    view = 'EMPLOYEE';
-  }
-  else if (isManagerTitle) {
-    // 👉 Only actual MANAGER gets manager view
-    view = 'MANAGER';
-  }
-  else {
-    view = 'EMPLOYEE';
-  }
+  // ✅ HARD LOCKS
+  if (roleStr === '1' || rp === 1) view = 'ADMIN';
+  // else if (roleStr === '2' || rp === 2) view = 'MANAGER';
+  else view = 'EMPLOYEE'; // TL + normal employee
 
   setRole(view);
 
-  console.log('ROLE DEBUG =>', {
-    rp,
-    raw,
-    isAdmin,
-    isTeamLeader,
-    isManagerTitle,
-    resolvedView: view,
-    user
-  });
+  console.log('ROLE DEBUG', { roleStr, rp, desig, view, user });
 }, []);
 
-
- return (
-  <Box sx={{ p: 2 }}>
-    {role === 'ADMIN' ? (
-      <PerformanceAdmin />
-    ) : role === 'MANAGER' ? (
-      <PerformanceManager />
-    ) : (
-      <PerformanceEmployee />
-    )}
-  </Box>
-);
-
+  return (
+    <Box sx={{ p: 2 }}>
+      {role === 'ADMIN' ? <PerformanceAdmin /> : role === 'MANAGER' ? <PerformanceManager /> : <PerformanceEmployee />}
+    </Box>
+  );
 }

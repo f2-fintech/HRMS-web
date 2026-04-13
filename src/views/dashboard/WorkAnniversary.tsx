@@ -79,32 +79,52 @@ const WorkAnniversary = ({
   const { navigateToProfile } = useRouterWithMount()
   const { settings } = useSettings()
 
-  const {
-    workAnniversaries,
-    loadingAnniversaries,
-    error: reduxError
-  } = useSelector((state: RootState) => state.employees)
+  const { workAnniversaries, loadingAnniversaries, error: reduxError } =
+    useSelector((state: RootState) => state.employees)
 
-  // Mount pe ek hi baar data fetch
-   useEffect(() => {
-        if (!loadingAnniversaries) {
-            dispatch(fetchWorkAnniversaries(5))
-                .unwrap()
-                .catch(err => setError(err.message))
-        }
-    }, [dispatch])
+  useEffect(() => {
+    dispatch(fetchWorkAnniversaries(5))
+      .unwrap()
+      .catch(err => setError(err?.message || 'Something went wrong'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch])
 
-  // Kitne saal COMPLETE ho chuke
+  const today = dayjs().startOf('day')
+
   const calculateYearsOfService = (joiningDate: string) => {
-    const start = dayjs(joiningDate)
-    const now = dayjs()
-
-    return now.diff(start, 'year')
+    const start = dayjs(joiningDate).startOf('day')
+    if (!start.isValid()) return 0
+    if (start.isAfter(today, 'day')) return 0
+    return today.diff(start, 'year')
   }
 
-  // 1+ year complete check
-  const hasCompletedOneYear = (joiningDate: string) => {
-    return calculateYearsOfService(joiningDate) >= 1
+  const getNextAnniversaryDate = (joiningDate: string) => {
+    const start = dayjs(joiningDate).startOf('day')
+    if (!start.isValid()) return null
+
+    if (start.isAfter(today, 'day')) return null
+
+    const yearsCompleted = today.diff(start, 'year')
+
+    if (yearsCompleted < 1) return start.add(1, 'year')
+
+    let next = start.year(today.year())
+    if (next.isBefore(today, 'day')) next = next.add(1, 'year')
+    return next
+  }
+
+  const daysUntilNextAnniversary = (joiningDate: string) => {
+    const next = getNextAnniversaryDate(joiningDate)
+    if (!next) return Number.POSITIVE_INFINITY
+    return next.startOf('day').diff(today, 'day')
+  }
+
+  const getYearsCompleting = (joiningDate: string) => {
+    const start = dayjs(joiningDate).startOf('day')
+    if (!start.isValid()) return 0
+    if (start.isAfter(today, 'day')) return 0
+    const yearsCompleted = today.diff(start, 'year')
+    return yearsCompleted + 1
   }
 
   const getCelebrationIcon = (years: number) => {
@@ -114,24 +134,17 @@ const WorkAnniversary = ({
     return null
   }
 
-  // Aaj ka anniversary: same month-day + kam se kam 1 saal complete
   const isTodayAnniversary = (joiningDate: string) => {
-    const anniversaryDate = dayjs(joiningDate)
-    const today = dayjs()
+    const start = dayjs(joiningDate).startOf('day')
+    if (!start.isValid()) return false
+    if (start.isAfter(today, 'day')) return false
 
-    if (!anniversaryDate.isValid()) return false
-
-    const yearsCompleted = calculateYearsOfService(joiningDate)
-
-    return (
-      yearsCompleted >= 1 && 
-      anniversaryDate.format('MM-DD') === today.format('MM-DD')
-    )
+    const yearsCompleted = today.diff(start, 'year')
+    return yearsCompleted >= 1 && start.format('MM-DD') === today.format('MM-DD')
   }
 
   const getTodayAnniversaryIcon = (joiningDate: string) => {
     if (!isTodayAnniversary(joiningDate)) return null
-
     const years = calculateYearsOfService(joiningDate)
     return getCelebrationIcon(years)
   }
@@ -152,18 +165,37 @@ const WorkAnniversary = ({
     return <Alert severity='error'>{error || reduxError}</Alert>
   }
 
+  // keep only valid dates (allow today joiners, but they won't be treated as anniversary today)
+  const safeAnniversaries = (workAnniversaries || []).filter(emp => {
+    if (!emp?.joining_date) return false
+    return dayjs(emp.joining_date).isValid()
+  })
 
-  const eligibleAnniversaries = workAnniversaries.filter(emp =>
-    hasCompletedOneYear(emp.joining_date)
-  )
-
-  const todayAnniversaries = eligibleAnniversaries.filter(emp =>
+  // TODAY
+  const todayAnniversaries = safeAnniversaries.filter(emp =>
     isTodayAnniversary(emp.joining_date)
   )
 
-  const otherAnniversaries = eligibleAnniversaries.filter(
-    emp => !isTodayAnniversary(emp.joining_date)
-  )
+  // UPCOMING: ONLY 2
+  const upcomingAnniversariesSorted = safeAnniversaries
+    .filter(emp => !isTodayAnniversary(emp.joining_date))
+    .filter(emp => daysUntilNextAnniversary(emp.joining_date) > 0)
+    .sort(
+      (a, b) =>
+        daysUntilNextAnniversary(a.joining_date) -
+        daysUntilNextAnniversary(b.joining_date)
+    )
+    .slice(0, 2)
+
+  // OTHER LIST: ONLY 3
+  const otherWorkAnniversariesList = safeAnniversaries
+    .filter(emp => !isTodayAnniversary(emp.joining_date))
+    .sort(
+      (a, b) =>
+        daysUntilNextAnniversary(a.joining_date) -
+        daysUntilNextAnniversary(b.joining_date)
+    )
+    .slice(0, 3)
 
   return (
     <Card
@@ -183,7 +215,6 @@ const WorkAnniversary = ({
       </Box>
 
       {todayAnniversaries.length > 0 ? (
-        /* ============ TODAY'S WORK ANNIVERSARY ============ */
         <Box sx={{ textAlign: 'center', py: 3 }}>
           <Typography
             variant='h3'
@@ -197,13 +228,8 @@ const WorkAnniversary = ({
           >
             Today's Work Anniversary Celebration
           </Typography>
-          <Typography
-            variant='h6'
-            sx={{
-              color: 'white',
-              fontWeight: 'bold'
-            }}
-          >
+
+          <Typography variant='h6' sx={{ color: 'white', fontWeight: 'bold' }}>
             🌟 Your journey with{' '}
             <span style={{ color: 'yellow', fontWeight: 'bold' }}>
               {loading ? '...' : companyDetails?.name || 'Your Company'}
@@ -214,9 +240,7 @@ const WorkAnniversary = ({
 
           <Grid container spacing={3} justifyContent='center'>
             {todayAnniversaries.map((employee, index) => {
-              const yearsCompleted = calculateYearsOfService(
-                employee.joining_date
-              ) 
+              const yearsCompleted = calculateYearsOfService(employee.joining_date)
 
               return (
                 <Grid item key={employee._id || index} xs={12} sm={6} md={4}>
@@ -244,6 +268,8 @@ const WorkAnniversary = ({
                         {!employee.image && <PersonIcon />}
                       </Avatar>
                     </Tooltip>
+
+
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Typography
                         variant='h6'
@@ -254,11 +280,11 @@ const WorkAnniversary = ({
                       </Typography>
                       {getTodayAnniversaryIcon(employee.joining_date)}
                     </Box>
+
                     <Typography
                       variant='body1'
                       sx={{ color: '#64e0e2', textAlign: 'center' }}
-                    >
-                      Completed {yearsCompleted}{' '}
+                    >                      Completed {yearsCompleted}{' '}
                       {yearsCompleted === 1 ? 'year' : 'years'}
                     </Typography>
                   </Box>
@@ -268,7 +294,7 @@ const WorkAnniversary = ({
           </Grid>
         </Box>
       ) : (
-        otherAnniversaries.length > 0 && (
+        upcomingAnniversariesSorted.length > 0 && (
           <Box sx={{ textAlign: 'center', py: 3 }}>
             <Typography
               variant='h6'
@@ -282,6 +308,7 @@ const WorkAnniversary = ({
             >
               Upcoming Work Anniversaries
             </Typography>
+
             <Typography
               variant='h6'
               sx={{
@@ -302,10 +329,9 @@ const WorkAnniversary = ({
             </Typography>
 
             <Grid container spacing={3} justifyContent='center'>
-              {otherAnniversaries.slice(0, 2).map((employee, index) => {
-                const yearsCompleting =
-                  calculateYearsOfService(employee.joining_date) + 1
-                const anniversaryDate = dayjs(employee.joining_date)
+              {upcomingAnniversariesSorted.map((employee, index) => {
+                const yearsCompleting = getYearsCompleting(employee.joining_date)
+                const anniversaryDate = getNextAnniversaryDate(employee.joining_date)
 
                 return (
                   <Grid item key={employee._id || index} xs={12} sm={6} md={4}>
@@ -333,22 +359,20 @@ const WorkAnniversary = ({
                           {!employee.image && <PersonIcon />}
                         </Avatar>
                       </Tooltip>
+
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography
-                          variant='h6'
-                          sx={{ color: 'white', textAlign: 'center' }}
-                        >
+                        <Typography variant='h6' sx={{ color: 'white' }}>
                           {capitalizeFirstLetter(employee.first_name)}{' '}
                           {capitalizeFirstLetter(employee.last_name)}
                         </Typography>
                         {getCelebrationIcon(yearsCompleting)}
                       </Box>
-                      <Typography
-                        variant='body1'
-                        sx={{ color: '#64e0e2', textAlign: 'center' }}
-                      >
-                        {anniversaryDate.format('D MMM')} • Completing{' '}
-                        {yearsCompleting}{' '}
+
+                      <Typography variant='body1' sx={{ color: '#64e0e2' }}>
+                        {(anniversaryDate
+                          ? anniversaryDate.format('D MMM')
+                          : '—')}{' '}
+                        • Completing {yearsCompleting}{' '}
                         {yearsCompleting === 1 ? 'year' : 'years'}
                       </Typography>
                     </Box>
@@ -391,16 +415,17 @@ const WorkAnniversary = ({
             py: 2
           }}
         />
+
         <CardContent sx={{ p: 0 }}>
           <List disablePadding>
-            {otherAnniversaries.map((employee, index) => {
-              const joiningDate = dayjs(employee.joining_date)
-              const yearsCompleting =
-                calculateYearsOfService(employee.joining_date) + 1
+            {otherWorkAnniversariesList.map((employee, index) => {
+              const joiningDate = dayjs(employee.joining_date).startOf('day')
+              const yearsCompleting = getYearsCompleting(employee.joining_date)
 
               return (
                 <React.Fragment key={employee._id || index}>
                   {index > 0 && <Divider variant='inset' component='li' />}
+
                   <ListItem
                     alignItems='center'
                     sx={{
@@ -432,6 +457,7 @@ const WorkAnniversary = ({
                         </Avatar>
                       </Tooltip>
                     </ListItemAvatar>
+
                     <ListItemText
                       primary={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -445,6 +471,8 @@ const WorkAnniversary = ({
                             {capitalizeFirstLetter(employee.first_name)}{' '}
                             {capitalizeFirstLetter(employee.last_name)}
                           </Typography>
+
+                          {getCelebrationIcon(yearsCompleting)}
                         </Box>
                       }
                       secondary={
@@ -457,10 +485,11 @@ const WorkAnniversary = ({
                               display: 'block'
                             }}
                           >
-                            {joiningDate.format('D MMM YYYY')} • Completing{' '}
-                            {yearsCompleting}{' '}
+                             {joiningDate.format('D MMM YYYY')} 
+                            • Completing {yearsCompleting}{' '}
                             {yearsCompleting === 1 ? 'year' : 'years'}
                           </Typography>
+
                           <Typography
                             component='span'
                             variant='body2'

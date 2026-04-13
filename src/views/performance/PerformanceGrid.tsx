@@ -1316,73 +1316,6 @@ const PerformanceCard = ({
           </Grid>
         </Paper>
       </Box>
-      {/* {excelSummary && (
-        <Box sx={{ mt: 2 }}>
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 1.8,
-              borderRadius: 3,
-              background:
-                'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-              border: '1px solid #eef0f6',
-              transition: '0.25s',
-              '&:hover': {
-                boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
-                transform: 'translateY(-3px)',
-              },
-            }}
-          >
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 900,
-                fontSize: 12.5,
-                letterSpacing: 0.5,
-                textTransform: 'uppercase',
-                color: '#1e293b',
-                mb: 0.2,
-                display: 'block',
-              }}
-            >
-              Financial Snapshot — By Company
-            </Typography>
-
-            <Grid container spacing={1}>
-
-              <Grid item xs={4}>
-                <Typography variant="caption" color="text.secondary">
-                  Total Logins
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  {excelSummary.totalLogins}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={4}>
-                <Typography variant="caption" color="text.secondary">
-                  Total Approval (₹)
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  {formatRupeeShort(excelSummary.totalApproval)}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={4}>
-                <Typography variant="caption" color="text.secondary">
-                  Total Disbursal (₹)
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  {formatRupeeShort(excelSummary.totalDisbursal)}
-                </Typography>
-              </Grid>
-
-            </Grid>
-          </Paper>
-        </Box>
-      )} */}
-
       {/* Team Financial Summary - for Managers/TLs */}
       {teamTotal && teamTotal.memberCount > 0 && (
         <Box sx={{ mt: 2 }}>
@@ -1426,35 +1359,6 @@ const PerformanceCard = ({
                 }}
               />
             </Stack>
-
-            {/* <Grid container spacing={1}>
-              <Grid item xs={4}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                  Team Logins
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: '#fff' }}>
-                  {teamTotal.totalLogins}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={4}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                  Team Approval
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: '#fff' }}>
-                  {formatRupeeShort(teamTotal.totalApproval)}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={4}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                  Team Disbursal
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: '#fff' }}>
-                  {formatRupeeShort(teamTotal.totalDisbursal)}
-                </Typography>
-              </Grid>
-            </Grid> */}
 
             <Box sx={{ mt: 1.5, textAlign: 'center' }}>
               <Button
@@ -1605,14 +1509,7 @@ const PerformanceCard = ({
           </Grid>
         </Paper>
       </Box>
-
-
-
-
-
       <Divider sx={{ my: 1.5 }} />
-
-      {/* ===== Footer: Date + buttons ===== */}
       <Box
         sx={{
           display: "flex",
@@ -2127,14 +2024,10 @@ export default function PerformanceGrid() {
           const u = JSON.parse(localStorage.getItem('user') || '{}');
           company_id = localStorage.getItem('company_id') || u?.company_id || undefined;
         }
-
         const res = await api.get('/performance-upload/team-totals', {
           params: { company_id },
         });
-
         const data = res.data || {};
-
-        // Map backend response to frontend expected format
         const mapped: TeamTotalsMap = {};
         Object.entries(data).forEach(([code, val]: [string, any]) => {
           if (val && typeof val === 'object') {
@@ -2159,8 +2052,6 @@ export default function PerformanceGrid() {
 
     fetchTeamTotals();
   }, []);
-
-  // Build manager/TL list from teamTotals for filter dropdown
   useEffect(() => {
     const list: { code: string; name: string; role: string }[] = [];
     Object.entries(teamTotals).forEach(([code, info]) => {
@@ -2172,7 +2063,6 @@ export default function PerformanceGrid() {
         });
       }
     });
-    // Sort by role (Manager first) then name
     list.sort((a, b) => {
       if (a.role !== b.role) return a.role === 'Manager' ? -1 : 1;
       return a.name.localeCompare(b.name);
@@ -2199,9 +2089,6 @@ export default function PerformanceGrid() {
       });
 
       const data = res.data || {};
-
-      // Map backend response to frontend format
-
       const employeeName = data.employee?.name || code;
       const members: TeamBreakdownMember[] = (data.memberBreakdown || []).map((m: any) => ({
         code: m.code || '',
@@ -2234,25 +2121,16 @@ export default function PerformanceGrid() {
   const fetchTodayLeaves = async () => {
     try {
       console.log("🔥 Fetching Today's Leaves...");
-
-      // ⭐ FIX — company_id FE se load kiya
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       const company_id = localStorage.getItem("company_id") || user.company_id || "";
-
       const url = `${process.env.NEXT_PUBLIC_APP_URL}/attendence/today-leaves?company_id=${company_id}`;
-
-
-
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           "x-company-id": company_id
         }
       });
-
       const data = await response.json();
-
-
       return (data.employees || []).map((item) =>
         String(item?.employee?.code || "")
           .trim()
@@ -2265,27 +2143,16 @@ export default function PerformanceGrid() {
       return [];
     }
   };
-
-
-
   const fetchMissing = async (kw = "") => {
     try {
-
       setMissingLoading(true);
-
-
       const res = await api.get("/performance/missing/list", {
         params: { date: pickDate, keyword: kw }
       });
-
       const missing = res.data.missingEmployees || [];
-
-
       const submitted = res.data.submittedCount || 0;
       setSubmittedCount(submitted);
       const leaveCodes = await fetchTodayLeaves();
-
-
       const finalList = missing.filter((emp) => {
         const cleanCode = String(emp.code || "")
           .trim()
@@ -2306,13 +2173,10 @@ export default function PerformanceGrid() {
     }
   };
 
-
   useEffect(() => {
     console.log("Updated Missing List:", missingList);
   }, [missingList]);
 
-
-  // 🔹 logged-in user ka Excel summary (sirf uska code)
   const myCodeSummary: CodeSummaryRow | undefined = useMemo(() => {
     if (!myCode) return undefined;
 
@@ -2396,7 +2260,6 @@ export default function PerformanceGrid() {
     ) {
       fetchList();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     userRole,
     month,
@@ -2712,7 +2575,6 @@ export default function PerformanceGrid() {
             </Grid>
           )}
 
-          {/* Manager/TL Filter Dropdown - visible to Admin only */}
           {userRole === '1' && managerTlList.length > 0 && (
             <Grid item xs={12} md={4}>
               <TextField
@@ -2819,7 +2681,6 @@ export default function PerformanceGrid() {
       </Box>
 
       <Box sx={{ px: 2, pt: 3, pb: 6 }}>
-        {/* 🔹 Code Summary Section */}
         <Paper
           elevation={0}
           sx={{
@@ -2831,7 +2692,6 @@ export default function PerformanceGrid() {
             background: 'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
           }}
         >
-
           <>
             {codeSummaryLoading ? (
               <Typography
@@ -2895,9 +2755,7 @@ export default function PerformanceGrid() {
               </Grid>
             )}
           </>
-
         </Paper>
-
 
         {loading ? (
           <Grid container spacing={2}>
@@ -2957,17 +2815,12 @@ export default function PerformanceGrid() {
               const mtd = empId && mtdMap[empId]
                 ? mtdMap[empId]
                 : { ...emptyMtd, loading: true };
-
-              // 🔹 yahan employee.code ya fallback myCode se Excel summary pick kar rahe
               const empCode = (p?.employee?.code || myCode || '').trim();
 
               const excelSummary = empCode
                 ? codeSummaryMap?.[empCode]
                 : undefined;
-
-              // Get team total for this employee (if they're a manager/TL)
               const teamTotal = empCode ? teamTotals[empCode] : undefined;
-
               return (
                 <Grid key={p?._id} item xs={12} sm={6} md={6}>
                   <PerformanceCard
@@ -2984,8 +2837,6 @@ export default function PerformanceGrid() {
                   />
                 </Grid>
               );
-
-
             })}
           </Grid>
         )}
@@ -3008,8 +2859,6 @@ export default function PerformanceGrid() {
           sx={{ '& .MuiPagination-ul': { gap: 0.5 } }}
         />
       </Box>
-
-      {/* Team Breakdown Modal */}
       <Dialog
         open={teamModalOpen}
         onClose={() => setTeamModalOpen(false)}

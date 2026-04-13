@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-
 import { useRouter, useSearchParams } from 'next/navigation';
-
 import axios from 'axios';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
@@ -33,8 +31,10 @@ import {
   DialogActions,
   MenuItem,
 } from '@mui/material';
+import LoginIcon from "@mui/icons-material/Login";
+
 import Autocomplete from '@mui/material/Autocomplete';
-import StarIcon from '@mui/icons-material/Star';
+
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -48,7 +48,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
 import GroupsIcon from '@mui/icons-material/Groups';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-
 
 /* ---------------- AXIOS ---------------- */
 const api = axios.create({
@@ -75,8 +74,6 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
-
-/* ---------------- Types ---------------- */
 type Row = {
   _id: string;
   date: string;
@@ -84,9 +81,14 @@ type Row = {
   employee_id?: string;
   manager_tl?: string;
   login?: number;
-  approval?: number; // in Rupees
+  approval?: number;
   disbursal?: number;
+  drop?: number;
+  cashback?: number;
+  abnp?: number;
   code?: string;
+  gross_approval?: number;
+  gross_disbursal?: number;
   [k: string]: any;
 };
 
@@ -98,20 +100,27 @@ type SortConfig = {
   direction: SortDirection;
 };
 
-// Team totals type
 type TeamTotalInfo = {
   role: 'manager' | 'team_leader';
   teamName: string;
+
   teamTotalLogins: number;
   teamTotalApproval: number;
   teamTotalDisbursal: number;
+  teamTotalDrop?: number;
+  teamTotalCashback?: number;
+  teamTotalABNP?: number;
+  teamTotalGrossApproval?: number;
+  teamTotalGrossDisbursal?: number;
+  teamTotalHold?: number;
+  teamTotalReject?: number;
+
   memberCount: number;
   memberCodes: string[];
 };
 
 type TeamTotalsMap = Record<string, TeamTotalInfo>;
 
-// Team breakdown type
 type TeamBreakdown = {
   employee: {
     _id: string;
@@ -122,24 +131,219 @@ type TeamBreakdown = {
   };
   role: 'manager' | 'team_leader' | 'employee';
   team: { _id: string; name: string; code: string } | null;
+
   totals: {
     totalLogins: number;
     totalApproval: number;
     totalDisbursal: number;
+    totalHold: number;
+    totalRejected: number;
+    totalDrop: number;
+    totalCashback: number;
+    totalGrossApproval?: number;
+    totalGrossDisbursal?: number;
+    totalABNP?: number;
     memberCount: number;
   };
+
   memberBreakdown: {
     code: string;
     name: string;
     logins: number;
+    hold: number;
+    rejected: number;
     approval: number;
     disbursal: number;
+    drop?: number;
+    cashback?: number;
+    grossApproval?: number;
+    grossDisbursal?: number;
+    abnp?: number;
   }[];
 };
 
 /* ---------------- Helpers ---------------- */
 const rupee = (n: number) =>
   `₹${Intl.NumberFormat('en-IN').format(Number(n || 0))}`;
+
+type KpiModalType =
+  | 'logins'
+  | 'rejected'
+  | 'hold'
+  | 'inProcess'
+  | 'grossApproval'
+  | 'netApproval'
+  | 'grossDisbursal'
+  | 'netDisbursal'
+  | 'abnd'
+  | 'drop'
+  | 'cashback';
+
+function kpiTitle(type: KpiModalType) {
+  switch (type) {
+    case 'logins':
+      return 'Login Cases';
+    case 'rejected':
+      return 'Rejected Cases';
+    case 'hold':
+      return 'Hold Cases';
+    case 'inProcess':
+      return 'In Process Cases';
+    case 'grossApproval':
+      return 'Gross Approval Cases';
+    case 'netApproval':
+      return 'Net Approval Cases';
+    case 'grossDisbursal':
+      return 'Gross Disbursal Cases';
+    case 'netDisbursal':
+      return 'Net Disbursal Cases';
+    case 'abnd':
+      return 'ABND Cases';
+    case 'drop':
+      return 'Drop Cases';
+    case 'cashback':
+      return 'Cashback Cases';
+    default:
+      return 'Cases';
+  }
+}
+
+function kpiMetricValue(type: KpiModalType, r: Row) {
+  switch (type) {
+    case 'logins':
+      return Number(r.login || 0);
+    case 'rejected':
+      return Number(r.rejected || 0);
+    case 'hold':
+      return Number(r.hold || 0);
+    case 'inProcess':
+      return Number(r.in_process || 0);
+    case 'grossApproval':
+      return Number(r.gross_approval || 0);
+    case 'netApproval':
+      return Number(r.approval || 0);
+    case 'grossDisbursal':
+      return Number(r.gross_disbursal || 0);
+    case 'netDisbursal':
+      return Number(r.disbursal || 0);
+    case 'abnd':
+      return Number(r.abnp || 0);
+    case 'drop':
+      return Number(r.drop || 0);
+    case 'cashback':
+      return Number(r.cashback || 0);
+    default:
+      return 0;
+  }
+}
+
+
+function KpiCard({
+  title,
+  value,
+  leftIcon,
+  bg,
+  subColor,
+  onView,
+}: {
+  title: string;
+  value: string;
+  leftIcon: React.ReactNode;
+  bg: string;
+  subColor: string;
+  onView?: () => void;
+}) {
+  return (
+    <Paper
+      sx={{
+        p: 2.1,
+        borderRadius: 2.5,
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        background: bg,
+        boxShadow: '0 10px 22px rgba(15,23,42,0.18)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          right: -30,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.10)',
+        }}
+      />
+      <Box sx={{ position: 'relative' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mb: 1.2,
+            alignItems: 'center',
+          }}
+        >
+          <Box
+            sx={{
+              width: 30,
+              height: 30,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {leftIcon}
+          </Box>
+          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+        </Box>
+
+        <Typography
+          variant="body2"
+          sx={{ color: subColor, fontWeight: 500, mb: 0.3 }}
+        >
+          {title}
+        </Typography>
+
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            fontSize: 22,
+            lineHeight: 1.2,
+            color: '#fff',
+          }}
+        >
+          {value}
+        </Typography>
+
+        {onView && (
+          <Button
+            size="small"
+            onClick={onView}
+            startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              mt: 1.2,
+              borderRadius: 999,
+              textTransform: 'none',
+              fontWeight: 800,
+              px: 2,
+              bgcolor: 'rgba(255,255,255,0.18)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.25)',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+            }}
+          >
+            View
+          </Button>
+        )}
+      </Box>
+    </Paper>
+  );
+}
 
 export default function PerformanceUploadPage() {
   const router = useRouter();
@@ -153,33 +357,30 @@ export default function PerformanceUploadPage() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [user, setUser] = useState<any>(null);
 
-
   // search (with debounce)
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [isFallbackDate, setIsFallbackDate] = useState(false);
-
 
   // Manual form dialog state
   const [formOpen, setFormOpen] = useState(false);
   const [formSaving, setFormSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-
   const [form, setForm] = useState({
     employee_name: '',
     manager_tl: '',
     total_logins: '',
+    total_rejected: '',
+    total_hold: '',
     approval_lakh: '',
     disbursal_lakh: '',
     drop_lakh: '',
-    Cashback_lakh: '',
+    cashback_lakh: '',
     code: '',
   });
 
-
   const [amountUnit, setAmountUnit] = useState<'rupees' | 'lakhs'>('rupees');
-
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: null,
@@ -194,22 +395,26 @@ export default function PerformanceUploadPage() {
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [teamBreakdown, setTeamBreakdown] = useState<TeamBreakdown | null>(null);
   const [teamBreakdownLoading, setTeamBreakdownLoading] = useState(false);
-  
 
   // Manager/TL filter state
   const [managerTlFilter, setManagerTlFilter] = useState<string>('all');
-  const [managerTlList, setManagerTlList] = useState<{ code: string; name: string; role: string }[]>([]);
+  const [managerTlList, setManagerTlList] = useState<
+    { code: string; name: string; role: string }[]
+  >([]);
+
+  const [kpiModalOpen, setKpiModalOpen] = useState(false);
+  const [kpiModalType, setKpiModalType] = useState<KpiModalType>('logins');
+
+  const openKpiModal = (type: KpiModalType) => {
+    setKpiModalType(type);
+    setKpiModalOpen(true);
+  };
 
   useEffect(() => {
-    const t = setTimeout(
-      () => setDebounced(search.trim().toLowerCase()),
-      300,
-    );
-
+    const t = setTimeout(() => setDebounced(search.trim().toLowerCase()), 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  // Build manager/TL list from teamTotals for filter dropdown
   useEffect(() => {
     const list: { code: string; name: string; role: string }[] = [];
     Object.entries(teamTotals).forEach(([code, info]) => {
@@ -221,44 +426,33 @@ export default function PerformanceUploadPage() {
         });
       }
     });
-    // Sort by role (Manager first) then name
     list.sort((a, b) => {
       if (a.role !== b.role) return a.role === 'Manager' ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
     setManagerTlList(list);
   }, [teamTotals]);
+
   useEffect(() => {
     const d = q?.get('date');
     setDate(d ? dayjs(d) : dayjs());
   }, [q]);
 
-
-  useEffect(() => {
-    const user =
-      typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('user') || '{}')
-        : {};
-
-    setIsAdmin(String((user as any)?.role) === '1');
-  }, []);
-
-  const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
   useEffect(() => {
     const u =
       typeof window !== 'undefined'
         ? JSON.parse(localStorage.getItem('user') || '{}')
         : {};
-
     setUser(u);
     setIsAdmin(String(u?.role) === '1');
   }, []);
-  const isAsstOpsManager = user?.designation === 'Asst. Ops Manager';
 
+  const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
+
+  const isAsstOpsManager = ['Asst. Ops Manager', 'Ops Manager', 'Assistant Growth Manager', 'Sr. Operations & Alliances Manager', 'Ops Executive']
+    .includes(user?.designation);
   const canUpload = isAdmin || isAsstOpsManager;
   const canAddRow = isAdmin || isAsstOpsManager;
-
-
 
   const fetchList = async () => {
     try {
@@ -276,25 +470,46 @@ export default function PerformanceUploadPage() {
         params: { company_id, date: dateStr },
       });
 
-      const raw: any[] = Array.isArray(res.data)
-        ? res.data
-        : res.data?.data || [];
+      const raw: any[] = Array.isArray(res.data) ? res.data : res.data?.data || [];
 
-      const normalized: Row[] = raw.map((r) => ({
-        ...r,
-        login: Number(r.login ?? r.total_logins ?? 0),
-        approval: Number(r.approval ?? r.approval_amount ?? 0),
-        disbursal: Number(r.disbursal ?? r.disbursal_amount ?? 0),
-        drop: Number(r.drop ?? r.drop_amount ?? 0),
-        cashback: Number(r.cashback ?? r.cashback_amount ?? 0),
-        code:
-          typeof r.code === 'string'
-            ? r.code.trim()
-            : (r.code ?? '').toString().trim(),
-      }));
+      const normalized: Row[] = raw.map((r) => {
+        const login = Number(r.login ?? r.total_logins ?? 0);
+        const rejected = Number(r.rejected ?? r.total_rejected ?? 0);
+        const hold = Number(r.hold ?? r.total_hold ?? 0);
+        const in_process = Number(r.in_process ?? 0);
+
+        const approval = Number(r.approval ?? r.approval_amount ?? 0);
+        const disbursal = Number(r.disbursal ?? r.disbursal_amount ?? 0);
+        const drop = Number(r.drop ?? r.drop_amount ?? 0);
+        const cashback = Number(r.cashback ?? r.cashback_amount ?? 0);
+        const gross_approval = Number(r.gross_approval ?? r.grossApproval ?? 0);
+        const gross_disbursal = Number(r.gross_disbursal ?? r.grossDisbursal ?? 0);
+
+        const abnp = Math.max(approval - (disbursal + drop + cashback), 0);
+
+        return {
+          ...r,
+          login,
+          rejected,
+          hold,
+          in_process,
+          approval,
+          disbursal,
+          drop,
+          cashback,
+          abnp,
+          gross_approval,
+          gross_disbursal,
+          code:
+            typeof r.code === 'string'
+              ? r.code.trim()
+              : (r.code ?? '').toString().trim(),
+        };
+      });
 
       setRows(normalized);
 
+      // fallback: if today has no data -> jump to latest uploaded date
       if (!raw.length && dateStr === todayStr) {
         try {
           const datesRes = await api.get('/performance-upload/dates', {
@@ -302,14 +517,13 @@ export default function PerformanceUploadPage() {
           });
 
           const data = datesRes.data;
-
           const latestDate =
             data?.latest?.date ||
             (Array.isArray(data) && data.length ? data[0].date : null);
 
           if (latestDate && latestDate !== dateStr) {
-            setIsFallbackDate(true);        // UI ko pata chale ki fallback hua
-            setDate(dayjs(latestDate));     // ye useEffect → fetchList fir se call karega
+            setIsFallbackDate(true);
+            setDate(dayjs(latestDate));
           }
         } catch (err) {
           console.error('Failed to fetch latest date list', err);
@@ -322,24 +536,20 @@ export default function PerformanceUploadPage() {
       setLoading(false);
     }
   };
+  const latestUploadedDate = useMemo(() => {
+    if (!rows.length) return null;
 
-const latestUploadedDate = useMemo(() => {
-  if (!rows.length) return null;
-
-  return rows
-    .map(r => r.date)
-    .filter(Boolean)
-    .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())[0];
-}, [rows]);
-const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
-
+    return rows
+      .map(r => r.date)
+      .filter(Boolean)
+      .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())[0];
+  }, [rows]);
+  const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
 
   useEffect(() => {
     if (dateStr) fetchList();
-
   }, [dateStr]);
 
-  // Fetch team totals when rows are loaded
   const fetchTeamTotals = async () => {
     try {
       setTeamTotalsLoading(true);
@@ -362,14 +572,10 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
     }
   };
 
-  // Fetch team totals after rows are loaded
   useEffect(() => {
-    if (rows.length > 0) {
-      fetchTeamTotals();
-    }
+    if (rows.length > 0) fetchTeamTotals();
   }, [rows]);
 
-  // Fetch team breakdown for modal
   const fetchTeamBreakdown = async (code: string) => {
     try {
       setTeamBreakdownLoading(true);
@@ -396,17 +602,17 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     try {
       setUploading(true);
       const formData = new FormData();
-
       formData.append('file', file);
+
       await api.post('/performance-upload/file', formData, {
-        headers: { 'Content-Type': 'multipart/formdata' },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
+
       await fetchList();
       alert('Upload successful.');
     } catch (err: any) {
@@ -430,18 +636,18 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
     }
   };
 
-
   const handleFormChange =
-    (field: keyof typeof form) =>
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        setForm((prev) => ({ ...prev, [field]: e.target.value }));
-      };
+    (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   const resetForm = () => {
     setForm({
       employee_name: '',
       manager_tl: '',
       total_logins: '',
+      total_rejected: '',
+      total_hold: '',
       approval_lakh: '',
       disbursal_lakh: '',
       drop_lakh: '',
@@ -458,7 +664,6 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
   const onFormSubmit = async () => {
     if (!form.employee_name.trim() || !form.manager_tl.trim()) {
       alert('Employee Name and Manager/TL are required.');
-
       return;
     }
 
@@ -475,7 +680,6 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
       const dropNumber = sanitizeMoney(form.drop_lakh);
       const cashbackNumber = sanitizeMoney(form.cashback_lakh);
 
-
       const multiplier = amountUnit === 'lakhs' ? 100000 : 1;
 
       const payload = {
@@ -484,13 +688,15 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
         code: form.code?.trim() || undefined,
         manager_tl: form.manager_tl.trim(),
         total_logins: Number(form.total_logins || 0),
+        total_rejected: Number(form.total_rejected || 0),
+        total_hold: Number(form.total_hold || 0),
         approval_amount: Math.round(approvalNumber * multiplier),
         disbursal_amount: Math.round(disbursalNumber * multiplier),
         drop_amount: Math.round(dropNumber * multiplier),
         cashback_amount: Math.round(cashbackNumber * multiplier),
-
         company_id: company_id || undefined,
       };
+
 
       if (editingId) {
         await api.patch(`/performance-upload/${editingId}`, payload);
@@ -512,20 +718,38 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
 
   /* ------------ Totals ------------ */
   const totals = useMemo(() => {
-    const sum = (k: 'login' | 'approval' | 'disbursal') =>
-      rows.reduce((a, r) => a + Number(r[k] || 0), 0);
+    const sum = (
+      k:
+        | 'login'
+        | 'rejected'
+        | 'hold'
+        | 'in_process'
+        | 'approval'
+        | 'disbursal'
+        | 'drop'
+        | 'cashback'
+        | 'gross_approval'
+        | 'gross_disbursal'
+        | 'abnp',
+    ) => rows.reduce((a, r) => a + Number(r[k] || 0), 0);
 
     return {
       logins: sum('login'),
+      rejected: sum('rejected'),
+      hold: sum('hold'),
+      inProcess: sum('in_process'),
       approvals: sum('approval'),
       disbursal: sum('disbursal'),
+      drop: sum('drop'),
+      cashback: sum('cashback'),
+      grossApproval: sum('gross_approval'),
+      grossDisbursal: sum('gross_disbursal'),
+      abnp: sum('abnp'),
     };
   }, [rows]);
 
   const starPerformers = useMemo(() => {
-    if (!rows.length) {
-      return { approval: null as Row | null, disbursal: null as Row | null };
-    }
+    if (!rows.length) return { approval: null as Row | null, disbursal: null as Row | null };
 
     let approval: Row | null = null;
     let disbursal: Row | null = null;
@@ -534,30 +758,18 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
       const approvalVal = Number(r.approval || 0);
       const disbursalVal = Number(r.disbursal || 0);
 
-      if (!approval || approvalVal > Number(approval.approval || 0)) {
-        approval = r;
-      }
-
-      if (!disbursal || disbursalVal > Number(disbursal.disbursal || 0)) {
-        disbursal = r;
-      }
+      if (!approval || approvalVal > Number(approval.approval || 0)) approval = r;
+      if (!disbursal || disbursalVal > Number(disbursal.disbursal || 0)) disbursal = r;
     });
 
     return { approval, disbursal };
   }, [rows]);
 
-
-
-
   const managerOptions = useMemo(() => {
     const set = new Set<string>();
-
     rows.forEach((r) => {
-      if (r.manager_tl && String(r.manager_tl).trim()) {
-        set.add(String(r.manager_tl).trim());
-      }
+      if (r.manager_tl && String(r.manager_tl).trim()) set.add(String(r.manager_tl).trim());
     });
-
     return Array.from(set);
   }, [rows]);
 
@@ -579,16 +791,12 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
         const name = (r.employee_name || '').toLowerCase();
         const id = (r.employee_id || '').toLowerCase();
         const code = (r.code || '').toLowerCase();
-
-        return (
-          name.includes(debounced) || id.includes(debounced) || code.includes(debounced)
-        );
+        return name.includes(debounced) || id.includes(debounced) || code.includes(debounced);
       });
     }
 
     return result;
   }, [rows, debounced, managerTlFilter, teamTotals]);
-
 
   const sortedRows: Row[] = useMemo(() => {
     if (!sortConfig.key) return filteredRows;
@@ -599,7 +807,6 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
     data.sort((a, b) => {
       const aVal = Number(a[key!] || 0);
       const bVal = Number(b[key!] || 0);
-
       if (direction === 'asc') return aVal - bVal;
       return bVal - aVal;
     });
@@ -607,10 +814,13 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
     return data;
   }, [filteredRows, sortConfig]);
 
-
-
-
-
+  // ✅ KPI modal rows based on selected KPI type (value > 0)
+  const kpiModalRows = useMemo(() => {
+    return rows
+      .map((r) => ({ ...r, __metric: kpiMetricValue(kpiModalType, r) }))
+      .filter((r: any) => Number(r.__metric || 0) > 0)
+      .sort((a: any, b: any) => Number(b.__metric || 0) - Number(a.__metric || 0));
+  }, [rows, kpiModalType]);
 
   const rowBg = (r: Row) => {
     const hasAny =
@@ -622,11 +832,8 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
       ? 'linear-gradient(90deg, rgba(34,197,94,0.08) 0%, transparent 100%)'
       : 'transparent';
   };
-  const showStar = (value: number) => {
-    return Number(value || 0) > 0;
-  };
 
-
+  const showStar = (value: number) => Number(value || 0) > 0;
 
   return (
     <Box
@@ -647,7 +854,6 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
           gap: 3,
         }}
       >
-
         <Paper
           elevation={0}
           sx={{
@@ -658,7 +864,6 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
             boxShadow: '0 10px 35px rgba(15,23,42,0.10)',
           }}
         >
-
           <Box
             sx={{
               display: 'flex',
@@ -669,7 +874,6 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
               mb: 3,
             }}
           >
-
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <IconButton
                 onClick={() => router.back()}
@@ -678,10 +882,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                   height: 40,
                   borderRadius: 2,
                   bgcolor: '#e0e7ff',
-                  '&:hover': {
-                    bgcolor: '#c7d2fe',
-                    transform: 'scale(1.03)',
-                  },
+                  '&:hover': { bgcolor: '#c7d2fe', transform: 'scale(1.03)' },
                   transition: 'all 0.18s ease',
                 }}
               >
@@ -689,30 +890,17 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
               </IconButton>
 
               <Box>
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 800, color: '#0f172a' }}
-                >
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>
                   Performance Uploads
                 </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#64748b', mt: 0.3 }}
-                >
+                <Typography variant="body2" sx={{ color: '#64748b', mt: 0.3 }}>
                   Daily login, approval & disbursal tracking panel
+                  {isFallbackDate ? ' (showing latest uploaded date)' : ''}
                 </Typography>
               </Box>
             </Box>
 
-
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: 1,
-              }}
-            >
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
               <Button
                 onClick={() => {
                   const header = [
@@ -720,8 +908,15 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                     'employee_name',
                     'manager_tl',
                     'login',
+                    'rejected',
+                    'hold',
+                    'in_process',
                     'approval',
                     'disbursal',
+                    'drop',
+                    'cashback',
+                    'gross_approval',
+                    'gross_disbursal',
                     'code',
                     '_id',
                   ];
@@ -731,22 +926,23 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                     r.employee_name || '',
                     r.manager_tl || '',
                     Number(r.login || 0),
+                    Number(r.rejected || 0),
+                    Number(r.hold || 0),
+                    Number(r.in_process || 0),
                     Number(r.approval || 0),
                     Number(r.disbursal || 0),
+                    Number(r.drop || 0),
+                    Number(r.cashback || 0),
+                    Number(r.gross_approval || 0),
+                    Number(r.gross_disbursal || 0),
                     r.code || '',
                     r._id || '',
                   ]);
 
-                  const csv = [header, ...body]
-                    .map((r) => r.join(','))
-                    .join('\n');
-
-                  const blob = new Blob([csv], {
-                    type: 'text/csv;charset=utf-8;',
-                  });
+                  const csv = [header, ...body].map((r) => r.join(',')).join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
 
                   const a = document.createElement('a');
-
                   a.href = URL.createObjectURL(blob);
                   a.download = `performance_uploaded_${dateStr}.csv`;
                   document.body.appendChild(a);
@@ -765,15 +961,28 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                   color: '#0f172a',
                   borderWidth: 1,
                   borderStyle: 'solid',
-                  '&:hover': {
-                    bgcolor: '#f9fafb',
-                    borderColor: '#94a3b8',
-                  },
+                  '&:hover': { bgcolor: '#f9fafb', borderColor: '#94a3b8' },
                 }}
               >
                 Export
               </Button>
-
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<LoginIcon sx={{ fontSize: 18 }} />}
+                onClick={() => router.push("/today-login")}
+                sx={{
+                  borderRadius: 999,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: 2.5,
+                  bgcolor: "#06b6d4",
+                  boxShadow: "0 8px 20px rgba(6,182,212,0.35)",
+                  "&:hover": { bgcolor: "#0891b2" },
+                }}
+              >
+                Today Login
+              </Button>
               {canAddRow && (
                 <>
                   <Button
@@ -792,9 +1001,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                       px: 2.5,
                       bgcolor: '#4f46e5',
                       boxShadow: '0 8px 20px rgba(79,70,229,0.35)',
-                      '&:hover': {
-                        bgcolor: '#4338ca',
-                      },
+                      '&:hover': { bgcolor: '#4338ca' },
                     }}
                   >
                     Add Row
@@ -832,6 +1039,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
               )}
             </Box>
           </Box>
+
           <Box
             sx={{
               display: 'flex',
@@ -847,18 +1055,11 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search employee / id / code..."
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                }
-              }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon
-                      fontSize="small"
-                      sx={{ color: '#64748b', ml: 1 }}
-                    />
+                    <SearchIcon fontSize="small" sx={{ color: '#64748b', ml: 1 }} />
                   </InputAdornment>
                 ),
                 endAdornment: search && (
@@ -873,49 +1074,34 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                         p: 0.2,
                         color: '#475569',
                         bgcolor: 'transparent !important',
-                        '&:hover': {
-                          bgcolor: 'transparent !important',
-                          color: '#1e293b',
-
-                        },
-                        '& .MuiTouchRipple-root': {
-                          display: 'none',
-                        },
+                        '&:hover': { bgcolor: 'transparent !important', color: '#1e293b' },
+                        '& .MuiTouchRipple-root': { display: 'none' },
                       }}
                     >
-                      <CloseIcon sx={{ fontSize: 8 }} />
+                      <CloseIcon sx={{ fontSize: 14 }} />
                     </IconButton>
-
                   </InputAdornment>
                 ),
               }}
             />
+
             <TextField
               type="date"
               size="small"
               label="Date"
               value={dateStr}
               onChange={(e) => setDate(dayjs(e.target.value))}
-              sx={{
-                minWidth: 160,
-                '& .MuiOutlinedInput-root': { borderRadius: 3 },
-              }}
+              sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+              InputLabelProps={{ shrink: true }}
             />
 
-
-            {/* Manager/TL Filter Dropdown */}
             <TextField
               select
               size="small"
               label="Filter by Manager/TL"
               value={managerTlFilter}
               onChange={(e) => setManagerTlFilter(e.target.value)}
-              sx={{
-                minWidth: 200,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                },
-              }}
+              sx={{ minWidth: 220, '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             >
               <MenuItem value="all">
                 <em>All Employees</em>
@@ -933,14 +1119,13 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                         color: item.role === 'Manager' ? '#1e40af' : '#166534',
                       }}
                     />
-                    <span>{item.code} - {item.name}</span>
+                    <span>
+                      {item.code} - {item.name}
+                    </span>
                   </Box>
                 </MenuItem>
               ))}
             </TextField>
-
-
-
 
             <Stack
               direction="row"
@@ -992,219 +1177,142 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
             </Stack>
           </Box>
         </Paper>
-
         <Grid container spacing={2}>
 
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                boxShadow: '0 10px 22px rgba(22,163,74,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <CheckCircleIcon sx={{ fontSize: 22 }} />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#dcfce7', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Logins
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 25,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {totals.logins.toLocaleString('en-IN')}
-
-                </Typography>
-              </Box>
-            </Paper>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Logins"
+              value={totals.logins.toLocaleString('en-IN')}
+              leftIcon={<CheckCircleIcon sx={{ fontSize: 22 }} />}
+              bg="linear-gradient(135deg, #fb923c 0%, #f97316 100%)"
+              subColor="#ffedd5"
+              onView={() => openKpiModal('logins')}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="In Process"
+              value={totals.inProcess.toLocaleString('en-IN')}
+              leftIcon={<span style={{ fontSize: 18 }}>⟳</span>}
+              bg="linear-gradient(135deg, #6366f1 0%, #4338ca 100%)"
+              subColor="#e0e7ff"
+              onView={() => openKpiModal('inProcess')}
+            />
           </Grid>
 
 
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                boxShadow: '0 10px 22px rgba(37,99,235,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <EmojiEventsIcon sx={{ fontSize: 22 }} />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#dbeafe', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Approvals
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 25,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.approvals)}
-
-                </Typography>
-              </Box>
-            </Paper>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Gross Approval"
+              value={rupee(totals.grossApproval)}
+              leftIcon={<span style={{ fontSize: 18 }}>₹</span>}
+              bg="linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
+              subColor="rgba(255,255,255,0.85)"
+              onView={() => openKpiModal('grossApproval')}
+            />
           </Grid>
 
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 2.1,
-                borderRadius: 2.5,
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-                boxShadow: '0 10px 22px rgba(109,40,217,0.35)',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.10)',
-                }}
-              />
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1.2,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <StarBorderIconLike />
-                  </Box>
-                  <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#ede9fe', fontWeight: 500, mb: 0.3 }}
-                >
-                  Total Disbursals
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 25,
-                    lineHeight: 1.2,
-                    color: '#fff',
-                  }}
-                >
-                  {rupee(totals.disbursal)}
-
-                </Typography>
-              </Box>
-            </Paper>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Net Approval"
+              value={rupee(totals.approvals)}
+              leftIcon={<EmojiEventsIcon sx={{ fontSize: 22 }} />}
+              bg="linear-gradient(135deg, #facc15 0%, #eab308 100%)"
+              subColor="#fef3c7"
+              onView={() => openKpiModal('netApproval')}
+            />
           </Grid>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Gross Disbursal"
+              value={rupee(totals.grossDisbursal)}
+              leftIcon={<span style={{ fontSize: 18 }}>₹</span>}
+              bg="linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)"
+              subColor="rgba(255,255,255,0.85)"
+              onView={() => openKpiModal('grossDisbursal')}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Net Disbursal"
+              value={rupee(totals.disbursal)}
+              leftIcon={<StarBorderIconLike />}
+              bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
+              subColor="#dcfce7"
+              onView={() => openKpiModal('netDisbursal')}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total ABND"
+              value={rupee(totals.abnp)}
+              leftIcon={<span style={{ fontSize: 16 }}>Δ</span>}
+              bg="linear-gradient(135deg, #0f172a 0%, #334155 100%)"
+              subColor="rgba(255,255,255,0.85)"
+              onView={() => openKpiModal('abnd')}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Drop"
+              value={rupee(totals.drop)}
+              leftIcon={<span style={{ fontSize: 18 }}>↓</span>}
+              bg="linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)"
+              subColor="#fee2e2"
+              onView={() => openKpiModal('drop')}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Cashback"
+              value={rupee(totals.cashback)}
+              leftIcon={<span style={{ fontSize: 18 }}>₹</span>}
+              bg="linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)"
+              subColor="#cffafe"
+              onView={() => openKpiModal('cashback')}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Hold"
+              value={totals.hold.toLocaleString('en-IN')}
+              leftIcon={<span style={{ fontSize: 18 }}>⏸</span>}
+              bg="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+              subColor="#fef3c7"
+              onView={() => openKpiModal('hold')}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Total Rejected"
+              value={totals.rejected.toLocaleString('en-IN')}
+              leftIcon={<span style={{ fontSize: 18 }}>✕</span>}
+              bg="linear-gradient(135deg, #dc2626 0%, #991b1b 100%)"
+              subColor="#fee2e2"
+              onView={() => openKpiModal('rejected')}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <KpiCard
+              title="Today Login"
+              // value={totals.logins.toLocaleString('en-IN')}
+              leftIcon={<span style={{ fontSize: 18 }}>✓</span>}
+              bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
+              subColor="#dcfce7"
+              onView={() => router.push("/today-login")}
+            />
+          </Grid>
+
         </Grid>
 
-
+        {/* STAR PERFORMERS */}
         {(starPerformers.approval || starPerformers.disbursal) && (
           <Paper
             sx={{
@@ -1215,9 +1323,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
               boxShadow: '0 12px 30px rgba(15,23,42,0.08)',
             }}
           >
-            <Box
-              sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}
-            >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
               <Box
                 sx={{
                   width: 40,
@@ -1261,38 +1367,16 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                       }}
                     />
                     <Box sx={{ position: 'relative' }}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          mb: 0.5,
-                        }}
-                      >
-                        <EmojiEventsIcon
-                          sx={{ fontSize: 20, color: '#15803d' }}
-                        />
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: '#166534' }}
-                        >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <EmojiEventsIcon sx={{ fontSize: 20, color: '#15803d' }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#166534' }}>
                           Top Approval
                         </Typography>
                       </Box>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ fontWeight: 800, color: '#022c22' }}
-                      >
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#022c22' }}>
                         {starPerformers.approval.employee_name || '-'}
                       </Typography>
-                      <Typography
-                        variant="h5"
-                        sx={{
-                          fontWeight: 800,
-                          mt: 0.5,
-                          color: '#16a34a',
-                        }}
-                      >
+                      <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: '#16a34a' }}>
                         {rupee(Number(starPerformers.approval.approval || 0))}
                       </Typography>
                     </Box>
@@ -1308,8 +1392,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                       borderRadius: 2.5,
                       position: 'relative',
                       overflow: 'hidden',
-                      background:
-                        'linear-gradient(135deg, #eef2ff 0%, #c7d2fe 50%, #e0e7ff 100%)',
+                      background: 'linear-gradient(135deg, #eef2ff 0%, #c7d2fe 50%, #e0e7ff 100%)',
                       border: '1px solid #e0f2fe',
                     }}
                   >
@@ -1325,39 +1408,17 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                       }}
                     />
                     <Box sx={{ position: 'relative' }}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          mb: 0.5,
-                        }}
-                      >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                         <StarBorderIconLike />
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: '#3730a3' }}
-                        >
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#3730a3' }}>
                           Top Disbursal
                         </Typography>
                       </Box>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ fontWeight: 800, color: '#020617' }}
-                      >
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#020617' }}>
                         {starPerformers.disbursal.employee_name || '-'}
                       </Typography>
-                      <Typography
-                        variant="h5"
-                        sx={{
-                          fontWeight: 800,
-                          mt: 0.5,
-                          color: '#4f46e5',
-                        }}
-                      >
-                        {rupee(
-                          Number(starPerformers.disbursal.disbursal || 0),
-                        )}
+                      <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: '#4f46e5' }}>
+                        {rupee(Number(starPerformers.disbursal.disbursal || 0))}
                       </Typography>
                     </Box>
                   </Paper>
@@ -1404,37 +1465,31 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                 No records found
               </Typography>
               <Typography variant="body2" sx={{ color: '#6b7280' }}>
-                {search
-                  ? `No results for “${search}”`
-                  : 'No data available for selected date'}
+                {search ? `No results for “${search}”` : 'No data available for selected date'}
               </Typography>
             </Box>
           ) : (
             <TableContainer>
               <Table size="large">
                 <TableHead>
-                  <TableRow
-                    sx={{
-                      background:
-                        'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)',
-                    }}
-                  >
-                    <TableCell sx={{ fontWeight: 800 }}>S.No.</TableCell>   {/* 👈 NEW */}
-
+                  <TableRow sx={{ background: 'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)' }}>
+                    <TableCell sx={{ fontWeight: 800 }}>S.No.</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Employee</TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>Code</TableCell>
-
                     <TableCell sx={{ fontWeight: 800 }}>Manager / TL</TableCell>
-
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Logins
                     </TableCell>
-
+                    <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#EEF2FF' }}>
+                      Rejected
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#EEF2FF' }}>
+                      Hold
+                    </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Approvals (₹)
                     </TableCell>
-
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Disbursal (₹)
                     </TableCell>
@@ -1444,16 +1499,21 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Cashback (₹)
                     </TableCell>
-
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                      Gross Approval (₹)
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                      Gross Disbursal (₹)
+                    </TableCell>
                     <TableCell align="center" sx={{ fontWeight: 800 }}>
                       Team Total
                     </TableCell>
-
                     <TableCell align="right" sx={{ fontWeight: 800 }}>
                       Actions
                     </TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
                   {sortedRows.map((r, index) => {
                     const teamInfo = r.code ? teamTotals[r.code] : null;
@@ -1465,33 +1525,54 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                             {index + 1}
                           </Typography>
                         </TableCell>
+
                         <TableCell>
-                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
-                            {r.date ? dayjs(r.date).format("DD-MM-YYYY") : '—'}
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: '#4b5563',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: { xs: '90px', sm: '110px', md: '120px' }
+                            }}
+                          >
+                            {r.date ? dayjs(r.date).format('DD-MM-YYYY') : '—'}
                           </Typography>
                         </TableCell>
 
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography sx={{ fontWeight: 700, color: '#6b21a8' }}>
+                            <Typography
+                              sx={{
+                                fontWeight: 600,
+                                color: '#6b21a8',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '180px' // width adjust kar sakte ho
+                              }}
+                            >
                               {r.employee_name || '-'}
                             </Typography>
 
-                            {showStar(r.drop) && (
-                              <Tooltip title={`Drop Amount: ${rupee(r.drop)}`} arrow>
-                                <span style={{ color: "#E11D48", fontSize: "16px", cursor: "pointer" }}>★</span>
-                              </Tooltip>
-                            )}
-
-                            {showStar(r.cashback) && (
-                              <Tooltip title={`Cashback Amount: ${rupee(r.cashback)}`} arrow>
-                                <span style={{ color: "#1D4ED8", fontSize: "16px", cursor: "pointer" }}>#
-
+                            {showStar(Number(r.drop || 0)) && (
+                              <Tooltip title={`Drop Amount: ${rupee(Number(r.drop || 0))}`} arrow>
+                                <span style={{ color: '#E11D48', fontSize: 16, cursor: 'pointer' }}>
+                                  ★
                                 </span>
                               </Tooltip>
                             )}
 
-                            {teamInfo && (
+                            {showStar(Number(r.cashback || 0)) && (
+                              <Tooltip title={`Cashback Amount: ${rupee(Number(r.cashback || 0))}`} arrow>
+                                <span style={{ color: '#1D4ED8', fontSize: 16, cursor: 'pointer' }}>
+                                  #
+                                </span>
+                              </Tooltip>
+                            )}
+
+                            {/* {teamInfo && (
                               <Chip
                                 size="small"
                                 label={teamInfo.role === 'manager' ? 'Manager' : 'TL'}
@@ -1503,7 +1584,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                                   height: 20,
                                 }}
                               />
-                            )}
+                            )} */}
                           </Box>
 
                           {r.employee_id && (
@@ -1514,7 +1595,16 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                         </TableCell>
 
                         <TableCell>
-                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: '#4b5563',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '120px' // adjust as needed
+                            }}
+                          >
                             {r.code || '—'}
                           </Typography>
                         </TableCell>
@@ -1524,52 +1614,50 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                             <Chip
                               size="small"
                               label={r.manager_tl}
-                              sx={{
-                                bgcolor: '#F3E8FF',
-                                fontWeight: 600,
-                                color: '#6b21a8',
-                              }}
+                              sx={{ bgcolor: '#F3E8FF', fontWeight: 600, color: '#6b21a8' }}
                             />
                           ) : (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            <Typography variant="caption" color="text.secondary">
                               —
                             </Typography>
                           )}
                         </TableCell>
+
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={Number(r.login || 0)}
-                            sx={{
-                              bgcolor: '#DCFCE7',
-                              fontWeight: 800,
-                              color: '#166534',
-                            }}
+                            sx={{ bgcolor: '#DCFCE7', fontWeight: 800, color: '#166534' }}
                           />
                         </TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={Number(r.rejected || 0)}
+                            sx={{ bgcolor: '#FEE2E2', fontWeight: 800, color: '#B91C1C' }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={Number(r.hold || 0)}
+                            sx={{ bgcolor: '#CFFAFE', fontWeight: 800, color: '#0E7490' }}
+                          />
+                        </TableCell>
+
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={rupee(Number(r.approval || 0))}
-                            sx={{
-                              bgcolor: '#E0F2FE',
-                              fontWeight: 800,
-                              color: '#1d4ed8',
-                            }}
+                            sx={{ bgcolor: '#E0F2FE', fontWeight: 800, color: '#1d4ed8' }}
                           />
                         </TableCell>
+
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={rupee(Number(r.disbursal || 0))}
-                            sx={{
-                              bgcolor: '#EDE9FE',
-                              fontWeight: 800,
-                              color: '#6d28d9',
-                            }}
+                            sx={{ bgcolor: '#EDE9FE', fontWeight: 800, color: '#6d28d9' }}
                           />
                         </TableCell>
 
@@ -1577,30 +1665,37 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                           <Chip
                             size="small"
                             label={rupee(Number(r.drop || r.drop_amount || 0))}
-                            sx={{
-                              bgcolor: '#FFE4E6',
-                              fontWeight: 800,
-                              color: '#BE123C',
-                            }}
+                            sx={{ bgcolor: '#FFE4E6', fontWeight: 800, color: '#BE123C' }}
                           />
-
                         </TableCell>
+
                         <TableCell align="right">
                           <Chip
                             size="small"
                             label={rupee(Number(r.cashback || r.cashback_amount || 0))}
-                            sx={{
-                              bgcolor: '#FFE4E6',
-                              fontWeight: 800,
-                              color: '#BE123C',
-                            }}
+                            sx={{ bgcolor: '#CFFAFE', fontWeight: 800, color: '#0E7490' }}
                           />
                         </TableCell>
-                        {/* Team Total Column */}
+
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={rupee(Number(r.gross_approval || 0))}
+                            sx={{ bgcolor: '#DBEAFE', fontWeight: 800, color: '#1d4ed8' }}
+                          />
+                        </TableCell>
+
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={rupee(Number(r.gross_disbursal || 0))}
+                            sx={{ bgcolor: '#EDE9FE', fontWeight: 800, color: '#6d28d9' }}
+                          />
+                        </TableCell>
+
                         <TableCell align="center">
                           {teamInfo ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-                              
                               <Tooltip title={`${teamInfo.memberCount} team members`}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                   <GroupsIcon sx={{ fontSize: 16, color: '#6b7280' }} />
@@ -1609,36 +1704,12 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                                   </Typography>
                                 </Box>
                               </Tooltip>
-                              {/* <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                <Chip
-                                  size="small"
-                                  label={rupee(teamInfo.teamTotalApproval)}
-                                  sx={{
-                                    bgcolor: '#DCFCE7',
-                                    fontWeight: 700,
-                                    color: '#166534',
-                                    fontSize: '0.7rem',
-                                  }}
-                                />
-                                <Chip
-                                  size="small"
-                                  label={rupee(teamInfo.teamTotalDisbursal)}
-                                  sx={{
-                                    bgcolor: '#FCE7F3',
-                                    fontWeight: 700,
-                                    color: '#9D174D',
-                                    fontSize: '0.7rem',
-                                  }}
-                                />
-                              </Box> */}
+
                               <Tooltip title="View Team Breakdown">
                                 <IconButton
                                   size="small"
                                   onClick={() => fetchTeamBreakdown(r.code!)}
-                                  sx={{
-                                    bgcolor: '#EEF2FF',
-                                    '&:hover': { bgcolor: '#C7D2FE' },
-                                  }}
+                                  sx={{ bgcolor: '#EEF2FF', '&:hover': { bgcolor: '#C7D2FE' } }}
                                 >
                                   <VisibilityIcon sx={{ fontSize: 16, color: '#4F46E5' }} />
                                 </IconButton>
@@ -1652,49 +1723,31 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                         </TableCell>
 
                         <TableCell align="right">
-
-                          {isAdmin ? (
-                            <Stack
-                              direction="row"
-                              spacing={0.5}
-                              justifyContent="flex-end"
-                            >
+                          {canAddRow ? (
+                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                               <Tooltip title="Edit row">
                                 <IconButton
                                   color="primary"
                                   size="small"
                                   onClick={() => {
                                     setEditingId(r._id);
-
-                                    if (r.date) {
-                                      setDate(dayjs(r.date));
-                                    }
+                                    if (r.date) setDate(dayjs(r.date));
 
                                     setForm({
                                       employee_name: r.employee_name || '',
                                       manager_tl: r.manager_tl || '',
-                                      total_logins: String(
-                                        r.login ?? r.total_logins ?? 0 || '',
-                                      ),
-                                      approval_lakh: r.approval
-                                        ? Number(
-                                          r.approval,
-                                        ).toLocaleString('en-IN')
-                                        : '',
-                                      disbursal_lakh: r.disbursal
-                                        ? Number(
-                                          r.disbursal,
-                                        ).toLocaleString('en-IN')
-                                        : '',
-                                      drop_lakh: r.drop
-                                        ? Number(r.drop).toLocaleString('en-IN')
-                                        : '',
-                                      cashback_lakh: r.cashback
-                                        ? Number(r.cashback).toLocaleString('en-IN')
-                                        : '',
+                                      total_logins: String(r.login ?? r.total_logins ?? 0 || ''),
+                                      approval_lakh: r.approval ? Number(r.approval).toLocaleString('en-IN') : '',
+                                      disbursal_lakh: r.disbursal ? Number(r.disbursal).toLocaleString('en-IN') : '',
+                                      drop_lakh: r.drop ? Number(r.drop).toLocaleString('en-IN') : '',
+                                      cashback_lakh: r.cashback ? Number(r.cashback).toLocaleString('en-IN') : '',
+                                      total_logins: String(r.login ?? r.total_logins ?? 0 || ''),
+                                      total_hold: String(r.hold ?? r.total_hold ?? 0 || ''),
+                                      total_rejected: String(r.total_rejected ?? r.rejected ?? 0),
 
                                       code: r.code || '',
                                     });
+
                                     setAmountUnit('rupees');
                                     setFormOpen(true);
                                   }}
@@ -1702,33 +1755,136 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                                   <EditIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              <Tooltip title="Delete row">
-                                <IconButton
-                                  color="error"
-                                  size="small"
-                                  onClick={() => onDelete(r._id)}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
+
+                              {isAdmin && (
+                                <Tooltip title="Delete row">
+                                  <IconButton color="error" size="small" onClick={() => onDelete(r._id)}>
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
                             </Stack>
                           ) : (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            <Typography variant="caption" color="text.secondary">
                               —
                             </Typography>
                           )}
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })}
                 </TableBody>
               </Table>
             </TableContainer>
           )}
         </Paper>
+
+        {/* ✅ ONE KPI VIEW MODAL (for ALL boxes) */}
+        <Dialog
+          open={kpiModalOpen}
+          onClose={() => setKpiModalOpen(false)}
+          fullWidth
+          maxWidth="lg"
+          PaperProps={{
+            sx: { borderRadius: 3, boxShadow: '0 25px 60px rgba(15,23,42,0.35)' },
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 900, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <VisibilityIcon sx={{ color: '#0E7490' }} />
+            {kpiTitle(kpiModalType)} ({kpiModalRows.length})
+          </DialogTitle>
+
+          <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
+            {kpiModalRows.length === 0 ? (
+              <Box sx={{ textAlign: 'center', p: 3, bgcolor: '#F8FAFC', borderRadius: 2 }}>
+                <Typography color="text.secondary">No records found for this KPI.</Typography>
+              </Box>
+            ) : (
+              <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#F1F5F9' }}>
+                      <TableCell sx={{ fontWeight: 800 }}>S.No.</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>Employee</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>Code</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>Manager / TL</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 900, color: '#0E7490' }}>
+                        Value
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+
+                  <TableBody>
+                    {kpiModalRows.map((r: any, idx: number) => (
+                      <TableRow key={r._id} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+                        <TableCell>
+                          <Typography sx={{ fontWeight: 800 }}>{idx + 1}</Typography>
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: '#4b5563' }}>
+                            {r.date ? dayjs(r.date).format('DD-MM-YYYY') : '—'}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography sx={{ fontWeight: 800, color: '#1E293B' }}>
+                            {r.employee_name || '-'}
+                          </Typography>
+                          {r.employee_id && (
+                            <Typography variant="caption" sx={{ color: '#64748B' }}>
+                              {r.employee_id}
+                            </Typography>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: '#64748B' }}>
+                            {r.code || '—'}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell>
+                          {r.manager_tl ? (
+                            <Chip
+                              size="small"
+                              label={r.manager_tl}
+                              sx={{ bgcolor: '#F3E8FF', fontWeight: 700, color: '#6b21a8' }}
+                            />
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">
+                              —
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          {['logins', 'rejected', 'hold', 'inProcess'].includes(kpiModalType) ? (
+                            <Chip
+                              size="small"
+                              label={Number(r.__metric || 0).toLocaleString('en-IN')}
+                              sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 900 }}
+                            />
+                          ) : (
+                            <Chip
+                              size="small"
+                              label={rupee(Number(r.__metric || 0))}
+                              sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 900 }}
+                            />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button onClick={() => setKpiModalOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
 
         {/* ========== Team Breakdown Modal ========== */}
         <Dialog
@@ -1750,15 +1906,17 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
             <GroupsIcon sx={{ color: '#4F46E5' }} />
             Team Performance Breakdown
           </DialogTitle>
+
           <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
             {teamBreakdownLoading ? (
               <Box sx={{ p: 3, textAlign: 'center' }}>
                 <LinearProgress />
-                <Typography variant="body2" sx={{ mt: 1 }}>Loading team data...</Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Loading team data...
+                </Typography>
               </Box>
             ) : teamBreakdown ? (
               <Box>
-                {/* Employee Info */}
                 <Paper sx={{ p: 2, mb: 3, bgcolor: '#F8FAFC', borderRadius: 2 }}>
                   <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} md={6}>
@@ -1770,7 +1928,13 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                       </Typography>
                       <Chip
                         size="small"
-                        label={teamBreakdown.role === 'manager' ? 'Manager' : teamBreakdown.role === 'team_leader' ? 'Team Leader' : 'Employee'}
+                        label={
+                          teamBreakdown.role === 'manager'
+                            ? 'Manager'
+                            : teamBreakdown.role === 'team_leader'
+                              ? 'Team Leader'
+                              : 'Employee'
+                        }
                         sx={{
                           mt: 1,
                           bgcolor: teamBreakdown.role === 'manager' ? '#FEF3C7' : '#DBEAFE',
@@ -1782,7 +1946,9 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                     <Grid item xs={12} md={6}>
                       {teamBreakdown.team && (
                         <Box sx={{ textAlign: { md: 'right' } }}>
-                          <Typography variant="body2" sx={{ color: '#64748B' }}>Team</Typography>
+                          <Typography variant="body2" sx={{ color: '#64748B' }}>
+                            Team
+                          </Typography>
                           <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#4F46E5' }}>
                             {teamBreakdown.team.name}
                           </Typography>
@@ -1792,7 +1958,6 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                   </Grid>
                 </Paper>
 
-                {/* Team Totals Summary */}
                 <Grid container spacing={2} sx={{ mb: 3 }}>
                   <Grid item xs={6} md={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#DCFCE7', borderRadius: 2 }}>
@@ -1804,6 +1969,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                       </Typography>
                     </Paper>
                   </Grid>
+
                   <Grid item xs={6} md={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#E0F2FE', borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
@@ -1814,32 +1980,78 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                       </Typography>
                     </Paper>
                   </Grid>
+
                   <Grid item xs={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#FEF3C7', borderRadius: 2 }}>
-                      <Typography variant="caption" sx={{ color: '#92400E', fontWeight: 600 }}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
                         Total Approval
                       </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#92400E' }}>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
                         {rupee(teamBreakdown.totals.totalApproval)}
                       </Typography>
                     </Paper>
                   </Grid>
+
                   <Grid item xs={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#FCE7F3', borderRadius: 2 }}>
-                      <Typography variant="caption" sx={{ color: '#9D174D', fontWeight: 600 }}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#DCFCE7', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600 }}>
                         Total Disbursal
                       </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#9D174D' }}>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#166534' }}>
                         {rupee(teamBreakdown.totals.totalDisbursal)}
                       </Typography>
                     </Paper>
                   </Grid>
+
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#E0F2FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600 }}>
+                        Total Gross Approval
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E40AF' }}>
+                        {rupee(teamBreakdown.totals.totalGrossApproval || 0)}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
+                        Total Gross Disbursal
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
+                        {rupee(teamBreakdown.totals.totalGrossDisbursal || 0)}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
+                        Total Hold
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
+                        {(teamBreakdown.totals.totalHold || 0)}
+                      </Typography>
+
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: '#EDE9FE', borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
+                        Total Reject
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#6D28D9' }}>
+                        {(teamBreakdown.totals.totalRejected || 0)}
+                      </Typography>
+
+                    </Paper>
+                  </Grid>
                 </Grid>
 
-                {/* Member Breakdown Table */}
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
                   Member-wise Breakdown
                 </Typography>
+
                 {teamBreakdown.memberBreakdown.length > 0 ? (
                   <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
                     <Table size="small">
@@ -1847,25 +2059,34 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                         <TableRow sx={{ bgcolor: '#F1F5F9' }}>
                           <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Logins</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>
+                            Logins
+                          </TableCell>
                           <TableCell align="right" sx={{ fontWeight: 800 }}>
                             Approvals (₹)
                           </TableCell>
-
                           <TableCell align="right" sx={{ fontWeight: 800 }}>
                             Disbursal (₹)
                           </TableCell>
-
                           <TableCell align="right" sx={{ fontWeight: 800 }}>
-                            Drop Amount (₹)
+                            Drop (₹)
                           </TableCell>
-
                           <TableCell align="right" sx={{ fontWeight: 800 }}>
-                            Cashback Amount (₹)
+                            Cashback (₹)
                           </TableCell>
-
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Gross Approval (₹)
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Gross Disbursal (₹)
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Rejected                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800 }}>
+                            Hold                          </TableCell>
                         </TableRow>
                       </TableHead>
+
                       <TableBody>
                         {teamBreakdown.memberBreakdown.map((member, idx) => (
                           <TableRow key={idx} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
@@ -1874,15 +2095,17 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                                 {member.name}
                               </Typography>
                             </TableCell>
+
                             <TableCell>
                               <Typography variant="body2" sx={{ color: '#64748B' }}>
                                 {member.code}
                               </Typography>
                             </TableCell>
+
                             <TableCell align="right">
                               <Chip
                                 size="small"
-                                label={member.logins.toLocaleString('en-IN')}
+                                label={Number(member.logins || 0).toLocaleString('en-IN')}
                                 sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700 }}
                               />
                             </TableCell>
@@ -1890,37 +2113,62 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                             <TableCell align="right">
                               <Chip
                                 size="small"
-                                label={rupee(member.approval)}
+                                label={rupee(Number(member.approval || 0))}
                                 sx={{ bgcolor: '#E0F2FE', color: '#1E40AF', fontWeight: 700 }}
                               />
                             </TableCell>
+
                             <TableCell align="right">
                               <Chip
                                 size="small"
-                                label={rupee(member.disbursal)}
+                                label={rupee(Number(member.disbursal || 0))}
                                 sx={{ bgcolor: '#EDE9FE', color: '#6D28D9', fontWeight: 700 }}
                               />
                             </TableCell>
+
                             <TableCell align="right">
                               <Chip
                                 size="small"
                                 label={rupee(Number(member.drop || 0))}
-                                sx={{
-                                  bgcolor: '#FFE4E6',
-                                  fontWeight: 800,
-                                  color: '#BE123C',
-                                }}
+                                sx={{ bgcolor: '#FFE4E6', color: '#BE123C', fontWeight: 800 }}
+                              />
+                            </TableCell>
+
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={rupee(Number(member.cashback || 0))}
+                                sx={{ bgcolor: '#CFFAFE', color: '#0E7490', fontWeight: 800 }}
+                              />
+                            </TableCell>
+
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={rupee(Number(member.grossApproval || 0))}
+                                sx={{ bgcolor: '#DBEAFE', color: '#1D4ED8', fontWeight: 800 }}
                               />
                             </TableCell>
                             <TableCell align="right">
                               <Chip
                                 size="small"
-                                label={rupee(Number(member.cashback || 0))}
-                                sx={{
-                                  bgcolor: '#FFE4E6',
-                                  fontWeight: 800,
-                                  color: '#BE123C',
-                                }}
+                                label={rupee(Number(member.grossDisbursal || 0))}
+                                sx={{ bgcolor: '#EDE9FE', color: '#6D28D9', fontWeight: 800 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={Number(member.rejected || 0).toLocaleString('en-IN')}
+                                sx={{ bgcolor: '#FEE2E2', color: '#B91C1C', fontWeight: 800 }}
+                              />
+                            </TableCell>
+
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={Number(member.hold || 0).toLocaleString('en-IN')}
+                                sx={{ bgcolor: '#FEF3C7', color: '#92400E', fontWeight: 800 }}
                               />
                             </TableCell>
 
@@ -1943,6 +2191,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
               </Box>
             )}
           </DialogContent>
+
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button
               onClick={() => {
@@ -1976,6 +2225,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
           <DialogTitle sx={{ fontWeight: 800 }}>
             {editingId ? 'Edit Performance' : 'Add Performance'}
           </DialogTitle>
+
           <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
             <Grid container spacing={2.5}>
               <Grid item xs={12} md={6}>
@@ -1988,6 +2238,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                   required
                 />
               </Grid>
+
               <Grid item xs={12} md={4}>
                 <TextField
                   label="Code (optional)"
@@ -2010,13 +2261,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                     setForm((prev) => ({ ...prev, manager_tl: value }))
                   }
                   renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Manager / TL"
-                      fullWidth
-                      size="medium"
-                      required
-                    />
+                    <TextField {...params} label="Manager / TL" fullWidth size="medium" required />
                   )}
                 />
               </Grid>
@@ -2032,37 +2277,24 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
                 />
               </Grid>
 
+
+
               {/* Approval */}
               <Grid item xs={12} md={4}>
                 <TextField
-                  label={
-                    amountUnit === 'rupees'
-                      ? 'Approval (₹ in Rupees)'
-                      : 'Approval (₹ in Lakhs)'
-                  }
+                  label={amountUnit === 'rupees' ? 'Approval (₹ in Rupees)' : 'Approval (₹ in Lakhs)'}
                   type="text"
                   value={form.approval_lakh ?? ''}
                   onChange={(e) => {
                     const val = e.target.value;
-
                     const isAllowed = /^[0-9,]*$/.test(val) || val === '';
-
                     if (!isAllowed) return;
-                    setForm((prev) => ({
-                      ...prev,
-                      approval_lakh: val,
-                    }));
+                    setForm((prev) => ({ ...prev, approval_lakh: val }));
                   }}
                   onBlur={() => {
                     const raw = (form.approval_lakh || '').replace(/,/g, '');
-
                     if (raw === '' || isNaN(Number(raw))) return;
-                    const formatted = Number(raw).toLocaleString('en-IN');
-
-                    setForm((prev) => ({
-                      ...prev,
-                      approval_lakh: formatted,
-                    }));
+                    setForm((prev) => ({ ...prev, approval_lakh: Number(raw).toLocaleString('en-IN') }));
                   }}
                   fullWidth
                   size="medium"
@@ -2072,100 +2304,93 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
               {/* Disbursal */}
               <Grid item xs={12} md={4}>
                 <TextField
-                  label={
-                    amountUnit === 'rupees'
-                      ? 'Disbursal (₹ in Rupees)'
-                      : 'Disbursal (₹ in Lakhs)'
-                  }
+                  label={amountUnit === 'rupees' ? 'Disbursal (₹ in Rupees)' : 'Disbursal (₹ in Lakhs)'}
                   type="text"
                   value={form.disbursal_lakh ?? ''}
                   onChange={(e) => {
                     const val = e.target.value;
-
                     const isAllowed = /^[0-9,]*$/.test(val) || val === '';
-
                     if (!isAllowed) return;
-                    setForm((prev) => ({
-                      ...prev,
-                      disbursal_lakh: val,
-                    }));
+                    setForm((prev) => ({ ...prev, disbursal_lakh: val }));
                   }}
                   onBlur={() => {
                     const raw = (form.disbursal_lakh || '').replace(/,/g, '');
-
                     if (raw === '' || isNaN(Number(raw))) return;
-                    const formatted = Number(raw).toLocaleString('en-IN');
-
-                    setForm((prev) => ({
-                      ...prev,
-                      disbursal_lakh: formatted,
-                    }));
+                    setForm((prev) => ({ ...prev, disbursal_lakh: Number(raw).toLocaleString('en-IN') }));
                   }}
                   fullWidth
                   size="medium"
                 />
               </Grid>
-              {/* Drop Amount */}
+
+
+              {/* Drop */}
               <Grid item xs={12} md={4}>
                 <TextField
-                  label={
-                    amountUnit === 'rupees'
-                      ? 'Drop Amount (₹ in Rupees)'
-                      : 'Drop Amount (₹ in Lakhs)'
-                  }
+                  label={amountUnit === 'rupees' ? 'Drop Amount (₹ in Rupees)' : 'Drop Amount (₹ in Lakhs)'}
                   type="text"
                   value={form.drop_lakh ?? ''}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (/^[0-9,]*$/.test(val) || val === '') {
-                      setForm((prev) => ({ ...prev, drop_lakh: val }));
-                    }
+                    if (/^[0-9,]*$/.test(val) || val === '') setForm((prev) => ({ ...prev, drop_lakh: val }));
                   }}
                   onBlur={() => {
                     const raw = (form.drop_lakh || '').replace(/,/g, '');
                     if (raw !== '' && !isNaN(Number(raw))) {
-                      setForm((prev) => ({
-                        ...prev,
-                        drop_lakh: Number(raw).toLocaleString('en-IN'),
-                      }));
+                      setForm((prev) => ({ ...prev, drop_lakh: Number(raw).toLocaleString('en-IN') }));
                     }
                   }}
                   fullWidth
                   size="medium"
                 />
               </Grid>
+
+              {/* Cashback */}
               <Grid item xs={12} md={4}>
                 <TextField
-                  label={
-                    amountUnit === 'rupees'
-                      ? 'Cashback Amount (₹ in Rupees)'
-                      : 'Cashback Amount (₹ in Lakhs)'
-                  }
+                  label={amountUnit === 'rupees' ? 'Cashback Amount (₹ in Rupees)' : 'Cashback Amount (₹ in Lakhs)'}
                   type="text"
                   value={form.cashback_lakh ?? ''}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (/^[0-9,]*$/.test(val) || val === '') {
-                      setForm((prev) => ({ ...prev, cashback_lakh: val }));
-                    }
+                    if (/^[0-9,]*$/.test(val) || val === '') setForm((prev) => ({ ...prev, cashback_lakh: val }));
                   }}
                   onBlur={() => {
                     const raw = (form.cashback_lakh || '').replace(/,/g, '');
                     if (raw !== '' && !isNaN(Number(raw))) {
-                      setForm((prev) => ({
-                        ...prev,
-                        cashback_lakh: Number(raw).toLocaleString('en-IN'),
-                      }));
+                      setForm((prev) => ({ ...prev, cashback_lakh: Number(raw).toLocaleString('en-IN') }));
                     }
                   }}
                   fullWidth
                   size="medium"
                 />
               </Grid>
+              {/* Hold */}
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Total Hold"
+                  type="number"
+                  value={form.total_hold}
+                  onChange={handleFormChange('total_hold')}
+                  fullWidth
+                  size="medium"
+                />
+              </Grid>
 
-
+              {/* Rejected */}
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Total Rejected"
+                  type="number"
+                  value={form.total_rejected}
+                  onChange={handleFormChange('total_rejected')}
+                  fullWidth
+                  size="medium"
+                />
+              </Grid>
             </Grid>
           </DialogContent>
+
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button
               onClick={() => {
@@ -2178,11 +2403,7 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
             >
               Cancel
             </Button>
-            <Button
-              variant="contained"
-              onClick={onFormSubmit}
-              disabled={formSaving}
-            >
+            <Button variant="contained" onClick={onFormSubmit} disabled={formSaving}>
               {formSaving ? 'Saving…' : editingId ? 'Update Row' : 'Save Row'}
             </Button>
           </DialogActions>
@@ -2192,10 +2413,6 @@ const effectiveDate = latestUploadedDate || dateStr; // YYYY-MM-DD
   );
 }
 
-/**
- * Small helper "star" icon using simple shape,
- * so we don't add a new MUI icon import.
- */
 function StarBorderIconLike() {
   return (
     <Box
@@ -2209,11 +2426,7 @@ function StarBorderIconLike() {
         justifyContent: 'center',
       }}
     >
-      <StarIconInside />
+      <span style={{ fontSize: 14, lineHeight: 1 }}>★</span>
     </Box>
   );
-}
-
-function StarIconInside() {
-  return <span style={{ fontSize: 14, lineHeight: 1 }}>★</span>;
 }
