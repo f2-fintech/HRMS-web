@@ -193,10 +193,9 @@ export async function listExpenses(params: {
     owner_id?: string;
     manager_status?: string;
     admin_status?: string;
-
-    // ✅ NEW
-    month?: number; // 1-12
-    year?: number;  // 2024/2025/2026...
+    date?: string;
+    month?: number;
+    year?: number;
 }) {
     const qs = new URLSearchParams();
 
@@ -206,7 +205,7 @@ export async function listExpenses(params: {
     if (params.manager_status) qs.set('manager_status', params.manager_status);
     if (params.admin_status) qs.set('admin_status', params.admin_status);
 
-    // ✅ Monthwise filter
+    if (params.date) qs.set('date', params.date);
     if (params.month) qs.set('month', String(params.month));
     if (params.year) qs.set('year', String(params.year));
 

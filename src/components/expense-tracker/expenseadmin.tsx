@@ -458,7 +458,7 @@ export default function ExpenseAdmin() {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
-
+  const [filterDate, setFilterDate] = useState<string>('');
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     setSnackbarMessage(message);
     setSnackbarSeverity(severity);
@@ -470,15 +470,44 @@ export default function ExpenseAdmin() {
     setOpenSnackbar(false);
   };
 
-  // USER (ADMIN CHECK)
-  const { isAdmin } = useMemo(() => {
-    if (typeof window === 'undefined') return { isAdmin: false };
-    const user: UserLS = JSON.parse(localStorage.getItem('user') || '{}');
-    const rRaw = user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
-    const r = Number(rRaw) || 0;
-    return { isAdmin: r === 1 };
-  }, []);
+  const { isAdmin, hasAccess } = useMemo(() => {
+    if (typeof window === 'undefined') return { isAdmin: false, hasAccess: false };
 
+    const user: any = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // 🔥 role check
+    const rRaw =
+      user?.role ??
+      user?.role_id ??
+      user?.user_role ??
+      user?.employee_role ??
+      0;
+
+    const r = Number(rRaw) || 0;
+
+    const isAdmin = r === 1;
+
+    // 🔥 designation check
+    const designation = (user?.designation || '').toLowerCase().trim();
+
+    const allowedDesignations = [
+      'asst. ops manager',
+      'ops manager',
+      'assistant growth manager',
+      'sr. operations & alliances manager',
+      'ops executive',
+      'full stack developer',
+    ];
+
+    const isDesignationAllowed = allowedDesignations.some(d =>
+      designation.includes(d)
+    );
+
+    // 🔥 FINAL ACCESS
+    const hasAccess = isAdmin || isDesignationAllowed;
+
+    return { isAdmin, hasAccess };
+  }, []);
   // EMPLOYEES
   const employees = useSelector((state: RootState) => (state as any)?.employees?.employees || []) as EmployeeType[];
 
@@ -731,18 +760,34 @@ export default function ExpenseAdmin() {
   const load = async () => {
     try {
       setLoadingList(true);
-      if (!isAdmin) {
+
+      if (!hasAccess) {
         setRows([]);
         setTotal(0);
         return;
       }
-      const res = await listExpenses({
-        page, limit: 10, month: filterMonth,
-        year: filterYear,
-      });
+
+      const query: any = {
+        page,
+        limit: 10,
+      };
+
+      // 🔥 MAIN LOGIC
+      if (filterDate) {
+        query.date = filterDate;   // ✅ expected_payment_date filter
+      } else {
+        query.month = filterMonth;
+        query.year = filterYear;
+      }
+
+      console.log("API QUERY:", query); // debug
+
+      const res = await listExpenses(query);
+
       const data = Array.isArray(res?.data) ? res.data : [];
       setRows(data);
       setTotal(res?.total || data.length);
+
     } finally {
       setLoadingList(false);
     }
@@ -751,7 +796,7 @@ export default function ExpenseAdmin() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, isAdmin, filterMonth, filterYear]);
+  }, [page, hasAccess, filterMonth, filterYear, filterDate]);
 
   const currentMonth = useMemo(() => monthLabel(filterYear, filterMonth), [filterYear, filterMonth]);
   const currentMonthRows = useMemo(() => rows || [], [rows]); // already filtered from backend
@@ -795,7 +840,112 @@ export default function ExpenseAdmin() {
     });
   };
 
+  const exportCSV = () => {
+    if (!rows || rows.length === 0) {
+      alert("No data");
+      return;
+    }
 
+    const headers = [
+      "Date",
+      "Release Date",
+      "Invoice Date",
+      "Employee",
+      "Contact",
+      "Email",
+      "Branch",
+      "Department",
+      "Category",
+      "Amount",
+      "Payment Mode",
+      "Pay To",
+      "Bank Name",
+      "Account Holder",
+      "Account Number",
+      "IFSC",
+      "UPI ID",
+      "QR Note",
+      "Status",
+      "Description",
+    ];
+
+    const formatDate = (d: string) => {
+      if (!d) return "";
+      return new Date(d).toLocaleDateString("en-GB");
+    };
+
+    const escapeCSV = (value: any) => {
+      if (value === null || value === undefined) return "";
+      const str = String(value).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const getPayTo = (r: any) => {
+      if (r.payment_mode === "BANK") {
+        return `${r.account_holder || ""} - ${r.account_number || ""}`;
+      }
+
+      if (r.payment_mode === "UPI") {
+        return r.upi_id || "";
+      }
+
+      if (r.payment_mode === "QR") {
+        return r.qr_note || "";
+      }
+
+      if (r.payment_mode === "CASH") {
+        return "Cash Payment";
+      }
+
+      return "";
+    };
+
+    const data = rows.map((r: any) => [
+      escapeCSV(formatDate(r.date)),
+      escapeCSV(formatDate(r.expected_payment_date)),
+      escapeCSV(formatDate(r.invoice_date)),
+
+      escapeCSV(
+        r.owner_name ||
+        `${r.owner_id?.first_name || ""} ${r.owner_id?.last_name || ""}`.trim()
+      ),
+
+      escapeCSV(r.owner_contact),
+      escapeCSV(r.owner_email),
+      escapeCSV(r.owner_branch),
+      escapeCSV(r.department?.name),
+      escapeCSV(r.company_admin),
+      escapeCSV(r.paid_amount),
+
+      // Payment Details
+      escapeCSV(r.payment_mode),
+      escapeCSV(getPayTo(r)),
+      escapeCSV(r.bank_name),
+      escapeCSV(r.account_holder),
+      escapeCSV(r.account_number),
+      escapeCSV(r.ifsc),
+      escapeCSV(r.upi_id),
+      escapeCSV(r.qr_note),
+
+      escapeCSV(r.admin_status),
+      escapeCSV(r.description),
+    ]);
+
+    const csv = [
+      headers.join(","),
+      ...data.map((row) => row.join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "expenses_full_payment_details.csv";
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
   const statusTotals = useMemo(() => {
     const m: Record<string, number> = { pending: 0, approved: 0, paid: 0, rejected: 0 };
     currentMonthRows.forEach((r) => {
@@ -880,7 +1030,7 @@ export default function ExpenseAdmin() {
   // ADMIN VERIFY
   async function verify(id: string, status: 'approved' | 'rejected' | 'paid' | 'pending') {
     try {
-      if (!isAdmin) return;
+      if (!hasAccess) return;
       setVerifyingId(id);
 
       await adminVerifyExpense(id, { status, note, actual_payment_date: actualPaymentDate || undefined }, adminVerifyFiles);
@@ -1099,7 +1249,7 @@ export default function ExpenseAdmin() {
   };
 
   // NON ADMIN VIEW
-  if (!isAdmin) {
+  if (!hasAccess) {
     return (
       <div
         style={{
@@ -1173,6 +1323,27 @@ export default function ExpenseAdmin() {
             }}
           >
             {open ? 'Close Form' : '+ Create Expense'}
+          </button>
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => {
+              setFilterDate(e.target.value);
+              setPage(1);
+            }}
+
+            style={{
+              height: 34,
+              borderRadius: 8,
+              border: '1px solid #ddd',
+              padding: '0 8px',
+            }}
+          />
+          <button
+            onClick={exportCSV}
+            className="px-2 py-1 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition duration-200 shadow-sm"
+          >
+            Download Record
           </button>
           <button
             type="button"
@@ -1834,7 +2005,7 @@ export default function ExpenseAdmin() {
                   const canEdit = r.admin_status === 'pending';
                   const canDelete = r.admin_status === 'pending';
                   const isRowVerifying = verifyingId === r._id;
-                  const canVerify = isAdmin;
+                  const canVerify = hasAccess;
                   const owner = getEmpData(r.owner_id);
                   const allInvoiceUrls: string[] = Array.isArray(r.invoices) ? r.invoices : [];
                   const isQrPayment = String(r.payment || '').startsWith('QR Payment');
