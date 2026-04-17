@@ -439,14 +439,28 @@ export default function TodayLogin() {
         { label: "Total Loan", value: fmtLoan(totalLoan), accent: "#185FA5", sub: "combined amount", valueStyle: { fontSize: 20, color: "#185FA5" } },
     ];
 
-    const FILTER_TABS: { key: "all" | "login" | "reject"; label: string }[] = [
-        { key: "all", label: "All" },
-        { key: "login", label: "Login" },
-        { key: "reject", label: "Rejected" },
-    ];
+    const FILTER_TABS: {
+        key: "all" | "login" | "approved" | "reject" | "disbursed" | "hold" | "drop";
+        label: string;
+    }[] = [
+            { key: "all", label: "All" },
+            { key: "login", label: "Login" },
+            { key: "approved", label: "Approved" },
+            { key: "disbursed", label: "Disbursed" },
+            { key: "hold", label: "Hold" },
+            { key: "drop", label: "Drop" },
+            { key: "reject", label: "Rejected" },
+        ];
 
-    const tabActiveColor = { all: "#185FA5", login: "#16A34A", reject: "#DC2626" };
-
+    const tabActiveColor = {
+        all: "#185FA5",
+        login: "#92400E",
+        approved: "#1E40AF",
+        disbursed: "#16A34A",
+        hold: "#374151",
+        drop: "#7F1D1D",
+        reject: "#DC2626",
+    };
     // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
@@ -840,7 +854,7 @@ export default function TodayLogin() {
                             </div>
 
                             {/* Filter tabs */}
-                            <div style={{ display: "flex", gap: 4 }}>
+                            <div style={{ display: "flex", gap: 2 }}>
                                 {FILTER_TABS.map(({ key, label }) => (
                                     <button
                                         key={key}
