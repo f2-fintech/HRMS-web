@@ -15,6 +15,7 @@ import {
 import type { Break } from '@/redux/features/breaksheets/breaksSlice'
 import { addBreak, fetchBreaksById, updateBreak, updateLatestBreak } from '@/redux/features/breaksheets/breaksSlice'
 import type { RootState, AppDispatch } from '@/redux/store'
+import * as XLSX from "xlsx";
 
 import { apiResponse, fetchTotalShiftTime } from '../utility/apiResponse/employeesResponse' // Adjust the path if needed
 import { fetchTotalWorkingHours } from '@/redux/features/punches/punchesSlice'
@@ -77,6 +78,8 @@ const BreakSheet: React.FC = () => {
     const [showBreakReminder, setShowBreakReminder] = useState(false)
 
     const [allEmployees, setAllEmployees] = useState<any[]>([])
+    const [breakCountData, setBreakCountData] = useState<any[]>([]);
+    const [showBreakCount, setShowBreakCount] = useState(false);
 
     const [selectedEmployeeWorkingHours, setSelectedEmployeeWorkingHours] = useState<string>('00h 00m 00s')
 
@@ -150,7 +153,7 @@ const BreakSheet: React.FC = () => {
                 `${process.env.NEXT_PUBLIC_APP_URL}/breaksheet/long-breaks?companyId=${companyId}&date=${selectedDate}`
             )
             const data = await response.json()
-        
+
 
             setExceedBreakEmployees(data)
             setShowExceedBreaks(true) // Show the exceed break list
@@ -495,6 +498,52 @@ const BreakSheet: React.FC = () => {
         URL.revokeObjectURL(url);
     };
 
+
+    const handleExportBreakCount = async () => {
+        try {
+            const token = localStorage.getItem("token");
+
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL}/breaksheet/break-count?date=${selectedDate}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token} ${companyId}`
+                    }
+                }
+            );
+
+            const data = await res.json();
+
+            if (!Array.isArray(data) || data.length === 0) {
+                alert("No data found");
+                return;
+            }
+            const getMinutes = (time) => {
+                const [h, m] = time.split(" h ");
+                return Number(h) * 60 + Number(m.replace(" m", ""));
+            };
+
+            const sortedData = [...data].sort(
+                (a, b) => getMinutes(b.totalBreakTime) - getMinutes(a.totalBreakTime)
+            );
+
+            const formattedData = sortedData.map(emp => ({
+                "Employee Name": `${emp.first_name} ${emp.last_name}`,
+                "Location": emp.location,
+                "Designation": emp.designation,
+                "Break Count": emp.totalBreaks,
+                "Total Break Time": emp.totalBreakTime
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(formattedData);
+            const workbook = XLSX.utils.book_new();
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Break Count");
+
+            XLSX.writeFile(workbook, `break_count_${selectedDate}.xlsx`);
+        } catch (err) {
+            console.error("Export error:", err);
+        }
+    };
     if (isMobile && Number(userRole) > 2) {
         return (
             <Box
@@ -565,15 +614,15 @@ const BreakSheet: React.FC = () => {
             </Snackbar>
 
             {/* Row with two buttons */}
-            <div className="flex flex-wrap gap-4 mb-6">
+            <div className="flex flex-wrap gap-2 mb-2">
                 {/* Missing Punches & Absent Button */}
                 <button
                     onClick={toggleNotPunchedInToday}
-                    className="group relative px-6 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
+                    className="group relative px-4 py-2 font-semibold text-white rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                 >
                     <span className="relative z-10 flex items-center gap-2">
                         <span className="text-lg">🔍</span>
-                        {showNotPunchedIn ? 'Hide' : 'Missing Punches & Absent'}
+                        {showNotPunchedIn ? 'Hide' : 'Missing Punches'}
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                 </button>
@@ -581,7 +630,7 @@ const BreakSheet: React.FC = () => {
                 {/* Punched Out Button */}
                 <button
                     onClick={toggleNotPunchedOut}
-                    className="group relative px-6 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 focus:ring-4 focus:ring-slate-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
+                    className="group relative px-4 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 focus:ring-4 focus:ring-slate-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                 >
                     <span className="relative z-10 flex items-center gap-2">
                         <span className="text-lg">❌</span>
@@ -589,6 +638,14 @@ const BreakSheet: React.FC = () => {
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-slate-400 to-slate-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                 </button>
+                {userRole === '1' && (
+                    <button
+                        onClick={handleExportBreakCount}
+                        className="px-4 py-3 rounded-xl bg-green-600 text-white"
+                    >
+                        📥 Download Break Excel
+                    </button>
+                )}
 
                 {/* Admin Buttons - Only shown if userRole is '1' */}
                 {userRole === '1' && (
@@ -596,7 +653,7 @@ const BreakSheet: React.FC = () => {
                         {/* Monitor Long Breaks Button */}
                         <button
                             onClick={fetchExceedBreakEmployees}
-                            className="group relative px-6 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 focus:ring-4 focus:ring-rose-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
+                            className="group relative px-4 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 focus:ring-4 focus:ring-rose-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                         >
                             <span className="relative z-10 flex items-center gap-2">
                                 <span className="text-lg">📊</span>
@@ -604,11 +661,20 @@ const BreakSheet: React.FC = () => {
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-rose-400 to-rose-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                         </button>
-
+                        <button
+                            onClick={handleExportShiftTime}
+                            className="group relative px-4 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 focus:ring-4 focus:ring-emerald-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
+                        >
+                            <span className="relative z-10 flex items-center gap-2">
+                                <span className="text-lg">📤</span>
+                                Export Shift Time
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                        </button>
                         {/* Monitor Shift Not Complete Button */}
                         <button
                             onClick={fetchEmpNotCompleteShift}
-                            className="group relative px-6 py-3 font-semibold text-slate-800 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 focus:ring-4 focus:ring-amber-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
+                            className="group relative px-4 py-3 font-semibold text-slate-800 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 focus:ring-4 focus:ring-amber-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                         >
                             <span className="relative z-10 flex items-center gap-2">
                                 <span className="text-lg">⚠️</span>
@@ -617,22 +683,12 @@ const BreakSheet: React.FC = () => {
                             <div className="absolute inset-0 bg-gradient-to-r from-amber-300 to-amber-400 rounded-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
                         </button>
 
-                        {/* Export Shift Time Button */}
-                        <button
-                            onClick={handleExportShiftTime}
-                            className="group relative px-6 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 focus:ring-4 focus:ring-emerald-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
-                        >
-                            <span className="relative z-10 flex items-center gap-2">
-                                <span className="text-lg">📤</span>
-                                Export Shift Time
-                            </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                        </button>
+
 
                         {/* Monthly Employee Punches Link */}
                         <a
                             href="/monthly-punches"
-                            className="group relative px-6 py-3 font-semibold text-blue-700 bg-white rounded-xl border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50 focus:ring-4 focus:ring-blue-100 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
+                            className="group relative px-4 py-3 font-semibold text-blue-700 bg-white rounded-xl border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50 focus:ring-4 focus:ring-blue-100 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                         >
                             <span className="relative z-10 flex items-center gap-2">
                                 <span className="text-lg">📅</span>
@@ -644,7 +700,7 @@ const BreakSheet: React.FC = () => {
                         {/* Today's Employees Punches Link */}
                         <a
                             href="/date-wise-status"
-                            className="group relative px-6 py-3 font-semibold text-indigo-700 bg-white rounded-xl border-2 border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50 focus:ring-4 focus:ring-indigo-100 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
+                            className="group relative px-4 py-3 font-semibold text-indigo-700 bg-white rounded-xl border-2 border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50 focus:ring-4 focus:ring-indigo-100 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
                         >
                             <span className="relative z-10 flex items-center gap-2">
                                 <span className="text-lg">📊</span>
