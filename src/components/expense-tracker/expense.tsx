@@ -26,8 +26,8 @@ function getUserRoleNumber(): number {
 export default function ExpenseTracker() {
   const roleNum = useMemo(() => getUserRoleNumber(), []);
 
-  // ✅ Only role=1 => Admin
-  if (roleNum === 1) return <ExpenseAdmin />;
+
+  if (roleNum === 1 || roleNum === 5) return <ExpenseAdmin />;
 
   // ✅ If you want role=3 to see manager screen, do this:
   // if (roleNum === 3) return <ExpenseManager />;
