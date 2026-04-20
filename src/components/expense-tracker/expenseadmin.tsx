@@ -485,7 +485,7 @@ export default function ExpenseAdmin() {
 
     const r = Number(rRaw) || 0;
 
-    const isAdmin = r === 1;
+    const isAdmin = r === 1 || r === 5;
 
     // 🔥 designation check
     const designation = (user?.designation || '').toLowerCase().trim();
