@@ -470,44 +470,15 @@ export default function ExpenseAdmin() {
     setOpenSnackbar(false);
   };
 
-  const { isAdmin, hasAccess } = useMemo(() => {
-    if (typeof window === 'undefined') return { isAdmin: false, hasAccess: false };
-
-    const user: any = JSON.parse(localStorage.getItem('user') || '{}');
-
-    // 🔥 role check
-    const rRaw =
-      user?.role ??
-      user?.role_id ??
-      user?.user_role ??
-      user?.employee_role ??
-      0;
-
+  // USER (ADMIN CHECK)
+  const { isAdmin } = useMemo(() => {
+    if (typeof window === 'undefined') return { isAdmin: false };
+    const user: UserLS = JSON.parse(localStorage.getItem('user') || '{}');
+    const rRaw = user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
     const r = Number(rRaw) || 0;
-
-    const isAdmin = r === 1 || r === 5;
-
-    // 🔥 designation check
-    const designation = (user?.designation || '').toLowerCase().trim();
-
-    const allowedDesignations = [
-      'asst. ops manager',
-      'ops manager',
-      'assistant growth manager',
-      'sr. operations & alliances manager',
-      'ops executive',
-      'full stack developer',
-    ];
-
-    const isDesignationAllowed = allowedDesignations.some(d =>
-      designation.includes(d)
-    );
-
-    // 🔥 FINAL ACCESS
-    const hasAccess = isAdmin || isDesignationAllowed;
-
-    return { isAdmin, hasAccess };
+    return { isAdmin: r === 1 || r === 5 };
   }, []);
+
   // EMPLOYEES
   const employees = useSelector((state: RootState) => (state as any)?.employees?.employees || []) as EmployeeType[];
 
@@ -761,7 +732,7 @@ export default function ExpenseAdmin() {
     try {
       setLoadingList(true);
 
-      if (!hasAccess) {
+      if (!isAdmin) {
         setRows([]);
         setTotal(0);
         return;
@@ -796,7 +767,7 @@ export default function ExpenseAdmin() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, hasAccess, filterMonth, filterYear, filterDate]);
+  }, [page, isAdmin, filterMonth, filterYear, filterDate]);
 
   const currentMonth = useMemo(() => monthLabel(filterYear, filterMonth), [filterYear, filterMonth]);
   const currentMonthRows = useMemo(() => rows || [], [rows]); // already filtered from backend
@@ -840,7 +811,7 @@ export default function ExpenseAdmin() {
     });
   };
 
-  const exportCSV = () => {
+const exportCSV = () => {
     if (!rows || rows.length === 0) {
       alert("No data");
       return;
@@ -869,18 +840,18 @@ export default function ExpenseAdmin() {
       "Description",
     ];
 
-    const formatDate = (d: string) => {
-      if (!d) return "";
-      return new Date(d).toLocaleDateString("en-GB");
-    };
-
-    const escapeCSV = (value: any) => {
+  const formatDate = (d: string) => {
+    if (!d) return '';
+    return new Date(d).toLocaleDateString('en-GB');
+  };
+   const escapeCSV = (value: any) => {
       if (value === null || value === undefined) return "";
       const str = String(value).replace(/"/g, '""');
       return `"${str}"`;
     };
 
-    const getPayTo = (r: any) => {
+  
+ const getPayTo = (r: any) => {
       if (r.payment_mode === "BANK") {
         return `${r.account_holder || ""} - ${r.account_number || ""}`;
       }
@@ -899,8 +870,7 @@ export default function ExpenseAdmin() {
 
       return "";
     };
-
-    const data = rows.map((r: any) => [
+ const data = rows.map((r: any) => [
       escapeCSV(formatDate(r.date)),
       escapeCSV(formatDate(r.expected_payment_date)),
       escapeCSV(formatDate(r.invoice_date)),
@@ -931,21 +901,22 @@ export default function ExpenseAdmin() {
       escapeCSV(r.description),
     ]);
 
-    const csv = [
-      headers.join(","),
-      ...data.map((row) => row.join(",")),
-    ].join("\n");
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
+  const csv = [
+    headers.join(","),
+    ...data.map(row => row.join(","))
+  ].join("\n");
 
-    const a = document.createElement("a");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+   const a = document.createElement("a");
     a.href = url;
     a.download = "expenses_full_payment_details.csv";
     a.click();
-
+  
     URL.revokeObjectURL(url);
-  };
+};
   const statusTotals = useMemo(() => {
     const m: Record<string, number> = { pending: 0, approved: 0, paid: 0, rejected: 0 };
     currentMonthRows.forEach((r) => {
@@ -1030,7 +1001,7 @@ export default function ExpenseAdmin() {
   // ADMIN VERIFY
   async function verify(id: string, status: 'approved' | 'rejected' | 'paid' | 'pending') {
     try {
-      if (!hasAccess) return;
+      if (!isAdmin) return;
       setVerifyingId(id);
 
       await adminVerifyExpense(id, { status, note, actual_payment_date: actualPaymentDate || undefined }, adminVerifyFiles);
@@ -1247,9 +1218,9 @@ export default function ExpenseAdmin() {
       setSaving(false);
     }
   };
-
+  console.log(isAdmin, "isAdmin");
   // NON ADMIN VIEW
-  if (!hasAccess) {
+  if (!isAdmin) {
     return (
       <div
         style={{
@@ -2005,7 +1976,7 @@ export default function ExpenseAdmin() {
                   const canEdit = r.admin_status === 'pending';
                   const canDelete = r.admin_status === 'pending';
                   const isRowVerifying = verifyingId === r._id;
-                  const canVerify = hasAccess;
+                  const canVerify = isAdmin;
                   const owner = getEmpData(r.owner_id);
                   const allInvoiceUrls: string[] = Array.isArray(r.invoices) ? r.invoices : [];
                   const isQrPayment = String(r.payment || '').startsWith('QR Payment');
