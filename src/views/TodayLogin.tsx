@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 
@@ -42,6 +42,7 @@ type Row = {
     banker_details?: string;
     status?: "login" | "reject" | "approved" | "disbursed" | "hold" | "drop"
 };
+
 
 type FormData = Omit<Row, "_id" | "date">;
 
@@ -131,6 +132,7 @@ function avatarColor(name: string) {
     for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
     return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
+
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -258,7 +260,30 @@ const inputSx: React.CSSProperties = {
     background: "#fff",
     outline: "none",
 };
+const inputModern = {
+    width: "100%",
+    padding: "10px 12px",
+    border: "1px solid #E2E8F0",
+    borderRadius: 10,
+    fontSize: 13,
+    background: "#FFFFFF",
+    transition: "all 0.2s ease",
+};
+const fieldBox = {
+  background: "#fff",
+  border: "1px solid #E2E8F0",
+  borderRadius: 12,
+  padding: "2px",
+};
 
+const inputClean = {
+  width: "100%",
+  padding: "10px 12px",
+  border: "none",
+  outline: "none",
+  fontSize: 13,
+  background: "transparent",
+};
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TodayLogin() {
@@ -282,7 +307,9 @@ export default function TodayLogin() {
 
     const [user, setUser] = useState<any>(null);
     const [isAdmin, setIsAdmin] = useState(false);
-
+    const [employees, setEmployees] = useState([]);
+    const [creditEmployees, setCreditEmployees] = useState<any[]>([]);
+    const [opsEmployees, setOpsEmployees] = useState<any[]>([]);
     useEffect(() => {
         const u =
             typeof window !== "undefined"
@@ -291,7 +318,72 @@ export default function TodayLogin() {
         setUser(u);
         setIsAdmin(String(u?.role) === "1");
     }, []);
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const user = JSON.parse(localStorage.getItem("user") || "{}");
 
+                const auth = `Bearer ${token} ${user.company_id}`;
+
+                // 🔹 CREDIT
+                const creditRes = await fetch(
+                    `${process.env.NEXT_PUBLIC_APP_URL}/employees/get?designation=credit&limit=1000`,
+                    {
+                        headers: { Authorization: auth },
+                    }
+                );
+                const creditJson = await creditRes.json();
+
+                // 🔹 OPS
+                const opsRes = await fetch(
+                    `${process.env.NEXT_PUBLIC_APP_URL}/employees/get?designation=ops&limit=1000`,
+                    {
+                        headers: { Authorization: auth },
+                    }
+                );
+                const opsJson = await opsRes.json();
+
+                console.log("credit 👉", creditJson);
+                console.log("ops 👉", opsJson);
+
+                // ✅ YAHI MAIN FIX
+                setCreditEmployees(creditJson?.data || creditJson || []);
+                setOpsEmployees(opsJson?.data || opsJson || []);
+
+            } catch (err) {
+                console.error("Employee fetch error", err);
+            }
+        };
+
+        fetchEmployees();
+    }, []);
+
+    const employeeMap = useMemo(() => {
+        const map: any = {};
+
+        [...creditEmployees, ...opsEmployees].forEach((emp: any) => {
+            if (emp?._id) {
+                map[String(emp._id)] =
+                    `${emp.first_name || ""} ${emp.last_name || ""}`.trim() ||
+                    emp.name ||
+                    "";
+            }
+        });
+
+        return map;
+    }, [creditEmployees, opsEmployees]);
+    const getId = (val: any) => {
+        if (!val) return "";
+
+        if (typeof val === "string") return val;
+
+        if (val._id) return val._id;
+
+        if (val.$oid) return val.$oid;
+
+        return String(val);
+    };
     const isAsstOpsManager = [
         "Asst. Ops Manager",
         "Ops Manager",
@@ -463,6 +555,8 @@ export default function TodayLogin() {
     };
     // ─── Render ───────────────────────────────────────────────────────────────
 
+
+
     return (
         <>
             <style>{`
@@ -543,96 +637,172 @@ export default function TodayLogin() {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
-                                padding: "16px 20px",
-                                borderBottom: "0.5px solid #C3DEFE",
-                                background: "#F4F8FD",
-                                borderRadius: "16px 16px 0 0",
+                                padding: "18px 22px",
+                                borderBottom: "0.5px solid #E2E8F0",
+                                background: "linear-gradient(135deg, #EFF6FF, #F8FAFC)",
                             }}
                         >
-                            <span style={{ fontSize: 15, fontWeight: 600, color: "#0C447C" }}>
-                                {editId ? "Edit Entry" : "Add Entry"}
-                            </span>
-                            <button className="ib" onClick={closeDialog} style={{ color: "#5B7FA6" }}>
-                                ✕
-                            </button>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <div
+                                    style={{
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 10,
+                                        background: "#185FA5",
+                                        color: "#fff",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: 16,
+                                    }}
+                                >
+                                    +
+                                </div>
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: 15 }}>
+                                        {editId ? "Edit Entry" : "New Login Entry"}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: "#64748B" }}>
+                                        Fill details to create a login case
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onClick={closeDialog} className="ib">✕</button>
                         </div>
 
-                        {/* Dialog Body */}
                         <div
                             style={{
                                 overflowY: "auto",
-                                padding: "16px 20px",
+                                padding: "22px 26px",
                                 flex: 1,
                                 display: "grid",
                                 gridTemplateColumns: "1fr 1fr",
-                                gap: "12px 16px",
+                                gap: "20px 18px",
                                 alignContent: "start",
+                                background: "#F8FAFC",
                             }}
                         >
-                            {FIELDS.map(({ key, label, type }) => (
-                                <div
-                                    key={key}
-                                    style={key === "banker_details" ? { gridColumn: "1 / -1" } : {}}
-                                >
-                                    <label
+                            {FIELDS.map(({ key, label, type }) => {
+                                const getLabel = (emp: any) =>
+                                    (emp?.first_name || emp?.last_name)
+                                        ? `${emp.first_name || ""} ${emp.last_name || ""}`.trim()
+                                        : emp?.name || emp?.employee_name || emp?.email || "Employee";
+
+                                return (
+                                    <div
+                                        key={key}
                                         style={{
-                                            display: "block",
-                                            fontSize: 11,
-                                            fontWeight: 600,
-                                            color: "#5B7FA6",
-                                            marginBottom: 4,
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: 6,
+                                            ...(key === "banker_details" && { gridColumn: "1 / -1" }),
                                         }}
                                     >
-                                        {label}
-                                    </label>
-                                    <input
-                                        className="dl-input"
-                                        type={type ?? "text"}
-                                        placeholder={key === "banker_details" ? "Rahul Sharma - 9876543210" : ""}
-                                        value={String(form[key] ?? "")}
-                                        onChange={(e) => handleChange(key, e.target.value)}
-                                        style={inputSx}
-                                    />
-                                </div>
-                            ))}
+                                        {/* 🔹 Label */}
+                                        <label
+                                            style={{
+                                                fontSize: 12,
+                                                fontWeight: 600,
+                                                color: "#334155",
+                                                letterSpacing: "0.03em",
+                                            }}
+                                        >
+                                            {label}
+                                        </label>
 
-                            {/* Status dropdown inside grid */}
-                            <div style={{ gridColumn: "1 / -1" }}>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        fontSize: 11,
-                                        fontWeight: 600,
-                                        color: "#5B7FA6",
-                                        marginBottom: 4,
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                    }}
-                                >
+                                        {/* 🔹 Input Wrapper */}
+                                        <div style={fieldBox}>
+                                            {key === "credit_poc" ? (
+                                                <select value={form[key] || ""} onChange={(e) => handleChange(key, e.target.value)} style={inputClean}>
+                                                    <option value="">Select Credit Employee</option>
+                                                    {creditEmployees.map((emp: any, i) => (
+                                                        <option key={emp._id || i} value={emp._id}>
+                                                            {getLabel(emp)}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : key === "ops_poc" ? (
+                                                <select value={form[key] || ""} onChange={(e) => handleChange(key, e.target.value)} style={inputClean}>
+                                                    <option value="">Select Ops Employee</option>
+                                                    {opsEmployees.map((emp: any, i) => (
+                                                        <option key={emp._id || i} value={emp._id}>
+                                                            {getLabel(emp)}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : key === "login_poc" ? (
+                                                <select value={form[key] || ""} onChange={(e) => handleChange(key, e.target.value)} style={inputClean}>
+                                                    <option value="">Select Employee</option>
+                                                    {[...creditEmployees, ...opsEmployees].map((emp: any, i) => (
+                                                        <option key={emp._id || i} value={emp._id}>
+                                                            {getLabel(emp)}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    type={type ?? "text"}
+                                                    value={String(form[key] ?? "")}
+                                                    onChange={(e) => handleChange(key, e.target.value)}
+                                                    style={inputClean}
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {/* 🔥 STATUS (UPGRADED) */}
+                            <div
+                                style={{
+                                    gridColumn: "1 / -1",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 8,
+                                    marginTop: 4,
+                                }}
+                            >
+                                <label style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>
                                     Status
                                 </label>
-                                <select
-                                    value={form.status || "login"}
-                                    onChange={(e) =>
-                                        setForm((p) => ({
-                                            ...p,
-                                            status: e.target.value as "login" | "reject" | "approved" | "disbursed" | "hold" | "drop",
-                                        }))
-                                    }
-                                    style={inputSx}
-                                >
-                                    <option value="login">Login</option>
-                                    <option value="approved">Approved</option>
-                                    <option value="reject">Reject</option>
-                                    <option value="disbursed">Disbursed</option>
-                                    <option value="hold">Hold</option>
-                                    <option value="drop">Drop</option>
-                                </select>
+
+                                {/* 👇 BUTTON STYLE STATUS */}
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                    {[
+                                        { key: "login", label: "Login", color: "#FACC15" },
+                                        { key: "approved", label: "Approved", color: "#3B82F6" },
+                                        { key: "reject", label: "Reject", color: "#EF4444" },
+                                        { key: "disbursed", label: "Disbursed", color: "#22C55E" },
+                                        { key: "hold", label: "Hold", color: "#6B7280" },
+                                        { key: "drop", label: "Drop", color: "#991B1B" },
+                                    ].map((s) => (
+                                        <button
+                                            key={s.key}
+                                            onClick={() =>
+                                                setForm((p) => ({
+                                                    ...p,
+                                                    status: s.key as any,
+                                                }))
+                                            }
+                                            style={{
+                                                padding: "6px 14px",
+                                                borderRadius: 20,
+                                                border: "1px solid",
+                                                fontSize: 12,
+                                                cursor: "pointer",
+                                                background: form.status === s.key ? s.color : "#fff",
+                                                color: form.status === s.key ? "#fff" : "#475569",
+                                                borderColor: s.color,
+                                                transition: "all 0.2s",
+                                            }}
+                                        >
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-
                         {/* Dialog Footer */}
                         <div
                             style={{
@@ -1026,6 +1196,14 @@ export default function TodayLogin() {
                                                             );
                                                         }
                                                         const value = r[col.key as keyof Row];
+                                                        if (["login_poc", "credit_poc", "ops_poc"].includes(col.key)) {
+                                                            const id = getId(value);
+                                                            return (
+                                                                <td key={col.key} style={{ padding: "10px 14px" }}>
+                                                                    {employeeMap[id] || "—"}
+                                                                </td>
+                                                            );
+                                                        }
 
                                                         if (col.key === "credit_eligibility") {
                                                             return (
