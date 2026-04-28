@@ -12,7 +12,6 @@ import {
 import type { RootState } from '@/redux/store'
 import useRouterWithMount from '@/utility/useRouterWithMount';
 import { useSettings } from '@/@core/hooks/useSettings';
-import { useRouter } from 'next/navigation'
 
 interface PunchInOutProps {
     selectedDate: string
@@ -70,7 +69,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [isMobileDevice, setIsMobileDevice] = useState(false);
 
     const { settings } = useSettings()
-    const router = useRouter()
+
     // Check if user is whitelisted
     const isWhitelistedUser = WHITELIST_EMPLOYEE_IDS.includes(employeeId);
 
@@ -318,7 +317,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const handlePunchIn = async () => {
         // Mobile device check - block if not whitelisted
         if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
+            alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Please use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
             return;
         }
 
@@ -538,73 +537,40 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         if (punchInTime) {
             if (punchInTime <= referenceTime10_15AM && punchInTime >= referenceTime9AM) {
-                punchMessage = 'Big achievements are often the result of small habits like punctuality practiced every single⏰🚀';
+                punchMessage = '✅ Great job! Being on time shows commitment and professionalism. Keep up the good work';
             } else if (punchInTime > referenceTime10_15AM) {
-                punchMessage = `⏰Punctuality is not just about being on time; it's about respecting your work, your team, and your commitments.`;
+                punchMessage = `⏰ Punctuality is not just about being on time; it's about respecting your work, your team, and your commitments.`;
             }
         }
 
         return (
-            <div className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl shadow-lg mt-4 mx-auto ${settings.mode === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-r from-indigo-900 to-blue-700'}`}>
+            <div className={`flex flex-col items-center justify-center gap-4 p-6 rounded-xl shadow-lg mt-4 mx-auto ${settings.mode === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-r from-indigo-900 to-blue-700'}`}>
                 {/* Mobile Warning Message */}
                 {isPunchDisabledDueToMobile && (
-                    <div className="text-center font-bold text-red-300 bg-red-900/40 p-1 rounded-lg w-full mb-2 border border-red-500">
-                        🚫 Mobile devices cannot Punch In/Out.Use Desktop/Laptop.
+                    <div className="text-center font-bold text-red-300 bg-red-900/40 p-3 rounded-lg w-full mb-2 border border-red-500">
+                        🚫 Mobile devices cannot Punch In/Out. Please use Desktop/Laptop.
                     </div>
                 )}
 
                 {punchMessage && (
-                    <div className="text-center font-bold text-yellow-300 bg-black/20 p-3 rounded-lg w-full mb-9">
+                    <div className="text-center font-bold text-yellow-300 bg-black/20 p-3 rounded-lg w-full mb-4">
                         {punchMessage}
                     </div>
                 )}
 
-
-
-
-                <div className="flex items-center gap-3 w-full">
-
-                    <div className="relative group cursor-pointer" onClick={() => navigateToProfile(userData?._id)}>
-                        <img
-                            alt={userData?.first_name || 'User'}
-                            src={userData?.image || '/images/avatars/default.png'}
-                            className="w-14 h-14 rounded-full border-2 border-white/70 object-cover"
-                        />
-                        <span className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white" />
-                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 bg-blue-500 text-white text-xs py-0.5 px-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="relative group cursor-pointer" onClick={() => navigateToProfile(userData?._id)}>
+                    <img
+                        alt={userData?.first_name || 'User'}
+                        src={userData?.image || '/images/avatars/default.png'}
+                        className="w-16 h-16 rounded-full border-2 border-white mb-2 transition-transform group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 bg-blue-500 text-white text-xs py-0.5 px-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         View Profile
-                        </div>
-                    </div>
-
-
-                    <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium text-sm truncate">
-                            {userData?.first_name} {userData?.last_name}
-                        </p>
-                        <p className="text-white/60 text-xs truncate">{userDesg || 'No Found'}</p>
-                      
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-col gap-1.5">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); router.push('/breaksheets') }}
-                            className="flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-400 hover:bg-yellow-500 text-black text-xs font-medium whitespace-nowrap"
-                        >
-                            Take Break
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); router.push('/queries') }}
-                            className="flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium whitespace-nowrap"
-                        >
-                            Raise Query
-                        </button>
                     </div>
                 </div>
 
-                {/* Divider */}
-                <div className="w-full h-px bg-white/15" />
-                <h2 className="font-bold text-center mb-9 text-white text-xl">
+                <h2 className="font-bold text-center mb-6 text-white text-xl">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
                 </h2>
 
