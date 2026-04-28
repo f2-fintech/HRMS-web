@@ -540,7 +540,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             if (punchInTime <= referenceTime10_15AM && punchInTime >= referenceTime9AM) {
                 punchMessage = 'Big achievements are often the result of small habits like punctuality practiced every single⏰🚀';
             } else if (punchInTime > referenceTime10_15AM) {
-                punchMessage = `⏰ Punctuality is not just about being on time; it's about respecting your work, your team, and your commitments.`;
+                punchMessage = `⏰Punctuality is not just about being on time; it's about respecting your work, your team, and your commitments.`;
             }
         }
 
