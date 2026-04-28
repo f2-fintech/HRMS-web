@@ -318,7 +318,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const handlePunchIn = async () => {
         // Mobile device check - block if not whitelisted
         if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Please use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
+            alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
             return;
         }
 
