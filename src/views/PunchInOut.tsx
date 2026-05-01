@@ -25,8 +25,201 @@ const WHITELIST_EMPLOYEE_IDS = [
     '66c881fe269ecefff3411649',
     '66bca6192f1270380b77aac5',
     '66bc8bfe2f1270380b77a920',
-
+    '699e8d1b1cf053581b8a4d6e',
+    '693926c8c3b776470f4e1a44'
 ];
+
+const formatTime = (obj: any) => {
+    return `${obj?.h || obj?.hours || 0}h ${obj?.m || obj?.minutes || 0}m ${obj?.s || obj?.seconds || 0}s`;
+};
+
+const toSeconds = (obj: any): number => {
+    if (!obj) return 0
+    const h = obj?.h ?? obj?.hours ?? 0
+    const m = obj?.m ?? obj?.minutes ?? 0
+    const s = obj?.s ?? obj?.seconds ?? 0
+    return h * 3600 + m * 60 + s
+}
+
+// ─── Working Hours Modal ───────────────────────────────────────────────────────
+const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string; onClose: () => void; punch: any }> = ({
+    totalWorkingHours,
+    selectedDate,
+    onClose,
+    punch,
+}) => {
+    const homeSec = toSeconds(totalWorkingHours?.HOME)
+    const officeSec = toSeconds(totalWorkingHours?.OFFICE)
+    const fieldSec = toSeconds(totalWorkingHours?.FIELD)
+    const totalSec = homeSec + officeSec + fieldSec
+
+    const pct = (sec: number) => totalSec > 0 ? Math.round((sec / totalSec) * 100) : 0
+    const homeP = pct(homeSec)
+    const officeP = pct(officeSec)
+    const fieldP = 100 - homeP - officeP
+
+    const slots = [
+        { label: 'Home', icon: '🏠', value: formatTime(totalWorkingHours?.HOME), percent: homeP, color: '#10b981', bg: '#d1fae5', text: '#065f46' },
+        { label: 'Office', icon: '🏢', value: formatTime(totalWorkingHours?.OFFICE), percent: officeP, color: '#3b82f6', bg: '#dbeafe', text: '#1e40af' },
+        { label: 'Field', icon: '🚶', value: formatTime(totalWorkingHours?.FIELD), percent: fieldP, color: '#f59e0b', bg: '#fef3c7', text: '#92400e' },
+    ]
+
+    return (
+        <div
+            onClick={onClose}
+            style={{
+                position: 'fixed', inset: 0, zIndex: 9999,
+                background: 'rgba(0,0,0,0.55)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '16px',
+            }}
+        >
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                    borderRadius: '20px',
+                    padding: '24px',
+                    width: '100%',
+                    maxWidth: '620px',
+                    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+                    boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                }}
+            >
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div>
+
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '2px' }}>
+                            Working Hours
+                        </div>
+                        <div style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>{selectedDate}</div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            width: '32px', height: '32px', borderRadius: '50%',
+                            background: '#1e293b', border: '1px solid #334155',
+                            color: '#94a3b8', fontSize: '16px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            lineHeight: 1,
+                        }}
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                {/* 3 cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>
+                    {slots.map(slot => (
+                        <div key={slot.label} style={{
+                            background: '#1e293b',
+                            border: '1px solid #334155',
+                            borderRadius: '14px',
+                            padding: '12px 10px',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                                <span style={{ fontSize: '14px' }}>{slot.icon}</span>
+                                <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: slot.color }}>
+                                    {slot.label}
+                                </span>
+                            </div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', marginBottom: '8px', lineHeight: 1.3 }}>
+                                {slot.value}
+                            </div>
+                            <div style={{
+                                display: 'inline-block',
+                                background: slot.bg, color: slot.text,
+                                fontSize: '10px', fontWeight: 700,
+                                borderRadius: '99px', padding: '2px 8px',
+                                marginBottom: '8px',
+                            }}>
+                                {slot.percent}%
+                            </div>
+                            <div style={{ height: '4px', background: '#334155', borderRadius: '99px', overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${slot.percent}%`, background: slot.color, borderRadius: '99px', transition: 'width 0.6s ease' }} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div style={{ marginTop: '16px' }}>
+                    <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px' }}>
+                        Activity Timeline
+                    </div>
+
+                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                        {punch?.length > 0 ? (
+                            punch.map((p: any, i: number) => (
+                                <div
+                                    key={i}
+                                    style={{
+                                        background: '#020617',
+                                        border: '1px solid #334155',
+                                        borderRadius: '10px',
+                                        padding: '8px 10px',
+                                        marginBottom: '6px',
+                                        fontSize: '12px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ color: '#e2e8f0', fontWeight: 600 }}>
+                                            {p.punchIn} → {p.punchOut || 'Running...'}
+                                        </div>
+                                        <div style={{ fontSize: '10px', color: '#64748b' }}>
+                                            {p.type}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ fontSize: '11px', color: '#22c55e' }}>
+                                        {p.totalTime || '--'}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                No data
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {/* Total */}
+                <div style={{
+                    background: '#1e293b',
+                    border: '1px solid #334155',
+                    borderRadius: '14px',
+                    padding: '14px 16px',
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total</span>
+                        <span style={{ fontSize: '22px', fontWeight: 700, color: '#f1f5f9' }}>
+                            {formatTime(totalWorkingHours?.total)}
+                        </span>
+                    </div>
+                    {/* Stacked bar */}
+                    <div style={{ height: '8px', background: '#0f172a', borderRadius: '99px', overflow: 'hidden', display: 'flex' }}>
+                        <div style={{ width: `${homeP}%`, background: '#10b981', height: '100%' }} />
+                        <div style={{ width: `${officeP}%`, background: '#3b82f6', height: '100%' }} />
+                        <div style={{ width: `${fieldP}%`, background: '#f59e0b', height: '100%' }} />
+                    </div>
+                    {/* Legend */}
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                        {slots.map(s => (
+                            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color, display: 'inline-block' }} />
+                                <span style={{ fontSize: '10px', color: '#64748b' }}>{s.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     selectedDate,
@@ -58,6 +251,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [currentTime, setCurrentTime] = useState(new Date())
     const [logoUrl, setLogoUrl] = useState('/images/logos/fintech.png');
     const [isSmallScreen, setIsSmallScreen] = useState(false)
+    const [showHoursModal, setShowHoursModal] = useState(false)  // ← NEW
+
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id;
     const userRole = employee?.role
@@ -69,85 +264,36 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [userData, setUserData] = useState(null)
     const [isMobileDevice, setIsMobileDevice] = useState(false);
 
+    const [punchType, setPunchType] = useState<'HOME' | 'OFFICE' | 'FIELD'>('OFFICE');
+
     const { settings } = useSettings()
     const router = useRouter()
-    // Check if user is whitelisted
     const isWhitelistedUser = WHITELIST_EMPLOYEE_IDS.includes(employeeId);
 
-    // Enhanced mobile detection function - detects even with Desktop Mode enabled
     const detectMobileDevice = () => {
         if (typeof navigator === "undefined" || typeof window === "undefined") return false;
-
-        // Whitelist users can use any device
         if (isWhitelistedUser) return false;
-
-
-
-
-
         const ua = navigator.userAgent.toLowerCase();
-
-        // Check for mobile user agents (including when desktop mode is on)
         const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
-
-        // Check for tablet specifically
-        const isTablet = /ipad|tablet|playbook|silk/i.test(ua) ||
-            (ua.includes('android') && !ua.includes('mobile'));
-
-        // Check for touch device (most reliable for mobile even in desktop mode)
-        const isTouchDevice = ('ontouchstart' in window) ||
-            (navigator.maxTouchPoints > 0) ||
-            (navigator.msMaxTouchPoints > 0);
-
-        // Check for mobile platform
+        const isTablet = /ipad|tablet|playbook|silk/i.test(ua) || (ua.includes('android') && !ua.includes('mobile'));
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
         const isMobilePlatform = /android|iphone|ipad|ipod|windows phone/i.test(navigator.platform || '');
-
-        // Check vendor for iOS devices
         const isAppleDevice = /apple/i.test(navigator.vendor || '');
         const isIOSDevice = isAppleDevice && isTouchDevice;
-
-        // Screen characteristics (physical screen, not viewport)
         const screenWidth = window.screen.width;
         const screenHeight = window.screen.height;
         const smallPhysicalScreen = Math.min(screenWidth, screenHeight) <= 768;
-
-        // Device memory (mobile devices typically have less memory)
         const lowMemoryDevice = (navigator as any).deviceMemory ? (navigator as any).deviceMemory <= 4 : false;
-
-        // Check for mobile network connection
         const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
         const isMobileConnection = connection?.type ? /cellular|wimax/i.test(connection.type) : false;
-
-        // CRITICAL: If it's a touch device with small physical screen, it's definitely mobile
-        // This catches desktop mode on mobile browsers
-        if (isTouchDevice && smallPhysicalScreen) {
-            return true;
-        }
-
-        // If iOS device detected, always consider it mobile
-        if (isIOSDevice) {
-            return true;
-        }
-
-        // If Android or mobile UA detected
-        if (isMobileUA || isTablet) {
-            return true;
-        }
-
-        // If mobile platform detected
-        if (isMobilePlatform) {
-            return true;
-        }
-
-        // Additional checks: touch device + (low memory OR mobile connection)
-        if (isTouchDevice && (lowMemoryDevice || isMobileConnection)) {
-            return true;
-        }
-
+        if (isTouchDevice && smallPhysicalScreen) return true;
+        if (isIOSDevice) return true;
+        if (isMobileUA || isTablet) return true;
+        if (isMobilePlatform) return true;
+        if (isTouchDevice && (lowMemoryDevice || isMobileConnection)) return true;
         return false;
     };
 
-    // Detect mobile device on mount and when employeeId changes
     useEffect(() => {
         const checkDevice = () => {
             const isMobile = detectMobileDevice();
@@ -159,35 +305,23 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 screenWidth: window.innerWidth
             });
         };
-
         checkDevice();
-
-        // Re-check on window resize
         window.addEventListener('resize', checkDevice);
-
         return () => window.removeEventListener('resize', checkDevice);
     }, [isWhitelistedUser, employeeId]);
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
-
         const fetchUserData = async () => {
             try {
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_APP_URL}/employees/get/${user.id}`
-                )
-
+                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/get/${user.id}`)
                 const data = await response.json()
-
                 setUserData(data)
             } catch (error) {
                 console.error('Error fetching user data:', error)
             }
         }
-
-        if (user.id) {
-            fetchUserData()
-        }
+        if (user.id) fetchUserData()
     }, [])
 
     const currentDate = new Date().toISOString().split('T')[0]
@@ -198,18 +332,13 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             setIsLargeScreen(window.innerWidth >= 1024)
             setIsSmallScreen(window.innerWidth < 640)
         }
-
         handleResize()
         window.addEventListener('resize', handleResize)
-
         return () => window.removeEventListener('resize', handleResize)
     }, [])
 
     useEffect(() => {
-        const timerInterval = setInterval(() => {
-            setCurrentDateTime(new Date())
-        }, 1000)
-
+        const timerInterval = setInterval(() => setCurrentDateTime(new Date()), 1000)
         return () => clearInterval(timerInterval)
     }, [])
 
@@ -217,15 +346,11 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         const getConfiguration = async () => {
             try {
                 const config = await fetchConfiguration();
-
-                if (config.image) {
-                    setLogoUrl(config.image);
-                }
+                if (config.image) setLogoUrl(config.image);
             } catch (error) {
                 console.error('Error fetching configuration:', error);
             }
         };
-
         getConfiguration();
     }, []);
 
@@ -236,283 +361,98 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 .then(punchData => {
                     if (punchData.length > 0) {
                         const latestPunch = punchData[punchData.length - 1]
-
                         stopPunchTimer()
-
                         if (!latestPunch.punchOut) {
                             const punchInTimestamp = new Date(`${selectedDate} ${latestPunch.punchIn}`).getTime()
-
-                            setPunchState({
-                                ...punchState,
-                                isPunchIn: true,
-                                startTime: latestPunch.punchIn,
-                                isPunchInDisabled: true,
-                                isPunchOutDisabled: false
-                            })
+                            setPunchState({ ...punchState, isPunchIn: true, startTime: latestPunch.punchIn, isPunchInDisabled: true, isPunchOutDisabled: false })
                             setStartTimestamp(punchInTimestamp)
-
                             if (!selectedEmployeeId || isCurrentDate) {
                                 startPunchInTimer(punchInTimestamp)
                             } else {
                                 setTimer(latestPunch.totalTime || '00h 00m 00s')
                             }
                         } else {
-                            setPunchState({
-                                ...punchState,
-                                isPunchIn: false,
-                                startTime: latestPunch.punchIn,
-                                endTime: latestPunch.punchOut,
-                                isPunchInDisabled: false,
-                                isPunchOutDisabled: true
-                            })
+                            setPunchState({ ...punchState, isPunchIn: false, startTime: latestPunch.punchIn, endTime: latestPunch.punchOut, isPunchInDisabled: false, isPunchOutDisabled: true })
                         }
                     } else {
-                        setPunchState({
-                            isPunchIn: false,
-                            startTime: '',
-                            endTime: '',
-                            totalTime: '00h 00m 00s',
-                            isPunchInDisabled: false,
-                            isPunchOutDisabled: true
-                        })
+                        setPunchState({ isPunchIn: false, startTime: '', endTime: '', totalTime: '00h 00m 00s', isPunchInDisabled: false, isPunchOutDisabled: true })
                         setTimer('00h 00m 00s')
                         setStartTimestamp(null)
                     }
                 })
-
             dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
         }
     }, [dispatch, employeeId, selectedDate, isCurrentDate])
 
     useEffect(() => {
         return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current)
-                intervalRef.current = null
-            }
+            if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
         }
     }, [employeeId])
 
     const startPunchInTimer = (timestamp: number) => {
         intervalRef.current = setInterval(() => {
-            const currentTime = Date.now()
-            const diff = currentTime - timestamp
+            // const currentTime = Date.now()
+            const diff = Date.now() - timestamp
             const totalSeconds = Math.floor(diff / 1000)
             const hours = Math.floor(totalSeconds / 3600)
             const minutes = Math.floor((totalSeconds % 3600) / 60)
             const seconds = totalSeconds % 60
-
-            setTimer(
-                `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`
-            )
+            setTimer(`${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`)
         }, 1000)
     }
 
     const stopPunchTimer = () => {
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current)
-            intervalRef.current = null
-        }
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
     }
 
     const handlePunchIn = async () => {
-        // Mobile device check - block if not whitelisted
         if (isMobileDevice && !isWhitelistedUser) {
             alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
             return;
         }
-
         const now = new Date()
-        const startTime = now.toLocaleTimeString('en-US', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        })
-
-        const punchData = {
-            punchIn: startTime,
-            punchOut: '',
-            totalTime: '00h 00m 00s',
-            date: currentDate,
-            employee: employeeId,
-            company_id: company_id
-        }
-
-        setPunchState({
-            ...punchState,
-            isPunchIn: true,
-            startTime,
-            isPunchInDisabled: true,
-            isPunchOutDisabled: false
-        })
-
+        const startTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        const punchData = { punchIn: startTime, punchOut: '', totalTime: '00h 00m 00s', type: punchType, date: currentDate, employee: employeeId, company_id: company_id }
+        setPunchState({ ...punchState, isPunchIn: true, startTime, isPunchInDisabled: true, isPunchOutDisabled: false })
         await dispatch(addPunch(punchData)).unwrap();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         startPunchInTimer(now.getTime())
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     const handlePunchOut = async () => {
-        // Mobile device check - block if not whitelisted
         if (isMobileDevice && !isWhitelistedUser) {
             alert('🚫 PUNCH OUT BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch Out.\n✅ Please use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
             return;
         }
-
         const now = new Date()
-
-        const endTime = now.toLocaleTimeString('en-US', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        })
-
+        const endTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
         const confirmation = window.confirm('Are you sure you want to punch out?')
-
-        if (!confirmation) {
-            return
-        }
-
+        if (!confirmation) return
         stopPunchTimer()
-
-
-
-
-        setPunchState({
-            isPunchIn: false,
-            startTime: '',
-            endTime,
-            totalTime: timer,
-            isPunchInDisabled: false,
-            isPunchOutDisabled: true
-        })
-
-        const punchData = {
-            punchOut: endTime,
-            totalTime: timer
-        }
-
-
-
+        setPunchState({ isPunchIn: false, startTime: '', endTime, totalTime: timer, isPunchInDisabled: false, isPunchOutDisabled: true })
+        const punchData = { punchOut: endTime, totalTime: timer }
         await dispatch(updatePunch({ employeeId, punchData })).unwrap()
-
-
         dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
         dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     useEffect(() => {
         if (punch.length > 0) {
             const latestPunch = punch[punch.length - 1]
-
             if (!latestPunch.punchOut) {
-                setPunchState({
-                    ...punchState,
-                    isPunchIn: true,
-                    startTime: latestPunch.punchIn,
-                    isPunchInDisabled: true,
-                    isPunchOutDisabled: false
-                })
+                setPunchState({ ...punchState, isPunchIn: true, startTime: latestPunch.punchIn, isPunchInDisabled: true, isPunchOutDisabled: false })
             } else {
-                setPunchState({
-                    ...punchState,
-                    isPunchIn: false,
-                    startTime: latestPunch.punchIn,
-                    endTime: latestPunch.punchOut,
-                    isPunchInDisabled: false,
-                    isPunchOutDisabled: true
-                })
+                setPunchState({ ...punchState, isPunchIn: false, startTime: latestPunch.punchIn, endTime: latestPunch.punchOut, isPunchInDisabled: false, isPunchOutDisabled: true })
             }
         }
     }, [punch, employeeId])
 
     useEffect(() => {
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current)
-            }
-        }
+        return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
     }, [])
 
-    const handlePreviousPunch = () => {
-        if (currentPunchIndex > 0) {
-            setCurrentPunchIndex(currentPunchIndex - 1)
-        }
-    }
-
-    const handleNextPunch = () => {
-        if (currentPunchIndex < punch.length - 1) {
-            setCurrentPunchIndex(currentPunchIndex + 1)
-        }
-    }
+    const handlePreviousPunch = () => { if (currentPunchIndex > 0) setCurrentPunchIndex(currentPunchIndex - 1) }
+    const handleNextPunch = () => { if (currentPunchIndex < punch.length - 1) setCurrentPunchIndex(currentPunchIndex + 1) }
 
     if (loading) {
         return <div className="flex justify-center items-center h-48">
@@ -525,17 +465,14 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const currentPunch = punch.length > 0 ? punch[currentPunchIndex] : null
-
-    // Check if punch buttons should be disabled due to mobile device
     const isPunchDisabledDueToMobile = isMobileDevice && !isWhitelistedUser;
 
+    // ─── Minimal View ──────────────────────────────────────────────────────────
     if (isMinimalView) {
         const punchInTime = punchState.startTime ? new Date(`1970-01-01T${punchState.startTime}`) : null;
         const referenceTime9AM = new Date('1970-01-01T09:00:00');
         const referenceTime10_15AM = new Date('1970-01-01T10:15:00');
-
         let punchMessage = '';
-
         if (punchInTime) {
             if (punchInTime <= referenceTime10_15AM && punchInTime >= referenceTime9AM) {
                 punchMessage = 'Big achievements are often the result of small habits like punctuality practiced every single⏰🚀';
@@ -545,197 +482,219 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         }
 
         return (
-            <div className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl shadow-lg mt-4 mx-auto ${settings.mode === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-r from-indigo-900 to-blue-700'}`}>
-                {/* Mobile Warning Message */}
-                {isPunchDisabledDueToMobile && (
-                    <div className="text-center font-bold text-red-300 bg-red-900/40 p-1 rounded-lg w-full mb-2 border border-red-500">
-                        🚫 Mobile devices cannot Punch In/Out.Use Desktop/Laptop.
-                    </div>
+            <>
+                {/* Modal */}
+                {showHoursModal && (
+                    <WorkingHoursModal
+                        totalWorkingHours={totalWorkingHours}
+                        selectedDate={selectedDate}
+                        onClose={() => setShowHoursModal(false)}
+                        punch={punch}
+                    />
                 )}
 
-                {punchMessage && (
-                    <div className="text-center font-bold text-yellow-300 bg-black/20 p-3 rounded-lg w-full mb-9">
-                        {punchMessage}
-                    </div>
-                )}
+                <div className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl shadow-lg mt-4 mx-auto ${settings.mode === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-r from-indigo-900 to-blue-700'}`}>
+                    {isPunchDisabledDueToMobile && (
+                        <div className="text-center font-bold text-red-300 bg-red-900/40 p-1 rounded-lg w-full mb-2 border border-red-500">
+                            🚫 Mobile devices cannot Punch In/Out. Use Desktop/Laptop.
+                        </div>
+                    )}
 
+                    {punchMessage && (
+                        <div className="text-center font-bold text-yellow-300 bg-black/20 p-3 rounded-lg w-full mb-9">
+                            {punchMessage}
+                        </div>
+                    )}
 
+                    <div className="flex items-center gap-3 w-full">
+                        <div className="relative group cursor-pointer" onClick={() => navigateToProfile(userData?._id)}>
+                            <img
+                                alt={userData?.first_name || 'User'}
+                                src={userData?.image || '/images/avatars/default.png'}
+                                className="w-14 h-14 rounded-full border-2 border-white/70 object-cover"
+                            />
+                            <span className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white" />
+                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 bg-blue-500 text-white text-xs py-0.5 px-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                View Profile
+                            </div>
+                        </div>
 
+                        <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium text-sm truncate">
+                                {userData?.first_name} {userData?.last_name}
+                            </p>
+                            <p className="text-white/60 text-xs truncate">{userDesg || 'Not Found'}</p>
+                        </div>
 
-                <div className="flex items-center gap-3 w-full">
-
-                    <div className="relative group cursor-pointer" onClick={() => navigateToProfile(userData?._id)}>
-                        <img
-                            alt={userData?.first_name || 'User'}
-                            src={userData?.image || '/images/avatars/default.png'}
-                            className="w-14 h-14 rounded-full border-2 border-white/70 object-cover"
-                        />
-                        <span className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white" />
-                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 bg-blue-500 text-white text-xs py-0.5 px-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        View Profile
+                        <div className="flex flex-col gap-1.5">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); router.push('/breaksheets') }}
+                                className="flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-400 hover:bg-yellow-500 text-black text-xs font-medium whitespace-nowrap"
+                            >
+                                Take Break
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); router.push('/queries') }}
+                                className="flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium whitespace-nowrap"
+                            >
+                                Raise Query
+                            </button>
                         </div>
                     </div>
 
+                    {/* Divider */}
+                    <div className="w-full h-px bg-white/15" />
 
-                    <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium text-sm truncate">
-                            {userData?.first_name} {userData?.last_name}
-                        </p>
-                        <p className="text-white/60 text-xs truncate">{userDesg || 'No Found'}</p>
-                      
+                    {/* ── View Hours Button (replaces raw text) ── */}
+                    <button
+                        onClick={() => setShowHoursModal(true)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(255,255,255,0.12)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '10px',
+                            padding: '7px 16px',
+                            color: '#fff',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            width: '100%',
+                            justifyContent: 'center',
+                            letterSpacing: '0.03em',
+                            transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        View Working Hours
+                        <span style={{ marginLeft: '2px', opacity: 0.7, fontSize: '11px' }}>
+                            {formatTime(totalWorkingHours?.total)}
+                        </span>
+                    </button>
+
+                    <h2 className="font-bold text-center mb-9 text-white text-xl">
+                        {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
+                    </h2>
+
+                    <div className="flex gap-2 mb-2 justify-center">
+                        {['HOME', 'OFFICE', 'FIELD'].map((t) => (
+                            <button
+                                key={t}
+                                onClick={() => setPunchType(t as any)}
+                                disabled={punchState.isPunchIn}
+                                className={`px-3 py-1 rounded text-xs font-medium ${punchType === t ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white'} ${punchState.isPunchIn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                {t}
+                            </button>
+                        ))}
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-col gap-1.5">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); router.push('/breaksheets') }}
-                            className="flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-400 hover:bg-yellow-500 text-black text-xs font-medium whitespace-nowrap"
-                        >
-                            Take Break
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); router.push('/queries') }}
-                            className="flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium whitespace-nowrap"
-                        >
-                            Raise Query
-                        </button>
+                    <div className="flex justify-around items-center w-full gap-4">
+                        <div className="text-center">
+                            <button
+                                onClick={handlePunchIn}
+                                disabled={punchState.isPunchInDisabled || disablePunch || isPunchDisabledDueToMobile}
+                                className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchInDisabled || disablePunch || isPunchDisabledDueToMobile ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+                                title={isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop." : ""}
+                            >
+                                Punch In
+                            </button>
+                            {punchState.startTime && <div className="text-sm text-white">{punchState.startTime}</div>}
+                        </div>
+
+                        <div className="text-white font-bold text-sm text-center">
+                            {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+
+                        <div className="text-center">
+                            <button
+                                onClick={handlePunchOut}
+                                disabled={punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile}
+                                className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+                                title={isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop." : ""}
+                            >
+                                Punch Out
+                            </button>
+                            {punchState.endTime && <div className="text-sm text-white">{punchState.endTime}</div>}
+                        </div>
                     </div>
                 </div>
-
-                {/* Divider */}
-                <div className="w-full h-px bg-white/15" />
-                <h2 className="font-bold text-center mb-9 text-white text-xl">
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
-                </h2>
-
-                <div className="flex justify-around items-center w-full gap-4">
-                    <div className="text-center">
-                        <button
-                            onClick={handlePunchIn}
-                            disabled={punchState.isPunchInDisabled || disablePunch || isPunchDisabledDueToMobile}
-                            className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchInDisabled || disablePunch || isPunchDisabledDueToMobile
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-green-500 hover:bg-green-600 text-white'
-                                }`}
-                            title={isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop." : ""}
-                        >
-                            Punch In
-                        </button>
-
-                        {punchState.startTime && (
-                            <div className="text-sm text-white">
-                                {punchState.startTime}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="text-white font-bold text-sm text-center">
-                        {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </div>
-
-                    <div className="text-center">
-                        <button
-                            onClick={handlePunchOut}
-                            disabled={punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile}
-                            className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-red-500 hover:bg-red-600 text-white'
-                                }`}
-                            title={isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop." : ""}
-                        >
-                            Punch Out
-                        </button>
-
-                        {punchState.endTime && (
-                            <div className="text-sm text-white">
-                                {punchState.endTime}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+            </>
         );
     }
 
+    // ─── Full View ─────────────────────────────────────────────────────────────
     return (
-        <div className="max-w-6xl mx-auto py-4">
-            <div className="bg-white rounded-xl shadow-xl overflow-hidden">
-                {/* Mobile Warning Banner for Desktop View */}
-                {isPunchDisabledDueToMobile && (
-                    <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 text-center">
-                        <p className="font-bold">🚫 Mobile Device Detected</p>
-                        <p className="text-sm">Punch In/Out is only allowed from Desktop or Laptop computers. Please switch to a computer to continue.</p>
-                    </div>
-                )}
+        <>
+            {/* Modal */}
+            {showHoursModal && (
+                <WorkingHoursModal
+                    totalWorkingHours={totalWorkingHours}
+                    selectedDate={selectedDate}
+                    onClose={() => setShowHoursModal(false)}
+                    punch={punch}
+                />
+            )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2">
-                    <div className="bg-gray-100 flex flex-col items-center justify-center p-8">
-                        <div className="relative w-32 h-32 rounded-full border border-gray-300 bg-white shadow-md">
-                            <div
-                                className="absolute w-1 h-10 bg-black top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
-                                style={{ transform: `translateY(-100%) rotate(${(currentDateTime.getHours() % 12) * 30 + currentDateTime.getMinutes() / 2}deg)` }}
-                            ></div>
+            <div className="max-w-6xl mx-auto py-4">
+                <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+                    {isPunchDisabledDueToMobile && (
+                        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 text-center">
+                            <p className="font-bold">🚫 Mobile Device Detected</p>
+                            <p className="text-sm">Punch In/Out is only allowed from Desktop or Laptop computers.</p>
+                        </div>
+                    )}
 
-                            <div
-                                className="absolute w-0.5 h-14 bg-black top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
-                                style={{ transform: `translateY(-100%) rotate(${currentDateTime.getMinutes() * 6}deg)` }}
-                            ></div>
-
-                            <div
-                                className="absolute w-0.5 h-16 bg-red-500 top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
-                                style={{ transform: `translateY(-100%) rotate(${currentDateTime.getSeconds() * 6}deg)` }}
-                            ></div>
-
-                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full overflow-hidden opacity-60">
-                                <img
-                                    src={logoUrl}
-                                    alt="Company Logo"
-                                    className="w-full h-full object-cover"
-                                />
+                    <div className="grid grid-cols-1 md:grid-cols-2">
+                        {/* Clock */}
+                        <div className="bg-gray-100 flex flex-col items-center justify-center p-8">
+                            <div className="relative w-32 h-32 rounded-full border border-gray-300 bg-white shadow-md">
+                                <div className="absolute w-1 h-10 bg-black top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
+                                    style={{ transform: `translateY(-100%) rotate(${(currentDateTime.getHours() % 12) * 30 + currentDateTime.getMinutes() / 2}deg)` }} />
+                                <div className="absolute w-0.5 h-14 bg-black top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
+                                    style={{ transform: `translateY(-100%) rotate(${currentDateTime.getMinutes() * 6}deg)` }} />
+                                <div className="absolute w-0.5 h-16 bg-red-500 top-1/2 left-1/2 transform -translate-x-1/2 origin-bottom transition-transform duration-100"
+                                    style={{ transform: `translateY(-100%) rotate(${currentDateTime.getSeconds() * 6}deg)` }} />
+                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full overflow-hidden opacity-60">
+                                    <img src={logoUrl} alt="Company Logo" className="w-full h-full object-cover" />
+                                </div>
+                                {Array.from({ length: 12 }).map((_, index) => {
+                                    const angle = (index + 1) * 30
+                                    const x = 50 + 38 * Math.cos((angle - 90) * (Math.PI / 180))
+                                    const y = 50 + 38 * Math.sin((angle - 90) * (Math.PI / 180))
+                                    return (
+                                        <div key={index} className="absolute font-bold text-sm"
+                                            style={{ top: `${y}%`, left: `${x}%`, transform: 'translate(-50%, -50%)' }}>
+                                            {index + 1}
+                                        </div>
+                                    )
+                                })}
                             </div>
-
-                            {Array.from({ length: 12 }).map((_, index) => {
-                                const angle = (index + 1) * 30
-                                const x = 50 + 38 * Math.cos((angle - 90) * (Math.PI / 180))
-                                const y = 50 + 38 * Math.sin((angle - 90) * (Math.PI / 180))
-
-                                return (
-                                    <div
-                                        key={index}
-                                        className="absolute font-bold text-sm"
-                                        style={{
-                                            top: `${y}%`,
-                                            left: `${x}%`,
-                                            transform: 'translate(-50%, -50%)'
-                                        }}
-                                    >
-                                        {index + 1}
-                                    </div>
-                                )
-                            })}
+                            <h3 className="mt-4 text-xl font-semibold text-gray-800">
+                                {currentDateTime.toLocaleDateString('en-US', { weekday: 'long' })}
+                            </h3>
+                            <h3 className="mt-2 text-xl font-semibold text-gray-800">
+                                {currentDateTime.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </h3>
                         </div>
 
-                        <h3 className="mt-4 text-xl font-semibold text-gray-800">
-                            {currentDateTime.toLocaleDateString('en-US', { weekday: 'long' })}
-                        </h3>
-                        <h3 className="mt-2 text-xl font-semibold text-gray-800">
-                            {currentDateTime.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </h3>
-                    </div>
-
-                    <div className="bg-blue-50 flex flex-col items-center justify-center p-8">
-                        <div className="text-blue-600 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <h2 className="text-xl font-semibold text-gray-600 mb-4">Daily Check In/Out</h2>
-
-                        {punchState.isPunchIn && (
-                            <div className="text-3xl font-bold text-blue-600 mb-4">
-                                {timer}
+                        {/* Punch buttons */}
+                        <div className="bg-blue-50 flex flex-col items-center justify-center p-8">
+                            <div className="text-blue-600 mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
                             </div>
-                        )}
+                            <h2 className="text-xl font-semibold text-gray-600 mb-4">Daily Check In/Out</h2>
+
+                            {punchState.isPunchIn && (
+                                <div className="text-3xl font-bold text-blue-600 mb-4">{timer}</div>
+                            )}
 
                         <div className="flex gap-4">
                             <button
@@ -784,72 +743,70 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         </div>
                     </div>
 
-                    <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 border-t border-gray-200">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-6">
-                            Attendance Logs
-                        </h2>
-
-                        <div className="grid grid-cols-3 gap-4 w-full mb-6 text-center">
-                            <div className="flex flex-col">
-                                <h4 className="font-semibold text-gray-700 mb-2">
-                                    Punch In
-                                </h4>
-                                <div className="text-gray-600">
-                                    {currentPunch?.punchIn || '-'}
+                        {/* Attendance Logs */}
+                        <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 border-t border-gray-200">
+                            <h2 className="text-xl font-semibold text-gray-800 mb-6">Attendance Logs</h2>
+                            <div className="grid grid-cols-3 gap-4 w-full mb-6 text-center">
+                                <div className="flex flex-col">
+                                    <h4 className="font-semibold text-gray-700 mb-2">Punch In</h4>
+                                    <div className="text-gray-600">{currentPunch?.punchIn || '-'}</div>
+                                </div>
+                                <div className="flex flex-col">
+                                    <h4 className="font-semibold text-gray-700 mb-2">Punch Out</h4>
+                                    <div className="text-gray-600">{currentPunch?.punchOut || '-'}</div>
+                                </div>
+                                <div className="flex flex-col">
+                                    <h4 className="font-semibold text-gray-700 mb-2">Total Time</h4>
+                                    <div className="text-gray-600">{currentPunch?.totalTime || '-'}</div>
                                 </div>
                             </div>
-                            <div className="flex flex-col">
-                                <h4 className="font-semibold text-gray-700 mb-2">
-                                    Punch Out
-                                </h4>
-                                <div className="text-gray-600">
-                                    {currentPunch?.punchOut || '-'}
-                                </div>
+                            <div className="flex gap-4">
+                                <button onClick={handlePreviousPunch} disabled={currentPunchIndex === 0}
+                                    className={`px-4 py-2 rounded-lg border transition-colors duration-300 ${currentPunchIndex === 0 ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-50'}`}>
+                                    Previous
+                                </button>
+                                <button onClick={handleNextPunch} disabled={currentPunchIndex === punch.length - 1}
+                                    className={`px-4 py-2 rounded-lg border transition-colors duration-300 ${currentPunchIndex === punch.length - 1 ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-50'}`}>
+                                    Next
+                                </button>
                             </div>
-                            <div className="flex flex-col">
-                                <h4 className="font-semibold text-gray-700 mb-2">
-                                    Total Time
-                                </h4>
-                                <div className="text-gray-600">
-                                    {currentPunch?.totalTime || '-'}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <button
-                                onClick={handlePreviousPunch}
-                                disabled={currentPunchIndex === 0}
-                                className={`px-4 py-2 rounded-lg border transition-colors duration-300 ${currentPunchIndex === 0
-                                    ? 'border-gray-300 text-gray-400 cursor-not-allowed'
-                                    : 'border-blue-500 text-blue-500 hover:bg-blue-50'
-                                    }`}
-                            >
-                                Previous
-                            </button>
-                            <button
-                                onClick={handleNextPunch}
-                                disabled={currentPunchIndex === punch.length - 1}
-                                className={`px-4 py-2 rounded-lg border transition-colors duration-300 ${currentPunchIndex === punch.length - 1
-                                    ? 'border-gray-300 text-gray-400 cursor-not-allowed'
-                                    : 'border-blue-500 text-blue-500 hover:bg-blue-50'
-                                    }`}
-                            >
-                                Next
-                            </button>
                         </div>
                     </div>
-                </div>
-                <div className="bg-[#1a237e]  p-6 text-center">
-                    <h3 className="text-gray-200 text-lg font-semibold mb-2">
-                        Total Working Hours of {selectedDate}
-                    </h3>
-                    <div className="text-2xl font-bold text-blue-400">
-                        {`${totalWorkingHours?.hours || 0}h ${totalWorkingHours?.minutes || 0}m ${totalWorkingHours?.seconds || 0}s`}
+
+                    {/* ── Total bar — now with View Hours button ── */}
+                    <div className="bg-[#1a237e] p-6 text-center">
+                        <h3 className="text-gray-200 text-lg font-semibold mb-2">
+                            Total Working Hours of {selectedDate}
+                        </h3>
+                        <div className="text-2xl font-bold text-blue-400 mb-4">
+                            {`${totalWorkingHours?.total?.h || 0}h ${totalWorkingHours?.total?.m || 0}m ${totalWorkingHours?.total?.s || 0}s`}
+                        </div>
+                        <button
+                            onClick={() => setShowHoursModal(true)}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: 'rgba(255,255,255,0.12)',
+                                border: '1px solid rgba(255,255,255,0.25)',
+                                borderRadius: '10px',
+                                padding: '8px 20px',
+                                color: '#fff',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                letterSpacing: '0.03em',
+                            }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                            </svg>
+                            View Breakdown (Home / Office / Field)
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 }
 
