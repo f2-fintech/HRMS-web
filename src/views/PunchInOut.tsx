@@ -128,7 +128,7 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                             <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', marginBottom: '8px', lineHeight: 1.3 }}>
                                 {slot.value}
                             </div>
-                            <div style={{
+                            {/* <div style={{
                                 display: 'inline-block',
                                 background: slot.bg, color: slot.text,
                                 fontSize: '10px', fontWeight: 700,
@@ -136,7 +136,7 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                                 marginBottom: '8px',
                             }}>
                                 {slot.percent}%
-                            </div>
+                            </div> */}
                             <div style={{ height: '4px', background: '#334155', borderRadius: '99px', overflow: 'hidden' }}>
                                 <div style={{ height: '100%', width: `${slot.percent}%`, background: slot.color, borderRadius: '99px', transition: 'width 0.6s ease' }} />
                             </div>
@@ -265,6 +265,13 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [isMobileDevice, setIsMobileDevice] = useState(false);
 
     const [punchType, setPunchType] = useState<'HOME' | 'OFFICE' | 'FIELD'>('OFFICE');
+    const [showFieldModal, setShowFieldModal] = useState(false);
+
+    const [fieldData, setFieldData] = useState({
+        personName: '',
+        contact: '',
+        remarks: ''
+    });
 
     const { settings } = useSettings()
     const router = useRouter()
@@ -424,6 +431,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             alert('🚫 PUNCH OUT BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch Out.\n✅ Please use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
             return;
         }
+        const latestPunch = punch[punch.length - 1];
+
+        if (latestPunch?.type === 'FIELD') {
+            setShowFieldModal(true);
+            return; // 🔥 yahin stop kar dena
+        }
         const now = new Date()
         const endTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
         const confirmation = window.confirm('Are you sure you want to punch out?')
@@ -439,6 +452,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     useEffect(() => {
         if (punch.length > 0) {
             const latestPunch = punch[punch.length - 1]
+
             if (!latestPunch.punchOut) {
                 setPunchState({ ...punchState, isPunchIn: true, startTime: latestPunch.punchIn, isPunchInDisabled: true, isPunchOutDisabled: false })
             } else {
@@ -696,52 +710,52 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 <div className="text-3xl font-bold text-blue-600 mb-4">{timer}</div>
                             )}
 
-                        <div className="flex gap-4">
-                            <button
-                                onClick={handlePunchIn}
-                                disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || isPunchDisabledDueToMobile}
-                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchInDisabled || disablePunch || !isCurrentDate || isPunchDisabledDueToMobile
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-green-500 hover:bg-green-600 text-white'
-                                    }`}
-                                title={
-                                    isPunchDisabledDueToMobile
-                                        ? "Mobile devices not allowed. Use Desktop/Laptop."
-                                        : disablePunch
-                                            ? "Managers can't punch in for team members."
-                                            : !isCurrentDate
-                                                ? "Punch-In available for today only."
-                                                : ''
-                                }
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                                </svg>
-                                Punch In
-                            </button>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={handlePunchIn}
+                                    disabled={punchState.isPunchInDisabled || disablePunch || !isCurrentDate || isPunchDisabledDueToMobile}
+                                    className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchInDisabled || disablePunch || !isCurrentDate || isPunchDisabledDueToMobile
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-green-500 hover:bg-green-600 text-white'
+                                        }`}
+                                    title={
+                                        isPunchDisabledDueToMobile
+                                            ? "Mobile devices not allowed. Use Desktop/Laptop."
+                                            : disablePunch
+                                                ? "Managers can't punch in for team members."
+                                                : !isCurrentDate
+                                                    ? "Punch-In available for today only."
+                                                    : ''
+                                    }
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                    </svg>
+                                    Punch In
+                                </button>
 
-                            <button
-                                onClick={handlePunchOut}
-                                disabled={punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile}
-                                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-red-500 hover:bg-red-600 text-white'
-                                    }`}
-                                title={
-                                    isPunchDisabledDueToMobile
-                                        ? "Mobile devices not allowed. Use Desktop/Laptop."
-                                        : disablePunch
-                                            ? "Managers can't punch out for team members."
-                                            : ''
-                                }
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
-                                </svg>
-                                Punch Out
-                            </button>
+                                <button
+                                    onClick={handlePunchOut}
+                                    disabled={punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile}
+                                    className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-red-500 hover:bg-red-600 text-white'
+                                        }`}
+                                    title={
+                                        isPunchDisabledDueToMobile
+                                            ? "Mobile devices not allowed. Use Desktop/Laptop."
+                                            : disablePunch
+                                                ? "Managers can't punch out for team members."
+                                                : ''
+                                    }
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                                    </svg>
+                                    Punch Out
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
                         {/* Attendance Logs */}
                         <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 border-t border-gray-200">
