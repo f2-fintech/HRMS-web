@@ -91,9 +91,9 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <div>
 
-                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        {/* <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '2px' }}>
                             Working Hours
-                        </div>
+                        </div> */}
                         <div style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>{selectedDate}</div>
                     </div>
                     <button
@@ -137,9 +137,9 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                             }}>
                                 {slot.percent}%
                             </div> */}
-                            <div style={{ height: '4px', background: '#334155', borderRadius: '99px', overflow: 'hidden' }}>
+                            {/* <div style={{ height: '4px', background: '#334155', borderRadius: '99px', overflow: 'hidden' }}>
                                 <div style={{ height: '100%', width: `${slot.percent}%`, background: slot.color, borderRadius: '99px', transition: 'width 0.6s ease' }} />
-                            </div>
+                            </div> */}
                         </div>
                     ))}
                 </div>
@@ -194,26 +194,26 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                     padding: '14px 16px',
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total</span>
+                        <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total Working Hours</span>
                         <span style={{ fontSize: '22px', fontWeight: 700, color: '#f1f5f9' }}>
                             {formatTime(totalWorkingHours?.total)}
                         </span>
                     </div>
                     {/* Stacked bar */}
-                    <div style={{ height: '8px', background: '#0f172a', borderRadius: '99px', overflow: 'hidden', display: 'flex' }}>
+                    {/* <div style={{ height: '8px', background: '#0f172a', borderRadius: '99px', overflow: 'hidden', display: 'flex' }}>
                         <div style={{ width: `${homeP}%`, background: '#10b981', height: '100%' }} />
                         <div style={{ width: `${officeP}%`, background: '#3b82f6', height: '100%' }} />
                         <div style={{ width: `${fieldP}%`, background: '#f59e0b', height: '100%' }} />
-                    </div>
+                    </div> */}
                     {/* Legend */}
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                    {/* <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                         {slots.map(s => (
                             <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color, display: 'inline-block' }} />
                                 <span style={{ fontSize: '10px', color: '#64748b' }}>{s.label}</span>
                             </div>
                         ))}
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </div>
