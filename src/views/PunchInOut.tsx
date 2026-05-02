@@ -433,10 +433,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         }
         const latestPunch = punch[punch.length - 1];
 
-        if (latestPunch?.type === 'FIELD') {
-            setShowFieldModal(true);
-            return; // 🔥 yahin stop kar dena
-        }
+        // if (latestPunch?.type === 'FIELD') {
+        //     setShowFieldModal(true);
+        //     return; // 🔥 yahin stop kar dena
+        // }
         const now = new Date()
         const endTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
         const confirmation = window.confirm('Are you sure you want to punch out?')
