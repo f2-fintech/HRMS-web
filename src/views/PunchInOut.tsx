@@ -145,7 +145,7 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                                 >
                                     👁
 
-                                   
+
                                     {p.type === 'FIELD' && p.contacts?.length > 0 && (
                                         <span style={{
                                             fontSize: '10px',
@@ -171,165 +171,161 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
             </div>
 
             {/* 🔥 POPUP */}
-       {selectedPunch && (
-  <div
-    onClick={() => setSelectedPunch(null)}
-    style={{
-      position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex', justifyContent: 'center', alignItems: 'center',
-      padding: 16,
-    }}
-  >
-    <div
-      onClick={e => e.stopPropagation()}
-      style={{
-        background: '#fff', borderRadius: 16, width: 340,
-        overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-        fontFamily: 'inherit',
-      }}
-    >
-      {/* Header */}
-      <div style={{
-        padding: '14px 18px', borderBottom: '0.5px solid #e2e8f0',
-        display: 'flex', alignItems: 'center', gap: 10,
-      }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <span style={{ fontSize: 16 }}>🚶</span>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: '#0f172a' }}>Field Meetings</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>
-            {selectedPunch.contacts?.length || 0} contacts recorded
-          </div>
-        </div>
-        <button
-          onClick={() => setSelectedPunch(null)}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4,
-          }}
-        >✕</button>
-      </div>
+            {selectedPunch && (
+                <div
+                    onClick={() => setSelectedPunch(null)}
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 10000,
+                        background: 'rgba(0,0,0,0.5)',
+                        display: 'flex', justifyContent: 'center', alignItems: 'center',
+                        padding: 16,
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            background: '#fff', borderRadius: 16, width: 340,
+                            overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                            fontFamily: 'inherit',
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{
+                            padding: '14px 18px', borderBottom: '0.5px solid #e2e8f0',
+                            display: 'flex', alignItems: 'center', gap: 10,
+                        }}>
+                            <div style={{
+                                width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                            }}>
+                                <span style={{ fontSize: 16 }}>🚶</span>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 14, fontWeight: 500, color: '#0f172a' }}>Field Meetings</div>
+                                <div style={{ fontSize: 12, color: '#64748b' }}>
+                                    {selectedPunch.contacts?.length || 0} contacts recorded
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedPunch(null)}
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4,
+                                }}
+                            >✕</button>
+                        </div>
 
-      {/* Contacts */}
-      <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {selectedPunch.contacts?.map((c: any, i: number) => {
-          const initials = c.personName
-            ?.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '?'
-          const isSuccess = c.status === 'SUCCESS'
+                        {/* Contacts */}
+                        <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {selectedPunch.contacts?.map((c: any, i: number) => {
+                                const initials = c.personName
+                                    ?.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '?'
+                                const isSuccess = c.status === 'SUCCESS'
 
-          return (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px 12px', background: '#f8fafc',
-              borderRadius: 8, border: '0.5px solid #e2e8f0',
-            }}>
-              {/* Avatar */}
-              <div style={{
-                width: 34, height: 34, borderRadius: '50%', background: '#dbeafe',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 500, color: '#1d4ed8', flexShrink: 0,
-              }}>
-                {initials}
-              </div>
+                                return (
+                                    <div key={i} style={{
+                                        display: 'flex', alignItems: 'center', gap: 10,
+                                        padding: '10px 12px', background: '#f8fafc',
+                                        borderRadius: 8, border: '0.5px solid #e2e8f0',
+                                    }}>
+                                        {/* Avatar */}
+                                        <div style={{
+                                            width: 34, height: 34, borderRadius: '50%', background: '#dbeafe',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: 12, fontWeight: 500, color: '#1d4ed8', flexShrink: 0,
+                                        }}>
+                                            {initials}
+                                        </div>
 
-              {/* Info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: 13, fontWeight: 500, color: '#0f172a',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
-                  {c.personName}
+                                        {/* Info */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{
+                                                fontSize: 13, fontWeight: 500, color: '#0f172a',
+                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                            }}>
+                                                {c.personName}
+                                            </div>
+                                            <div style={{ fontSize: 12, color: '#64748b' }}>{c.contact}</div>
+
+                                        </div>
+
+                                        {/* Status badge */}
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: 4,
+                                            padding: '3px 8px', borderRadius: 99, flexShrink: 0,
+                                            background: isSuccess ? '#f0fdf4' : '#fef2f2',
+                                            border: `0.5px solid ${isSuccess ? '#bbf7d0' : '#fecaca'}`,
+                                        }}>
+                                            <span style={{ fontSize: 11, fontWeight: 500, color: isSuccess ? '#15803d' : '#dc2626' }}>
+                                                {isSuccess ? '✓ Success' : '✗ Failed'}
+                                            </span>
+                                        </div>
+
+                                    </div>
+                                )
+                            })}
+                        </div>
+
+                        {selectedPunch?.contacts?.some((c: any) => c.remarks) && (
+                            <div style={{
+                                margin: '0 18px 12px',
+                                padding: '10px 12px',
+                                background: '#f8fafc',
+                                borderRadius: 8,
+                                border: '0.5px solid #e2e8f0'
+                            }}>
+                                <div style={{
+                                    fontSize: 11,
+                                    color: '#94a3b8',
+                                    fontWeight: 500,
+                                    marginBottom: 4,
+                                    textTransform: 'uppercase'
+                                }}>
+                                    Remarks
+                                </div>
+
+                                <div style={{ fontSize: 13, color: '#0f172a' }}>
+                                    {[...new Set(
+                                        selectedPunch.contacts
+                                            .map((c: any) => c.remarks)
+                                            .filter(Boolean)
+                                    )].join(', ')}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Footer — success/fail summary + close */}
+                        <div style={{
+                            padding: '12px 18px', borderTop: '0.5px solid #e2e8f0',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        }}>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a' }} />
+                                    <span style={{ fontSize: 12, color: '#64748b' }}>
+                                        {selectedPunch.contacts?.filter((c: any) => c.status === 'SUCCESS').length} success
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626' }} />
+                                    <span style={{ fontSize: 12, color: '#64748b' }}>
+                                        {selectedPunch.contacts?.filter((c: any) => c.status === 'FAIL').length} failed
+                                    </span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedPunch(null)}
+                                style={{
+                                    padding: '7px 16px', border: '0.5px solid #e2e8f0', borderRadius: 8,
+                                    background: 'transparent', color: '#64748b', fontSize: 13, cursor: 'pointer',
+                                }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>{c.contact}</div>
-
-              </div>
-
-              {/* Status badge */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '3px 8px', borderRadius: 99, flexShrink: 0,
-                background: isSuccess ? '#f0fdf4' : '#fef2f2',
-                border: `0.5px solid ${isSuccess ? '#bbf7d0' : '#fecaca'}`,
-              }}>
-                <span style={{ fontSize: 11, fontWeight: 500, color: isSuccess ? '#15803d' : '#dc2626' }}>
-                  {isSuccess ? '✓ Success' : '✗ Failed'}
-                </span>
-              </div>
-              
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Remarks */}
-    {/* 🔥 Common Remarks (from contacts) */}
-{selectedPunch?.contacts?.some((c: any) => c.remarks) && (
-  <div style={{
-    margin: '0 18px 12px',
-    padding: '10px 12px',
-    background: '#f8fafc',
-    borderRadius: 8,
-    border: '0.5px solid #e2e8f0'
-  }}>
-    <div style={{
-      fontSize: 11,
-      color: '#94a3b8',
-      fontWeight: 500,
-      marginBottom: 4,
-      textTransform: 'uppercase'
-    }}>
-      Remarks
-    </div>
-
-    <div style={{
-      fontSize: 13,
-      color: '#0f172a'
-    }}>
-      {selectedPunch.contacts
-        .map((c: any) => c.remarks)
-        .filter(Boolean)
-        .join(', ')}
-    </div>
-  </div>
-)}
-
-      {/* Footer — success/fail summary + close */}
-      <div style={{
-        padding: '12px 18px', borderTop: '0.5px solid #e2e8f0',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a' }} />
-            <span style={{ fontSize: 12, color: '#64748b' }}>
-              {selectedPunch.contacts?.filter((c: any) => c.status === 'SUCCESS').length} success
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626' }} />
-            <span style={{ fontSize: 12, color: '#64748b' }}>
-              {selectedPunch.contacts?.filter((c: any) => c.status === 'FAIL').length} failed
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={() => setSelectedPunch(null)}
-          style={{
-            padding: '7px 16px', border: '0.5px solid #e2e8f0', borderRadius: 8,
-            background: 'transparent', color: '#64748b', fontSize: 13, cursor: 'pointer',
-          }}
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+            )}
         </div>
     )
 }
@@ -353,13 +349,23 @@ const FieldPunchOutModal: React.FC<{
         setContacts(prev => prev.map((c, idx) => idx === i ? { ...c, [field]: value } : c))
 
     const handleSubmit = () => {
-        if (contacts.some(c => !c.personName.trim() || !c.contact.trim())) {
-            alert('Please fill name and contact for all entries')
-            return
-        }
-        onSubmit(contacts, remarks)
-    }
 
+        // empty check
+        if (contacts.some(c => !c.personName.trim() || !c.contact.trim())) {
+            alert('Please fill name and contact for all entries');
+            return;
+        }
+
+        // 🔥 number validation
+        const invalid = contacts.find(c => !/^[6-9]\d{9}$/.test(c.contact));
+
+        if (invalid) {
+            alert('Enter valid 10-digit mobile number');
+            return;
+        }
+
+        onSubmit(contacts, remarks);
+    }
     const inp: React.CSSProperties = {
         flex: 1, border: '0.5px solid #e2e8f0', borderRadius: 8,
         padding: '7px 10px', fontSize: 13, background: '#f8fafc',
@@ -426,9 +432,18 @@ const FieldPunchOutModal: React.FC<{
                                 <input placeholder="Full name *" value={c.personName}
                                     onChange={e => updateContact(i, 'personName', e.target.value)} style={inp} />
                                 <input placeholder="Contact *" value={c.contact}
-                                    onChange={e => updateContact(i, 'contact', e.target.value)} style={inp} />
+                                    onChange={e => {
+                                        const value = e.target.value.replace(/\D/g, ''); // only numbers
+                                        if (value.length <= 10) {
+                                            updateContact(i, 'contact', value);
+                                        }
+                                    }} style={inp} />
                             </div>
-
+                            {c.contact && !/^[6-9]\d{9}$/.test(c.contact) && (
+                                <div style={{ fontSize: 11, color: 'red', marginTop: 2 }}>
+                                    Invalid mobile number
+                                </div>
+                            )}
                             {/* Status toggle */}
                             <div style={{ display: 'flex', gap: 6 }}>
                                 {(['SUCCESS', 'FAIL'] as const).map(s => {
@@ -542,7 +557,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const [punchType, setPunchType] = useState<'HOME' | 'OFFICE' | 'FIELD'>('OFFICE');
     const [showFieldModal, setShowFieldModal] = useState(false);
- 
+
 
     const { settings } = useSettings()
     const router = useRouter()
@@ -698,7 +713,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         const latestPunch = punch?.length ? punch[punch.length - 1] : null;
 
-      
+
 
         if (latestPunch?.type?.toUpperCase() === 'FIELD') {
             setShowFieldModal(true);
@@ -812,7 +827,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         return (
 
             <>
-               
+
                 {showFieldModal && (
                     <FieldPunchOutModal
                         onClose={() => setShowFieldModal(false)}
