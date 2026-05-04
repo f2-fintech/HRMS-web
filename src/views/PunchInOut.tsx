@@ -20,13 +20,20 @@ interface PunchInOutProps {
     disablePunch?: boolean
 }
 
+interface ContactEntry {
+    personName: string
+    contact: string
+    status: 'SUCCESS' | 'FAIL'
+}
+
 const WHITELIST_EMPLOYEE_IDS = [
     '66bca8d72f1270380b77ab12',
     '66c881fe269ecefff3411649',
     '66bca6192f1270380b77aac5',
     '66bc8bfe2f1270380b77a920',
     '699e8d1b1cf053581b8a4d6e',
-    '693926c8c3b776470f4e1a44'
+    '693926c8c3b776470f4e1a44',
+    '69f05869f9659e84d84aaacb'
 ];
 
 const formatTime = (obj: any) => {
@@ -48,6 +55,9 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
     onClose,
     punch,
 }) => {
+
+    const [selectedPunch, setSelectedPunch] = React.useState<any>(null);
+
     const homeSec = toSeconds(totalWorkingHours?.HOME)
     const officeSec = toSeconds(totalWorkingHours?.OFFICE)
     const fieldSec = toSeconds(totalWorkingHours?.FIELD)
@@ -59,167 +69,433 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
     const fieldP = 100 - homeP - officeP
 
     const slots = [
-        { label: 'Home', icon: '🏠', value: formatTime(totalWorkingHours?.HOME), percent: homeP, color: '#10b981', bg: '#d1fae5', text: '#065f46' },
-        { label: 'Office', icon: '🏢', value: formatTime(totalWorkingHours?.OFFICE), percent: officeP, color: '#3b82f6', bg: '#dbeafe', text: '#1e40af' },
-        { label: 'Field', icon: '🚶', value: formatTime(totalWorkingHours?.FIELD), percent: fieldP, color: '#f59e0b', bg: '#fef3c7', text: '#92400e' },
+        { label: 'Home', icon: '🏠', value: formatTime(totalWorkingHours?.HOME), percent: homeP, color: '#10b981' },
+        { label: 'Office', icon: '🏢', value: formatTime(totalWorkingHours?.OFFICE), percent: officeP, color: '#3b82f6' },
+        { label: 'Field', icon: '🚶', value: formatTime(totalWorkingHours?.FIELD), percent: fieldP, color: '#f59e0b' },
     ]
 
     return (
-        <div
-            onClick={onClose}
-            style={{
-                position: 'fixed', inset: 0, zIndex: 9999,
-                background: 'rgba(0,0,0,0.55)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '16px',
-            }}
-        >
-            <div
-                onClick={e => e.stopPropagation()}
-                style={{
-                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                    borderRadius: '20px',
-                    padding: '24px',
-                    width: '100%',
-                    maxWidth: '620px',
-                    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-                    boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                }}
-            >
-                {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <div>
+        <div onClick={onClose} style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+        }}>
 
-                        {/* <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '2px' }}>
-                            Working Hours
-                        </div> */}
-                        <div style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>{selectedDate}</div>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            width: '32px', height: '32px', borderRadius: '50%',
-                            background: '#1e293b', border: '1px solid #334155',
-                            color: '#94a3b8', fontSize: '16px', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            lineHeight: 1,
-                        }}
-                    >
-                        ✕
-                    </button>
+            <div onClick={e => e.stopPropagation()} style={{
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                borderRadius: '20px',
+                padding: '24px',
+                width: '100%',
+                maxWidth: '620px',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+                border: '1px solid rgba(255,255,255,0.08)',
+            }}>
+
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                    <div style={{ fontSize: '14px', color: '#94a3b8' }}>{selectedDate}</div>
+                    <button onClick={onClose} style={{ background: 'none', color: '#94a3b8' }}>✕</button>
                 </div>
 
-                {/* 3 cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>
+                {/* Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                     {slots.map(slot => (
-                        <div key={slot.label} style={{
-                            background: '#1e293b',
-                            border: '1px solid #334155',
-                            borderRadius: '14px',
-                            padding: '12px 10px',
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '14px' }}>{slot.icon}</span>
-                                <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: slot.color }}>
-                                    {slot.label}
-                                </span>
-                            </div>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', marginBottom: '8px', lineHeight: 1.3 }}>
-                                {slot.value}
-                            </div>
-                            {/* <div style={{
-                                display: 'inline-block',
-                                background: slot.bg, color: slot.text,
-                                fontSize: '10px', fontWeight: 700,
-                                borderRadius: '99px', padding: '2px 8px',
-                                marginBottom: '8px',
-                            }}>
-                                {slot.percent}%
-                            </div> */}
-                            {/* <div style={{ height: '4px', background: '#334155', borderRadius: '99px', overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${slot.percent}%`, background: slot.color, borderRadius: '99px', transition: 'width 0.6s ease' }} />
-                            </div> */}
+                        <div key={slot.label} style={{ background: '#1e293b', padding: '10px', borderRadius: '10px' }}>
+                            <div style={{ color: slot.color }}>{slot.icon} {slot.label}</div>
+                            <div style={{ color: '#fff' }}>{slot.value}</div>
                         </div>
                     ))}
                 </div>
-                <div style={{ marginTop: '16px' }}>
-                    <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px' }}>
-                        Activity Timeline
-                    </div>
 
-                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                        {punch?.length > 0 ? (
-                            punch.map((p: any, i: number) => (
-                                <div
-                                    key={i}
+                {/* Timeline */}
+                <div style={{ marginTop: '16px' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: '8px' }}>Activity Timeline</div>
+
+                    {punch?.map((p: any, i: number) => (
+                        <div key={i} style={{
+                            background: '#020617',
+                            borderRadius: '10px',
+                            padding: '8px',
+                            marginBottom: '6px',
+                            display: 'flex',
+                            justifyContent: 'space-between'
+                        }}>
+                            <div>
+                                <div style={{ color: '#fff' }}>
+                                    {p.punchIn} → {p.punchOut || 'Running'}
+                                </div>
+                                <div style={{ color: '#64748b', fontSize: '11px' }}>{p.type}</div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <div style={{ color: '#22c55e' }}>{p.totalTime}</div>
+
+                                {/* 👁 BUTTON */}
+                                <span
+                                    onClick={() => setSelectedPunch(p)}
                                     style={{
-                                        background: '#020617',
-                                        border: '1px solid #334155',
-                                        borderRadius: '10px',
-                                        padding: '8px 10px',
-                                        marginBottom: '6px',
-                                        fontSize: '12px',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        color: '#60a5fa',
                                         display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
+                                        alignItems: 'center',
+                                        gap: '4px'
                                     }}
                                 >
-                                    <div>
-                                        <div style={{ color: '#e2e8f0', fontWeight: 600 }}>
-                                            {p.punchIn} → {p.punchOut || 'Running...'}
-                                        </div>
-                                        <div style={{ fontSize: '10px', color: '#64748b' }}>
-                                            {p.type}
-                                        </div>
-                                    </div>
+                                    👁
 
-                                    <div style={{ fontSize: '11px', color: '#22c55e' }}>
-                                        {p.totalTime || '--'}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>
-                                No data
+                                   
+                                    {p.type === 'FIELD' && p.contacts?.length > 0 && (
+                                        <span style={{
+                                            fontSize: '10px',
+                                            background: '#22c55e20',
+                                            color: '#22c55e',
+                                            padding: '2px 5px',
+                                            borderRadius: '6px',
+                                            fontWeight: 600
+                                        }}>
+                                            {p.contacts.length}
+                                        </span>
+                                    )}
+                                </span>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    ))}
                 </div>
+
                 {/* Total */}
+                <div style={{ marginTop: '10px', color: '#fff' }}>
+                    Total: {formatTime(totalWorkingHours?.total)}
+                </div>
+            </div>
+
+            {/* 🔥 POPUP */}
+       {selectedPunch && (
+  <div
+    onClick={() => setSelectedPunch(null)}
+    style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
+      padding: 16,
+    }}
+  >
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{
+        background: '#fff', borderRadius: 16, width: 340,
+        overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+        fontFamily: 'inherit',
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        padding: '14px 18px', borderBottom: '0.5px solid #e2e8f0',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <div style={{
+          width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 16 }}>🚶</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#0f172a' }}>Field Meetings</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>
+            {selectedPunch.contacts?.length || 0} contacts recorded
+          </div>
+        </div>
+        <button
+          onClick={() => setSelectedPunch(null)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4,
+          }}
+        >✕</button>
+      </div>
+
+      {/* Contacts */}
+      <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {selectedPunch.contacts?.map((c: any, i: number) => {
+          const initials = c.personName
+            ?.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '?'
+          const isSuccess = c.status === 'SUCCESS'
+
+          return (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', background: '#f8fafc',
+              borderRadius: 8, border: '0.5px solid #e2e8f0',
+            }}>
+              {/* Avatar */}
+              <div style={{
+                width: 34, height: 34, borderRadius: '50%', background: '#dbeafe',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 500, color: '#1d4ed8', flexShrink: 0,
+              }}>
+                {initials}
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                    background: '#1e293b',
-                    border: '1px solid #334155',
-                    borderRadius: '14px',
-                    padding: '14px 16px',
+                  fontSize: 13, fontWeight: 500, color: '#0f172a',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total Working Hours</span>
-                        <span style={{ fontSize: '22px', fontWeight: 700, color: '#f1f5f9' }}>
-                            {formatTime(totalWorkingHours?.total)}
-                        </span>
+                  {c.personName}
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>{c.contact}</div>
+
+              </div>
+
+              {/* Status badge */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '3px 8px', borderRadius: 99, flexShrink: 0,
+                background: isSuccess ? '#f0fdf4' : '#fef2f2',
+                border: `0.5px solid ${isSuccess ? '#bbf7d0' : '#fecaca'}`,
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 500, color: isSuccess ? '#15803d' : '#dc2626' }}>
+                  {isSuccess ? '✓ Success' : '✗ Failed'}
+                </span>
+              </div>
+              
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Remarks */}
+    {/* 🔥 Common Remarks (from contacts) */}
+{selectedPunch?.contacts?.some((c: any) => c.remarks) && (
+  <div style={{
+    margin: '0 18px 12px',
+    padding: '10px 12px',
+    background: '#f8fafc',
+    borderRadius: 8,
+    border: '0.5px solid #e2e8f0'
+  }}>
+    <div style={{
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: 500,
+      marginBottom: 4,
+      textTransform: 'uppercase'
+    }}>
+      Remarks
+    </div>
+
+    <div style={{
+      fontSize: 13,
+      color: '#0f172a'
+    }}>
+      {selectedPunch.contacts
+        .map((c: any) => c.remarks)
+        .filter(Boolean)
+        .join(', ')}
+    </div>
+  </div>
+)}
+
+      {/* Footer — success/fail summary + close */}
+      <div style={{
+        padding: '12px 18px', borderTop: '0.5px solid #e2e8f0',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a' }} />
+            <span style={{ fontSize: 12, color: '#64748b' }}>
+              {selectedPunch.contacts?.filter((c: any) => c.status === 'SUCCESS').length} success
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626' }} />
+            <span style={{ fontSize: 12, color: '#64748b' }}>
+              {selectedPunch.contacts?.filter((c: any) => c.status === 'FAIL').length} failed
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={() => setSelectedPunch(null)}
+          style={{
+            padding: '7px 16px', border: '0.5px solid #e2e8f0', borderRadius: 8,
+            background: 'transparent', color: '#64748b', fontSize: 13, cursor: 'pointer',
+          }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+        </div>
+    )
+}
+
+const FieldPunchOutModal: React.FC<{
+    onClose: () => void
+    onSubmit: (contacts: ContactEntry[], remarks: string) => void
+}> = ({ onClose, onSubmit }) => {
+    const [contacts, setContacts] = useState<ContactEntry[]>([
+        { personName: '', contact: '', status: 'SUCCESS' },
+    ])
+    const [remarks, setRemarks] = useState('')
+
+    const addContact = () =>
+        setContacts(prev => [...prev, { personName: '', contact: '', status: 'SUCCESS' }])
+
+    const removeContact = (i: number) =>
+        setContacts(prev => prev.filter((_, idx) => idx !== i))
+
+    const updateContact = (i: number, field: keyof ContactEntry, value: string) =>
+        setContacts(prev => prev.map((c, idx) => idx === i ? { ...c, [field]: value } : c))
+
+    const handleSubmit = () => {
+        if (contacts.some(c => !c.personName.trim() || !c.contact.trim())) {
+            alert('Please fill name and contact for all entries')
+            return
+        }
+        onSubmit(contacts, remarks)
+    }
+
+    const inp: React.CSSProperties = {
+        flex: 1, border: '0.5px solid #e2e8f0', borderRadius: 8,
+        padding: '7px 10px', fontSize: 13, background: '#f8fafc',
+        color: '#1e293b', outline: 'none', minWidth: 0,
+    }
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+        }}
+            onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                background: '#fff', borderRadius: 16,
+                padding: 20, width: 420, maxHeight: '90vh', overflowY: 'auto',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: 'inherit'
+            }}>
+
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <div style={{
+                        width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                        <span style={{ fontSize: 16 }}>🚶</span>
                     </div>
-                    {/* Stacked bar */}
-                    {/* <div style={{ height: '8px', background: '#0f172a', borderRadius: '99px', overflow: 'hidden', display: 'flex' }}>
-                        <div style={{ width: `${homeP}%`, background: '#10b981', height: '100%' }} />
-                        <div style={{ width: `${officeP}%`, background: '#3b82f6', height: '100%' }} />
-                        <div style={{ width: `${fieldP}%`, background: '#f59e0b', height: '100%' }} />
-                    </div> */}
-                    {/* Legend */}
-                    {/* <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                        {slots.map(s => (
-                            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color, display: 'inline-block' }} />
-                                <span style={{ fontSize: '10px', color: '#64748b' }}>{s.label}</span>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 15, fontWeight: 500, color: '#0f172a' }}>Field Punch Out</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>Add everyone you met</div>
+                    </div>
+                    <button onClick={onClose} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4
+                    }}>✕</button>
+                </div>
+
+                {/* Contacts */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                    {contacts.map((c, i) => (
+                        <div key={i} style={{
+                            background: '#f8fafc', border: '0.5px solid #e2e8f0',
+                            borderRadius: 8, padding: '10px 12px'
+                        }}>
+
+                            {/* Label row */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                                <div style={{
+                                    width: 20, height: 20, borderRadius: '50%', background: '#dbeafe',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 10, fontWeight: 500, color: '#1d4ed8', flexShrink: 0
+                                }}>{i + 1}</div>
+                                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>Person {i + 1}</span>
+                                {contacts.length > 1 && (
+                                    <button onClick={() => removeContact(i)} style={{
+                                        marginLeft: 'auto',
+                                        background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444',
+                                        display: 'flex', alignItems: 'center', padding: 0
+                                    }}>✕</button>
+                                )}
                             </div>
-                        ))}
-                    </div> */}
+
+                            {/* Name + Contact */}
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                                <input placeholder="Full name *" value={c.personName}
+                                    onChange={e => updateContact(i, 'personName', e.target.value)} style={inp} />
+                                <input placeholder="Contact *" value={c.contact}
+                                    onChange={e => updateContact(i, 'contact', e.target.value)} style={inp} />
+                            </div>
+
+                            {/* Status toggle */}
+                            <div style={{ display: 'flex', gap: 6 }}>
+                                {(['SUCCESS', 'FAIL'] as const).map(s => {
+                                    const active = c.status === s
+                                    const color = s === 'SUCCESS'
+                                        ? { border: '#16a34a', bg: '#f0fdf4', text: '#15803d' }
+                                        : { border: '#dc2626', bg: '#fef2f2', text: '#dc2626' }
+                                    return (
+                                        <button key={s} onClick={() => updateContact(i, 'status', s)}
+                                            style={{
+                                                flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 12,
+                                                fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
+                                                border: active ? `1.5px solid ${color.border}` : '0.5px solid #e2e8f0',
+                                                background: active ? color.bg : '#fff',
+                                                color: active ? color.text : '#94a3b8',
+                                            }}>
+                                            {s === 'SUCCESS' ? '✓ Success' : '✗ Failed'}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Add more */}
+                <button onClick={addContact} style={{
+                    width: '100%', padding: 8, marginBottom: 12,
+                    border: '1px dashed #cbd5e1', borderRadius: 8, background: 'transparent',
+                    color: '#64748b', fontSize: 13, cursor: 'pointer'
+                }}>
+                    + Add another person
+                </button>
+
+                {/* Remarks */}
+                <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500, marginBottom: 4 }}>
+                        Remarks (optional)
+                    </div>
+                    <textarea placeholder="Meeting notes, purpose, outcome..." value={remarks}
+                        onChange={e => setRemarks(e.target.value)} rows={2}
+                        style={{
+                            width: '100%', border: '0.5px solid #e2e8f0', borderRadius: 8,
+                            padding: '8px 10px', fontSize: 13, resize: 'none', background: '#f8fafc',
+                            color: '#1e293b', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+                        }} />
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button onClick={onClose} style={{
+                        padding: '8px 16px', border: '0.5px solid #e2e8f0',
+                        borderRadius: 8, background: 'transparent', color: '#64748b', fontSize: 13, cursor: 'pointer'
+                    }}>
+                        Cancel
+                    </button>
+                    <button onClick={handleSubmit} style={{
+                        padding: '8px 20px', border: 'none', borderRadius: 8,
+                        background: '#2563eb', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer'
+                    }}>
+                        Submit & Punch Out
+                    </button>
                 </div>
             </div>
         </div>
     )
 }
-// ──────────────────────────────────────────────────────────────────────────────
 
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     selectedDate,
@@ -251,7 +527,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [currentTime, setCurrentTime] = useState(new Date())
     const [logoUrl, setLogoUrl] = useState('/images/logos/fintech.png');
     const [isSmallScreen, setIsSmallScreen] = useState(false)
-    const [showHoursModal, setShowHoursModal] = useState(false)  // ← NEW
+    const [showHoursModal, setShowHoursModal] = useState(false)
 
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id;
@@ -266,12 +542,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const [punchType, setPunchType] = useState<'HOME' | 'OFFICE' | 'FIELD'>('OFFICE');
     const [showFieldModal, setShowFieldModal] = useState(false);
-
-    const [fieldData, setFieldData] = useState({
-        personName: '',
-        contact: '',
-        remarks: ''
-    });
+ 
 
     const { settings } = useSettings()
     const router = useRouter()
@@ -305,12 +576,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         const checkDevice = () => {
             const isMobile = detectMobileDevice();
             setIsMobileDevice(isMobile);
-            console.log('Device Detection:', {
-                isMobile,
-                isWhitelisted: isWhitelistedUser,
-                userAgent: navigator.userAgent,
-                screenWidth: window.innerWidth
-            });
         };
         checkDevice();
         window.addEventListener('resize', checkDevice);
@@ -399,7 +664,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const startPunchInTimer = (timestamp: number) => {
         intervalRef.current = setInterval(() => {
-            // const currentTime = Date.now()
             const diff = Date.now() - timestamp
             const totalSeconds = Math.floor(diff / 1000)
             const hours = Math.floor(totalSeconds / 3600)
@@ -428,38 +692,88 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const handlePunchOut = async () => {
         if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH OUT BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch Out.\n✅ Please use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
+            alert('🚫 PUNCH OUT BLOCKED...');
             return;
         }
-        const latestPunch = punch[punch.length - 1];
 
-        // if (latestPunch?.type === 'FIELD') {
-        //     setShowFieldModal(true);
-        //     return; // 🔥 yahin stop kar dena
-        // }
+        const latestPunch = punch?.length ? punch[punch.length - 1] : null;
+
+      
+
+        if (latestPunch?.type?.toUpperCase() === 'FIELD') {
+            setShowFieldModal(true);
+            return;
+        }
+
         const now = new Date()
-        const endTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        const endTime = now.toLocaleTimeString('en-US', {
+            hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
+        })
+
         const confirmation = window.confirm('Are you sure you want to punch out?')
         if (!confirmation) return
+
         stopPunchTimer()
-        setPunchState({ isPunchIn: false, startTime: '', endTime, totalTime: timer, isPunchInDisabled: false, isPunchOutDisabled: true })
-        const punchData = { punchOut: endTime, totalTime: timer }
-        await dispatch(updatePunch({ employeeId, punchData })).unwrap()
+
+        setPunchState({
+            isPunchIn: false, startTime: '', endTime, totalTime: timer,
+            isPunchInDisabled: false, isPunchOutDisabled: true
+        })
+
+        await dispatch(updatePunch({ employeeId, punchData: { punchOut: endTime } })).unwrap()
+
         dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
         dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
     }
 
+    const handleFieldSubmit = async (contacts: ContactEntry[], remarks: string) => {
+        const now = new Date();
+        const endTime = now.toLocaleTimeString('en-US', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
+        stopPunchTimer();
+
+        const punchData = {
+            punchOut: endTime,
+            contacts: contacts.map(c => ({
+                ...c,
+                remarks
+            }))
+        };
+
+        await dispatch(updatePunch({ employeeId, punchData })).unwrap();
+
+        setShowFieldModal(false);
+
+        setPunchState(prev => ({
+            ...prev,
+            isPunchIn: false,
+            isPunchOutDisabled: true
+        }));
+
+        dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }));
+    };
+
     useEffect(() => {
         if (punch.length > 0) {
-            const latestPunch = punch[punch.length - 1]
-
+            const latestPunch = punch[punch.length - 1];
             if (!latestPunch.punchOut) {
-                setPunchState({ ...punchState, isPunchIn: true, startTime: latestPunch.punchIn, isPunchInDisabled: true, isPunchOutDisabled: false })
+                setPunchState(prev => ({
+                    ...prev, isPunchIn: true, startTime: latestPunch.punchIn,
+                    isPunchInDisabled: true, isPunchOutDisabled: false
+                }));
             } else {
-                setPunchState({ ...punchState, isPunchIn: false, startTime: latestPunch.punchIn, endTime: latestPunch.punchOut, isPunchInDisabled: false, isPunchOutDisabled: true })
+                setPunchState(prev => ({
+                    ...prev, isPunchIn: false, startTime: latestPunch.punchIn,
+                    endTime: latestPunch.punchOut, isPunchInDisabled: false, isPunchOutDisabled: true
+                }));
             }
         }
-    }, [punch, employeeId])
+    }, [punch]);
 
     useEffect(() => {
         return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
@@ -496,8 +810,17 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         }
 
         return (
+
             <>
-                {/* Modal */}
+               
+                {showFieldModal && (
+                    <FieldPunchOutModal
+                        onClose={() => setShowFieldModal(false)}
+                        onSubmit={handleFieldSubmit}
+                    />
+                )}
+
+                {/* Working Hours Modal */}
                 {showHoursModal && (
                     <WorkingHoursModal
                         totalWorkingHours={totalWorkingHours}
@@ -556,28 +879,17 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         </div>
                     </div>
 
-                    {/* Divider */}
                     <div className="w-full h-px bg-white/15" />
 
-                    {/* ── View Hours Button (replaces raw text) ── */}
                     <button
                         onClick={() => setShowHoursModal(true)}
                         style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: 'rgba(255,255,255,0.12)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            borderRadius: '10px',
-                            padding: '7px 16px',
-                            color: '#fff',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            width: '100%',
-                            justifyContent: 'center',
-                            letterSpacing: '0.03em',
-                            transition: 'background 0.2s',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '10px', padding: '7px 16px', color: '#fff',
+                            fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                            width: '100%', justifyContent: 'center',
+                            letterSpacing: '0.03em', transition: 'background 0.2s',
                         }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
@@ -645,7 +957,13 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     // ─── Full View ─────────────────────────────────────────────────────────────
     return (
         <>
-            {/* Modal */}
+            {/* Field Punch Out Modal */}
+            {showFieldModal && (
+                <FieldPunchOutModal
+                    onClose={() => setShowFieldModal(false)}
+                    onSubmit={handleFieldSubmit}
+                />
+            )}
             {showHoursModal && (
                 <WorkingHoursModal
                     totalWorkingHours={totalWorkingHours}
@@ -719,13 +1037,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                         : 'bg-green-500 hover:bg-green-600 text-white'
                                         }`}
                                     title={
-                                        isPunchDisabledDueToMobile
-                                            ? "Mobile devices not allowed. Use Desktop/Laptop."
-                                            : disablePunch
-                                                ? "Managers can't punch in for team members."
-                                                : !isCurrentDate
-                                                    ? "Punch-In available for today only."
-                                                    : ''
+                                        isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop."
+                                            : disablePunch ? "Managers can't punch in for team members."
+                                                : !isCurrentDate ? "Punch-In available for today only." : ''
                                     }
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -742,11 +1056,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                         : 'bg-red-500 hover:bg-red-600 text-white'
                                         }`}
                                     title={
-                                        isPunchDisabledDueToMobile
-                                            ? "Mobile devices not allowed. Use Desktop/Laptop."
-                                            : disablePunch
-                                                ? "Managers can't punch out for team members."
-                                                : ''
+                                        isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop."
+                                            : disablePunch ? "Managers can't punch out for team members." : ''
                                     }
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -772,7 +1083,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Total Time</h4>
                                     <div className="text-gray-600">{currentPunch?.totalTime || '-'}</div>
+
                                 </div>
+
                             </div>
                             <div className="flex gap-4">
                                 <button onClick={handlePreviousPunch} disabled={currentPunchIndex === 0}
@@ -787,7 +1100,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         </div>
                     </div>
 
-                    {/* ── Total bar — now with View Hours button ── */}
+                    {/* Total bar */}
                     <div className="bg-[#1a237e] p-6 text-center">
                         <h3 className="text-gray-200 text-lg font-semibold mb-2">
                             Total Working Hours of {selectedDate}
@@ -798,18 +1111,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         <button
                             onClick={() => setShowHoursModal(true)}
                             style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                background: 'rgba(255,255,255,0.12)',
-                                border: '1px solid rgba(255,255,255,0.25)',
-                                borderRadius: '10px',
-                                padding: '8px 20px',
-                                color: '#fff',
-                                fontSize: '13px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                letterSpacing: '0.03em',
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)',
+                                borderRadius: '10px', padding: '8px 20px', color: '#fff',
+                                fontSize: '13px', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.03em',
                             }}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -4,6 +4,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || ''
 
 export interface Punch {
+    type: string
     id: string
     punchIn: string
     punchOut: string
