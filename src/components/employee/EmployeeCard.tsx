@@ -74,7 +74,7 @@ const EmailTypography = styled(Typography)(({ theme, mode }) => ({
   }
 }))
 
-const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, capitalizeWords, deletedEmployee }) => {
+const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDelete, capitalizeWords, deletedEmployee }) => {
   const [anchorEl, setAnchorEl] = useState(null)
   const [userRole, setUserRole] = useState('')
   const [loading, setLoading] = useState(false)
@@ -102,7 +102,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
     }
   }, [userRole])
 
-  const getStatusColor = status => {
+  const getEmployeeStatusColor = status => {
     switch (status) {
       case 'pending':
         return 'warning'
@@ -113,6 +113,40 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
     }
   }
 
+  const getAttendanceDotColor = status => {
+
+    switch (status) {
+
+      case 'PRESENT':
+        return '#22c55e'
+
+      case 'LEAVE':
+        return '#ef4444'
+
+      case 'HALF_DAY':
+        return '#facc15'
+
+      default:
+        return '#d1d5db'
+    }
+  }
+  const getAttendanceTooltip = (status: string) => {
+
+    switch (status) {
+
+      case 'PRESENT':
+        return 'Active'
+
+      case 'LEAVE':
+        return 'On Leave'
+
+      case 'HALF_DAY':
+        return 'Half Day'
+
+      default:
+        return 'No Information'
+    }
+  }
   const handleCardClick = () => {
     setLoading(true)
     setTimeout(() => {
@@ -126,7 +160,10 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
   }
 
   return (
-    <StyledCard mode={settings.mode}>
+    <StyledCard
+      mode={settings.mode}
+      sx={{ position: 'relative' }}
+    >
       {loading ? (
         <Box display='flex' justifyContent='center' alignItems='center' height='100%'>
           <Loader />
@@ -178,9 +215,59 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
               }
             </Menu>
           </Box>
-          <Tooltip title="View Profile" arrow>
+          {/* <Box
+            sx={{
+              position: 'absolute',
+              top: 15,
+              left: 15,
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              backgroundColor: getAttendanceDotColor(status),
+              border: '2px solid white',
+              zIndex: 10
+            }}
+          /> */}
+          <Box
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              justifyContent: 'center',
+              mb: 2
+            }}
+          >
+            <Tooltip
+              title={getAttendanceTooltip(status)}
+              arrow
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 4,
+                  right: '28%',
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  backgroundColor: getAttendanceDotColor(status),
+                  border: '2px solid white',
+                  zIndex: 9999,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+                }}
+              />
+            </Tooltip>
+
+            <Tooltip title="View Profile" arrow>
+              <StyledAvatar
+                alt={employee.first_name}
+                src={employee?.image}
+                mode={settings.mode}
+                onClick={() => handleCardClick()}
+              />
+            </Tooltip>
+          </Box>
+          {/* <Tooltip title="View Profile" arrow>
             <StyledAvatar alt={employee.first_name} src={employee?.image} mode={settings.mode} onClick={() => handleCardClick()} />
-          </Tooltip>
+          </Tooltip> */}
 
           <Typography
             variant='h5'
@@ -202,7 +289,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
           </Typography>
 
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
-            <StyledChip label={employee.status} color={getStatusColor(employee.status)} size='small' />
+            <StyledChip label={employee.status} color={getEmployeeStatusColor(employee.status)} size='small' />
           </Box>
 
           <EmailContainer>

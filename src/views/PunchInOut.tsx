@@ -166,7 +166,7 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
 
                 {/* Total */}
                 <div style={{ marginTop: '10px', color: '#fff' }}>
-                    Total: {formatTime(totalWorkingHours?.total)}
+                    Total Time After Taking Break: {formatTime(totalWorkingHours?.total)}
                 </div>
             </div>
 
