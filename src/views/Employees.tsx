@@ -34,6 +34,7 @@ export default function EmployeeGrid() {
   const [searchName, setSearchName] = useState('')
   const [selectedDesignation, setSelectedDesignation] = useState('')
   const [page, setPage] = useState(1)
+  const [attendanceStatus, setAttendanceStatus] = useState({})
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const router = useRouter()
@@ -130,6 +131,101 @@ export default function EmployeeGrid() {
     }
   }
 
+
+  const fetchAttendanceStatus = async () => {
+    try {
+
+      const today = new Date().toISOString().split('T')[0]
+
+      const companyId =
+        JSON.parse(localStorage.getItem('user') || '{}')?.company_id
+
+      const authHeader = `Bearer ${token} ${companyId}`
+
+      // PRESENT EMPLOYEES
+      const punchRes = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/punch/punches/date/${today}`,
+        {
+          headers: {
+            Authorization: authHeader
+          }
+        }
+      )
+
+      const punchData = await punchRes.json()
+      
+
+      // LEAVE EMPLOYEES
+      const leaveRes = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/today-leaves?company_id=${companyId}`,
+        {
+          headers: {
+            Authorization: authHeader
+          }
+        }
+      )
+
+      const leaveData = await leaveRes.json()
+      console.log('leaveData', leaveData)
+
+
+      const halfRes = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/on-half/${today}`,
+        {
+          headers: {
+            Authorization: authHeader
+          }
+        }
+      )
+
+      const halfData = await halfRes.json()
+      console.log('halfData', halfData)
+
+      const statusMap = {}
+
+      // PRESENT
+      punchData?.forEach((item: any) => {
+
+        const empId = item.employee
+
+        if (empId) {
+          statusMap[empId.toString()] = 'PRESENT'
+        }
+      })
+      leaveData?.employees?.forEach((item: any) => {
+
+        const empId = item.employee?._id
+
+        if (empId) {
+          statusMap[empId.toString()] = 'LEAVE'
+        }
+      })
+
+      // HALF DAY
+      halfData?.forEach((item: any) => {
+        const empId =
+          (
+            item.employee_id ||
+            item.employeeId ||
+            item._id
+          )?.toString()?.trim()
+
+        statusMap[empId?.toString()] = 'HALF_DAY'
+      })
+      console.log('statusMap', statusMap)
+      setAttendanceStatus(statusMap)
+
+    } catch (error) {
+      console.error('Attendance Status Error:', error)
+    }
+  }
+
+  useEffect(() => {
+    if (token) {
+      fetchAttendanceStatus()
+    }
+  }, [token])
+  
   const debouncedSearchName = useDebounce(searchName, 500)
   const debouncedDesignation = useDebounce(selectedDesignation, 500)
 
@@ -249,16 +345,20 @@ export default function EmployeeGrid() {
             </FormControl>
           </Grid>
         </Grid>
-
         <Grid container spacing={4}>
           {error ? (
             <Typography sx={{ p: 4 }}>Error: {error}</Typography>
           ) : (
+
             employees.map((employee: any) => (
               <Grid item xs={12} sm={6} md={3} key={employee._id}>
                 <EmployeeCard
                   employee={employee}
                   id={employee._id}
+                  status={
+                    attendanceStatus[
+                    employee._id?.toString()?.trim()]
+                  }
                   handleEditEmployeeClick={handleEditEmployeeClick}
                   capitalizeWords={capitalizeWords}
                   handleDelete={handleDelete}
