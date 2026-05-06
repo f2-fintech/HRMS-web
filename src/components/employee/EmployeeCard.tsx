@@ -126,6 +126,12 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
       case 'HALF_DAY':
         return '#facc15'
 
+      case 'COMPLETED':
+        return '#3b82f6'
+
+      case 'BREAK':
+        return '#a855f7'
+
       default:
         return '#d1d5db'
     }
@@ -142,6 +148,12 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
 
       case 'HALF_DAY':
         return 'Half Day'
+
+      case 'COMPLETED':
+        return 'Completed day'
+
+      case 'BREAK':
+        return 'On Break'
 
       default:
         return 'No Information'

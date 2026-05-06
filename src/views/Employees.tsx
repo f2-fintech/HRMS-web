@@ -152,8 +152,9 @@ export default function EmployeeGrid() {
         }
       )
 
+
       const punchData = await punchRes.json()
-      
+
 
       // LEAVE EMPLOYEES
       const leaveRes = await fetch(
@@ -188,7 +189,16 @@ export default function EmployeeGrid() {
 
         const empId = item.employee
 
-        if (empId) {
+        if (!empId) return
+
+        // PUNCH OUT DONE
+        if (item.punchOut && item.punchOut !== '') {
+
+          statusMap[empId.toString()] = 'COMPLETED'
+
+        } else {
+
+          // STILL ACTIVE
           statusMap[empId.toString()] = 'PRESENT'
         }
       })
@@ -202,16 +212,50 @@ export default function EmployeeGrid() {
       })
 
       // HALF DAY
-      halfData?.forEach((item: any) => {
-        const empId =
-          (
-            item.employee_id ||
-            item.employeeId ||
-            item._id
-          )?.toString()?.trim()
+     // HALF DAY
+halfData?.forEach((item: any) => {
 
-        statusMap[empId?.toString()] = 'HALF_DAY'
+  const empId =
+    (
+      item.employee_id ||
+      item.employeeId ||
+      item._id
+    )?.toString()?.trim()
+
+  if (!empId) return
+
+  // If already punched in / active
+  if (
+    statusMap[empId] === 'PRESENT' ||
+    statusMap[empId] === 'COMPLETED'
+  ) {
+
+    return
+  }
+
+  // Otherwise show half day
+  statusMap[empId] = 'HALF_DAY'
+})
+      const breakRes = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/breaksheet/active-breaks?companyId=${companyId}&date=${today}`,
+        {
+          headers: {
+            Authorization: authHeader
+          }
+        }
+      )
+
+      const breakData = await breakRes.json()
+      // BREAK
+      breakData?.forEach((item: any) => {
+
+        const empId = item.employee
+
+        if (empId) {
+          statusMap[empId.toString()] = 'BREAK'
+        }
       })
+
       console.log('statusMap', statusMap)
       setAttendanceStatus(statusMap)
 
@@ -225,7 +269,7 @@ export default function EmployeeGrid() {
       fetchAttendanceStatus()
     }
   }, [token])
-  
+
   const debouncedSearchName = useDebounce(searchName, 500)
   const debouncedDesignation = useDebounce(selectedDesignation, 500)
 
