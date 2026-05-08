@@ -469,13 +469,18 @@ const BreakSheet: React.FC = () => {
         const fileName = `shift_summary_${formattedDay}_${formattedMonth}_${formattedYear}.csv`;
 
         const csvRows = [
-            ['Employee Name', 'Location', 'Punch In', 'Punch Out', 'Total Shift Time', 'Status'],
+            ['Employee Name', 'Location', 'Punch In', 'Punch Out', 'Total Shift Time', 'Break Time', 'Net Working Time', 'Shift Required',
+                'Shift Status', 'Status'],
             ...allEmployees.map(emp => [
                 `${emp.first_name ?? ''} ${emp.last_name ?? ''}`.trim(),
                 emp.location ?? '',
                 emp.punchIn ?? '',
                 emp.punchOut ?? '',
                 emp.totalShiftTime ?? '',
+                emp.totalBreakTime ?? '',
+                emp.netWorkingTime ?? '',
+                emp.shiftRequired ?? '',    
+                emp.shiftStatus ?? '',
                 emp.status ?? ''
             ])
         ];
