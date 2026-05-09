@@ -56,6 +56,8 @@ const BreakSheet: React.FC = () => {
     const [startTimestamp, setStartTimestamp] = useState<number | null>(null)
 
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+
+
     const [isCurrentDate, setIsCurrentDate] = useState<boolean>(true)
 
     const [employees, setEmployees] = useState<any[]>([])
@@ -82,7 +84,9 @@ const BreakSheet: React.FC = () => {
     const [showBreakCount, setShowBreakCount] = useState(false);
 
     const [selectedEmployeeWorkingHours, setSelectedEmployeeWorkingHours] = useState<string>('00h 00m 00s')
-
+    const [selectedMonth, setSelectedMonth] = useState(
+        new Date().toISOString().slice(0, 7)
+    );
     // Retrieve employee from localStorage (if available)
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = employee?.id
@@ -140,6 +144,7 @@ const BreakSheet: React.FC = () => {
 
         return () => window.removeEventListener('resize', checkDevice)
     }, [])
+
 
     const fetchExceedBreakEmployees = async () => {
         if (showExceedBreaks) {
@@ -284,6 +289,7 @@ const BreakSheet: React.FC = () => {
             window.removeEventListener('focus', handleVisibilityChange)
         }
     }, [timerRunning])
+
 
     // Check if there's a running break
     useEffect(() => {
@@ -479,7 +485,8 @@ const BreakSheet: React.FC = () => {
                 emp.totalShiftTime ?? '',
                 emp.totalBreakTime ?? '',
                 emp.netWorkingTime ?? '',
-                emp.shiftRequired ?? '',    
+
+                emp.shiftRequired ?? '',
                 emp.shiftStatus ?? '',
                 emp.status ?? ''
             ])
@@ -502,6 +509,199 @@ const BreakSheet: React.FC = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     };
+
+ const handleMonthlyExportShiftTime = async () => {
+
+    try {
+
+        const [year, month] = selectedMonth.split('-');
+
+        const url =
+            `${process.env.NEXT_PUBLIC_APP_URL}/punch/monthly-shift-summary?month=${month}&year=${year}&company_id=${companyId}`;
+
+        const res = await fetch(url);
+
+        const data = await res.json();
+
+        const employees = data.employees || [];
+
+        if (!employees.length) {
+
+            alert('No monthly data found');
+
+            return;
+        }
+
+        const csvRows = [
+            [
+                'Date',
+                'Employee Name',
+                'Location',
+                'Designation',
+                'Punch In',
+                'Punch Out',
+                'Total Shift Time',
+                'Break Time',
+                'Net Working Time',
+                'Shift Required',
+                'Shift Status',
+                'Status'
+            ],
+            ...Object.values(
+
+                employees.reduce((acc: any, emp: any) => {
+
+                    const employeeName =
+                        `${emp.first_name ?? ''} ${emp.last_name ?? ''}`.trim();
+
+                    if (!acc[employeeName]) {
+
+                        acc[employeeName] = {
+                            rows: [],
+                            totalShift: 0,
+                            totalBreak: 0,
+                            totalNet: 0
+                        };
+                    }
+
+                    // ---- DAILY ROW ----
+                    acc[employeeName].rows.push([
+
+                        emp.date ?? '',
+
+                        employeeName,
+
+                        emp.location ?? '',
+                        emp.designation ?? '',
+
+                        emp.punchIn ?? '',
+                        emp.punchOut ?? '',
+
+                        emp.totalShiftTime ?? '',
+                        emp.totalBreakTime ?? '',
+                        emp.netWorkingTime ?? '',
+
+                        emp.shiftRequired ?? '',
+                        emp.shiftStatus ?? '',
+
+                        emp.status ?? ''
+                    ]);
+
+                    // ---- TIME CONVERTER ----
+                    const convertToMinutes = (time: string) => {
+
+                        if (!time) return 0;
+
+                        const hourMatch =
+                            time.match(/(\d+)h/);
+
+                        const minuteMatch =
+                            time.match(/(\d+)m/);
+
+                        const hours = hourMatch
+                            ? Number(hourMatch[1])
+                            : 0;
+
+                        const minutes = minuteMatch
+                            ? Number(minuteMatch[1])
+                            : 0;
+
+                        return (hours * 60) + minutes;
+                    };
+
+                    // ---- TOTALS ----
+                    acc[employeeName].totalShift +=
+                        convertToMinutes(emp.totalShiftTime);
+
+                    acc[employeeName].totalBreak +=
+                        convertToMinutes(emp.totalBreakTime);
+
+                    acc[employeeName].totalNet +=
+                        convertToMinutes(emp.netWorkingTime);
+
+                    return acc;
+
+                }, {})
+
+            ).flatMap((group: any) => {
+
+                const formatMinutes = (minutes: number) => {
+
+                    const hrs = Math.floor(minutes / 60);
+                    const mins = minutes % 60;
+
+                    return `${hrs}h ${mins}m`;
+                };
+
+                return [
+
+                    // ---- DAILY ROWS ----
+                    ...group.rows,
+
+                    // ---- EMPLOYEE TOTAL ROW ----
+                    [
+                        'TOTAL',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+
+                        formatMinutes(group.totalShift),
+
+                        formatMinutes(group.totalBreak),
+
+                        formatMinutes(group.totalNet),
+
+                        '',
+                        '',
+                        ''
+                    ],
+
+                    // ---- SPACE ----
+                    []
+                ];
+            })
+        ];
+
+        const csvContent = csvRows
+            .map(row => row.map(csvEscape).join(','))
+            .join('\n');
+
+        const blob = new Blob(
+            [csvContent],
+            { type: 'text/csv;charset=utf-8;' }
+        );
+
+        const link = document.createElement('a');
+
+        const fileName =
+            `monthly_shift_summary_${selectedMonth}.csv`;
+
+        const downloadUrl =
+            URL.createObjectURL(blob);
+
+        link.setAttribute('href', downloadUrl);
+
+        link.setAttribute('download', fileName);
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(downloadUrl);
+
+    } catch (error) {
+
+        console.error(
+            'Monthly Export Error:',
+            error
+        );
+    }
+};
+
 
 
     const handleExportBreakCount = async () => {
@@ -549,6 +749,8 @@ const BreakSheet: React.FC = () => {
             console.error("Export error:", err);
         }
     };
+
+
     if (isMobile && Number(userRole) > 2) {
         return (
             <Box
@@ -676,6 +878,15 @@ const BreakSheet: React.FC = () => {
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                         </button>
+                        <button
+                            onClick={handleMonthlyExportShiftTime}
+                            className="group relative px-4 py-3 font-semibold text-white rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 focus:ring-4 focus:ring-purple-200 focus:outline-none shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out"
+                        >
+                            <span className="relative z-10 flex items-center gap-2">
+                                <span className="text-lg">📅</span>
+                                Monthly Shift Report
+                            </span>
+                        </button>
                         {/* Monitor Shift Not Complete Button */}
                         <button
                             onClick={fetchEmpNotCompleteShift}
@@ -709,7 +920,7 @@ const BreakSheet: React.FC = () => {
                         >
                             <span className="relative z-10 flex items-center gap-2">
                                 <span className="text-lg">📊</span>
-                                Today's Employees Punches
+                                Employees Punches
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
                         </a>
@@ -814,8 +1025,13 @@ const BreakSheet: React.FC = () => {
                             />
 
                             {/* Date Selection */}
-                            <DateSelection selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
-                        </div>
+                            <DateSelection
+                                selectedDate={selectedDate}
+                                setSelectedDate={setSelectedDate}
+
+                                selectedMonth={selectedMonth}
+                                setSelectedMonth={setSelectedMonth}
+                            />                        </div>
                     </div>
                 </div>
 
