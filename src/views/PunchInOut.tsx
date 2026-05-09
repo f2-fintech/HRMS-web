@@ -943,7 +943,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchInDisabled || disablePunch || isPunchDisabledDueToMobile ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white'}`}
                                 title={isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop." : ""}
                             >
-                                Punch In
+                                Day Begin
                             </button>
                             {punchState.startTime && <div className="text-sm text-white">{punchState.startTime}</div>}
                         </div>
@@ -959,7 +959,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 text-white'}`}
                                 title={isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop." : ""}
                             >
-                                Punch Out
+                                Day Out
                             </button>
                             {punchState.endTime && <div className="text-sm text-white">{punchState.endTime}</div>}
                         </div>
@@ -1060,7 +1060,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                                     </svg>
-                                    Punch In
+                                  Day Begin
                                 </button>
 
                                 <button
@@ -1078,7 +1078,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
                                     </svg>
-                                    Punch Out
+                                    Day Out
                                 </button>
                             </div>
                         </div>
@@ -1088,11 +1088,11 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             <h2 className="text-xl font-semibold text-gray-800 mb-6">Attendance Logs</h2>
                             <div className="grid grid-cols-3 gap-4 w-full mb-6 text-center">
                                 <div className="flex flex-col">
-                                    <h4 className="font-semibold text-gray-700 mb-2">Punch In</h4>
+                                    <h4 className="font-semibold text-gray-700 mb-2">Day Begin</h4>
                                     <div className="text-gray-600">{currentPunch?.punchIn || '-'}</div>
                                 </div>
                                 <div className="flex flex-col">
-                                    <h4 className="font-semibold text-gray-700 mb-2">Punch Out</h4>
+                                    <h4 className="font-semibold text-gray-700 mb-2">Day Out</h4>
                                     <div className="text-gray-600">{currentPunch?.punchOut || '-'}</div>
                                 </div>
                                 <div className="flex flex-col">
