@@ -960,7 +960,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 className={`mb-2 px-4 py-2 rounded-lg ${punchState.isPunchOutDisabled || disablePunch || isPunchDisabledDueToMobile ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 text-white'}`}
                                 title={isPunchDisabledDueToMobile ? "Mobile devices not allowed. Use Desktop/Laptop." : ""}
                             >
-                                Day Out
+                                Day End
                             </button>
                             {punchState.endTime && <div className="text-sm text-white">{punchState.endTime}</div>}
                         </div>
@@ -1093,7 +1093,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                     <div className="text-gray-600">{currentPunch?.punchIn || '-'}</div>
                                 </div>
                                 <div className="flex flex-col">
-                                    <h4 className="font-semibold text-gray-700 mb-2">Day Out</h4>
+                                    <h4 className="font-semibold text-gray-700 mb-2">Day End</h4>
                                     <div className="text-gray-600">{currentPunch?.punchOut || '-'}</div>
                                 </div>
                                 <div className="flex flex-col">

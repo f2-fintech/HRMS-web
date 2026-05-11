@@ -234,7 +234,7 @@ const DateWisePunches = () => {
                         </div>
                         {punch?.punchOut && (
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Day Out:</span>
+                                <span className="text-gray-600">Day End:</span>
                                 <span className="font-medium">{formatTime(punch?.punchOut)}</span>
                             </div>
                         )}
