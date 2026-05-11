@@ -28,8 +28,9 @@ const MOBILE_BREAK_ALLOWED_IDS = new Set<string>([
   '66bca8d72f1270380b77ab12',
   '66bc8bfe2f1270380b77a920',
   '66bca6192f1270380b77aac5',
-  '699e8d1b1cf053581b8a4d6e',
-  '693926c8c3b776470f4e1a44'
+  // '699e8d1b1cf053581b8a4d6e',
+  // '693926c8c3b776470f4e1a44',
+  '66c881fe269ecefff3411649'
 ]);
 
 const BreakControls: React.FC<BreakControlsProps> = ({
