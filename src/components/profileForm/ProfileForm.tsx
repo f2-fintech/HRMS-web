@@ -1333,7 +1333,7 @@ const ProfileForm = ({
               )}
             </section>
           </div>
-         
+
           {(logedUser.id === profileId || userRole === '1') && (
             <Button
               onClick={handleSubmit}
@@ -1500,20 +1500,21 @@ const ProfileForm = ({
             >
               Employee Profile
             </Typography>
-
-            <Button
-              variant="contained"
-              color="success"
-              onClick={downloadExcel}
-              sx={{
-                borderRadius: '10px',
-                textTransform: 'none',
-                fontWeight: 600,
-                px: 3
-              }}
-            >
-              Download Employee details
-            </Button>
+            {(logedUser.role === '1') && (
+              <Button
+                variant="contained"
+                color="success"
+                onClick={downloadExcel}
+                sx={{
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  px: 3
+                }}
+              >
+                Download Employee details
+              </Button>
+            )}
           </Box>
           <StyledTabs value={tabValue} onChange={handleTabChange} variant='scrollable' scrollButtons='auto'>
             {tabContent.map((tab, index) => (
