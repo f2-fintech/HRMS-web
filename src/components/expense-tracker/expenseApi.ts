@@ -186,21 +186,17 @@ export async function updateExpense(id: string, payload: Partial<CreateExpensePa
     return data;
 }
 
-// ✅ List (role based) admin(all)/manager(assigned)/employee(my)
 export async function listExpenses(params: {
-    page?: number;
-    limit?: number;
     owner_id?: string;
     manager_status?: string;
     admin_status?: string;
     date?: string;
     month?: number;
     year?: number;
+    search?: string;
 }) {
     const qs = new URLSearchParams();
 
-    if (params.page) qs.set('page', String(params.page));
-    if (params.limit) qs.set('limit', String(params.limit));
     if (params.owner_id) qs.set('owner_id', params.owner_id);
     if (params.manager_status) qs.set('manager_status', params.manager_status);
     if (params.admin_status) qs.set('admin_status', params.admin_status);
@@ -209,11 +205,13 @@ export async function listExpenses(params: {
     if (params.month) qs.set('month', String(params.month));
     if (params.year) qs.set('year', String(params.year));
 
-    return await apiGet<{ page: number; limit: number; total: number; data: any[] }>(
+    // ✅ SEARCH
+    if (params.search) qs.set('search', params.search);
+
+    return await apiGet<{ total: number; data: any[] }>(
         `/expense-tracker/list?${qs.toString()}`,
     );
 }
-
 
 export async function getExpenseById(id: string) {
     return await apiGet<any>(`/expense-tracker/${encodeURIComponent(id)}`);
