@@ -23,6 +23,8 @@ import { toast, ToastContainer } from 'react-toastify'
 import Loader from '../loader/loader'
 
 import 'react-toastify/dist/ReactToastify.css'
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   marginBottom: theme.spacing(2),
@@ -41,7 +43,13 @@ const StyledTab = styled(Tab)(({ theme }) => ({
   }
 }))
 
-const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setCheckVerify }) => {
+const ProfileForm = ({
+  profileId,
+  logedUser,
+  userData,
+  setCalculateFilledTabsCount,
+  setCheckVerify
+}) => {
   const [tabValue, setTabValue] = useState(0)
   const [updating, setUpdating] = useState(false)
   const [verifyTrigger, setVerifyTrigger] = useState(0)
@@ -52,13 +60,28 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
   const [formData, setFormData] = useState({
     employeeId: '',
     skills: [],
-    bankDetails: { bankName: '', accountNumber: '', ifscCode: '', panCardNumber: '', panCardImage: null },
-    addressDetails: {
-      permanentAddress: '',
-      currentAddress: '',
+    personalDetails: {
+
+      fatherName: '',
+      motherName: '',
+
+      maritalStatus: '',
+      bloodGroup: '',
+
+      panCardNumber: '',
+      panCardImage: null,
+
       aadhaarCardNumber: '',
       aadhaarFrontImage: null,
       aadhaarBackImage: null
+    },
+
+
+    bankDetails: { bankName: '', accountNumber: '', ifscCode: '' },
+    addressDetails: {
+      permanentAddress: '',
+      currentAddress: '',
+
     },
     academics: [{ level: '10th', institution: '', fromYear: '', toYear: '', details: '' }],
     pastExperience: [
@@ -209,19 +232,48 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
     setFormData({
       employeeId: data.employeeId || '',
       skills: data.skills || [],
+      personalDetails: {
+        fullName: data.personalDetails?.fullName || '',
+        fatherName: data.personalDetails?.fatherName || '',
+        motherName: data.personalDetails?.motherName || '',
+        email: data.personalDetails?.email || '',
+        phoneNumber: data.personalDetails?.phoneNumber || '',
+        gender: data.personalDetails?.gender || '',
+        dateOfBirth: data.personalDetails?.dateOfBirth || '',
+        maritalStatus: data.personalDetails?.maritalStatus || '',
+        bloodGroup: data.personalDetails?.bloodGroup || '',
+        panCardNumber:
+          data.personalDetails?.panCardNumber ||
+          data.bankDetails?.panCardNumber ||
+          '',
+        panCardImage:
+          data.personalDetails?.panCardImageUrl ||
+          data.bankDetails?.panCardImageUrl,
+        aadhaarCardNumber:
+          data.personalDetails?.aadhaarCardNumber ||
+          data.addressDetails?.aadhaarCardNumber ||
+          '',
+
+        aadhaarFrontImage:
+          data.personalDetails?.aadhaarFrontImageUrl ||
+          data.addressDetails?.aadhaarFrontImageUrl,
+        aadhaarBackImage:
+          data.personalDetails?.aadhaarBackImageUrl ||
+          data.addressDetails?.aadhaarBackImageUrl
+      },
+
       bankDetails: {
         bankName: data.bankDetails?.bankName || '',
-        accountNumber: data.bankDetails?.accountNumber || '',
-        ifscCode: data.bankDetails?.ifscCode || '',
-        panCardNumber: data.bankDetails?.panCardNumber || '',
-        panCardImage: data.bankDetails?.panCardImageUrl // URL from AWS
+        accountNumber:
+          data.bankDetails?.accountNumber || '',
+        ifscCode: data.bankDetails?.ifscCode || ''
       },
+
       addressDetails: {
-        permanentAddress: data.addressDetails?.permanentAddress || '',
-        currentAddress: data.addressDetails?.currentAddress || '',
-        aadhaarCardNumber: data.addressDetails?.aadhaarCardNumber || '',
-        aadhaarFrontImage: data.addressDetails?.aadhaarFrontImageUrl, // URL from AWS
-        aadhaarBackImage: data.addressDetails?.aadhaarBackImageUrl // URL from AWS
+        permanentAddress:
+          data.addressDetails?.permanentAddress || '',
+        currentAddress:
+          data.addressDetails?.currentAddress || ''
       },
       academics: Array.isArray(data.academics)
         ? data.academics
@@ -269,6 +321,17 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
     Object.entries(formData.addressDetails).forEach(([key, value]) => {
       appendData(`addressDetails_${key}`, value)
     })
+    Object.entries(formData.personalDetails).forEach(
+      ([key, value]) => {
+        if (
+          key !== 'panCardImage' &&
+          key !== 'aadhaarFrontImage' &&
+          key !== 'aadhaarBackImage'
+        ) {
+          appendData(`personalDetails_${key}`, value)
+        }
+      }
+    )
 
     formData.academics.forEach((academic, index) => {
       appendData(`academics_${index}_level`, academic.level)
@@ -285,16 +348,26 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
     })
 
     // Only append files if they are selected
-    if (formData.panCardImage) {
-      appendData('panCardImage', formData.panCardImage)
-    }
-    if (formData.aadhaarFrontImage) {
-      appendData('aadhaarFrontImage', formData.aadhaarFrontImage)
-    }
-    if (formData.aadhaarBackImage) {
-      appendData('aadhaarBackImage', formData.aadhaarBackImage)
+    if (formData.personalDetails.panCardImage) {
+      appendData(
+        'personalDetails_panCardImage',
+        formData.personalDetails.panCardImage
+      )
     }
 
+    if (formData.personalDetails.aadhaarFrontImage) {
+      appendData(
+        'personalDetails_aadhaarFrontImage',
+        formData.personalDetails.aadhaarFrontImage
+      )
+    }
+
+    if (formData.personalDetails.aadhaarBackImage) {
+      appendData(
+        'personalDetails_aadhaarBackImage',
+        formData.personalDetails.aadhaarBackImage
+      )
+    }
     appendData('verify', formData.verify)
 
     try {
@@ -320,7 +393,84 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
       setLoading(false)
     }
   }
+  const downloadExcel = () => {
+    const excelData = [
+      {
+        FullName:
+          `${userData?.first_name || ''} ${userData?.last_name || ''}`,
 
+        Email: userData?.email || '',
+
+        Contact: userData?.contact || '',
+
+        Designation: userData?.designation || '',
+
+        EmployeeCode: userData?.code || '',
+
+
+        Skills: formData.skills.join(', '),
+
+        FatherName: formData.personalDetails.fatherName,
+        MotherName: formData.personalDetails.motherName,
+        MaritalStatus: formData.personalDetails.maritalStatus,
+        BloodGroup: formData.personalDetails.bloodGroup,
+
+        PanNumber: formData.personalDetails.panCardNumber,
+        AadhaarNumber:
+          formData.personalDetails.aadhaarCardNumber,
+
+        BankName: formData.bankDetails.bankName,
+        AccountNumber:
+          formData.bankDetails.accountNumber,
+        IFSC: formData.bankDetails.ifscCode,
+
+        PermanentAddress:
+          formData.addressDetails.permanentAddress,
+        CurrentAddress:
+          formData.addressDetails.currentAddress,
+
+        Academics: formData.academics
+          .map(
+            aca =>
+              `${aca.level} - ${aca.institution}`
+          )
+          .join(' | '),
+
+        Experience: formData.pastExperience
+          .map(
+            exp =>
+              `${exp.companyName} (${exp.designation})`
+          )
+          .join(' | ')
+      }
+    ]
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(excelData)
+
+    const workbook = XLSX.utils.book_new()
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      'Employee Profile'
+    )
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: 'xlsx',
+      type: 'array'
+    })
+
+    const fileData = new Blob([excelBuffer], {
+      type:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
+    })
+
+    saveAs(
+      fileData,
+      `Employee_Profile_${formData.employeeId}.xlsx`
+    )
+  }
   const handleVerifyProfile = async val => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/profile/updateByVerifyStatus/${profileId}`, {
@@ -401,6 +551,202 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
       )
     },
     {
+      label: 'Personal Details',
+      content: (
+        <>
+
+
+          <TextField
+            label='Father Name'
+            fullWidth
+            margin='normal'
+            value={formData.personalDetails.fatherName}
+            onChange={e =>
+              handleInputChange(
+                'personalDetails',
+                '',
+                'fatherName',
+                e.target.value
+              )
+            }
+          />
+
+          <TextField
+            label='Mother Name'
+            fullWidth
+            margin='normal'
+            value={formData.personalDetails.motherName}
+            onChange={e =>
+              handleInputChange(
+                'personalDetails',
+                '',
+                'motherName',
+                e.target.value
+              )
+            }
+          />
+
+
+
+
+
+          <TextField
+            label='Marital Status'
+            fullWidth
+            margin='normal'
+            value={formData.personalDetails.maritalStatus}
+            onChange={e =>
+              handleInputChange(
+                'personalDetails',
+                '',
+                'maritalStatus',
+                e.target.value
+              )
+            }
+          />
+
+          <TextField
+            label='Blood Group'
+            fullWidth
+            margin='normal'
+            value={formData.personalDetails.bloodGroup}
+            onChange={e =>
+              handleInputChange(
+                'personalDetails',
+                '',
+                'bloodGroup',
+                e.target.value
+              )
+            }
+          />
+
+          <TextField
+            label='PAN Number'
+            fullWidth
+            margin='normal'
+            value={formData.personalDetails.panCardNumber}
+            onChange={e =>
+              handleInputChange(
+                'personalDetails',
+                '',
+                'panCardNumber',
+                e.target.value
+              )
+            }
+          />
+
+          <Box sx={{ mt: 1 }}>
+            <Button
+              variant="outlined"
+              component="label"
+            >
+              Choose PAN File
+
+              <input
+                hidden
+                type="file"
+                onChange={e =>
+                  handleFileChange(
+                    'personalDetails',
+                    'panCardImage',
+                    e.target.files[0]
+                  )
+                }
+              />
+            </Button>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              {formData.personalDetails.panCardImage
+                ? formData.personalDetails.panCardImage instanceof File
+                  ? formData.personalDetails.panCardImage.name
+                  : decodeURIComponent(
+                    formData.personalDetails.panCardImage
+                      ?.split('/')
+                      ?.pop()
+                  )
+                : 'No file chosen'}
+            </Typography>
+          </Box>
+
+          <TextField
+            label='Aadhaar Number'
+            fullWidth
+            margin='normal'
+            value={formData.personalDetails.aadhaarCardNumber}
+            onChange={e =>
+              handleInputChange(
+                'personalDetails',
+                '',
+                'aadhaarCardNumber',
+                e.target.value
+              )
+            }
+          />
+          <Box sx={{ mt: 1, display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+
+            <Box>
+              <Button variant="outlined" component="label">
+                Choose Aadhaar Front File
+                <input
+                  hidden
+                  type='file'
+                  onChange={e =>
+                    handleFileChange(
+                      'personalDetails',
+                      'aadhaarFrontImage',
+                      e.target.files[0]
+                    )
+                  }
+                />
+              </Button>
+
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                {formData.personalDetails.aadhaarFrontImage
+                  ? formData.personalDetails.aadhaarFrontImage instanceof File
+                    ? formData.personalDetails.aadhaarFrontImage.name
+                    : decodeURIComponent(
+                      formData.personalDetails.aadhaarFrontImage
+                        ?.split('/')
+                        ?.pop()
+                    )
+                  : 'No file chosen'}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Button variant="outlined" component="label">
+                Choose Aadhaar Back File
+                <input
+                  hidden
+                  type='file'
+                  onChange={e =>
+                    handleFileChange(
+                      'personalDetails',
+                      'aadhaarBackImage',
+                      e.target.files[0]
+                    )
+                  }
+                />
+              </Button>
+
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                {formData.personalDetails.aadhaarBackImage
+                  ? formData.personalDetails.aadhaarBackImage instanceof File
+                    ? formData.personalDetails.aadhaarBackImage.name
+                    : decodeURIComponent(
+                      formData.personalDetails.aadhaarBackImage
+                        ?.split('/')
+                        ?.pop()
+                    )
+                  : 'No file chosen'}
+              </Typography>
+            </Box>
+
+          </Box>
+
+        </>
+      )
+    },
+    {
       label: 'Bank Details',
       content: (
         <>
@@ -428,29 +774,9 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
             onChange={e => handleInputChange('bankDetails', '', 'ifscCode', e.target.value)}
             disabled={isFormDisabled}
           />
-          <TextField
-            label="PAN Card Number"
-            fullWidth
-            margin="normal"
-            value={formData.bankDetails.panCardNumber}
-            onChange={(e) => {
-              const value = e.target.value.toUpperCase();  // Convert to uppercase (as PAN is case-insensitive)
-              // Allow only valid alphanumeric characters (letters and digits)
-              const validValue = value.replace(/[^A-Za-z0-9]/g, '').slice(0, 10);  // Allow only alphanumeric, limit to 10 chars
-              handleInputChange('bankDetails', '', 'panCardNumber', validValue);
-            }}
-            disabled={isFormDisabled}
-            inputProps={{
-              maxLength: 10,  // Limit the PAN number to 10 characters
-              inputMode: 'text',  // Allow text input mode (for alphanumeric)
-            }}
-          />
 
-          <input
-            type='file'
-            onChange={e => handleFileChange('bankDetails', 'panCardImage', e.target.files[0])}
-            disabled={isFormDisabled}
-          />
+
+
         </>
       )
     },
@@ -479,42 +805,7 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
             disabled={isFormDisabled}
           />
 
-          <TextField
-            label='Aadhaar Card Number'
-            fullWidth
-            margin='normal'
-            value={formData.addressDetails.aadhaarCardNumber}
-            onChange={e => {
-              // Allow only digits and prevent non-numeric input
-              const onlyDigits = e.target.value.replace(/\D/g, '') // Remove non-digit characters
-              // Restrict length to 12 digits
-              if (onlyDigits.length <= 12) {
-                handleInputChange('addressDetails', '', 'aadhaarCardNumber', onlyDigits)
-              }
-            }}
-            disabled={isFormDisabled}
-            inputProps={{
-              maxLength: 12, // Limit the Aadhaar number to 12 digits
-              inputMode: 'numeric' // Display numeric keypad on mobile devices
-            }}
-          />
 
-          <Box sx={{ mt: 2 }}>
-            <Typography variant='subtitle2'>Aadhaar Card Front Image</Typography>
-            <input
-              type='file'
-              onChange={e => handleFileChange('addressDetails', 'aadhaarFrontImage', e.target.files[0])}
-              disabled={isFormDisabled}
-            />
-          </Box>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant='subtitle2'>Aadhaar Card Back Image</Typography>
-            <input
-              type='file'
-              onChange={e => handleFileChange('addressDetails', 'aadhaarBackImage', e.target.files[0])}
-              disabled={isFormDisabled}
-            />
-          </Box>
         </>
       )
     },
@@ -716,6 +1007,139 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
               <SectionTitle iconClass='ri-user-3-line' title='Skills' />
               <p >{formData.skills.join(', ') || 'No skills added'}</p>
             </section>
+            <section>
+              <SectionTitle
+                iconClass='ri-user-line'
+                title='Personal Details'
+              />
+
+              <div className='grid grid-cols-2 gap-2'>
+
+
+                <p>
+                  Father Name:{' '}
+                  {formData.personalDetails.fatherName || 'N/A'}
+                </p>
+
+                <p>
+                  Mother Name:{' '}
+                  {formData.personalDetails.motherName || 'N/A'}
+                </p>
+
+
+
+
+
+                <p>
+                  Marital Status:{' '}
+                  {formData.personalDetails.maritalStatus || 'N/A'}
+                </p>
+
+                <p>
+                  Blood Group:{' '}
+                  {formData.personalDetails.bloodGroup || 'N/A'}
+                </p>
+
+                <p>
+                  PAN Number:{' '}
+                  {formData.personalDetails.panCardNumber || 'N/A'}
+                </p>
+
+                <p>
+                  Aadhaar Number:{' '}
+                  {formData.personalDetails.aadhaarCardNumber || 'N/A'}
+                </p>
+              </div>
+
+              <div className='flex gap-4 flex-wrap mt-4'>
+                {formData.personalDetails.panCardImage && (
+                  <Box>
+                    <Typography variant='subtitle2'>
+                      PAN Card
+                    </Typography>
+
+                    <img
+                      src={
+                        formData.personalDetails.panCardImage instanceof
+                          File
+                          ? URL.createObjectURL(
+                            formData.personalDetails.panCardImage
+                          )
+                          : formData.personalDetails.panCardImage
+                      }
+                      alt='PAN'
+                      style={{
+                        width: '100px',
+                        height: '100px',
+                        objectFit: 'cover',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </Box>
+                )}
+
+                {formData.personalDetails.aadhaarFrontImage && (
+                  <Box>
+                    <Typography variant='subtitle2'>
+                      Aadhaar Front
+                    </Typography>
+
+                    <img
+                      src={
+                        formData.personalDetails
+                          .aadhaarFrontImage instanceof File
+                          ? URL.createObjectURL(
+                            formData.personalDetails
+                              .aadhaarFrontImage
+                          )
+                          : formData.personalDetails
+                            .aadhaarFrontImage
+                      }
+                      alt='Aadhaar Front'
+                      style={{
+                        width: '100px',
+                        height: '100px',
+                        objectFit: 'cover',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </Box>
+                )}
+
+                {formData.personalDetails.aadhaarBackImage && (
+                  <Box>
+                    <Typography variant='subtitle2'>
+                      Aadhaar Back
+                    </Typography>
+
+                    <img
+                      src={
+                        formData.personalDetails
+                          .aadhaarBackImage instanceof File
+                          ? URL.createObjectURL(
+                            formData.personalDetails
+                              .aadhaarBackImage
+                          )
+                          : formData.personalDetails
+                            .aadhaarBackImage
+                      }
+                      alt='Aadhaar Back'
+                      style={{
+                        width: '100px',
+                        height: '100px',
+                        objectFit: 'cover',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </Box>
+                )}
+              </div>
+            </section>
+
+            <hr className='border-t border-gray-200' />
 
             <hr className='border-t border-gray-200' />
 
@@ -725,16 +1149,16 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
                 <p>Bank Name: {formData.bankDetails.bankName || 'N/A'}</p>
                 <p>Account Number: {formData.bankDetails.accountNumber || 'N/A'}</p>
                 <p>IFSC Code: {formData.bankDetails.ifscCode || 'N/A'}</p>
-                <p>PAN Card Number: {formData.bankDetails.panCardNumber || 'N/A'}</p>
+                {/* <p>PAN Card Number: {formData.personalDetails.panCardNumber || 'N/A'}</p> */}
               </div>
-              {formData.bankDetails.panCardImage && (
+              {/* {formData.personalDetails.panCardImage && (
                 <Box sx={{ mt: 2, pl: 2 }}>
                   <Typography variant='subtitle2'>PAN Card Image:</Typography>
                   <img
                     src={
-                      formData.bankDetails.panCardImage instanceof File
-                        ? URL.createObjectURL(formData.bankDetails.panCardImage)
-                        : formData.bankDetails.panCardImage
+                      formData.personalDetails.panCardImage instanceof File
+                        ? URL.createObjectURL(formData.personalDetails.panCardImage)
+                        : formData.personalDetails.panCardImage
                     }
                     alt='PAN Card'
                     style={{
@@ -745,14 +1169,14 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
                       borderRadius: '4px',
                       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
                     }}
-                    onClick={() => handleClickOpen(formData.bankDetails.panCardImage, 'PAN Card')}
+                    onClick={() => handleClickOpen(formData.personalDetails.panCardImage, 'PAN Card')}
                   />
                   <IconButton
                     onClick={() => {
                       setFormData(prev => ({
                         ...prev,
-                        bankDetails: {
-                          ...prev.bankDetails,
+                        personalDetails: {
+                          ...prev.personalDetails,
                           panCardImage: null // Clear the image
                         }
                       }));
@@ -762,7 +1186,7 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
                     <Delete />
                   </IconButton>
                 </Box>
-              )}
+              )} */}
             </section>
 
             <hr className='border-t border-gray-200' />
@@ -771,8 +1195,8 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
               <SectionTitle iconClass='ri-map-pin-2-line' title='Address Details' />
               <p >Permanent Address: {formData.addressDetails.permanentAddress || 'N/A'}</p>
               <p >Current Address: {formData.addressDetails.currentAddress || 'N/A'}</p>
-              <p >Aadhaar Card Number: {formData.addressDetails.aadhaarCardNumber || 'N/A'}</p>
-              <div className='flex space-x-4 mt-2'>
+              {/* <p >Aadhaar Card Number: {formData.addressDetails.aadhaarCardNumber || 'N/A'}</p> */}
+              {/* <div className='flex space-x-4 mt-2'>
                 {formData.addressDetails.aadhaarFrontImage && (
                   <Box sx={{ mt: 2, pl: 2 }}>
                     <Typography variant='subtitle2'>Aadhaar Front Image:</Typography>
@@ -845,7 +1269,7 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
                     </IconButton>
                   </Box>
                 )}
-              </div>
+              </div> */}
             </section>
 
             <hr className='border-t border-gray-200' />
@@ -909,7 +1333,7 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
               )}
             </section>
           </div>
-
+         
           {(logedUser.id === profileId || userRole === '1') && (
             <Button
               onClick={handleSubmit}
@@ -918,6 +1342,7 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
             >
               {isCompressing ? 'Wait Compressing Images...' : updating ? 'Update' : 'Submit'}
             </Button>
+
           )}
         </div>
       )
@@ -927,40 +1352,95 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
   const calculateFilledTabs = () => {
     let filledCount = 0
 
-    // Skills tab (up to 1 point)
+    // Skills
     filledCount += Math.min(formData.skills.length, 3) / 3
 
-    // Bank Details tab (up to 1 point)
-    if (formData.bankDetails.bankName) filledCount += 1 / 5
-    if (formData.bankDetails.accountNumber) filledCount += 1 / 5
-    if (formData.bankDetails.ifscCode) filledCount += 1 / 5
-    if (formData.bankDetails.panCardNumber) filledCount += 1 / 5
-    if (formData.bankDetails.panCardImage) filledCount += 1 / 5
+    // Personal Details
+    if (formData.personalDetails.fatherName)
+      filledCount += 1 / 9
 
-    // Address Details tab (up to 1 point)
-    if (formData.addressDetails.permanentAddress) filledCount += 1 / 5
-    if (formData.addressDetails.currentAddress) filledCount += 1 / 5
-    if (formData.addressDetails.aadhaarCardNumber) filledCount += 1 / 5
-    if (formData.addressDetails.aadhaarFrontImage) filledCount += 1 / 5
-    if (formData.addressDetails.aadhaarBackImage) filledCount += 1 / 5
+    if (formData.personalDetails.motherName)
+      filledCount += 1 / 9
 
-    // Academics tab (up to 1 point)
-    if (formData.academics.some(aca => aca.level)) filledCount += 1 / 5
-    if (formData.academics.some(aca => aca.institution)) filledCount += 1 / 5
-    if (formData.academics.some(aca => aca.fromYear)) filledCount += 1 / 5
-    if (formData.academics.some(aca => aca.toYear)) filledCount += 1 / 5
-    if (formData.academics.some(aca => aca.details)) filledCount += 1 / 5
+    if (formData.personalDetails.panCardNumber)
+      filledCount += 1 / 9
 
-    // Past Experience tab (up to 1 point)
-    if (formData.pastExperience.some(exp => exp.companyName)) filledCount += 1 / 7
-    if (formData.pastExperience.some(exp => exp.fromYear)) filledCount += 1 / 7
-    if (formData.pastExperience.some(exp => exp.toYear)) filledCount += 1 / 7
-    if (formData.pastExperience.some(exp => exp.lastCtc)) filledCount += 1 / 7
-    if (formData.pastExperience.some(exp => exp.designation)) filledCount += 1 / 7
-    if (formData.pastExperience.some(exp => exp.referenceContact)) filledCount += 1 / 7
-    if (formData.pastExperience.some(exp => exp.referenceName)) filledCount += 1 / 7
+    if (formData.personalDetails.panCardImage)
+      filledCount += 1 / 9
 
-    return (filledCount / (tabContent.length - 1)) * 100
+    if (formData.personalDetails.aadhaarCardNumber)
+      filledCount += 1 / 9
+
+    if (formData.personalDetails.aadhaarFrontImage)
+      filledCount += 1 / 9
+
+    if (formData.personalDetails.aadhaarBackImage)
+      filledCount += 1 / 9
+
+    if (formData.personalDetails.bloodGroup)
+      filledCount += 1 / 9
+
+    if (formData.personalDetails.maritalStatus)
+      filledCount += 1 / 9
+
+    // Bank Details
+    if (formData.bankDetails.bankName)
+      filledCount += 1 / 3
+
+    if (formData.bankDetails.accountNumber)
+      filledCount += 1 / 3
+
+    if (formData.bankDetails.ifscCode)
+      filledCount += 1 / 3
+
+    // Address
+    if (formData.addressDetails.permanentAddress)
+      filledCount += 1 / 2
+
+    if (formData.addressDetails.currentAddress)
+      filledCount += 1 / 2
+
+    // Academics
+    if (formData.academics.some(aca => aca.level))
+      filledCount += 1 / 5
+
+    if (formData.academics.some(aca => aca.institution))
+      filledCount += 1 / 5
+
+    if (formData.academics.some(aca => aca.fromYear))
+      filledCount += 1 / 5
+
+    if (formData.academics.some(aca => aca.toYear))
+      filledCount += 1 / 5
+
+    if (formData.academics.some(aca => aca.details))
+      filledCount += 1 / 5
+
+    // Experience
+    if (formData.pastExperience.some(exp => exp.companyName))
+      filledCount += 1 / 7
+
+    if (formData.pastExperience.some(exp => exp.fromYear))
+      filledCount += 1 / 7
+
+    if (formData.pastExperience.some(exp => exp.toYear))
+      filledCount += 1 / 7
+
+    if (formData.pastExperience.some(exp => exp.lastCtc))
+      filledCount += 1 / 7
+
+    if (formData.pastExperience.some(exp => exp.designation))
+      filledCount += 1 / 7
+
+    if (formData.pastExperience.some(exp => exp.referenceContact))
+      filledCount += 1 / 7
+
+    if (formData.pastExperience.some(exp => exp.referenceName))
+      filledCount += 1 / 7
+
+    return Math.round(
+      (filledCount / (tabContent.length - 1)) * 100
+    )
   }
 
   useEffect(() => {
@@ -1002,7 +1482,39 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
               {selectedImage.src && <RenderImage imageSrc={selectedImage.src} imageAlt={selectedImage.alt} />}
             </DialogContent>
           </Dialog>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 2,
+              flexWrap: 'wrap',
+              gap: 2
+            }}
+          >
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700
+              }}
+            >
+              Employee Profile
+            </Typography>
 
+            <Button
+              variant="contained"
+              color="success"
+              onClick={downloadExcel}
+              sx={{
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3
+              }}
+            >
+              Download Employee details
+            </Button>
+          </Box>
           <StyledTabs value={tabValue} onChange={handleTabChange} variant='scrollable' scrollButtons='auto'>
             {tabContent.map((tab, index) => (
               <StyledTab key={index} label={tab.label} />

@@ -13,6 +13,8 @@ import type { RootState } from '@/redux/store'
 import useRouterWithMount from '@/utility/useRouterWithMount';
 import { useSettings } from '@/@core/hooks/useSettings';
 import { useRouter } from 'next/navigation'
+import Snackbar from '@mui/material/Snackbar'//new
+import MuiAlert from '@mui/material/Alert'
 
 interface PunchInOutProps {
     selectedDate: string
@@ -544,6 +546,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [logoUrl, setLogoUrl] = useState('/images/logos/fintech.png');
     const [isSmallScreen, setIsSmallScreen] = useState(false)
     const [showHoursModal, setShowHoursModal] = useState(false)
+    const [openProfileSnackbar, setOpenProfileSnackbar] = useState(true)
 
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id;
@@ -828,6 +831,52 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         return (
 
             <>
+            {/* newcode */}
+               {userData &&
+    (!userData?.personalDetails ||
+        !userData?.bankDetails ||
+        !userData?.documents) && (
+        <Snackbar
+            open={openProfileSnackbar}
+            autoHideDuration={5000}
+            onClose={() => setOpenProfileSnackbar(false)}
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            sx={{
+                top: '70px !important',
+            }}
+        >
+            <MuiAlert
+                elevation={3}
+                variant="filled"
+                severity="info"
+                onClick={() => navigateToProfile(userData?._id)}
+                sx={{
+                    cursor: 'pointer',
+                    alignItems: 'center',
+                    background: 'linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%)',
+                    color: '#fff',
+                    borderRadius: '10px',
+                    fontSize: '18px',
+                    fontWeight: 500,
+                    py: 0.4,
+                    px: 1.2,
+                    minWidth: '260px',
+                    boxShadow: '0 4px 14px rgba(37,99,235,0.25)',
+                    '& .MuiAlert-icon': {
+                        color: 'red',
+                        padding: '4px 0',
+                       
+                    },
+                    '& .MuiAlert-message': {
+                        padding: '6px 0'
+                    }
+                }}
+            >
+                Complete your HRMS profile details
+            </MuiAlert>
+        </Snackbar>
+    )}
+                
 
                 {showFieldModal && (
                     <FieldPunchOutModal
@@ -967,6 +1016,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     </div>
                 </div>
             </>
+
         );
     }
 
@@ -1061,7 +1111,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                                     </svg>
-                                  Day Begin
+                                    Day Begin
                                 </button>
 
                                 <button

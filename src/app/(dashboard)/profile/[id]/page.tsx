@@ -444,6 +444,7 @@ const Profile = () => {
                                 <ProfileForm
                                     profileId={userId}
                                     logedUser={user}
+                                    userData={userData}
                                     setCalculateFilledTabsCount={setCalculateFilledTabsCount}
                                     setCheckVerify={setCheckVerify}
                                 />

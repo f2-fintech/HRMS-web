@@ -21,6 +21,8 @@ import { deleteEmployee } from '@/redux/features/employees/employeesSlice'
 import 'react-toastify/dist/ReactToastify.css'
 import type { RootState } from '@/redux/store'
 import useDebounce from '@/utility/debounce/useDebounce'
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
 
 const { isTokenExpired } = utility()
 
@@ -212,30 +214,30 @@ export default function EmployeeGrid() {
       })
 
       // HALF DAY
-     // HALF DAY
-halfData?.forEach((item: any) => {
+      // HALF DAY
+      halfData?.forEach((item: any) => {
 
-  const empId =
-    (
-      item.employee_id ||
-      item.employeeId ||
-      item._id
-    )?.toString()?.trim()
+        const empId =
+          (
+            item.employee_id ||
+            item.employeeId ||
+            item._id
+          )?.toString()?.trim()
 
-  if (!empId) return
+        if (!empId) return
 
-  // If already punched in / active
-  if (
-    statusMap[empId] === 'PRESENT' ||
-    statusMap[empId] === 'COMPLETED'
-  ) {
+        // If already punched in / active
+        if (
+          statusMap[empId] === 'PRESENT' ||
+          statusMap[empId] === 'COMPLETED'
+        ) {
 
-    return
-  }
+          return
+        }
 
-  // Otherwise show half day
-  statusMap[empId] = 'HALF_DAY'
-})
+        // Otherwise show half day
+        statusMap[empId] = 'HALF_DAY'
+      })
       const breakRes = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/breaksheet/active-breaks?companyId=${companyId}&date=${today}`,
         {
@@ -308,7 +310,122 @@ halfData?.forEach((item: any) => {
       dispatch(resetEmployees())
     }
   }
+  const downloadAllEmployeesExcel = async () => {
+    try {
 
+      const allEmployeeData = await Promise.all(
+        employees.map(async (employee: any) => {
+
+          let profileData = {}
+
+          try {
+            const response = await fetch(
+              `${process.env.NEXT_PUBLIC_APP_URL}/profile/${employee._id}`
+            )
+
+            if (response.ok) {
+              profileData = await response.json()
+            }
+          } catch (err) {
+            console.log('Profile fetch error', err)
+          }
+
+          return {
+            EmployeeCode: employee.code || '',
+
+            FullName:
+              `${employee.first_name || ''} ${employee.last_name || ''}`,
+
+            Email: employee.email || '',
+
+            Contact: employee.contact || '',
+
+            Designation: employee.designation || '',
+
+            Location: employee.location || '',
+
+            JoiningDate: employee.joining_date
+              ? new Date(employee.joining_date)
+                .toLocaleDateString()
+              : '',
+
+            AttendanceStatus:
+              attendanceStatus[
+              employee._id?.toString()?.trim()
+              ] || 'N/A',
+
+            FatherName:
+              profileData?.personalDetails?.fatherName || '',
+
+            MotherName:
+              profileData?.personalDetails?.motherName || '',
+
+            MaritalStatus:
+              profileData?.personalDetails?.maritalStatus || '',
+
+            BloodGroup:
+              profileData?.personalDetails?.bloodGroup || '',
+
+            PanNumber:
+              profileData?.personalDetails?.panCardNumber ||
+              profileData?.bankDetails?.panCardNumber ||
+              '',
+
+            AadhaarNumber:
+              profileData?.personalDetails?.aadhaarCardNumber ||
+              profileData?.addressDetails?.aadhaarCardNumber ||
+              '',
+
+            BankName:
+              profileData?.bankDetails?.bankName || '',
+
+            AccountNumber:
+              profileData?.bankDetails?.accountNumber || '',
+
+            IFSC:
+              profileData?.bankDetails?.ifscCode || '',
+
+            PermanentAddress:
+              profileData?.addressDetails
+                ?.permanentAddress || '',
+
+            CurrentAddress:
+              profileData?.addressDetails
+                ?.currentAddress || '',
+
+            Skills:
+              profileData?.skills?.join(', ') || ''
+          }
+        })
+      )
+
+      const worksheet =
+        XLSX.utils.json_to_sheet(allEmployeeData)
+
+      const workbook = XLSX.utils.book_new()
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        'Employees Full Data'
+      )
+
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: 'xlsx',
+        type: 'array'
+      })
+
+      const fileData = new Blob([excelBuffer], {
+        type:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
+      })
+
+      saveAs(fileData, 'Employees_Full_Data.xlsx')
+
+    } catch (error) {
+      console.error('Excel Download Error:', error)
+    }
+  }
   return (
     <>
       <ToastContainer position='top-center' autoClose={3000} />
@@ -344,7 +461,21 @@ halfData?.forEach((item: any) => {
               >
                 Add Employee
               </Button>
+
             )}
+             {Number(userRole) === 1 && (
+            <Button
+              variant='contained'
+              color='success'
+              onClick={downloadAllEmployeesExcel}
+              sx={{
+                borderRadius: '3rem',
+                fontWeight: 'bold'
+              }}
+            >
+              Download Employee details
+            </Button>
+             )}
             {Number(userRole) === 1 && (
               <Button
                 variant='contained'
