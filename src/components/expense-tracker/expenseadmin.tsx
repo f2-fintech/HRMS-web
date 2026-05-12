@@ -463,7 +463,7 @@ export default function ExpenseAdmin() {
     setSnackbarMessage(message);
     setSnackbarSeverity(severity);
     setOpenSnackbar(true);
-  };
+  }; const [search, setSearch] = useState('');
 
   const handleCloseSnackbar = (_event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') return;
@@ -743,21 +743,27 @@ export default function ExpenseAdmin() {
         limit: 10,
       };
 
-      // 🔥 MAIN LOGIC
+      // ✅ SEARCH
+      if (search.trim()) {
+        query.search = search.trim();
+      }
+
+      // ✅ DATE FILTER
       if (filterDate) {
-        query.date = filterDate;   // ✅ expected_payment_date filter
+        query.date = filterDate;
       } else {
         query.month = filterMonth;
         query.year = filterYear;
       }
 
-      console.log("API QUERY:", query); // debug
+      console.log('API QUERY:', query);
 
       const res = await listExpenses(query);
 
       const data = Array.isArray(res?.data) ? res.data : [];
+
       setRows(data);
-      setTotal(res?.total || data.length);
+      setTotal(res?.total || 0);
 
     } finally {
       setLoadingList(false);
@@ -767,7 +773,7 @@ export default function ExpenseAdmin() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, isAdmin, filterMonth, filterYear, filterDate]);
+  }, [page, isAdmin, filterMonth, filterYear, filterDate, search]);
 
   const currentMonth = useMemo(() => monthLabel(filterYear, filterMonth), [filterYear, filterMonth]);
   const currentMonthRows = useMemo(() => rows || [], [rows]); // already filtered from backend
@@ -811,7 +817,7 @@ export default function ExpenseAdmin() {
     });
   };
 
-const exportCSV = () => {
+  const exportCSV = () => {
     if (!rows || rows.length === 0) {
       alert("No data");
       return;
@@ -840,18 +846,18 @@ const exportCSV = () => {
       "Description",
     ];
 
-  const formatDate = (d: string) => {
-    if (!d) return '';
-    return new Date(d).toLocaleDateString('en-GB');
-  };
-   const escapeCSV = (value: any) => {
+    const formatDate = (d: string) => {
+      if (!d) return '';
+      return new Date(d).toLocaleDateString('en-GB');
+    };
+    const escapeCSV = (value: any) => {
       if (value === null || value === undefined) return "";
       const str = String(value).replace(/"/g, '""');
       return `"${str}"`;
     };
 
-  
- const getPayTo = (r: any) => {
+
+    const getPayTo = (r: any) => {
       if (r.payment_mode === "BANK") {
         return `${r.account_holder || ""} - ${r.account_number || ""}`;
       }
@@ -870,7 +876,7 @@ const exportCSV = () => {
 
       return "";
     };
- const data = rows.map((r: any) => [
+    const data = rows.map((r: any) => [
       escapeCSV(formatDate(r.date)),
       escapeCSV(formatDate(r.expected_payment_date)),
       escapeCSV(formatDate(r.invoice_date)),
@@ -902,21 +908,21 @@ const exportCSV = () => {
     ]);
 
 
-  const csv = [
-    headers.join(","),
-    ...data.map(row => row.join(","))
-  ].join("\n");
+    const csv = [
+      headers.join(","),
+      ...data.map(row => row.join(","))
+    ].join("\n");
 
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
 
-   const a = document.createElement("a");
+    const a = document.createElement("a");
     a.href = url;
     a.download = "expenses_full_payment_details.csv";
     a.click();
-  
+
     URL.revokeObjectURL(url);
-};
+  };
   const statusTotals = useMemo(() => {
     const m: Record<string, number> = { pending: 0, approved: 0, paid: 0, rejected: 0 };
     currentMonthRows.forEach((r) => {
@@ -1295,6 +1301,23 @@ const exportCSV = () => {
           >
             {open ? 'Close Form' : '+ Create Expense'}
           </button>
+          <input
+            type="text"
+            placeholder="Search name/category..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            style={{
+              height: 34,
+              borderRadius: 8,
+              border: '1px solid #ddd',
+              padding: '0 10px',
+              minWidth: 220,
+              background: '#fff',
+            }}
+          />
           <input
             type="date"
             value={filterDate}
