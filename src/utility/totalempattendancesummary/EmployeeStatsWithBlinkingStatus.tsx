@@ -1,192 +1,205 @@
 import React, { useEffect, useState } from 'react'
-
 import dayjs from 'dayjs'
 import {
   Box,
   Typography,
   Grid,
   Paper,
-  useTheme,
-  ThemeProvider,
-  createTheme,
-  Avatar,
-  Tooltip,
-  Divider,
-  DialogContent,
-  ListItem,
   Dialog,
-  List,
+  DialogContent,
   DialogTitle,
   IconButton,
-  Collapse
+  Collapse,
+  CircularProgress
 } from '@mui/material'
-import {
-  Person as PersonIcon,
-  EventBusy as AbsentIcon,
-  EventAvailable as PresentIcon,
-  BeachAccess as LeaveIcon,
-  AccessTime as HalfDayIcon,
-  LocationOn as LocationIcon,
-  DirectionsRun as OnFieldIcon,
-  ExpandMore as ExpandMoreIcon
-} from '@mui/icons-material'
-
-import HomeIcon from '@mui/icons-material/Home'
+import { styled, keyframes } from '@mui/material/styles'
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
+import WorkIcon from '@mui/icons-material/Work'
+import SchoolIcon from '@mui/icons-material/School'
+import HandshakeIcon from '@mui/icons-material/Handshake'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import CloseIcon from '@mui/icons-material/Close'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
 import Loader from '@/components/loader/loader'
-
-import { employeesCountResponse } from '@/utility/apiResponse/employeesResponse'
 import LocationCard from './LocationCard'
 
-interface AttendanceCounts {
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface LocationItem {
+  _id: string
   Present: number
   Absent: number
-  OnLeave: number
-  OnHalf: number
-  OnField: number
-  OnWfh: number
+  On_Leave: number
+  On_Half: number
+  On_Field: number
+  On_Wfh: number
+  totalEmployeesToday: number
 }
 
-interface LocationAttendanceCounts {
-  [location: string]: {
-    counts: AttendanceCounts
-    totalEmployeesToday: number
-    employeesByStatus: {
-      Present: string[]
-      Absent: string[]
-      OnLeave: string[]
-      OnHalf: string[]
-      OnField: string[]
-      OnWfh: string[]
-    }
-  }
-}
+// ─── Animations ──────────────────────────────────────────────────────────────
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#3f51b5'
-    },
-    secondary: {
-      main: '#f50057'
-    },
-    background: {
-      default: '#f0f2f5',
-      paper: '#ffffff'
-    },
-    text: {
-      primary: '#333333',
-      secondary: '#666666'
-    }
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h4: {
-      fontWeight: 700,
-      fontSize: '2rem'
-    },
-    h5: {
-      fontWeight: 600,
-      fontSize: '1.5rem'
-    },
-    h6: {
-      fontWeight: 500,
-      fontSize: '1.25rem'
-    }
-  },
-  components: {
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          borderRadius: '12px'
-        }
-      }
-    }
-  }
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+`
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+`
+
+// ─── Styled Components ────────────────────────────────────────────────────────
+
+const DashboardWrapper = styled(Box)({
+  fontFamily: `'DM Sans', 'Segoe UI', sans-serif`,
+  padding: '24px',
 })
 
-const StatusCard: React.FC<{ count: number; status: string; employees: string[]; onClick: () => void }> = ({
-  count,
-  status,
-  employees,
-  onClick
-}) => {
-  const theme = useTheme()
+const HeaderCard = styled(Paper)({
+  borderRadius: '20px',
+  padding: '28px 32px',
+  marginBottom: '20px',
+  background: '#ffffff',
+  border: '1px solid #e8eaf0',
+  boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+  animation: `${fadeUp} 0.4s ease both`,
+})
 
-  const getStatusInfo = () => {
-    switch (status) {
-      case 'Present':
-        return {
-          icon: <PresentIcon />,
-          color: theme.palette.success.main,
-          backgroundColor: theme.palette.success.light
-        }
-      case 'Absent':
-        return { icon: <AbsentIcon />, color: theme.palette.error.main, backgroundColor: theme.palette.error.light }
-      case 'On_Leave':
-        return { icon: <LeaveIcon />, color: theme.palette.warning.main, backgroundColor: theme.palette.warning.light }
-      case 'On_Half':
-        return { icon: <HalfDayIcon />, color: theme.palette.info.main, backgroundColor: theme.palette.info.light }
-      case 'On_Field':
-        return {
-          icon: <OnFieldIcon />,
-          color: theme.palette.primary.main,
-          backgroundColor: theme.palette.primary.light
-        }
-      case 'On_Wfh': // New status
-        return {
-          icon: <HomeIcon />,
-          color: theme.palette.secondary.main,
-          backgroundColor: theme.palette.secondary.light
-        }
-      default:
-        return { icon: <PersonIcon />, color: theme.palette.grey[500], backgroundColor: theme.palette.grey[200] }
-    }
-  }
+const TotalBadge = styled(Box)({
+  background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+  borderRadius: '16px',
+  padding: '16px 20px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  minWidth: '200px',
+})
 
-  const { icon, color, backgroundColor } = getStatusInfo()
+const CategoryChip = styled(Paper)<{ chipcolor: string }>(({ chipcolor }) => ({
+  borderRadius: '16px',
+  padding: '16px 20px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  background: chipcolor,
+  cursor: 'pointer',
+  transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+  '&:hover': {
+    transform: 'translateY(-3px)',
+    boxShadow: '0 6px 20px rgba(0,0,0,0.14)',
+  },
+}))
 
-  return (
-    <Paper
-      elevation={3}
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '20px',
-        borderRadius: '12px',
-        backgroundColor,
-        transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-5px)',
-          boxShadow: '0 8px 12px rgba(0,0,0,0.15)'
-        },
-        cursor: 'pointer'
-      }}
-      onClick={onClick}
-    >
-      <Avatar sx={{ bgcolor: color, width: 56, height: 56, mb: 2 }}>{icon}</Avatar>
-      <Typography variant='h5' sx={{ color: 'white', fontWeight: 'bold', mb: 1 }}>
-        {count}
-      </Typography>
-      <Typography variant='body2' sx={{ color: 'white', textAlign: 'center' }}>
-        {status.replace('_', ' ').trim()}
-      </Typography>
-    </Paper>
-  )
-}
+const IconCircle = styled(Box)({
+  width: 42,
+  height: 42,
+  borderRadius: '50%',
+  background: 'rgba(255,255,255,0.2)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+})
+
+const StatusCard = styled(Paper)<{ cardcolor: string; delay?: number }>(({ cardcolor, delay = 0 }) => ({
+  borderRadius: '18px',
+  padding: '20px 22px',
+  background: cardcolor,
+  cursor: 'pointer',
+  transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+  animation: `${fadeUp} 0.4s ease ${delay}ms both`,
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+  },
+}))
+
+const StatusNumber = styled(Typography)({
+  fontSize: '2.2rem',
+  fontWeight: 700,
+  color: 'white',
+  lineHeight: 1.1,
+  letterSpacing: '-0.5px',
+})
+
+const ExpandButton = styled(IconButton)<{ expanded: boolean }>(({ expanded }) => ({
+  background: '#f1f3f9',
+  borderRadius: '10px',
+  padding: '8px',
+  transition: 'background 0.2s ease',
+  '& .MuiSvgIcon-root': {
+    transition: 'transform 0.3s ease',
+    transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+  },
+  '&:hover': {
+    background: '#e2e6f3',
+  },
+}))
+
+const EmployeeRow = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  padding: '10px 0',
+  borderBottom: '1px solid #f1f3f9',
+  '&:last-child': {
+    borderBottom: 'none',
+  },
+})
+
+const Avatar = styled(Box)<{ bgcolor: string }>(({ bgcolor }) => ({
+  width: 44,
+  height: 44,
+  borderRadius: '50%',
+  background: bgcolor,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '15px',
+  fontWeight: 600,
+  color: 'white',
+  flexShrink: 0,
+  overflow: 'hidden',
+  '& img': {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+}))
+
+const avatarColors = [
+  '#6366f1', '#10b981', '#f59e0b', '#ef4444',
+  '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6',
+]
+
+const getInitials = (first: string, last: string) =>
+  `${first?.[0] || ''}${last?.[0] || ''}`.toUpperCase()
+
+const getAvatarColor = (name: string) =>
+  avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length]
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 const EmployeeAttendanceStatus: React.FC = () => {
-  const [totalEmployees, setTotalEmployees] = useState<number>(0)
-  const [attendanceCountsByLocation, setAttendanceCountsByLocation] = useState<LocationAttendanceCounts>({})
+
+  const [employeeCounts, setEmployeeCounts] = useState<any>({
+    totalEmployees: 0,
+    totalInterns: 0,
+    totalChannelPartners: 0,
+    employeeList: [],
+    internList: [],
+    channelPartnerList: [],
+  })
+
+  const [attendanceCountsByLocation, setAttendanceCountsByLocation] = useState<LocationItem[]>([])
   const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string>('')
-  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
+  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([])
   const [dialogOpen, setDialogOpen] = useState<boolean>(false)
+  const [dialogLoading, setDialogLoading] = useState<boolean>(false)
   const [dialogTitle, setDialogTitle] = useState<string>('')
   const [accClicked, setAccClicked] = useState<boolean>(false)
-
-  const [expandedLocations, setExpandedLocations] = useState<{ [key: string]: boolean }>({})
 
   let token: string | null = null
   let company_id: string | null = null
@@ -200,169 +213,412 @@ const EmployeeAttendanceStatus: React.FC = () => {
     token = localStorage.getItem('token')
   }
 
-  if (!company_id) {
-    console.error('Company ID is missing in localStorage')
+  const handleOpenList = (title: string, list: any[]) => {
+    setDialogTitle(title)
+    setSelectedEmployees(Array.isArray(list) ? list : [])
+    setDialogOpen(true)
   }
 
-  const handleLocationExpand = (location: string) => {
-    setExpandedLocations(prev => ({
-      ...prev,
-      [location]: !prev[location]
-    }))
-    setAccClicked(true)
-  }
-
-  const handleStatusClick = async (status: string, location: string) => {
+  const handleStatusClickGlobal = async (status: string, label: string) => {
     try {
-      // Fetch attendance data based on status
+      setDialogTitle(label)
+      setDialogLoading(true)
+      setDialogOpen(true)
+      setSelectedEmployees([])
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/attendenceByStatus?status=${status}&location=${location}`,
+        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/byStatusOnly?status=${encodeURIComponent(status)}`,
         {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token} ${company_id}`,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
-      ) // Call your backend API
-      const employeesData = await response.json() // Get the employee data
-
-      // Sort employees based on their names
-      const sortedEmployees = employeesData.sort((a: any, b: any) =>
-        a.employee.first_name.localeCompare(b.employee.first_name)
       )
-
-      setSelectedEmployees(sortedEmployees) // Set sorted employees
-      setDialogTitle(status) // Set dialog title to the status
-      setDialogOpen(true) // Open the dialog
+      const data = await response.json()
+      setSelectedEmployees(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Error fetching employees by status:', error)
+      console.error(error)
+    } finally {
+      setDialogLoading(false)
+    }
+  }
+
+  const handleNotMarkedClick = async () => {
+    try {
+      setDialogTitle("Not Marked Employees")
+      setDialogLoading(true)
+      setDialogOpen(true)
+      setSelectedEmployees([])
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/not-marked-today`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+      const data = await response.json()
+      setSelectedEmployees(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setDialogLoading(false)
+    }
+  }
+
+  const handleStatusClick = async (status: string, location: string) => {
+    try {
+      setDialogTitle(`${status} — ${location}`)
+      setDialogLoading(true)
+      setDialogOpen(true)
+      setSelectedEmployees([])
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/attendenceByStatus?status=${encodeURIComponent(status)}&location=${encodeURIComponent(location)}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+      const employeesData = await response.json()
+      setSelectedEmployees(Array.isArray(employeesData) ? employeesData : [])
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setDialogLoading(false)
     }
   }
 
   useEffect(() => {
-    const fetchEmployeesCount = async () => {
+    const fetchEmployeeCategoryCounts = async () => {
       try {
-        const employees: number = await employeesCountResponse()
-        setTotalEmployees(employees)
-        setLoading(false)
-      } catch (error: any) {
-        setError(error.message || 'An unexpected error occurred.')
-        setLoading(false)
-      }
-    }
-
-    fetchEmployeesCount()
-  }, [])
-
-  useEffect(() => {
-    if (!attendanceCountsByLocation.length && accClicked) {
-      const fetchAttendanceCounts = async () => {
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/attendence/location-counts`, {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/employees/employee-category-count`,
+          {
             method: 'GET',
             headers: {
               Authorization: `Bearer ${token} ${company_id}`,
-              'Content-Type': 'application/json'
-            }
-          })
-          if (!response.ok) {
-            throw new Error('Network response was not ok')
+              'Content-Type': 'application/json',
+            },
           }
-          const data = await response.json()
-          setAttendanceCountsByLocation(data)
-        } catch (error) {
-          console.error('Error fetching attendance counts:', error)
-        }
+        )
+        const data = await response.json()
+        setEmployeeCounts(data)
+      } catch (error) {
+        console.error(error)
       }
-      fetchAttendanceCounts()
     }
-  }, [accClicked])
+    fetchEmployeeCategoryCounts()
+  }, [])
+
+  useEffect(() => {
+    const fetchAttendanceCounts = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/attendence/location-counts`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token} ${company_id}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+        const data = await response.json()
+        setAttendanceCountsByLocation(Array.isArray(data) ? data : [])
+        setLoading(false)
+      } catch (error) {
+        console.error(error)
+        setLoading(false)
+      }
+    }
+    fetchAttendanceCounts()
+  }, [])
+
+  // ─── Totals ────────────────────────────────────────────────────────────────
+
+  let totalPresent = 0
+  let totalAbsent = 0
+  let totalLeave = 0
+  let totalHalfDay = 0
+  let totalWorkforce = 0
+
+  for (const item of attendanceCountsByLocation) {
+    totalPresent   += Number(item?.Present   || 0)
+    totalAbsent    += Number(item?.Absent    || 0)
+    totalLeave     += Number(item?.On_Leave  || 0)
+    totalHalfDay   += Number(item?.On_Half   || 0)
+    totalWorkforce += Number(item?.totalEmployeesToday || 0)
+  }
+
+  const totalAll =
+    Number(employeeCounts.totalEmployees || 0) +
+    Number(employeeCounts.totalInterns || 0) +
+    Number(employeeCounts.totalChannelPartners || 0)
+
+  const totalMarked = totalPresent + totalAbsent + totalLeave + totalHalfDay
+  const totalNotMarked = Math.max(0, totalAll - totalMarked)
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{ bgcolor: 'background.default' }}>
-        <Paper elevation={3} sx={{ p: 3, mb: 1 }}>
-          <Grid container spacing={2} alignItems='center' justifyContent='space-between'>
-            <Grid item>
-              <Typography variant='h4' color='primary' gutterBottom>
-                Employee Attendance Dashboard
-              </Typography>
-              <Typography variant='subtitle1' color='text.secondary'>
-                Date: {dayjs().format('MMMM D, YYYY')}
-              </Typography>
-            </Grid>
-            <Box display='flex'>
-              <Grid item>
-                <Tooltip title='Total Employees' placement='left'>
-                  <Paper
-                    elevation={2}
-                    sx={{ p: 2, display: 'flex', alignItems: 'center', bgcolor: theme.palette.primary.light }}
-                  >
-                    <PersonIcon sx={{ fontSize: 40, color: 'white', mr: 2 }} />
-                    <Typography variant='h5' color='white'>
-                      {totalEmployees}
-                    </Typography>
-                  </Paper>
-                </Tooltip>
-              </Grid>
-              <IconButton onClick={() => handleLocationExpand(location)}>
-                <ExpandMoreIcon
-                  sx={{
-                    transform: expandedLocations[location] ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.3s ease'
-                  }}
-                />
-              </IconButton>
-            </Box>
-          </Grid>
-        </Paper>
+    <DashboardWrapper>
 
-        <Collapse in={expandedLocations[location]}>
-          {loading ? (
+      {/* ── Header Card ── */}
+      <HeaderCard elevation={0}>
+
+        {/* Top row: title + total + toggle */}
+        <Box display='flex' alignItems='flex-start' justifyContent='space-between' flexWrap='wrap' gap={2} mb={3}>
+          <Box>
+            <Typography
+              variant='h5'
+              fontWeight={700}
+              color='#0f172a'
+              letterSpacing='-0.4px'
+              gutterBottom
+            >
+              Attendance Dashboard
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              {dayjs().format('dddd, MMMM D, YYYY')}
+            </Typography>
+          </Box>
+
+          <Box display='flex' alignItems='center' gap={1.5}>
+            <TotalBadge>
+              <IconCircle>
+                <PeopleAltIcon sx={{ fontSize: 22, color: 'white' }} />
+              </IconCircle>
+              <Box>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.65)', display: 'block' }}>
+                  Total employees
+                </Typography>
+                <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
+                  {totalAll}
+                </Typography>
+              </Box>
+            </TotalBadge>
+
+            <ExpandButton
+              expanded={accClicked}
+              onClick={() => setAccClicked(!accClicked)}
+              size='small'
+              aria-label='Toggle location cards'
+            >
+              <ExpandMoreIcon sx={{ color: '#475569' }} />
+            </ExpandButton>
+          </Box>
+        </Box>
+
+        {/* Category cards */}
+        <Grid container spacing={2} mb={3}>
+          <Grid item xs={12} sm={4}>
+            <CategoryChip
+              elevation={0}
+              chipcolor='#10b981'
+              onClick={() => handleOpenList('Employees', employeeCounts.employeeList)}
+            >
+              <IconCircle><WorkIcon sx={{ fontSize: 22, color: 'white' }} /></IconCircle>
+              <Box>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.75)', display: 'block' }}>
+                  Employees
+                </Typography>
+                <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
+                  {Number(employeeCounts.totalEmployees || 0)}
+                </Typography>
+              </Box>
+            </CategoryChip>
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <CategoryChip
+              elevation={0}
+              chipcolor='#f59e0b'
+              onClick={() => handleOpenList('Interns', employeeCounts.internList)}
+            >
+              <IconCircle><SchoolIcon sx={{ fontSize: 22, color: 'white' }} /></IconCircle>
+              <Box>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.75)', display: 'block' }}>
+                  Interns
+                </Typography>
+                <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
+                  {Number(employeeCounts.totalInterns || 0)}
+                </Typography>
+              </Box>
+            </CategoryChip>
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <CategoryChip
+              elevation={0}
+              chipcolor='#6366f1'
+              onClick={() => handleOpenList('Channel Partners', employeeCounts.channelPartnerList)}
+            >
+              <IconCircle><HandshakeIcon sx={{ fontSize: 22, color: 'white' }} /></IconCircle>
+              <Box>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.75)', display: 'block' }}>
+                  Channel partners
+                </Typography>
+                <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
+                  {Number(employeeCounts.totalChannelPartners || 0)}
+                </Typography>
+              </Box>
+            </CategoryChip>
+          </Grid>
+        </Grid>
+
+        {/* Attendance status cards */}
+        <Grid container spacing={2}>
+          {[
+            { label: 'Present',  value: `${totalPresent}/${totalAll}`, color: '#22c55e', status: 'Present',  title: 'Present Employees',  delay: 0   },
+            { label: 'Absent',   value: `${totalAbsent}/${totalAll}`,  color: '#ef4444', status: 'Absent',   title: 'Absent Employees',   delay: 60  },
+            { label: 'On leave', value: `${totalLeave}/${totalAll}`,   color: '#f59e0b', status: 'On Leave', title: 'On Leave Employees', delay: 120 },
+            { label: 'Half day', value: `${totalHalfDay}/${totalAll}`, color: '#3b82f6', status: 'On Half',  title: 'Half Day Employees', delay: 180 },
+            { label: 'Not marked', value: `${totalNotMarked}/${totalAll}`, color: '#94a3b8', status: 'Not Marked', title: 'Not Marked Employees', delay: 240 },
+          ].map((s) => (
+            <Grid item xs={6} sm={2.4} key={s.label}>
+              <StatusCard
+                elevation={0}
+                cardcolor={s.color}
+                delay={s.delay}
+                onClick={() => s.status === 'Not Marked' ? handleNotMarkedClick() : handleStatusClickGlobal(s.status, s.title)}
+              >
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.78)', fontWeight: 500, letterSpacing: '0.3px', textTransform: 'uppercase', fontSize: '11px' }}>
+                  {s.label}
+                </Typography>
+                <StatusNumber>{s.value}</StatusNumber>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px', mt: 0.5, display: 'block' }}>
+                  Tap to view list
+                </Typography>
+              </StatusCard>
+            </Grid>
+          ))}
+        </Grid>
+
+      </HeaderCard>
+
+      {/* ── Location Cards ── */}
+      <Collapse in={accClicked}>
+        {loading ? (
+          <Box display='flex' justifyContent='center' py={4}>
             <Loader />
-          ) : (
-            <Grid container spacing={1}>
-              {Object.entries(attendanceCountsByLocation).map(([location, data]) => (
-                <LocationCard location={location} data={data} handleStatusClick={handleStatusClick} />
+          </Box>
+        ) : (
+          <>
+            <Box display='flex' alignItems='center' gap={1} mb={1.5} px={0.5}>
+              <LocationOnIcon sx={{ fontSize: 18, color: '#6366f1' }} />
+              <Typography variant='body2' fontWeight={600} color='#475569'>
+                By location
+              </Typography>
+            </Box>
+            <Grid container spacing={1.5}>
+              {attendanceCountsByLocation.map((item) => (
+                <LocationCard
+                  key={item._id}
+                  location={item._id}
+                  data={item}
+                  handleStatusClick={handleStatusClick}
+                />
               ))}
             </Grid>
+          </>
+        )}
+      </Collapse>
+
+      {/* ── Employee List Dialog ── */}
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth='sm'
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            border: '1px solid #e8eaf0',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.12)',
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pb: 1,
+            pt: 2.5,
+            px: 3,
+            fontWeight: 700,
+            fontSize: '1rem',
+            color: '#0f172a',
+          }}
+        >
+          {dialogTitle}
+          <IconButton
+            size='small'
+            onClick={() => setDialogOpen(false)}
+            sx={{ background: '#f1f3f9', borderRadius: '8px', '&:hover': { background: '#e2e6f3' } }}
+          >
+            <CloseIcon fontSize='small' />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ px: 3, pb: 3 }}>
+
+          {dialogLoading && (
+            <Box display='flex' justifyContent='center' alignItems='center' py={4} gap={2}>
+              <CircularProgress size={20} sx={{ color: '#6366f1' }} />
+              <Typography variant='body2' color='text.secondary'>Loading...</Typography>
+            </Box>
           )}
-        </Collapse>
 
-        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-          <DialogTitle>{dialogTitle} Employees</DialogTitle>
-          <DialogContent>
-            <ul className='divide-y divide-gray-200'>
-              {Array.from(new Set(selectedEmployees.map(employee => employee.employee._id)))
-                .map(id => selectedEmployees.find(employee => employee.employee._id === id))
-                .map(employee => (
-                  <li key={employee.employee._id} className='flex items-center py-4 px-2'>
-                    <div className='h-10 w-10 rounded-full overflow-hidden bg-gray-200'>
-                      <img
-                        src={employee.employee.image || '/api/placeholder/40/40'}
-                        alt={employee.employee.first_name}
-                        className='h-full w-full object-cover'
-                      />
-                    </div>
+          {!dialogLoading && selectedEmployees.length === 0 && (
+            <Box textAlign='center' py={4}>
+              <PeopleAltIcon sx={{ fontSize: 40, color: '#e2e8f0', mb: 1 }} />
+              <Typography color='text.secondary' variant='body2'>
+                No employees found.
+              </Typography>
+            </Box>
+          )}
 
-                    <div className='ml-4 flex-1'>
-                      <div className='flex items-center justify-between'>
-                        <div>
-                          <span className='font-medium text-white-900'>
-                            {employee.employee.first_name} {employee.employee.last_name}
-                          </span>
-                          <span className='ml-2 text-sm text-white-500'>{employee.employee.code}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-            </ul>
-          </DialogContent>
-        </Dialog>
-      </Box>
-    </ThemeProvider>
+          {!dialogLoading &&
+            selectedEmployees.map((item: any, index: number) => {
+              const employee = item?.employee || item
+              if (!employee || typeof employee !== 'object' || Array.isArray(employee)) return null
+
+              const name = `${employee?.first_name || ''} ${employee?.last_name || ''}`
+              const initials = getInitials(employee?.first_name || '', employee?.last_name || '')
+              const bgColor = getAvatarColor(employee?.first_name || '')
+
+              return (
+                <EmployeeRow key={employee?._id || index}>
+                  <Avatar bgcolor={bgColor}>
+                    {employee?.image ? (
+                      <img src={employee.image} alt={name} />
+                    ) : (
+                      initials
+                    )}
+                  </Avatar>
+                  <Box>
+                    <Typography fontSize='14px' fontWeight={600} color='#0f172a' lineHeight={1.3}>
+                      {name.trim() || '—'}
+                    </Typography>
+                    <Typography variant='caption' color='text.secondary'>
+                      {employee?.designation || employee?.code || ''}
+                    </Typography>
+                  </Box>
+                </EmployeeRow>
+              )
+            })}
+
+        </DialogContent>
+      </Dialog>
+
+    </DashboardWrapper>
   )
 }
 
