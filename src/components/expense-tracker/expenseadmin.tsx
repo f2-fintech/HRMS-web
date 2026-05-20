@@ -738,10 +738,7 @@ export default function ExpenseAdmin() {
         return;
       }
 
-      const query: any = {
-        page,
-        limit: 10,
-      };
+      const query: any = {};
 
       // ✅ SEARCH
       if (search.trim()) {
@@ -2414,7 +2411,7 @@ export default function ExpenseAdmin() {
         </div>
 
         {/* pagination */}
-        <div
+        {/* <div
           style={{
             display: 'flex',
             gap: 10,
@@ -2452,7 +2449,7 @@ export default function ExpenseAdmin() {
           >
             Next
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* ADMIN VERIFY DIALOG */}
