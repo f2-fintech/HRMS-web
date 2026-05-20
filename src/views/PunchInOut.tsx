@@ -36,7 +36,8 @@ const WHITELIST_EMPLOYEE_IDS = [
     // '699e8d1b1cf053581b8a4d6e',
     // '693926c8c3b776470f4e1a44',
     // '69f05869f9659e84d84aaacb',
-    '66c98c96269ecefff34126b9'
+    // '66c98c96269ecefff34126b9',
+    // '66bca3782f1270380b77aaa3'
 ];
 
 const formatTime = (obj: any) => {
@@ -831,52 +832,52 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         return (
 
             <>
-            {/* newcode */}
-               {userData &&
-    (!userData?.personalDetails ||
-        !userData?.bankDetails ||
-        !userData?.documents) && (
-        <Snackbar
-            open={openProfileSnackbar}
-            autoHideDuration={5000}
-            onClose={() => setOpenProfileSnackbar(false)}
-            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            sx={{
-                top: '70px !important',
-            }}
-        >
-            <MuiAlert
-                elevation={3}
-                variant="filled"
-                severity="info"
-                onClick={() => navigateToProfile(userData?._id)}
-                sx={{
-                    cursor: 'pointer',
-                    alignItems: 'center',
-                    background: 'linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%)',
-                    color: '#fff',
-                    borderRadius: '10px',
-                    fontSize: '18px',
-                    fontWeight: 500,
-                    py: 0.4,
-                    px: 1.2,
-                    minWidth: '260px',
-                    boxShadow: '0 4px 14px rgba(37,99,235,0.25)',
-                    '& .MuiAlert-icon': {
-                        color: 'red',
-                        padding: '4px 0',
-                       
-                    },
-                    '& .MuiAlert-message': {
-                        padding: '6px 0'
-                    }
-                }}
-            >
-                Complete your HRMS profile details
-            </MuiAlert>
-        </Snackbar>
-    )}
-                
+                {/* newcode */}
+                {userData &&
+                    (!userData?.personalDetails ||
+                        !userData?.bankDetails ||
+                        !userData?.documents) && (
+                        <Snackbar
+                            open={openProfileSnackbar}
+                            autoHideDuration={5000}
+                            onClose={() => setOpenProfileSnackbar(false)}
+                            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                            sx={{
+                                top: '70px !important',
+                            }}
+                        >
+                            <MuiAlert
+                                elevation={3}
+                                variant="filled"
+                                severity="info"
+                                onClick={() => navigateToProfile(userData?._id)}
+                                sx={{
+                                    cursor: 'pointer',
+                                    alignItems: 'center',
+                                    background: 'linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%)',
+                                    color: '#fff',
+                                    borderRadius: '10px',
+                                    fontSize: '18px',
+                                    fontWeight: 500,
+                                    py: 0.4,
+                                    px: 1.2,
+                                    minWidth: '260px',
+                                    boxShadow: '0 4px 14px rgba(37,99,235,0.25)',
+                                    '& .MuiAlert-icon': {
+                                        color: 'red',
+                                        padding: '4px 0',
+
+                                    },
+                                    '& .MuiAlert-message': {
+                                        padding: '6px 0'
+                                    }
+                                }}
+                            >
+                                Complete your HRMS profile details
+                            </MuiAlert>
+                        </Snackbar>
+                    )}
+
 
                 {showFieldModal && (
                     <FieldPunchOutModal
