@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+} from "firebase/auth";
+
 import { auth } from "@/libs/firebase";
 
 declare global {
@@ -13,25 +18,109 @@ declare global {
 
 export default function TrustMeetPage() {
 
-  const [doctorName, setDoctorName] = useState("");
-  const [doctorPhone, setDoctorPhone] = useState("");
+  // =========================================
+  // USER
+  // =========================================
+  const employee =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("user") || "{}")
+      : {};
 
-  const [visitId, setVisitId] = useState("");
+  const userRole = employee?.role;
 
-  const [otp, setOtp] = useState("");
+  const employeeId = employee?.id;
 
-  const [confirmationResult, setConfirmationResult] =
+  const companyId = employee?.company_id;
+
+  const employeeName =
+    `${employee?.first_name || ""} ${employee?.last_name || ""}`.trim();
+
+  const [doctorName, setDoctorName] =
+    useState("");
+
+  const [doctorPhone, setDoctorPhone] =
+    useState("");
+
+  const [feedback, setFeedback] =
+    useState("");
+
+  const [visitId, setVisitId] =
+    useState("");
+
+  const [otp, setOtp] =
+    useState("");
+
+  const [confirmationResult,
+    setConfirmationResult] =
     useState<any>(null);
 
   const [step, setStep] = useState<
-    "form" | "meeting" | "otp" | "completed"
+    "form" |
+    "meeting" |
+    "otp" |
+    "completed"
   >("form");
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  // =========================================
-  // STEP 1 - CREATE VISIT
-  // =========================================
+  const [dashboard, setDashboard] =
+    useState<any>(null);
+
+  const [employeeList,
+    setEmployeeList] =
+    useState<any[]>([]);
+
+
+  const fetchDashboard = async () => {
+
+    try {
+
+      if (userRole === "1") {
+
+        const response =
+          await axios.get(
+
+            `${process.env.NEXT_PUBLIC_APP_URL}/trustmeet/dashboard/admin-summary?companyId=${companyId}`
+
+          );
+
+        setDashboard(
+          response.data.dashboard
+        );
+
+        setEmployeeList(
+          response.data.employees || []
+        );
+      }
+
+      else {
+
+        const response =
+          await axios.get(
+
+            `${process.env.NEXT_PUBLIC_APP_URL}/trustmeet/dashboard/my-summary/${employeeId}`
+
+          );
+
+        setDashboard(
+          response.data.dashboard
+        );
+      }
+
+    } catch (error) {
+
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+
+    fetchDashboard();
+
+  }, []);
+
+
   const createVisit = async () => {
 
     if (!doctorName || !doctorPhone) {
@@ -45,36 +134,46 @@ export default function TrustMeetPage() {
 
     try {
 
-      const response = await axios.post(
+      const response =
+        await axios.post(
 
-        `${process.env.NEXT_PUBLIC_APP_URL}/trustmeet/create`,
+          `${process.env.NEXT_PUBLIC_APP_URL}/trustmeet/create`,
 
-        {
-          employeeId: "EMP001",
+          {
 
-          doctorName,
+            employeeId,
 
-          doctorPhone,
+            employeeName,
 
-          doctorLat: 28.6139,
-          doctorLng: 77.2090,
+            companyId,
 
-          currentLat: 28.6139,
-          currentLng: 77.2090,
-        }
+            doctorName,
+
+            doctorPhone,
+
+            doctorLat: 28.6139,
+            doctorLng: 77.2090,
+
+            currentLat: 28.6139,
+            currentLng: 77.2090,
+          }
+        );
+
+      setVisitId(
+        response.data.visitId
       );
 
-      setVisitId(response.data.visitId);
-
       setStep("meeting");
+
+      fetchDashboard();
 
     } catch (error: any) {
 
       console.log(error);
 
       alert(
-        "Error: " +
-        (error?.response?.data?.message || error.message)
+        error?.response?.data?.message ||
+        error.message
       );
     }
 
@@ -82,52 +181,43 @@ export default function TrustMeetPage() {
   };
 
   // =========================================
-  // STEP 2 - END MEETING + SEND OTP
+  // END MEETING
   // =========================================
   const endMeeting = async () => {
 
     setLoading(true);
 
     try {
-
-      // END MEETING API
       await axios.post(
-
         `${process.env.NEXT_PUBLIC_APP_URL}/trustmeet/end-meeting`,
-
         {
           visitId,
-
           currentLat: 28.6139,
           currentLng: 77.2090,
         }
       );
-
-      // FIREBASE RECAPTCHA
-      if (!window.recaptchaVerifier) {
-
-        window.recaptchaVerifier =
-          new RecaptchaVerifier(
-
-            auth,
-
-            "recaptcha-container",
-
-            {
-              size: "invisible"
-            }
-          );
+        if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
       }
+      window.recaptchaVerifier =
+        new RecaptchaVerifier(
+          auth,
+          "recaptcha-container",
+          {
+            size: "normal",
+          }
+        );
 
-      // SEND OTP
-      const result = await signInWithPhoneNumber(
+      await window.recaptchaVerifier.render();
+      const result =
+        await signInWithPhoneNumber(
 
-        auth,
+          auth,
 
-        `+91${doctorPhone}`,
+          `+91${doctorPhone}`,
 
-        window.recaptchaVerifier
-      );
+          window.recaptchaVerifier
+        );
 
       setConfirmationResult(result);
 
@@ -138,8 +228,8 @@ export default function TrustMeetPage() {
       console.log(error);
 
       alert(
-        "Error: " +
-        (error?.response?.data?.message || error.message)
+        error?.response?.data?.message ||
+        error.message
       );
 
       window.recaptchaVerifier = null;
@@ -149,7 +239,7 @@ export default function TrustMeetPage() {
   };
 
   // =========================================
-  // STEP 3 - VERIFY OTP
+  // VERIFY OTP
   // =========================================
   const verifyOtp = async () => {
 
@@ -164,27 +254,42 @@ export default function TrustMeetPage() {
 
     try {
 
+      // =====================================
       // FIREBASE VERIFY
-      await confirmationResult.confirm(otp);
+      // =====================================
+      await confirmationResult.confirm(
+        otp
+      );
 
+      // =====================================
       // BACKEND VERIFY
+      // =====================================
       await axios.post(
 
         `${process.env.NEXT_PUBLIC_APP_URL}/trustmeet/verify-otp`,
 
         {
+
           visitId,
-          otp
+
+          otp,
+
+          feedback,
         }
       );
 
       setStep("completed");
 
+      fetchDashboard();
+
     } catch (error: any) {
 
       console.log(error);
 
-      alert("Wrong OTP ❌");
+      alert(
+        error?.response?.data?.message ||
+        "Wrong OTP ❌"
+      );
     }
 
     setLoading(false);
@@ -198,7 +303,10 @@ export default function TrustMeetPage() {
     setStep("form");
 
     setDoctorName("");
+
     setDoctorPhone("");
+
+    setFeedback("");
 
     setVisitId("");
 
@@ -211,227 +319,523 @@ export default function TrustMeetPage() {
 
   return (
 
-    <div className="p-10 max-w-md mx-auto">
+    <div className="p-6 bg-gray-100 min-h-screen">
 
-      {/* TITLE */}
-      <h1 className="text-2xl font-bold text-gray-900 text-center mb-6">
+      {/* ===================================== */}
+      {/* HEADER */}
+      {/* ===================================== */}
+      <div className="mb-8">
 
-        TrustMeet
+        <h1 className="text-3xl font-bold text-gray-800">
 
-      </h1>
+          TrustMeet Dashboard
 
-      {/* ========================================= */}
-      {/* STEP 1 - FORM */}
-      {/* ========================================= */}
-      {step === "form" && (
+        </h1>
 
-        <div>
+        <p className="text-gray-500 mt-1">
 
-          {/* DOCTOR NAME */}
-          <label className="text-xs text-gray-500 mb-1.5 block">
+          Welcome {employeeName}
 
-            Doctor Name
+        </p>
+      </div>
 
-          </label>
+      {/* ===================================== */}
+      {/* DASHBOARD */}
+      {/* ===================================== */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
 
-          <input
-            className="border border-gray-200 p-3 w-full mb-4 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-            placeholder="Dr. Ramesh Sharma"
-            value={doctorName}
-            autoCapitalize="words"
-            onChange={(e) => {
+        <div className="bg-blue-500 text-white p-5 rounded-2xl shadow-lg">
 
-              const val = e.target.value;
+          <p className="text-sm">
 
-              const capitalized =
-                val.replace(/\b\w/g, (c) =>
-                  c.toUpperCase()
-                );
+            Total Visits
 
-              setDoctorName(capitalized);
-            }}
-          />
+          </p>
 
-          {/* PHONE */}
-          <label className="text-xs text-gray-500 mb-1.5 block">
+          <h2 className="text-3xl font-bold mt-2">
 
-            Mobile Number
+            {dashboard?.totalVisits || 0}
 
-          </label>
+          </h2>
+        </div>
 
-          <div className="relative mb-6">
+        <div className="bg-green-500 text-white p-5 rounded-2xl shadow-lg">
 
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+          <p className="text-sm">
 
-              +91
+            Completed Visits
 
-            </span>
+          </p>
+
+          <h2 className="text-3xl font-bold mt-2">
+
+            {dashboard?.completedVisits || 0}
+
+          </h2>
+        </div>
+
+        <div className="bg-yellow-500 text-white p-5 rounded-2xl shadow-lg">
+
+          <p className="text-sm">
+
+            Pending OTP
+
+          </p>
+
+          <h2 className="text-3xl font-bold mt-2">
+
+            {dashboard?.pendingVisits || 0}
+
+          </h2>
+        </div>
+
+        {userRole === "1" && (
+
+          <div className="bg-purple-500 text-white p-5 rounded-2xl shadow-lg">
+
+            <p className="text-sm">
+
+              Total Employees
+
+            </p>
+
+            <h2 className="text-3xl font-bold mt-2">
+
+              {dashboard?.totalEmployees || 0}
+
+            </h2>
+          </div>
+        )}
+      </div>
+
+      {/* ===================================== */}
+      {/* ADMIN TABLE */}
+      {/* ===================================== */}
+      {userRole === "1" && (
+
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+
+          <div className="p-5 border-b">
+
+            <h2 className="text-xl font-bold text-gray-700">
+
+              Meetings Tracking
+
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto max-h-[500px]">
+
+            <table className="w-full">
+
+              <thead className="bg-gray-100">
+
+                <tr>
+
+                  <th className="p-4 text-left">
+
+                    Employee
+
+                  </th>
+
+                  <th className="p-4 text-left">
+
+                    Doctor
+
+                  </th>
+
+                  <th className="p-4 text-left">
+
+                    Contact
+
+                  </th>
+
+                  <th className="p-4 text-left">
+
+                    Start
+
+                  </th>
+
+                  <th className="p-4 text-left">
+
+                    End
+
+                  </th>
+
+                  <th className="p-4 text-left">
+
+                    Duration
+
+                  </th>
+
+                  <th className="p-4 text-left">
+
+                    OTP
+
+                  </th>
+
+                  <th className="p-4 text-left">
+
+                    Feedback
+
+                  </th>
+
+                  <th className="p-4 text-left">
+
+                    Status
+
+                  </th>
+
+                </tr>
+              </thead>
+
+              <tbody>
+
+                {employeeList.map((visit) => (
+
+                  <tr
+                    key={visit._id}
+                    className="border-b hover:bg-gray-50"
+                  >
+
+                    {/* EMPLOYEE */}
+                    <td className="p-4 font-medium">
+
+                      {visit.employeeName}
+
+                    </td>
+
+                    {/* DOCTOR */}
+                    <td className="p-4">
+
+                      {visit.doctorName}
+
+                    </td>
+
+                    {/* CONTACT */}
+                    <td className="p-4">
+
+                      +91 {visit.doctorPhone}
+
+                    </td>
+
+                    {/* START */}
+                    <td className="p-4 text-blue-600">
+
+                      {visit.startTime}
+
+                    </td>
+
+                    {/* END */}
+                    <td className="p-4 text-red-600">
+
+                      {visit.endTime || "-"}
+
+                    </td>
+
+                    {/* DURATION */}
+                    <td className="p-4">
+
+                      {visit.startTime &&
+                        visit.endTime
+                        ? `${Math.floor(
+                          (
+                            new Date(
+                              visit.endTime
+                            ).getTime() -
+                            new Date(
+                              visit.startTime
+                            ).getTime()
+                          ) / 60000
+                        )} mins`
+                        : "-"
+                      }
+
+                    </td>
+
+                    {/* OTP */}
+                    <td className="p-4">
+
+                      {visit.otpVerified ? (
+
+                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
+
+                          VERIFIED
+
+                        </span>
+
+                      ) : (
+
+                        <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">
+
+                          PENDING
+
+                        </span>
+                      )}
+                    </td>
+
+                    {/* FEEDBACK */}
+                    <td className="p-4">
+
+                      {visit.feedback || "-"}
+
+                    </td>
+
+                    {/* STATUS */}
+                    <td className="p-4">
+
+                      {visit.status === "COMPLETED" && (
+
+                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
+
+                          COMPLETED
+
+                        </span>
+                      )}
+
+                      {visit.status === "OTP_SENT" && (
+
+                        <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold">
+
+                          OTP SENT
+
+                        </span>
+                      )}
+
+                      {visit.status === "MEETING_STARTED" && (
+
+                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+
+                          RUNNING
+
+                        </span>
+                      )}
+                    </td>
+
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================== */}
+      {/* MAIN CARD */}
+      {/* ===================================== */}
+      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6">
+
+        <h1 className="text-2xl font-bold text-center mb-6">
+
+          TrustMeet
+
+        </h1>
+
+        {/* ================================= */}
+        {/* STEP 1 */}
+        {/* ================================= */}
+        {step === "form" && (
+
+          <div>
+
+            <label className="text-xs text-gray-500 block mb-1">
+
+              Doctor Name
+
+            </label>
 
             <input
-              className="border border-gray-200 p-3 pl-10 w-full rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-              placeholder="9XXXXXXXXX"
+              className="border border-gray-200 p-3 w-full mb-4 rounded-xl"
+              placeholder="Doctor Name"
+              value={doctorName}
+              onChange={(e) =>
+                setDoctorName(
+                  e.target.value
+                )
+              }
+            />
+
+            <label className="text-xs text-gray-500 block mb-1">
+
+              Mobile Number
+
+            </label>
+
+            <input
+              type="number"
+              className="border border-gray-200 p-3 w-full mb-6 rounded-xl"
+              placeholder="9876543210"
               value={doctorPhone}
               onChange={(e) =>
-                setDoctorPhone(e.target.value)
+                setDoctorPhone(
+                  e.target.value
+                )
               }
               maxLength={10}
             />
+
+            <button
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-medium"
+              onClick={createVisit}
+              disabled={loading}
+            >
+
+              {loading
+                ? "Starting..."
+                : "▶ Start Visit"}
+
+            </button>
           </div>
+        )}
 
-          {/* START BUTTON */}
-          <button
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl text-sm font-medium disabled:opacity-50"
-            onClick={createVisit}
-            disabled={loading}
-          >
+        {/* ================================= */}
+        {/* STEP 2 */}
+        {/* ================================= */}
+        {step === "meeting" && (
 
-            {loading
-              ? "Starting..."
-              : "▶ Start Visit"}
+          <div>
 
-          </button>
+            <div className="bg-blue-100 p-4 rounded-xl mb-6">
 
-          <p className="text-center text-xs text-gray-400 mt-4">
+              <p className="font-bold text-blue-700">
 
-            🔒 OTP will be sent to the doctor after the meeting ends
+                🟢 Meeting Active
 
-          </p>
-        </div>
-      )}
+              </p>
 
-      {/* ========================================= */}
-      {/* STEP 2 - MEETING */}
-      {/* ========================================= */}
-      {step === "meeting" && (
+              <p className="mt-2">
 
-        <div>
+                Doctor: {doctorName}
 
-          <div className="bg-blue-100 p-4 rounded mb-6">
+              </p>
 
-            <p className="text-blue-800 font-bold text-lg">
+              <p>
 
-              🟢 Meeting Active
+                +91 {doctorPhone}
 
-            </p>
+              </p>
+            </div>
 
-            <p className="text-sm text-gray-600 mt-1">
+            <button
+              className="bg-red-500 hover:bg-red-600 text-white w-full py-3 rounded-xl"
+              onClick={endMeeting}
+              disabled={loading}
+            >
 
-              Doctor: {doctorName}
+              {loading
+                ? "Ending..."
+                : "End Meeting"}
 
-            </p>
-
-            <p className="text-sm text-gray-600">
-
-              Phone: +91{doctorPhone}
-
-            </p>
+            </button>
           </div>
+        )}
 
-          <button
-            className="bg-red-500 text-white px-5 py-3 rounded w-full"
-            onClick={endMeeting}
-            disabled={loading}
-          >
+        {/* ================================= */}
+        {/* STEP 3 */}
+        {/* ================================= */}
+        {step === "otp" && (
 
-            {loading
-              ? "Ending..."
-              : "End Meeting"}
+          <div>
 
-          </button>
-        </div>
-      )}
+            <div className="bg-yellow-100 p-4 rounded-xl mb-4">
 
-      {/* ========================================= */}
-      {/* STEP 3 - OTP */}
-      {/* ========================================= */}
-      {step === "otp" && (
+              <p className="font-semibold text-yellow-700">
 
-        <div>
+                📱 OTP Sent To Doctor
 
-          <div className="bg-yellow-100 p-4 rounded mb-4">
+              </p>
 
-            <p className="text-yellow-800 font-bold">
+              <p className="text-sm text-gray-600 mt-1">
 
-              📱 OTP has been sent to the doctor's phone
+                Ask doctor for OTP
 
-            </p>
+              </p>
+            </div>
 
-            <p className="text-sm text-gray-600">
+            <input
+              type="number"
+              className="border border-gray-200 p-3 w-full mb-4 rounded-xl text-center text-2xl tracking-widest"
+              placeholder="Enter OTP"
+              value={otp}
+              onChange={(e) =>
+                setOtp(e.target.value)
+              }
+            />
 
-              Please ask the doctor for the OTP and enter it below
+            {/* FEEDBACK */}
+            <textarea
+              className="border border-gray-200 p-3 w-full mb-4 rounded-xl"
+              placeholder="Meeting Feedback"
+              value={feedback}
+              onChange={(e) =>
+                setFeedback(
+                  e.target.value
+                )
+              }
+            />
 
-            </p>
+            <button
+              className="bg-green-500 hover:bg-green-600 text-white w-full py-3 rounded-xl"
+              onClick={verifyOtp}
+              disabled={loading}
+            >
+
+              {loading
+                ? "Verifying..."
+                : "Verify OTP"}
+
+            </button>
           </div>
+        )}
 
-          <input
-            className="border p-3 w-full mb-4 rounded text-center text-2xl tracking-widest"
-            placeholder="_ _ _ _ _ _"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            maxLength={6}
-          />
+        {/* ================================= */}
+        {/* STEP 4 */}
+        {/* ================================= */}
+        {step === "completed" && (
 
-          <button
-            className="bg-green-500 text-white px-5 py-3 rounded w-full"
-            onClick={verifyOtp}
-            disabled={loading}
-          >
+          <div className="text-center">
 
-            {loading
-              ? "Verifying..."
-              : "Verify OTP"}
+            <div className="bg-green-100 p-6 rounded-xl mb-4">
 
-          </button>
-        </div>
-      )}
+              <p className="text-5xl mb-3">
 
-      {/* ========================================= */}
-      {/* STEP 4 - COMPLETED */}
-      {/* ========================================= */}
-      {step === "completed" && (
+                ✅
 
-        <div>
+              </p>
 
-          <div className="bg-green-100 p-6 rounded text-center mb-4">
+              <p className="font-bold text-xl text-green-700">
 
-            <p className="text-5xl mb-3">
+                Visit Completed
 
-              ✅
+              </p>
 
-            </p>
+              <p className="text-sm text-gray-600 mt-2">
 
-            <p className="text-green-800 font-bold text-xl">
+                Doctor: {doctorName}
 
-              Visit Completed!
+              </p>
 
-            </p>
+              <p className="text-sm text-gray-600">
 
-            <p className="text-sm text-gray-600 mt-2">
+                +91 {doctorPhone}
 
-              Doctor: {doctorName}
+              </p>
+            </div>
 
-            </p>
+            <button
+              className="bg-blue-500 hover:bg-blue-600 text-white py-3 px-5 rounded-xl"
+              onClick={reset}
+            >
 
-            <p className="text-sm text-gray-600">
+              New Visit
 
-              Phone: +91{doctorPhone}
-
-            </p>
+            </button>
           </div>
+        )}
 
-          <button
-            className="bg-blue-500 text-white px-5 py-3 rounded w-full"
-            onClick={reset}
-          >
-
-            New Visit
-
-          </button>
-        </div>
-      )}
-
-      {/* RECAPTCHA */}
-      <div id="recaptcha-container"></div>
+        {/* RECAPTCHA */}
+        <div id="recaptcha-container"></div>
+      </div>
     </div>
   );
 }
