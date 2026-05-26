@@ -49,6 +49,7 @@ export default function TrustMeetPage() {
   const [otp, setOtp] =
     useState("");
 
+  const [myVisits, setMyVisits] = useState<any[]>([]);
   const [confirmationResult,
     setConfirmationResult] =
     useState<any>(null);
@@ -105,6 +106,7 @@ export default function TrustMeetPage() {
         setDashboard(
           response.data.dashboard
         );
+        setMyVisits(response.data.visits || []);
       }
 
     } catch (error) {
@@ -344,8 +346,74 @@ export default function TrustMeetPage() {
             </h2>
           </div>
         )}
-      </div>
 
+      </div>
+      {/* ===================================== */}
+      {/* MY VISITS TABLE (non-admin) */}
+      {/* ===================================== */}
+      {userRole !== "1" && myVisits.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+          <div className="p-5 border-b">
+            <h2 className="text-xl font-bold text-gray-700">
+              My Visits
+            </h2>
+          </div>
+          <div className="overflow-x-auto max-h-[500px]">
+            <table className="w-full">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-4 text-left">Doctor</th>
+                  <th className="p-4 text-left">Contact</th>
+                  <th className="p-4 text-left">Start</th>
+                  <th className="p-4 text-left">End</th>
+                  <th className="p-4 text-left">Duration</th>
+                  <th className="p-4 text-left">OTP</th>
+                  <th className="p-4 text-left">Feedback</th>
+                  <th className="p-4 text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {myVisits.map((visit) => (
+                  <tr key={visit._id} className="border-b hover:bg-gray-50">
+                    <td className="p-4 font-medium">{visit.doctorName}</td>
+                    <td className="p-4">+91 {visit.doctorPhone}</td>
+                    <td className="p-4 text-blue-600">
+                      {visit.startTime ? new Date(visit.startTime).toLocaleString() : "-"}
+                    </td>
+                    <td className="p-4 text-red-600">
+                      {visit.endTime ? new Date(visit.endTime).toLocaleString() : "-"}
+                    </td>
+                    <td className="p-4">
+                      {visit.startTime && visit.endTime
+                        ? `${Math.floor((new Date(visit.endTime).getTime() - new Date(visit.startTime).getTime()) / 60000)} mins`
+                        : "-"}
+                    </td>
+                    <td className="p-4">
+                      {visit.otpVerified ? (
+                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">VERIFIED</span>
+                      ) : (
+                        <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">PENDING</span>
+                      )}
+                    </td>
+                    <td className="p-4">{visit.feedback || "-"}</td>
+                    <td className="p-4">
+                      {visit.status === "COMPLETED" && (
+                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">COMPLETED</span>
+                      )}
+                      {visit.status === "OTP_SENT" && (
+                        <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold">OTP SENT</span>
+                      )}
+                      {visit.status === "MEETING_STARTED" && (
+                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">RUNNING</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       {/* ===================================== */}
       {/* ADMIN TABLE */}
       {/* ===================================== */}
@@ -518,13 +586,13 @@ export default function TrustMeetPage() {
 
                         <div>
                           <b>Employee:</b>{" "}
-                          {visit.employeeFeedback || "-"}
+                          {visit.feedback || "-"}
                         </div>
 
-                        <div>
+                        {/* <div>
                           <b>Customer:</b>{" "}
                           {visit.customerFeedback || "-"}
-                        </div>
+                        </div> */}
 
                       </div>
                     </td>
