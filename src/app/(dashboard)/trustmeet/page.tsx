@@ -120,7 +120,9 @@ export default function TrustMeetPage() {
 
   }, []);
 
-
+  // =========================================
+  // CREATE VISIT
+  // =========================================
   const createVisit = async () => {
 
     if (!doctorName || !doctorPhone) {
@@ -196,7 +198,7 @@ export default function TrustMeetPage() {
           currentLng: 77.2090,
         }
       );
-        if (window.recaptchaVerifier) {
+      if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
       }
       window.recaptchaVerifier =
@@ -242,54 +244,32 @@ export default function TrustMeetPage() {
   // VERIFY OTP
   // =========================================
   const verifyOtp = async () => {
-
     if (!otp) {
-
       alert("Please enter OTP");
-
       return;
     }
 
     setLoading(true);
 
     try {
+      // Step 1: Firebase verify
+      await confirmationResult.confirm(otp);
 
-      // =====================================
-      // FIREBASE VERIFY
-      // =====================================
-      await confirmationResult.confirm(
-        otp
-      );
-
-      // =====================================
-      // BACKEND VERIFY
-      // =====================================
+      // Step 2: Backend sirf status update karo
       await axios.post(
-
         `${process.env.NEXT_PUBLIC_APP_URL}/trustmeet/verify-otp`,
-
         {
-
           visitId,
-
-          otp,
-
           feedback,
+          // ❌ otp mat bhejo — backend ko chahiye hi nahi ab
         }
       );
 
       setStep("completed");
-
       fetchDashboard();
 
     } catch (error: any) {
-
-      console.log(error);
-
-      alert(
-        error?.response?.data?.message ||
-        "Wrong OTP ❌"
-      );
+      alert("Wrong OTP ❌");
     }
 
     setLoading(false);
@@ -320,87 +300,46 @@ export default function TrustMeetPage() {
   return (
 
     <div className="p-6 bg-gray-100 min-h-screen">
-
-      {/* ===================================== */}
-      {/* HEADER */}
-      {/* ===================================== */}
       <div className="mb-8">
-
         <h1 className="text-3xl font-bold text-gray-800">
-
           TrustMeet Dashboard
-
         </h1>
-
         <p className="text-gray-500 mt-1">
-
           Welcome {employeeName}
-
         </p>
       </div>
-
-      {/* ===================================== */}
-      {/* DASHBOARD */}
-      {/* ===================================== */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-
         <div className="bg-blue-500 text-white p-5 rounded-2xl shadow-lg">
-
           <p className="text-sm">
-
             Total Visits
-
           </p>
-
           <h2 className="text-3xl font-bold mt-2">
-
             {dashboard?.totalVisits || 0}
-
           </h2>
         </div>
 
         <div className="bg-green-500 text-white p-5 rounded-2xl shadow-lg">
-
-          <p className="text-sm">
-
+       <p className="text-sm">
             Completed Visits
-
           </p>
-
           <h2 className="text-3xl font-bold mt-2">
-
             {dashboard?.completedVisits || 0}
-
           </h2>
         </div>
-
         <div className="bg-yellow-500 text-white p-5 rounded-2xl shadow-lg">
-
           <p className="text-sm">
-
             Pending OTP
-
           </p>
-
           <h2 className="text-3xl font-bold mt-2">
-
             {dashboard?.pendingVisits || 0}
-
           </h2>
         </div>
-
         {userRole === "1" && (
-
           <div className="bg-purple-500 text-white p-5 rounded-2xl shadow-lg">
-
             <p className="text-sm">
-
               Total Employees
-
             </p>
-
             <h2 className="text-3xl font-bold mt-2">
-
               {dashboard?.totalEmployees || 0}
 
             </h2>
@@ -576,20 +515,26 @@ export default function TrustMeetPage() {
 
                     {/* FEEDBACK */}
                     <td className="p-4">
+                      <div className="space-y-2">
 
-                      {visit.feedback || "-"}
+                        <div>
+                          <b>Employee:</b>{" "}
+                          {visit.employeeFeedback || "-"}
+                        </div>
 
+                        <div>
+                          <b>Customer:</b>{" "}
+                          {visit.customerFeedback || "-"}
+                        </div>
+
+                      </div>
                     </td>
 
                     {/* STATUS */}
                     <td className="p-4">
-
                       {visit.status === "COMPLETED" && (
-
                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
-
                           COMPLETED
-
                         </span>
                       )}
 
