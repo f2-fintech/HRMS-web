@@ -130,6 +130,7 @@ const Login = ({ mode }: { mode: Mode }) => {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify({
         id: data.payload.id,
+        name: data.payload.first_name + ' ' + data.payload.last_name,
         role: data.payload.role,
         designation: data.payload.designation,
         code: data.payload.code,
