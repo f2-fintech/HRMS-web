@@ -28,15 +28,14 @@ export default function TrustMeetPage() {
 
   const userRole = employee?.role;
 
-  const employeeId = employee?.id;
+  const employeeId =
+    employee?._id || employee?.id;
 
-  const companyId = employee?.company_id;
+  const employeeName = employee?.name || "Employee";
 
-  const employeeName =
-    `${employee?.first_name || ""} ${employee?.last_name || ""}`.trim();
-
-  const [doctorName, setDoctorName] =
-    useState("");
+  const companyId =
+    employee?.company_id || employee?.companyId; const [doctorName, setDoctorName] =
+      useState("");
 
   const [doctorPhone, setDoctorPhone] =
     useState("");
@@ -319,7 +318,7 @@ export default function TrustMeetPage() {
         </div>
 
         <div className="bg-green-500 text-white p-5 rounded-2xl shadow-lg">
-       <p className="text-sm">
+          <p className="text-sm">
             Completed Visits
           </p>
           <h2 className="text-3xl font-bold mt-2">
@@ -779,8 +778,10 @@ export default function TrustMeetPage() {
         )}
 
         {/* RECAPTCHA */}
-        <div id="recaptcha-container"></div>
-      </div>
+        {/* RECAPTCHA */}
+        <div className="flex justify-center mb-4">
+          <div id="recaptcha-container"></div>
+        </div>      </div>
     </div>
   );
 }
