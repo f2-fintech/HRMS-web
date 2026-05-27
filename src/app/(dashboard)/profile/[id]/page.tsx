@@ -32,6 +32,9 @@ import { CircularProgressbar } from 'react-circular-progressbar'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ProfileAttendance from '@/components/profile/ProfileAttendance'
 import ProfilePerformance from '@/components/profile/ProfilePerformance'
+import Cropper from 'react-easy-crop'
+import Slider from '@mui/material/Slider'
+import { getCroppedImg } from '@/utils/cropImage'
 
 import 'react-circular-progressbar/dist/styles.css'
 
@@ -93,7 +96,16 @@ const Profile = () => {
     const [previewUrl, setPreviewUrl] = useState(null)
     const [checkVerify, setCheckVerify] = useState(false)
     const [verticalTabValue, setVerticalTabValue] = useState(0)
+    const [crop, setCrop] = useState({ x: 0, y: 0 })
+    const [zoom, setZoom] = useState(1)
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
 
+    const onCropComplete = (
+        croppedArea: any,
+        croppedAreaPixels: any
+    ) => {
+        setCroppedAreaPixels(croppedAreaPixels)
+    }
     const handleVerticalTabChange = (event, newValue) => {
         setVerticalTabValue(newValue)
     }
@@ -194,32 +206,48 @@ const Profile = () => {
     }
 
     const handleSaveAvatar = async () => {
-        if (!uploadedImage) return
+        if (!uploadedImage || !previewUrl) return
 
         setSaveLoading(true)
-        try {
-            const formData = new FormData()
-            formData.append('image', uploadedImage)
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/employees/update/${userId}`, {
-                method: 'PUT',
-                body: formData
-            })
+        try {
+            const croppedBlob = await getCroppedImg(
+                previewUrl,
+                croppedAreaPixels
+            )
+
+            const formData = new FormData()
+
+            formData.append(
+                'image',
+                croppedBlob,
+                uploadedImage.name
+            )
+
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL}/employees/update/${userId}`,
+                {
+                    method: 'PUT',
+                    body: formData
+                }
+            )
 
             const result = await response.json()
-            setSaveLoading(false)
+
             if (response.ok) {
+                setUserData(prev => ({
+                    ...prev,
+                    image: result.image
+                }))
+
                 setOpenImageEditor(false)
-                setUserData({ ...userData, image: result.image })
-            } else {
-                console.error('Failed to update profile image')
             }
         } catch (error) {
-            setSaveLoading(false)
-            console.error('Error updating profile image:', error)
+            console.log(error)
         }
-    }
 
+        setSaveLoading(false)
+    }
     const handleRemoveAvatar = async () => {
         setRemLoading(true)
         try {
@@ -300,10 +328,47 @@ const Profile = () => {
                         <Typography variant='h5' gutterBottom>
                             Edit Profile Picture
                         </Typography>
-                        <Box sx={{ position: 'relative', width: 200, height: 200, margin: theme => theme.spacing(2, 0) }}>
-                            <StyledAvatarPreview
-                                src={previewUrl || userData?.image}
-                                alt={`${userData?.first_name} ${userData?.last_name}`}
+                        <Box
+                            sx={{
+                                width: '100%',
+                                height: 300,
+                                position: 'relative',
+                                background: '#333',
+                                borderRadius: 3,
+                                overflow: 'hidden'
+                            }}
+                        >
+                            {previewUrl ? (
+                                <Cropper
+                                    image={previewUrl}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    aspect={1}
+                                    onCropChange={setCrop}
+                                    onZoomChange={setZoom}
+                                    onCropComplete={onCropComplete}
+                                />
+                            ) : (
+                                <StyledAvatarPreview
+                                    src={userData?.image}
+                                    alt={`${userData?.first_name}`}
+                                />
+                            )}
+                        </Box>
+
+                        <Box sx={{ width: '100%' }}>
+                            <Typography gutterBottom>
+                                Zoom
+                            </Typography>
+
+                            <Slider
+                                value={zoom}
+                                min={1}
+                                max={3}
+                                step={0.1}
+                                onChange={(e, value) =>
+                                    setZoom(value as number)
+                                }
                             />
                         </Box>
                         <Button variant='outlined' component='label' startIcon={<PhotoCameraIcon />}>
