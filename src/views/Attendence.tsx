@@ -89,15 +89,17 @@ export default function AttendanceGrid() {
   const handleExportAttendance = async () => {
     try {
       setError(null)
-      // Fetch fresh data for export
-      const employeesData = await fetchMonthlyAttendanceSummary(month, year)
+
+      const employeesData = await fetchMonthlyAttendanceSummary(
+        month,
+        year
+      )
 
       if (!employeesData || employeesData.length === 0) {
         setError('No data available to export')
         return
       }
 
-      // Month names array
       const monthNames = [
         'January',
         'February',
@@ -113,46 +115,65 @@ export default function AttendanceGrid() {
         'December'
       ]
 
-      // Get the selected month and year
-      const formattedMonth = monthNames[month - 1] // Convert month number to name
+      const formattedMonth = monthNames[month - 1]
       const fileName = `${formattedMonth} ${year} attendance_summary.csv`
 
-      // Define the CSV header
       const csvContent = [
-        ['Employee Name', 'Present', 'Absent', 'On Half', 'On Leave', 'On WFH', 'On Field'],
+        [
+          'Employee Name',
+          'Present',
+          'Absent',
+          'On Half',
+          'On Leave',
 
-        // Map attendance data to rows
-        ...employeesData.map(emp => [
-          emp.employeeName,
-          emp.statuses.Present,
-          emp.statuses.Absent,
-          emp.statuses['On Half'],
-          emp.statuses['On Leave'],
-          emp.statuses['On Wfh'],
-          emp.statuses['On Field']
-        ])
+          'On WFH',
+          'On Field',
+          'Total Leave',
+        ],
+
+        ...employeesData.map(emp => {
+          const halfCount = emp.statuses?.['On Half'] || 0
+          const leaveCount = emp.statuses?.['On Leave'] || 0
+
+          // Half day = 0.5 leave
+          const totalLeave = leaveCount + (halfCount * 0.5)
+
+          return [
+            emp.employeeName || '',
+            emp.statuses?.Present || 0,
+            emp.statuses?.Absent || 0,
+            halfCount,
+            leaveCount,
+          
+            emp.statuses?.['On Wfh'] || 0,
+            emp.statuses?.['On Field'] || 0,
+              totalLeave,
+          ]
+        })
       ]
-        .map(e => e.join(',')) // Join each row by commas
-        .join('\n') // Join rows with newline characters
+        .map(row => row.join(','))
+        .join('\n')
 
-      // Create a blob from the CSV content
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const blob = new Blob(
+        [csvContent],
+        { type: 'text/csv;charset=utf-8;' }
+      )
+
       const link = document.createElement('a')
 
       if (link.download !== undefined) {
-        // Create a download link
         const url = URL.createObjectURL(blob)
 
         link.setAttribute('href', url)
-        link.setAttribute('download', fileName) // Set the dynamic file name
-        link.style.visibility = 'hidden'
+        link.setAttribute('download', fileName)
+
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
       }
     } catch (error: any) {
       setError(error.message || 'Failed to export attendance data')
-      console.error('Export error:', error)
+      console.error(error)
     }
   }
 
@@ -388,7 +409,15 @@ export default function AttendanceGrid() {
 
         const cumulativeCounts = statusCountsMap[employee._id] || {}
 
-        acc[employee._id].statusCount = { ...acc[employee._id].statusCount, ...cumulativeCounts }
+        const halfCount = cumulativeCounts['On Half'] || 0
+        const leaveCount = cumulativeCounts['On Leave'] || 0
+
+        acc[employee._id].statusCount = {
+          ...acc[employee._id].statusCount,
+          ...cumulativeCounts,
+
+          TotalLeave: leaveCount + (halfCount * 0.5)
+        }
       }
 
       acc[employee._id].days[`day_${day}`] = { status, _id, timeComplete }
