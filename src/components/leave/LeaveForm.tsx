@@ -36,6 +36,8 @@ type MonthRow = {
   month: number
   opening: number
   accrued: number
+  comp_off_accrual?: number
+  comp_off_lapsed?: number
   used_approved?: number
   used_pending?: number
   used_rejected?: number
@@ -50,11 +52,13 @@ type BalanceResponse = {
   year: number
   yearly_quota: number
   monthly_accrual: number
+  comp_off_monthly?: number
   total_used_approved?: number
   total_used_pending?: number
   total_used_rejected?: number
   total_used?: number
   total_extra?: number
+  total_comp_off_lapsed?: number
   closing_balance: number
   months: MonthRow[]
 }
@@ -132,7 +136,6 @@ const AddLeavesForm = ({
   const [isHalfDay, setIsHalfDay] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // ✅ Leave Balance state
   const [balanceLoading, setBalanceLoading] = useState(false)
   const [balance, setBalance] = useState<BalanceResponse | null>(null)
   const [balanceErr, setBalanceErr] = useState('')
@@ -275,18 +278,16 @@ const AddLeavesForm = ({
     }
   }
 
-  // ✅ leave days (0.5 allowed)
   const leaveDaysNum = useMemo(() => {
     const n = Number(formData.day ?? 0)
     return Number.isFinite(n) ? n : 0
   }, [formData.day])
 
-  // ✅ which month user applying (from start_date)
   const applyMonth = useMemo(() => {
     if (!formData.start_date) return null
     const d = new Date(formData.start_date)
     if (isNaN(d.getTime())) return null
-    return d.getMonth() + 1 // 1..12
+    return d.getMonth() + 1
   }, [formData.start_date])
 
   const applyMonthRow = useMemo(() => {
@@ -294,7 +295,6 @@ const AddLeavesForm = ({
     return balance.months.find(m => Number(m.month) === Number(applyMonth)) || null
   }, [balance, applyMonth])
 
-  // ✅ correct month used calc (approved+pending+rejected fallback)
   const monthUsedNow = useMemo(() => {
     if (!applyMonthRow) return 0
     if (applyMonthRow.used_total != null) return Number(applyMonthRow.used_total)
@@ -307,29 +307,38 @@ const AddLeavesForm = ({
     return Number(applyMonthRow.used ?? 0)
   }, [applyMonthRow])
 
-  // ✅ projection (extra + closing)
   const projected = useMemo(() => {
     if (!applyMonthRow) return null
 
     const opening = Number(applyMonthRow.opening ?? 0)
-    const credit = Number(applyMonthRow.accrued ?? balance?.monthly_accrual ?? 1.5)
+    const regular = Number(applyMonthRow.accrued ?? balance?.monthly_accrual ?? 1.5)
+    const compOff = Number(applyMonthRow.comp_off_accrual ?? balance?.comp_off_monthly ?? 0.5)
 
-    const available = opening + credit
+    const regularAvailable = opening + regular
+    const compOffAvailable = compOff // 0.5, no carry
+
     const usedAfter = monthUsedNow + leaveDaysNum
 
-    const extraAfter = Math.max(0, usedAfter - available)
-    const closingAfter = available - Math.min(usedAfter, available)
+    // comp off pehle consume hoga, baaki regular se
+    const fromCompOff   = Math.min(usedAfter, compOffAvailable)
+    const compOffLapsed = Math.max(0, compOffAvailable - fromCompOff)
+    const fromRegular   = Math.max(0, usedAfter - fromCompOff)
+
+    const extraAfter   = Math.max(0, fromRegular - regularAvailable)
+    const closingAfter = regularAvailable - Math.min(fromRegular, regularAvailable)
 
     return {
       month: applyMonthRow.month,
-      credit,
-      available,
+      credit: regular,
+      compOff,
+      compOffLapsed,
+      available: regularAvailable + compOffAvailable, // 1.5 + 0.5 = 2
       usedNow: monthUsedNow,
       usedAfter,
       closingAfter,
       extraAfter
     }
-  }, [applyMonthRow, balance?.monthly_accrual, monthUsedNow, leaveDaysNum])
+  }, [applyMonthRow, balance, monthUsedNow, leaveDaysNum])
 
   const handleSubmit = () => {
     if (!validateForm()) return
@@ -366,25 +375,24 @@ const AddLeavesForm = ({
           }) as any
         )
 
-          // ✅ refresh balance after submit
-          ; (async () => {
-            if (!effectiveEmployeeId || !token || !company_id) return
-            try {
-              const refreshUrl = isAdmin
-                ? `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${effectiveEmployeeId}?year=${year}&force=1`
-                : `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${effectiveEmployeeId}?year=${year}`
+        ;(async () => {
+          if (!effectiveEmployeeId || !token || !company_id) return
+          try {
+            const refreshUrl = isAdmin
+              ? `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${effectiveEmployeeId}?year=${year}&force=1`
+              : `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${effectiveEmployeeId}?year=${year}`
 
-              const res = await fetch(refreshUrl, {
-                method: 'GET',
-                headers: {
-                  Authorization: `Bearer ${token} ${company_id}`,
-                  'Content-Type': 'application/json'
-                }
-              })
-              const json = await res.json()
-              if (res.ok) setBalance(json)
-            } catch { }
-          })()
+            const res = await fetch(refreshUrl, {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token} ${company_id}`,
+                'Content-Type': 'application/json'
+              }
+            })
+            const json = await res.json()
+            if (res.ok) setBalance(json)
+          } catch {}
+        })()
 
         handleClose()
       })
@@ -392,8 +400,6 @@ const AddLeavesForm = ({
       .finally(() => setLoading(false))
   }
 
-  // ✅ Admin sees all employees
-  // ✅ Role 2 & 3 -> only self
   const filteredEmployees = useMemo(() => {
     if (Number(userRole) === 1) return employees || []
     return (employees || []).filter((emp: any) => String(emp._id) === String(userId))
@@ -402,78 +408,62 @@ const AddLeavesForm = ({
   return (
     <Container maxWidth='md'>
       <Paper elevation={3} sx={{ padding: 3, borderRadius: 2, backgroundColor: '#f5f5f5' }}>
-      <Box
-  display="flex"
-  justifyContent="space-between"
-  alignItems="center"
-  mb={3}
-  gap={2}
->
-  {/* LEFT: Heading */}
-  <Typography
-    variant="h4"
-    color="primary"
-    sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
-  >
-    <LeaveTypeIcon />
-    {leave ? 'Edit Leave' : 'Add Leave'}
-  </Typography>
+        <Box display='flex' justifyContent='space-between' alignItems='center' mb={3} gap={2}>
+          {/* LEFT: Heading */}
+          <Typography
+            variant='h4'
+            color='primary'
+            sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+          >
+            <LeaveTypeIcon />
+            {leave ? 'Edit Leave' : 'Add Leave'}
+          </Typography>
 
-  {/* RIGHT: Balance + Half Day + Close */}
-  <Box display="flex" alignItems="center" gap={2}>
-    {/* Leave Balance */}
-    {balanceLoading ? (
-      <Typography fontSize={12} color="text.secondary">
-        Loading leave balance...
-      </Typography>
-    ) : balanceErr ? (
-      <Typography fontSize={12} color="error">
-        {balanceErr}
-      </Typography>
-    ) : balance ? (
-      <Box
-        sx={{
-          px: 1.5,
-          py: 0.6,
-          borderRadius: 2,
-          display: 'flex',
-          alignItems: 'center',
-         
-        }}
-      >
-        <Typography fontSize={12} color="text.secondary">
-          {currentMonthName} Allowed Leaves:
-          <b style={{ marginLeft: 2 }}>{fmt(balance.monthly_accrual)}</b>
-        </Typography>
-      </Box>
-    ) : null}
+          {/* RIGHT: Balance + Half Day + Close */}
+          <Box display='flex' alignItems='center' gap={2}>
+            {balanceLoading ? (
+              <Typography fontSize={12} color='text.secondary'>
+                Loading leave balance...
+              </Typography>
+            ) : balanceErr ? (
+              <Typography fontSize={12} color='error'>
+                {balanceErr}
+              </Typography>
+            ) : balance ? (
+              <Box sx={{ px: 1.5, py: 0.6, borderRadius: 2, display: 'flex', alignItems: 'center' }}>
+                <Typography fontSize={12} color='text.secondary'>
+                  {currentMonthName} Allowed Leaves:
+                  <b style={{ marginLeft: 2 }}>
+                    {fmt((balance.monthly_accrual ?? 1.5) + (balance.comp_off_monthly ?? 0.5))}
+                  </b>
+                  <span style={{ marginLeft: 6, color: '#888' }}>
+                    ({fmt(balance.monthly_accrual)} regular + {fmt(balance.comp_off_monthly ?? 0.5)} comp off)
+                  </span>
+                </Typography>
+              </Box>
+            ) : null}
 
-    <Tooltip title="Click here to apply for half-day leave" arrow>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={isHalfDay}
-            onChange={handleHalfDayChange}
-            name="halfDay"
-            color="primary"
-            icon={<HalfDayIcon />}
-            checkedIcon={<HalfDayIcon color="primary" />}
-          />
-        }
-        label="Half-day"
-      />
-    </Tooltip>
+            <Tooltip title='Click here to apply for half-day leave' arrow>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={isHalfDay}
+                    onChange={handleHalfDayChange}
+                    name='halfDay'
+                    color='primary'
+                    icon={<HalfDayIcon />}
+                    checkedIcon={<HalfDayIcon color='primary' />}
+                  />
+                }
+                label='Half-day'
+              />
+            </Tooltip>
 
-    {/* Close */}
-    <IconButton onClick={handleClose} color="error">
-      <CloseIcon />
-    </IconButton>
-  </Box>
-</Box>
-
-
-        {/* ✅ Small balance info */}
-   
+            <IconButton onClick={handleClose} color='error'>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </Box>
 
         <Grid container spacing={3}>
           {Number(userRole) < 3 && (
@@ -552,7 +542,7 @@ const AddLeavesForm = ({
             />
           </Grid>
 
-          {/* ✅ CLEAN PREVIEW (extra included) */}
+          {/* Leave Summary Preview */}
           {projected && leaveDaysNum > 0 && (
             <Grid item xs={12}>
               <Box
@@ -567,7 +557,6 @@ const AddLeavesForm = ({
                   <Typography fontWeight={900} fontSize={13}>
                     Leave Summary
                   </Typography>
-
                   <Box
                     sx={{
                       px: 1,
@@ -584,13 +573,30 @@ const AddLeavesForm = ({
                 </Box>
 
                 <Box sx={{ mt: 1.2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <MiniStat label='Monthly Allowed Leaves(MAL)' value={fmt(projected.credit)} />
-                  <MiniStat label='Total Accumulated Leaves(TAL)
-' value={fmt(projected.available)} />
-                  <MiniStat label='Total Leaves Taken(TLT)' value={fmt(projected.usedNow)} />
-                  <MiniStat label='New Leave(NL)' value={fmt(leaveDaysNum)} />
-                  {/* <MiniStat label='Balance Accumulated Leaves(BAL)' value={fmt(projected.usedAfter)} /> */}
+                  <MiniStat label='Monthly Allowed Leaves (MAL)' value={fmt(projected.credit)} />
+                  <MiniStat label='Comp Off (same month)'        value={fmt(projected.compOff)} />
+                  <MiniStat label='Total Accumulated Leaves (TAL)' value={fmt(projected.available)} />
+                  <MiniStat label='Total Leaves Taken (TLT)'     value={fmt(projected.usedNow)} />
+                  <MiniStat label='New Leave (NL)'               value={fmt(leaveDaysNum)} />
                 </Box>
+
+                {/* Comp off lapse warning */}
+                {projected.compOffLapsed > 0 && (
+                  <Box
+                    sx={{
+                      mt: 1,
+                      px: 1.2,
+                      py: 0.6,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(237,108,2,0.10)',
+                      border: '1px solid rgba(237,108,2,0.30)'
+                    }}
+                  >
+                    <Typography fontSize={12} fontWeight={700} sx={{ color: 'warning.main' }}>
+                      ⚠ {fmt(projected.compOffLapsed)} comp off lapse hoga this month (use same month only)
+                    </Typography>
+                  </Box>
+                )}
 
                 <Box
                   sx={{
@@ -606,7 +612,8 @@ const AddLeavesForm = ({
                 >
                   <Box>
                     <Typography fontSize={11} color='text.secondary'>
-                     Balance Accumulated Leaves(BAL)          </Typography>
+                      Balance Accumulated Leaves (BAL)
+                    </Typography>
                     <Typography fontSize={15} fontWeight={900}>
                       {fmt(projected.closingAfter)}
                     </Typography>
@@ -675,15 +682,12 @@ const AddLeavesForm = ({
                 onChange={handleChange}
                 startAdornment={<LeaveTypeIcon color='action' />}
               >
-                {/* <MenuItem value='Annual'>ANNUAL</MenuItem> */}
                 <MenuItem value='Sick'>SICK LEAVE</MenuItem>
-                {/* <MenuItem value='Unpaid'>UNPAID</MenuItem> */}
+                                  <MenuItem value='Compensatory'>Compensatory LEAVE</MenuItem>
+
                 <MenuItem value='Casual'>CASUAL LEAVE</MenuItem>
                 <MenuItem value='Privilege'>PRIVILEGE/EARNED LEAVE</MenuItem>
-
-                {/* <MenuItem value='Complimentary'>COMPLIMENTARY</MenuItem> */}
                 <MenuItem value='Maternity'>MATERNITY LEAVE</MenuItem>
-
                 <MenuItem value='Others'>OTHERS</MenuItem>
               </Select>
               {errors.type && <Typography color='error'>{errors.type}</Typography>}
