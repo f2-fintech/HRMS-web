@@ -121,11 +121,11 @@ export default function AttendanceGrid() {
       const csvContent = [
         [
           'Employee Name',
+          'Location',
           'Present',
           'Absent',
           'On Half',
-          'On Leave',
-
+          'On Leave',   
           'On WFH',
           'On Field',
           'Total Leave',
@@ -134,12 +134,14 @@ export default function AttendanceGrid() {
         ...employeesData.map(emp => {
           const halfCount = emp.statuses?.['On Half'] || 0
           const leaveCount = emp.statuses?.['On Leave'] || 0
+          const absentCount = emp.statuses?.Absent || 0
 
           // Half day = 0.5 leave
-          const totalLeave = leaveCount + (halfCount * 0.5)
+          const totalLeave = absentCount + leaveCount + (halfCount * 0.5)
 
           return [
             emp.employeeName || '',
+            emp.location || '',
             emp.statuses?.Present || 0,
             emp.statuses?.Absent || 0,
             halfCount,
