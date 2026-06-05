@@ -732,7 +732,7 @@ export default function ExpenseAdmin() {
     try {
       setLoadingList(true);
 
-      if (!isAdmin) {
+      if (!isAdmin ) {
         setRows([]);
         setTotal(0);
         return;
@@ -1582,9 +1582,10 @@ export default function ExpenseAdmin() {
                   <label style={fieldLabelStyle}>Expense Date</label>
                   <input
                     type="date"
-                    value={date}
+                    value={new Date().toISOString().split("T")[0]}
                     onChange={(e) => setDate(e.target.value)}
                     required
+                    disabled
                     style={fieldInputStyle}
                   />
                 </div>

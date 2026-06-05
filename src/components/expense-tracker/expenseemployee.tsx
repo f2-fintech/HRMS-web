@@ -1231,6 +1231,7 @@ export default function ExpenseEmployee() {
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     required
+                    disabled
                     style={fieldInputStyle}
                   />
                 </div>
