@@ -230,6 +230,7 @@ export default function ExpenseSinglePage() {
         value={date}
         onChange={(e) => setDate(e.target.value)}
         style={fieldInputStyle}
+        disabled
         required
       />
 
