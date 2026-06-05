@@ -183,11 +183,16 @@ const getAvatarColor = (name: string) =>
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const EmployeeAttendanceStatus: React.FC = () => {
-
   const [employeeCounts, setEmployeeCounts] = useState<any>({
     totalEmployees: 0,
     totalInterns: 0,
     totalChannelPartners: 0,
+    presentEmployees: 0,   
+    absentEmployees: 0, 
+    presentInterns: 0,  
+    absentInterns: 0,    
+    presentChannelPartners: 0,  
+    absentChannelPartners: 0, 
     employeeList: [],
     internList: [],
     channelPartnerList: [],
@@ -213,9 +218,17 @@ const EmployeeAttendanceStatus: React.FC = () => {
     token = localStorage.getItem('token')
   }
 
-  const handleOpenList = (title: string, list: any[]) => {
+  const handleOpenList = (title: string, list: any[], filterType?: 'present' | 'absent' | 'all') => {
     setDialogTitle(title)
-    setSelectedEmployees(Array.isArray(list) ? list : [])
+    let filteredList = Array.isArray(list) ? list : []
+
+    if (filterType === 'present') {
+      filteredList = filteredList.filter((e) => e.isPresent === true)
+    } else if (filterType === 'absent') {
+      filteredList = filteredList.filter((e) => e.isPresent === false)
+    }
+
+    setSelectedEmployees(filteredList)
     setDialogOpen(true)
   }
 
@@ -349,10 +362,10 @@ const EmployeeAttendanceStatus: React.FC = () => {
   let totalWorkforce = 0
 
   for (const item of attendanceCountsByLocation) {
-    totalPresent   += Number(item?.Present   || 0)
-    totalAbsent    += Number(item?.Absent    || 0)
-    totalLeave     += Number(item?.On_Leave  || 0)
-    totalHalfDay   += Number(item?.On_Half   || 0)
+    totalPresent += Number(item?.Present || 0)
+    totalAbsent += Number(item?.Absent || 0)
+    totalLeave += Number(item?.On_Leave || 0)
+    totalHalfDay += Number(item?.On_Half || 0)
     totalWorkforce += Number(item?.totalEmployeesToday || 0)
   }
 
@@ -417,56 +430,133 @@ const EmployeeAttendanceStatus: React.FC = () => {
 
         {/* Category cards */}
         <Grid container spacing={2} mb={3}>
+          {/* EMPLOYEES CARD */}
           <Grid item xs={12} sm={4}>
-            <CategoryChip
-              elevation={0}
-              chipcolor='#10b981'
-              onClick={() => handleOpenList('Employees', employeeCounts.employeeList)}
+            <CategoryChip elevation={0} chipcolor='#10b981'
+              onClick={() => handleOpenList('All Employees', employeeCounts.employeeList, 'all')}
             >
               <IconCircle><WorkIcon sx={{ fontSize: 22, color: 'white' }} /></IconCircle>
-              <Box>
+              <Box flex={1}>
                 <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.75)', display: 'block' }}>
                   Employees
                 </Typography>
                 <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
                   {Number(employeeCounts.totalEmployees || 0)}
                 </Typography>
+
+                {/* Present / Absent clickable badges */}
+                <Box display='flex' gap={1} mt={0.8} onClick={(e) => e.stopPropagation()}>
+                  <Box
+                    onClick={() => handleOpenList('Present Employees', employeeCounts.employeeList, 'present')}
+                    sx={{
+                      background: 'rgba(255,255,255,0.25)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(255,255,255,0.4)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ✅ {employeeCounts.presentEmployees} Present
+                    </Typography>
+                  </Box>
+                  <Box
+                    onClick={() => handleOpenList('Absent Employees', employeeCounts.employeeList, 'absent')}
+                    sx={{
+                      background: 'rgba(0,0,0,0.18)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(0,0,0,0.28)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ❌ {employeeCounts.absentEmployees} Absent
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
             </CategoryChip>
           </Grid>
 
+          {/* INTERNS CARD */}
           <Grid item xs={12} sm={4}>
-            <CategoryChip
-              elevation={0}
-              chipcolor='#f59e0b'
-              onClick={() => handleOpenList('Interns', employeeCounts.internList)}
+            <CategoryChip elevation={0} chipcolor='#f59e0b'
+              onClick={() => handleOpenList('All Interns', employeeCounts.internList, 'all')}
             >
               <IconCircle><SchoolIcon sx={{ fontSize: 22, color: 'white' }} /></IconCircle>
-              <Box>
+              <Box flex={1}>
                 <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.75)', display: 'block' }}>
                   Interns
                 </Typography>
                 <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
                   {Number(employeeCounts.totalInterns || 0)}
                 </Typography>
+                <Box display='flex' gap={1} mt={0.8} onClick={(e) => e.stopPropagation()}>
+                  <Box
+                    onClick={() => handleOpenList('Present Interns', employeeCounts.internList, 'present')}
+                    sx={{
+                      background: 'rgba(255,255,255,0.25)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(255,255,255,0.4)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ✅ {employeeCounts.presentInterns} Present
+                    </Typography>
+                  </Box>
+                  <Box
+                    onClick={() => handleOpenList('Absent Interns', employeeCounts.internList, 'absent')}
+                    sx={{
+                      background: 'rgba(0,0,0,0.18)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(0,0,0,0.28)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ❌ {employeeCounts.absentInterns} Absent
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
             </CategoryChip>
           </Grid>
 
+          {/* CHANNEL PARTNERS CARD */}
           <Grid item xs={12} sm={4}>
-            <CategoryChip
-              elevation={0}
-              chipcolor='#6366f1'
-              onClick={() => handleOpenList('Channel Partners', employeeCounts.channelPartnerList)}
+            <CategoryChip elevation={0} chipcolor='#6366f1'
+              onClick={() => handleOpenList('All Channel Partners', employeeCounts.channelPartnerList, 'all')}
             >
               <IconCircle><HandshakeIcon sx={{ fontSize: 22, color: 'white' }} /></IconCircle>
-              <Box>
+              <Box flex={1}>
                 <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.75)', display: 'block' }}>
                   Channel partners
                 </Typography>
                 <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
                   {Number(employeeCounts.totalChannelPartners || 0)}
                 </Typography>
+                <Box display='flex' gap={1} mt={0.8} onClick={(e) => e.stopPropagation()}>
+                  <Box
+                    onClick={() => handleOpenList('Present Channel Partners', employeeCounts.channelPartnerList, 'present')}
+                    sx={{
+                      background: 'rgba(255,255,255,0.25)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(255,255,255,0.4)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ✅ {employeeCounts.presentChannelPartners} Present
+                    </Typography>
+                  </Box>
+                  <Box
+                    onClick={() => handleOpenList('Absent Channel Partners', employeeCounts.channelPartnerList, 'absent')}
+                    sx={{
+                      background: 'rgba(0,0,0,0.18)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(0,0,0,0.28)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ❌ {employeeCounts.absentChannelPartners} Absent
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
             </CategoryChip>
           </Grid>
@@ -475,10 +565,10 @@ const EmployeeAttendanceStatus: React.FC = () => {
         {/* Attendance status cards */}
         <Grid container spacing={2}>
           {[
-            { label: 'Present',  value: `${totalPresent}/${totalAll}`, color: '#22c55e', status: 'Present',  title: 'Present Employees',  delay: 0   },
-            { label: 'Absent',   value: `${totalAbsent}/${totalAll}`,  color: '#ef4444', status: 'Absent',   title: 'Absent Employees',   delay: 60  },
-            { label: 'On leave', value: `${totalLeave}/${totalAll}`,   color: '#f59e0b', status: 'On Leave', title: 'On Leave Employees', delay: 120 },
-            { label: 'Half day', value: `${totalHalfDay}/${totalAll}`, color: '#3b82f6', status: 'On Half',  title: 'Half Day Employees', delay: 180 },
+            { label: 'Present', value: `${totalPresent}/${totalAll}`, color: '#22c55e', status: 'Present', title: 'Present Employees', delay: 0 },
+            { label: 'Absent', value: `${totalAbsent}/${totalAll}`, color: '#ef4444', status: 'Absent', title: 'Absent Employees', delay: 60 },
+            { label: 'On leave', value: `${totalLeave}/${totalAll}`, color: '#f59e0b', status: 'On Leave', title: 'On Leave Employees', delay: 120 },
+            { label: 'Half day', value: `${totalHalfDay}/${totalAll}`, color: '#3b82f6', status: 'On Half', title: 'Half Day Employees', delay: 180 },
             { label: 'Not marked', value: `${totalNotMarked}/${totalAll}`, color: '#94a3b8', status: 'Not Marked', title: 'Not Marked Employees', delay: 240 },
           ].map((s) => (
             <Grid item xs={6} sm={2.4} key={s.label}>
