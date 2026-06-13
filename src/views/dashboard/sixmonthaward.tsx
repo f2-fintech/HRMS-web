@@ -354,7 +354,7 @@ const SixMonthAward = () => {
                             />
                         </Box>
 
-                        {(userDesg === 'Sr. Operation Manager' || userRole === '1') && (
+                        {(userDesg === 'Sr. Operation Manager' || userDesg === 'Asst. Ops Manager' || userDesg === 'Credit Executive' || userDesg === 'Assistant Growth Manager' || userRole === '1') && (
                             <Tooltip title='Add/Edit Award'>
                                 <IconButton
                                     onClick={handleEditClick}
