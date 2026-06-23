@@ -262,8 +262,16 @@ const LocationWisePerformer = () => {
                   }}
                 >
                   {/* Edit Button */}
-                  {(user?.designation === 'Sr. Operation Manager' || user?.designation === 'Asst. Ops Manager' || user?.designation === 'Credit Executive' || user?.designation === 'Assistant Growth') && (
-                    user?.role === '1') && (
+                  {(
+                    [
+                      'Asst. Ops Manager',
+                      'Sr. Operation Manager',
+                      'Credit Executive',
+                      'Assistant Growth',
+                      'Assistant Growth Manager'
+                    ].includes(user?.designation?.trim()) ||
+                    Number(user?.role) === 1
+                  ) && (
                       <IconButton
                         className='edit-button'
                         onClick={() => handleMenuClick(award)}
@@ -276,12 +284,8 @@ const LocationWisePerformer = () => {
                           backgroundColor: 'transparent',
                           boxShadow: 'none',
                           '&:hover': {
-                            backgroundColor:
-                              settings.mode === 'dark' ? '#444' : '#ffffff', // Button background color
-                            boxShadow:
-                              settings.mode === 'dark'
-                                ? '0px 2px 8px rgba(0,0,0,0.2)'
-                                : '0px 2px 8px rgba(0,0,0,0.2)'
+                            backgroundColor: settings.mode === 'dark' ? '#444' : '#ffffff',
+                            boxShadow: '0px 2px 8px rgba(0,0,0,0.2)'
                           }
                         }}
                       >
@@ -292,7 +296,6 @@ const LocationWisePerformer = () => {
                         />
                       </IconButton>
                     )}
-
                   {/* Blue Header section */}
                   <Box
                     sx={{
