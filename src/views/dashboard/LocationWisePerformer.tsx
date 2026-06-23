@@ -262,36 +262,36 @@ const LocationWisePerformer = () => {
                   }}
                 >
                   {/* Edit Button */}
-                  {(user?.designation === 'Sr. Operation Manager' ||
+                  {(user?.designation === 'Sr. Operation Manager' || user?.designation === 'Asst. Ops Manager' || user?.designation === 'Credit Executive' || user?.designation === 'Assistant Growth') && (
                     user?.role === '1') && (
-                    <IconButton
-                      className='edit-button'
-                      onClick={() => handleMenuClick(award)}
-                      sx={{
-                        position: 'absolute',
-                        top: 2,
-                        right: 2,
-                        zIndex: 2,
-                        p: 1,
-                        backgroundColor: 'transparent',
-                        boxShadow: 'none',
-                        '&:hover': {
-                          backgroundColor:
-                            settings.mode === 'dark' ? '#444' : '#ffffff', // Button background color
-                          boxShadow:
-                            settings.mode === 'dark'
-                              ? '0px 2px 8px rgba(0,0,0,0.2)'
-                              : '0px 2px 8px rgba(0,0,0,0.2)'
-                        }
-                      }}
-                    >
-                      <MoreVertIcon
+                      <IconButton
+                        className='edit-button'
+                        onClick={() => handleMenuClick(award)}
                         sx={{
-                          color: settings.mode === 'dark' ? '#fff' : '#333'
+                          position: 'absolute',
+                          top: 2,
+                          right: 2,
+                          zIndex: 2,
+                          p: 1,
+                          backgroundColor: 'transparent',
+                          boxShadow: 'none',
+                          '&:hover': {
+                            backgroundColor:
+                              settings.mode === 'dark' ? '#444' : '#ffffff', // Button background color
+                            boxShadow:
+                              settings.mode === 'dark'
+                                ? '0px 2px 8px rgba(0,0,0,0.2)'
+                                : '0px 2px 8px rgba(0,0,0,0.2)'
+                          }
                         }}
-                      />
-                    </IconButton>
-                  )}
+                      >
+                        <MoreVertIcon
+                          sx={{
+                            color: settings.mode === 'dark' ? '#fff' : '#333'
+                          }}
+                        />
+                      </IconButton>
+                    )}
 
                   {/* Blue Header section */}
                   <Box
@@ -407,7 +407,7 @@ const LocationWisePerformer = () => {
                           }}
                         >
                           {typeof award.employee !== 'string' &&
-                          award.employee ? (
+                            award.employee ? (
                             <>
                               {capitalizeFirstLetter(
                                 award.employee.first_name || ''
