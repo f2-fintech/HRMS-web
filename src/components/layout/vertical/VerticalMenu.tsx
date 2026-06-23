@@ -21,6 +21,7 @@ import HeadsetMicIcon from '@mui/icons-material/HeadsetMic'
 import VideoCallIcon from '@mui/icons-material/VideoCall'
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital'
 import SupportAgentIcon from '@mui/icons-material/SupportAgent'
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 
 import InventoryIcon from '@mui/icons-material/Inventory';
 
@@ -96,8 +97,11 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               Payment
             </MenuItem>
           }
-
-
+          {userRole === '1' && (
+            <MenuItem href={`/monthly-punches`} icon={<CalendarMonthIcon />}>
+              Employees Punches
+            </MenuItem>
+          )}
 
           <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
             Teams
@@ -143,10 +147,10 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             {/* <MenuItem href={`/doctor-report`} icon={<LocalHospitalIcon />}>
               Field Visit Report
             </MenuItem> */}
-               <MenuItem href={`/trustmeet`} icon={<LocalHospitalIcon />}>
+            <MenuItem href={`/trustmeet`} icon={<LocalHospitalIcon />}>
               Trust Meet
             </MenuItem>
-            
+
           </MenuSection>
         )}
 
