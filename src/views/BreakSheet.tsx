@@ -475,7 +475,7 @@ const BreakSheet: React.FC = () => {
         const fileName = `shift_summary_${formattedDay}_${formattedMonth}_${formattedYear}.csv`;
 
         const csvRows = [
-            ['Employee Name', 'Designation','Location', 'Punch In', 'Punch Out', 'Total Shift Time', 'Break Time', 'Net Working Time', 'Shift Required',
+            ['Employee Name', 'Designation', 'Location', 'Punch In', 'Punch Out', 'Total Shift Time', 'Break Time', 'Net Working Time', 'Shift Required',
                 'Shift Status', 'Status'],
             ...allEmployees.map(emp => [
                 `${emp.first_name ?? ''} ${emp.last_name ?? ''}`.trim(),
@@ -511,197 +511,197 @@ const BreakSheet: React.FC = () => {
         URL.revokeObjectURL(url);
     };
 
- const handleMonthlyExportShiftTime = async () => {
+    const handleMonthlyExportShiftTime = async () => {
 
-    try {
+        try {
 
-        const [year, month] = selectedMonth.split('-');
+            const [year, month] = selectedMonth.split('-');
 
-        const url =
-            `${process.env.NEXT_PUBLIC_APP_URL}/punch/monthly-shift-summary?month=${month}&year=${year}&company_id=${companyId}`;
+            const url =
+                `${process.env.NEXT_PUBLIC_APP_URL}/punch/monthly-shift-summary?month=${month}&year=${year}&company_id=${companyId}`;
 
-        const res = await fetch(url);
+            const res = await fetch(url);
 
-        const data = await res.json();
+            const data = await res.json();
 
-        const employees = data.employees || [];
+            const employees = data.employees || [];
 
-        if (!employees.length) {
+            if (!employees.length) {
 
-            alert('No monthly data found');
+                alert('No monthly data found');
 
-            return;
-        }
+                return;
+            }
 
-        const csvRows = [
-            [
-                'Date',
-                'Employee Name',
-                'Location',
-                'Designation',
-                'Punch In',
-                'Punch Out',
-                'Total Shift Time',
-                'Break Time',
-                'Net Working Time',
-                'Shift Required',
-                'Shift Status',
-                'Status'
-            ],
-            ...Object.values(
+            const csvRows = [
+                [
+                    'Date',
+                    'Employee Name',
+                    'Location',
+                    'Designation',
+                    'Punch In',
+                    'Punch Out',
+                    'Total Shift Time',
+                    'Break Time',
+                    'Net Working Time',
+                    'Shift Required',
+                    'Shift Status',
+                    'Status'
+                ],
+                ...Object.values(
 
-                employees.reduce((acc: any, emp: any) => {
+                    employees.reduce((acc: any, emp: any) => {
 
-                    const employeeName =
-                        `${emp.first_name ?? ''} ${emp.last_name ?? ''}`.trim();
+                        const employeeName =
+                            `${emp.first_name ?? ''} ${emp.last_name ?? ''}`.trim();
 
-                    if (!acc[employeeName]) {
+                        if (!acc[employeeName]) {
 
-                        acc[employeeName] = {
-                            rows: [],
-                            totalShift: 0,
-                            totalBreak: 0,
-                            totalNet: 0
+                            acc[employeeName] = {
+                                rows: [],
+                                totalShift: 0,
+                                totalBreak: 0,
+                                totalNet: 0
+                            };
+                        }
+
+                        // ---- DAILY ROW ----
+                        acc[employeeName].rows.push([
+
+                            emp.date ?? '',
+
+                            employeeName,
+
+                            emp.location ?? '',
+                            emp.designation ?? '',
+
+                            emp.punchIn ?? '',
+                            emp.punchOut ?? '',
+
+                            emp.totalShiftTime ?? '',
+                            emp.totalBreakTime ?? '',
+                            emp.netWorkingTime ?? '',
+
+                            emp.shiftRequired ?? '',
+                            emp.shiftStatus ?? '',
+
+                            emp.status ?? ''
+                        ]);
+
+                        // ---- TIME CONVERTER ----
+                        const convertToMinutes = (time: string) => {
+
+                            if (!time) return 0;
+
+                            const hourMatch =
+                                time.match(/(\d+)h/);
+
+                            const minuteMatch =
+                                time.match(/(\d+)m/);
+
+                            const hours = hourMatch
+                                ? Number(hourMatch[1])
+                                : 0;
+
+                            const minutes = minuteMatch
+                                ? Number(minuteMatch[1])
+                                : 0;
+
+                            return (hours * 60) + minutes;
                         };
-                    }
 
-                    // ---- DAILY ROW ----
-                    acc[employeeName].rows.push([
+                        // ---- TOTALS ----
+                        acc[employeeName].totalShift +=
+                            convertToMinutes(emp.totalShiftTime);
 
-                        emp.date ?? '',
+                        acc[employeeName].totalBreak +=
+                            convertToMinutes(emp.totalBreakTime);
 
-                        employeeName,
+                        acc[employeeName].totalNet +=
+                            convertToMinutes(emp.netWorkingTime);
 
-                        emp.location ?? '',
-                        emp.designation ?? '',
+                        return acc;
 
-                        emp.punchIn ?? '',
-                        emp.punchOut ?? '',
+                    }, {})
 
-                        emp.totalShiftTime ?? '',
-                        emp.totalBreakTime ?? '',
-                        emp.netWorkingTime ?? '',
+                ).flatMap((group: any) => {
 
-                        emp.shiftRequired ?? '',
-                        emp.shiftStatus ?? '',
+                    const formatMinutes = (minutes: number) => {
 
-                        emp.status ?? ''
-                    ]);
+                        const hrs = Math.floor(minutes / 60);
+                        const mins = minutes % 60;
 
-                    // ---- TIME CONVERTER ----
-                    const convertToMinutes = (time: string) => {
-
-                        if (!time) return 0;
-
-                        const hourMatch =
-                            time.match(/(\d+)h/);
-
-                        const minuteMatch =
-                            time.match(/(\d+)m/);
-
-                        const hours = hourMatch
-                            ? Number(hourMatch[1])
-                            : 0;
-
-                        const minutes = minuteMatch
-                            ? Number(minuteMatch[1])
-                            : 0;
-
-                        return (hours * 60) + minutes;
+                        return `${hrs}h ${mins}m`;
                     };
 
-                    // ---- TOTALS ----
-                    acc[employeeName].totalShift +=
-                        convertToMinutes(emp.totalShiftTime);
+                    return [
 
-                    acc[employeeName].totalBreak +=
-                        convertToMinutes(emp.totalBreakTime);
+                        // ---- DAILY ROWS ----
+                        ...group.rows,
 
-                    acc[employeeName].totalNet +=
-                        convertToMinutes(emp.netWorkingTime);
+                        // ---- EMPLOYEE TOTAL ROW ----
+                        [
+                            'TOTAL',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
 
-                    return acc;
+                            formatMinutes(group.totalShift),
 
-                }, {})
+                            formatMinutes(group.totalBreak),
 
-            ).flatMap((group: any) => {
+                            formatMinutes(group.totalNet),
 
-                const formatMinutes = (minutes: number) => {
+                            '',
+                            '',
+                            ''
+                        ],
 
-                    const hrs = Math.floor(minutes / 60);
-                    const mins = minutes % 60;
+                        // ---- SPACE ----
+                        []
+                    ];
+                })
+            ];
 
-                    return `${hrs}h ${mins}m`;
-                };
+            const csvContent = csvRows
+                .map(row => row.map(csvEscape).join(','))
+                .join('\n');
 
-                return [
+            const blob = new Blob(
+                [csvContent],
+                { type: 'text/csv;charset=utf-8;' }
+            );
 
-                    // ---- DAILY ROWS ----
-                    ...group.rows,
+            const link = document.createElement('a');
 
-                    // ---- EMPLOYEE TOTAL ROW ----
-                    [
-                        'TOTAL',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
+            const fileName =
+                `monthly_shift_summary_${selectedMonth}.csv`;
 
-                        formatMinutes(group.totalShift),
+            const downloadUrl =
+                URL.createObjectURL(blob);
 
-                        formatMinutes(group.totalBreak),
+            link.setAttribute('href', downloadUrl);
 
-                        formatMinutes(group.totalNet),
+            link.setAttribute('download', fileName);
 
-                        '',
-                        '',
-                        ''
-                    ],
+            document.body.appendChild(link);
 
-                    // ---- SPACE ----
-                    []
-                ];
-            })
-        ];
+            link.click();
 
-        const csvContent = csvRows
-            .map(row => row.map(csvEscape).join(','))
-            .join('\n');
+            document.body.removeChild(link);
 
-        const blob = new Blob(
-            [csvContent],
-            { type: 'text/csv;charset=utf-8;' }
-        );
+            URL.revokeObjectURL(downloadUrl);
 
-        const link = document.createElement('a');
+        } catch (error) {
 
-        const fileName =
-            `monthly_shift_summary_${selectedMonth}.csv`;
-
-        const downloadUrl =
-            URL.createObjectURL(blob);
-
-        link.setAttribute('href', downloadUrl);
-
-        link.setAttribute('download', fileName);
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        document.body.removeChild(link);
-
-        URL.revokeObjectURL(downloadUrl);
-
-    } catch (error) {
-
-        console.error(
-            'Monthly Export Error:',
-            error
-        );
-    }
-};
+            console.error(
+                'Monthly Export Error:',
+                error
+            );
+        }
+    };
 
 
 
@@ -846,7 +846,7 @@ const BreakSheet: React.FC = () => {
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-slate-400 to-slate-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                 </button>
-                {userRole === '1' && (
+                {userRole === '1' || userRole === '6' && (
                     <button
                         onClick={handleExportBreakCount}
                         className="px-4 py-3 rounded-xl bg-green-600 text-white"
@@ -856,7 +856,7 @@ const BreakSheet: React.FC = () => {
                 )}
 
                 {/* Admin Buttons - Only shown if userRole is '1' */}
-                {userRole === '1' && (
+                {userRole === '1' || userRole === '6' && (
                     <>
                         {/* Monitor Long Breaks Button */}
                         <button
@@ -992,25 +992,24 @@ const BreakSheet: React.FC = () => {
                 )}
 
                 {/* Employee Selection (Admin only) */}
-                {Number(userRole) <= 1 && (
-                    <div className="mb-6">
-                        <div className="border border-gray-200 rounded-lg p-4">
-                            <div className="flex items-center mb-4">
-                                <h2 className="text-lg font-semibold">Employee Selection</h2>
-                            </div>
-                            {/* React Autocomplete for Search */}
-                            <Autocomplete
-                                options={employees}
-                                getOptionLabel={option => `${option.first_name} ${option.last_name}`}
-                                renderInput={params => <TextField {...params} label='Search Employee' variant='outlined' />}
-                                value={selectedEmployeeId ? employees.find(emp => emp._id === selectedEmployeeId) : null}
-                                onChange={(event, newValue) => {
-                                    setSelectedEmployeeId(newValue ? newValue._id : '')
-                                }}
-                                isOptionEqualToValue={(option, value) => option._id === value._id}
-                            />
+                {(Number(userRole) <= 1 || userRole === '6') && (<div className="mb-6">
+                    <div className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center mb-4">
+                            <h2 className="text-lg font-semibold">Employee Selection</h2>
                         </div>
+                        {/* React Autocomplete for Search */}
+                        <Autocomplete
+                            options={employees}
+                            getOptionLabel={option => `${option.first_name} ${option.last_name}`}
+                            renderInput={params => <TextField {...params} label='Search Employee' variant='outlined' />}
+                            value={selectedEmployeeId ? employees.find(emp => emp._id === selectedEmployeeId) : null}
+                            onChange={(event, newValue) => {
+                                setSelectedEmployeeId(newValue ? newValue._id : '')
+                            }}
+                            isOptionEqualToValue={(option, value) => option._id === value._id}
+                        />
                     </div>
+                </div>
                 )}
 
                 {/* Time Summary and Date Selection */}

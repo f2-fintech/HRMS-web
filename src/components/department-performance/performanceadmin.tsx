@@ -139,7 +139,7 @@ const getRoleFlags = () => {
     .replace(/\s+/g, ' ')
     .trim();
 
-  const isAdmin = safeRp === 1;
+  const isAdmin = safeRp === 1 || safeRp === 6;
 
   return { isAdmin, rp: safeRp, raw, user };
 };

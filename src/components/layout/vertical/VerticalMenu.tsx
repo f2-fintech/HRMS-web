@@ -106,13 +106,11 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
             Teams
           </MenuItem>
-
-          {userRole === '1' && (
+          {[1, 6].includes(Number(userRole)) && (
             <MenuItem href={`/designation`} icon={<SchoolIcon />}>
               Designations
             </MenuItem>
           )}
-
           <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
             Seating Plan
           </MenuItem>
