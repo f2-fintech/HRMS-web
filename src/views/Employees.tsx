@@ -40,6 +40,7 @@ export default function EmployeeGrid() {
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const router = useRouter()
+  const allowedRoles = [1, 6];
 
   const capitalizeWords = (name: string) => {
     if (!name) return ''
@@ -401,7 +402,7 @@ export default function EmployeeGrid() {
 
       const worksheet =
         XLSX.utils.json_to_sheet(allEmployeeData)
-
+    
       const workbook = XLSX.utils.book_new()
 
       XLSX.utils.book_append_sheet(
@@ -452,31 +453,35 @@ export default function EmployeeGrid() {
             </Typography>
           </Box>
           <Box display='flex' alignItems='center' gap={2}>
-            {Number(userRole) <= 1 && (
+            {allowedRoles.includes(Number(userRole)) && (
               <Button
-                sx={{ borderRadius: 50, backgroundColor: '#ff902f', '&:hover': { backgroundColor: '#e67e22' } }}
-                variant='contained'
+                sx={{
+                  borderRadius: 50,
+                  backgroundColor: '#ff902f',
+                  '&:hover': { backgroundColor: '#e67e22' },
+                }}
+                variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleAddEmployeeClick}
               >
                 Add Employee
               </Button>
-
             )}
-             {Number(userRole) === 1 && (
-            <Button
-              variant='contained'
-              color='success'
-              onClick={downloadAllEmployeesExcel}
-              sx={{
-                borderRadius: '3rem',
-                fontWeight: 'bold'
-              }}
-            >
-              Download Employee details
-            </Button>
-             )}
-            {Number(userRole) === 1 && (
+            {allowedRoles.includes(Number(userRole)) && (
+
+              <Button
+                variant='contained'
+                color='success'
+                onClick={downloadAllEmployeesExcel}
+                sx={{
+                  borderRadius: '3rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                Download Employee details
+              </Button>
+            )}
+            {allowedRoles.includes(Number(userRole)) && (
               <Button
                 variant='contained'
                 onClick={() => router.push('/deleted-emp')}

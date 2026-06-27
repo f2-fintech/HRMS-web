@@ -78,7 +78,9 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
   const [anchorEl, setAnchorEl] = useState(null)
   const [userRole, setUserRole] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const router = useRouter();
+  const editRoles = [1, 6];
+  const deleteRoles = [1];
 
   const { settings } = useSettings()
 
@@ -187,31 +189,36 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
               <MoreVertIcon />
             </IconButton>
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-              {userRole === '1' && (
-                <>
-                  {!deletedEmployee &&
-                    <MenuItem
-                      onClick={e => {
-                        e.stopPropagation()
-                        handleMenuClose()
-                        handleEditEmployeeClick(deletedEmployee ? employee._id : id)
-                      }}
-                    >
-                      <EditIcon fontSize='small' style={{ marginRight: 8 }} />
-                      Edit
-                    </MenuItem>
-                  }
-                  <MenuItem
-                    onClick={e => {
-                      e.stopPropagation()
-                      handleMenuClose()
-                      handleDelete(id)
-                    }}
-                  >
-                    {deletedEmployee ? <RestoreIcon fontSize='small' style={{ marginRight: 8 }} /> : <DeleteIcon fontSize='small' style={{ marginRight: 8 }} />}
-                    {deletedEmployee ? "Restore" : "Delete"}
-                  </MenuItem>
-                </>
+              {/* Edit */}
+              {editRoles.includes(Number(userRole)) && !deletedEmployee && (
+                <MenuItem
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleMenuClose()
+                    handleEditEmployeeClick(deletedEmployee ? employee._id : id)
+                  }}
+                >
+                  <EditIcon fontSize='small' style={{ marginRight: 8 }} />
+                  Edit
+                </MenuItem>
+              )}
+
+              {/* Delete / Restore */}
+              {deleteRoles.includes(Number(userRole)) && (
+                <MenuItem
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleMenuClose()
+                    handleDelete(id)
+                  }}
+                >
+                  {deletedEmployee ? (
+                    <RestoreIcon fontSize='small' style={{ marginRight: 8 }} />
+                  ) : (
+                    <DeleteIcon fontSize='small' style={{ marginRight: 8 }} />
+                  )}
+                  {deletedEmployee ? 'Restore' : 'Delete'}
+                </MenuItem>
               )}
               {!deletedEmployee &&
                 <MenuItem

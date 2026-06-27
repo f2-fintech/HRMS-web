@@ -1098,6 +1098,13 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
               <MenuItem value='4' disabled={role === '0'}>
                 Channel Partner
               </MenuItem>
+           
+              <MenuItem value='5' disabled={role === '0'}>
+                Accountant
+              </MenuItem>
+              <MenuItem value='6' disabled={role === '0'}>
+                Sub Admin
+              </MenuItem>
             </Select>
             {errors.role_priority && <Typography color='error'>{errors.role_priority}</Typography>}
           </FormControl>
