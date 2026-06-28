@@ -1,580 +1,414 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Box,
-  Button,
-  Divider,
   Paper,
   Stack,
-  Tab,
-  Tabs,
-  TextField,
   Typography,
-  Rating,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  IconButton,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
+import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
-import WbSunnyIcon from '@mui/icons-material/WbSunny';
-import NightsStayIcon from '@mui/icons-material/NightsStay';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
-import { apiUpload, fetchOneDaily, fetchOneMonthly, monthISO, todayISO } from './dpApi';
+import { createTask, deleteTask, fetchTasks, todayISO, updateTask } from './dpApi';
 
-// ✅ helpers: filename + preview
-const getFileNameFromUrl = (url: string) => {
+const PRIORITIES = ['Low', 'Medium', 'High'];
+const STATUSES = ['Pending', 'In Progress', 'Completed'];
+
+const priorityColor = (p: string) =>
+  p === 'High' ? 'error' : p === 'Medium' ? 'warning' : 'default';
+
+const statusColor = (s: string) =>
+  s === 'Completed' ? 'success' : s === 'In Progress' ? 'info' : 'default';
+
+const DEFAULT_WIDTHS = {
+  date: 140,
+  priority: 140,
+  task: 420,
+  status: 140,
+  actions: 90,
+};
+
+type ColKey = keyof typeof DEFAULT_WIDTHS;
+
+// ✅ Get current logged-in user's ID
+const getMyId = (): string => {
   try {
-    const clean = String(url || '').split('?')[0];
-    const last = clean.substring(clean.lastIndexOf('/') + 1);
-    return decodeURIComponent(last || url);
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user?._id || user?.id || '';
   } catch {
-    return url;
+    return '';
   }
 };
 
-const prettyFileName = (url: string) => {
-  const name = getFileNameFromUrl(url);
-  return name.replace(/^\d{10,}-/, ''); // remove leading timestamp-
-};
+export default function TaskSheet() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [dateFilter, setDateFilter] = useState('');
 
-const isImageUrl = (url: string) => /\.(png|jpe?g|webp|gif)$/i.test(String(url || '').split('?')[0]);
+  const [draft, setDraft] = useState({
+    date: todayISO(),
+    priority: 'High',
+    task: '',
+    status: 'Pending',
+  });
+  const [saving, setSaving] = useState(false);
 
-export default function PerformanceEmployee() {
-  const [tab, setTab] = useState<'daily' | 'monthly'>('daily');
+  const [widths, setWidths] = useState<typeof DEFAULT_WIDTHS>(DEFAULT_WIDTHS);
+  const resizingCol = useRef<ColKey | null>(null);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
 
-  const [openForm, setOpenForm] = useState(false);
+  const [viewRow, setViewRow] = useState<any | null>(null);
 
-  const [dailyDate, setDailyDate] = useState(todayISO());
-  const [month, setMonth] = useState(monthISO());
+  const onResizeStart = (col: ColKey) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    resizingCol.current = col;
+    startX.current = e.clientX;
+    startWidth.current = widths[col];
+    document.addEventListener('mousemove', onResizeMove);
+    document.addEventListener('mouseup', onResizeEnd);
+  };
 
-  // ✅ Daily fields
-  const [morningPlan, setMorningPlan] = useState('');
-  const [eveningCompleted, setEveningCompleted] = useState('');
+  const onResizeMove = (e: MouseEvent) => {
+    if (!resizingCol.current) return;
+    const delta = e.clientX - startX.current;
+    const newWidth = Math.max(60, startWidth.current + delta);
+    setWidths((prev) => ({ ...prev, [resizingCol.current as ColKey]: newWidth }));
+  };
 
-  // ✅ Monthly fields
-  const [monthPlan, setMonthPlan] = useState('');
-  const [monthCompleted, setMonthCompleted] = useState('');
+  const onResizeEnd = () => {
+    resizingCol.current = null;
+    document.removeEventListener('mousemove', onResizeMove);
+    document.removeEventListener('mouseup', onResizeEnd);
+  };
 
-  // ✅ Separate images
-  const [morningImage, setMorningImage] = useState<File | null>(null);
-  const [eveningImage, setEveningImage] = useState<File | null>(null);
-  const [monthPlanImage, setMonthPlanImage] = useState<File | null>(null);
-  const [monthCompletedImage, setMonthCompletedImage] = useState<File | null>(null);
-
-  // ✅ record view
-  const [record, setRecord] = useState<any | null>(null);
-  const [loadingRecord, setLoadingRecord] = useState(false);
-
-  // ✅ saving states
-  const [savingMorning, setSavingMorning] = useState(false);
-  const [savingEvening, setSavingEvening] = useState(false);
-  const [savingMonthPlan, setSavingMonthPlan] = useState(false);
-  const [savingMonthCompleted, setSavingMonthCompleted] = useState(false);
-
-  const myId = useMemo(() => {
-    if (typeof window === 'undefined') return '';
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    return String(user?.employee_id || user?._id || user?.id || '').trim();
-  }, []);
-
-  const loadRecord = async () => {
-    if (!myId) return;
+  const load = async () => {
     try {
-      setLoadingRecord(true);
-      const r =
-        tab === 'daily'
-          ? await fetchOneDaily(myId, dailyDate)
-          : await fetchOneMonthly(myId, month);
-
-      setRecord(r || null);
+      setLoading(true);
+      // ✅ owner_id pass karo — sirf apne tasks aayenge
+      const owner_id = getMyId();
+      const resp = await fetchTasks({
+        date: dateFilter || undefined,
+        owner_id: owner_id || undefined,
+        page: 1,
+        limit: 200,
+      });
+      setRows(resp?.data || []);
     } catch (e) {
-      console.log(e);
-      setRecord(null);
+      console.error(e);
+      setRows([]);
     } finally {
-      setLoadingRecord(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadRecord();
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, dailyDate, month, myId]);
+  }, [dateFilter]);
 
-  // ✅ Edit (prefill form)
-  const openEditForm = () => {
-    if (!record) {
-      setOpenForm(true);
-      return;
+  const addRow = async () => {
+    if (!draft.task.trim()) return alert('Task likhna zaroori hai');
+    try {
+      setSaving(true);
+      await createTask({
+        date: draft.date,
+        task: draft.task.trim(),
+        priority: draft.priority,
+        status: draft.status,
+      });
+      setDraft({ date: todayISO(), priority: 'High', task: '', status: 'Pending' });
+      load();
+    } catch (e: any) {
+      alert(`❌ ${e?.message || 'Error adding task'}`);
+    } finally {
+      setSaving(false);
     }
-
-    if (tab === 'daily') {
-      setMorningPlan(String(record?.whatDoneToday || ''));
-      setEveningCompleted(String(record?.whatCompletedToday || ''));
-    } else {
-      setMonthPlan(String(record?.planForThisMonth || ''));
-      setMonthCompleted(String(record?.completedThisMonth || ''));
-    }
-
-    setOpenForm(true);
   };
 
-  const FilePicker = ({
-    label,
-    file,
-    onPick,
-  }: {
-    label: string;
-    file: File | null;
-    onPick: (f: File | null) => void;
-  }) => (
-    <Stack spacing={0.5}>
-      <Button component="label" variant="outlined" sx={{ alignSelf: 'flex-start', borderRadius: 2 }}>
-        {label}
-        <input hidden type="file" accept="image/*" onChange={(e) => onPick(e.target.files?.[0] || null)} />
-      </Button>
+  const patchRow = async (id: string, payload: Record<string, any>) => {
+    setRows((prev) => prev.map((r) => (r._id === id ? { ...r, ...payload } : r)));
+    try {
+      await updateTask(id, payload);
+    } catch (e: any) {
+      alert(`❌ ${e?.message || 'Update failed'}`);
+      load();
+    }
+  };
 
-      {file ? (
-        <Typography variant="caption" color="text.secondary">
-          Selected: {file.name}
-        </Typography>
-      ) : (
-        <Typography variant="caption" color="text.secondary">
-          No image selected
-        </Typography>
-      )}
-    </Stack>
+  const removeRow = async (id: string) => {
+    if (!confirm('Delete this task?')) return;
+    setRows((prev) => prev.filter((r) => r._id !== id));
+    try {
+      await deleteTask(id);
+    } catch (e: any) {
+      alert(`❌ ${e?.message || 'Delete failed'}`);
+      load();
+    }
+  };
+
+  const ResizeHandle = ({ col }: { col: ColKey }) => (
+    <Box
+      onMouseDown={onResizeStart(col)}
+      sx={{
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: '6px',
+        cursor: 'col-resize',
+        zIndex: 2,
+        '&:hover': { bgcolor: 'rgba(255,255,255,0.4)' },
+      }}
+    />
   );
 
-  const saveMorning = async () => {
-    try {
-      setSavingMorning(true);
-
-      const fd = new FormData();
-      fd.append('date', dailyDate);
-      fd.append('whatDoneToday', morningPlan.trim());
-      if (morningImage) fd.append('image', morningImage);
-
-      await apiUpload(`/department-performance/daily`, fd);
-
-      alert('✅ Morning saved');
-      setMorningPlan('');
-      setMorningImage(null);
-      setOpenForm(false);
-      loadRecord();
-    } catch (e: any) {
-      alert(`❌ ${e?.message || 'Error'}`);
-    } finally {
-      setSavingMorning(false);
-    }
-  };
-
-  const saveEvening = async () => {
-    try {
-      setSavingEvening(true);
-
-      const fd = new FormData();
-      fd.append('date', dailyDate);
-      fd.append('whatCompletedToday', eveningCompleted.trim());
-      if (eveningImage) fd.append('image', eveningImage);
-
-      await apiUpload(`/department-performance/daily`, fd);
-
-      alert('✅ Evening saved');
-      setEveningCompleted('');
-      setEveningImage(null);
-      setOpenForm(false);
-      loadRecord();
-    } catch (e: any) {
-      alert(`❌ ${e?.message || 'Error'}`);
-    } finally {
-      setSavingEvening(false);
-    }
-  };
-
-  const saveMonthlyPlan = async () => {
-    try {
-      setSavingMonthPlan(true);
-
-      const fd = new FormData();
-      fd.append('month', month);
-      fd.append('planForThisMonth', monthPlan.trim());
-      if (monthPlanImage) fd.append('image', monthPlanImage);
-
-      await apiUpload(`/department-performance/monthly`, fd);
-
-      alert('✅ Monthly plan saved');
-      setMonthPlan('');
-      setMonthPlanImage(null);
-      setOpenForm(false);
-      loadRecord();
-    } catch (e: any) {
-      alert(`❌ ${e?.message || 'Error'}`);
-    } finally {
-      setSavingMonthPlan(false);
-    }
-  };
-
-  const saveMonthlyCompleted = async () => {
-    try {
-      setSavingMonthCompleted(true);
-
-      const fd = new FormData();
-      fd.append('month', month);
-      fd.append('completedThisMonth', monthCompleted.trim());
-      if (monthCompletedImage) fd.append('image', monthCompletedImage);
-
-      await apiUpload(`/department-performance/monthly`, fd);
-
-      alert('✅ Monthly completed saved');
-      setMonthCompleted('');
-      setMonthCompletedImage(null);
-      setOpenForm(false);
-      loadRecord();
-    } catch (e: any) {
-      alert(`❌ ${e?.message || 'Error'}`);
-    } finally {
-      setSavingMonthCompleted(false);
-    }
-  };
+  const totalWidth = Object.values(widths).reduce((a, b) => a + b, 0);
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Header */}
-      <Paper
-        elevation={0}
-        sx={{
-          px: 2,
-          py: 1.5,
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          background: 'linear-gradient(180deg,#ffffff 0%,#fafbff 100%)',
-          mb: 2,
-        }}
-      >
-        <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2}>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h6" sx={{ fontWeight: 900 }} noWrap>
-              Employee Performance
-            </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap>
-              Submit Daily (Morning/Evening) & Monthly (Plan/Completed) + see manager review
-            </Typography>
-          </Box>
+      <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider', mb: 2 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+          <Typography variant="h6" sx={{ fontWeight: 900 }}>
+            Daily Task Sheet
+          </Typography>
 
-          <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="flex-end">
-            {record ? (
-              <Button
-                variant="outlined"
-                startIcon={<EditIcon />}
-                onClick={openEditForm}
-                sx={{ borderRadius: 999, fontWeight: 900, textTransform: 'none' }}
-              >
-                Edit
-              </Button>
-            ) : null}
-
-            <Button
-              variant={openForm ? 'outlined' : 'contained'}
-              startIcon={openForm ? <CloseIcon /> : <AddIcon />}
-              onClick={() => setOpenForm((p) => !p)}
-              sx={{ borderRadius: 999, fontWeight: 900, textTransform: 'none' }}
-            >
-              {openForm ? 'Close' : 'Create'}
-            </Button>
-          </Stack>
-        </Stack>
-
-        <Divider sx={{ mt: 1.5 }} />
-
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mt: 1 }}>
-          <Tab value="daily" label="Daily" />
-          <Tab value="monthly" label="Monthly" />
-        </Tabs>
-
-        {/* Filters */}
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.5 }}>
-          <CalendarMonthIcon sx={{ color: 'text.secondary' }} />
-          {tab === 'daily' ? (
+          <Stack direction="row" spacing={1} alignItems="center">
             <TextField
               size="small"
               type="date"
-              label="Date"
-              value={dailyDate}
-              onChange={(e) => setDailyDate(e.target.value)}
+              label="Filter by date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
               InputLabelProps={{ shrink: true }}
-              sx={{ maxWidth: 220, '& .MuiInputBase-root': { height: 36 } }}
+              sx={{ minWidth: 180 }}
             />
-          ) : (
-            <TextField
-              size="small"
-              type="month"
-              label="Month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ maxWidth: 220, '& .MuiInputBase-root': { height: 36 } }}
-            />
-          )}
+            <Button size="small" variant="text" onClick={() => setWidths(DEFAULT_WIDTHS)}>
+              Reset column sizes
+            </Button>
+          </Stack>
         </Stack>
       </Paper>
 
-      {/* Create/Edit Form */}
-      {openForm && (
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-          {tab === 'daily' ? (
-            <Stack spacing={2}>
-              {/* Morning */}
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,193,7,0.08)' }}>
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                  <WbSunnyIcon sx={{ color: '#f59e0b' }} />
-                  <Typography sx={{ fontWeight: 900 }}>Morning</Typography>
-                </Stack>
+      <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'auto' }}>
+        <Box sx={{ minWidth: totalWidth }}>
+          {/* HEADER */}
+          <Box sx={{ display: 'flex', bgcolor: '#2e5d4f' }}>
+            <Box sx={{ position: 'relative', width: widths.date, px: 1.5, py: 1.2, flexShrink: 0 }}>
+              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>Date</Typography>
+              <ResizeHandle col="date" />
+            </Box>
+            <Box sx={{ position: 'relative', width: widths.priority, px: 1.5, py: 1.2, flexShrink: 0 }}>
+              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>Priority</Typography>
+              <ResizeHandle col="priority" />
+            </Box>
+            <Box sx={{ position: 'relative', width: widths.task, px: 1.5, py: 1.2, flexShrink: 0 }}>
+              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>Task</Typography>
+              <ResizeHandle col="task" />
+            </Box>
+            <Box sx={{ position: 'relative', width: widths.status, px: 1.5, py: 1.2, flexShrink: 0 }}>
+              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>Status</Typography>
+              <ResizeHandle col="status" />
+            </Box>
+            <Box sx={{ width: widths.actions, flexShrink: 0 }} />
+          </Box>
 
-                <Stack spacing={2}>
-                  <TextField
-                    label="Plan / What you will do today (Morning)"
-                    value={morningPlan}
-                    onChange={(e) => setMorningPlan(e.target.value)}
-                    multiline
-                    minRows={3}
-                  />
+          {/* ADD NEW ROW */}
+          <Box sx={{ display: 'flex', bgcolor: 'rgba(46,93,79,0.06)', borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Box sx={{ width: widths.date, p: 0.75, flexShrink: 0 }}>
+              <TextField
+                size="small"
+                type="date"
+                fullWidth
+                value={draft.date}
+                onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ width: widths.priority, p: 0.75, flexShrink: 0 }}>
+              <Select
+                size="small"
+                fullWidth
+                value={draft.priority}
+                onChange={(e) => setDraft({ ...draft, priority: e.target.value })}
+              >
+                {PRIORITIES.map((p) => (
+                  <MenuItem key={p} value={p}>{p}</MenuItem>
+                ))}
+              </Select>
+            </Box>
+            <Box sx={{ width: widths.task, p: 0.75, flexShrink: 0 }}>
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Add Your Task...."
+                value={draft.task}
+                onChange={(e) => setDraft({ ...draft, task: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addRow();
+                }}
+              />
+            </Box>
+            <Box sx={{ width: widths.status, p: 0.75, flexShrink: 0 }}>
+              <Select
+                size="small"
+                fullWidth
+                value={draft.status}
+                onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+              >
+                {STATUSES.map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+              </Select>
+            </Box>
+            <Box sx={{ width: widths.actions, p: 0.75, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<SaveIcon />}
+                onClick={addRow}
+                disabled={saving}
+                sx={{ borderRadius: 2, fontWeight: 800, textTransform: 'none', whiteSpace: 'nowrap', minWidth: 0 }}
+              >
+                Save
+              </Button>
+            </Box>
+          </Box>
 
-                  <FilePicker label="Upload Morning Image (optional)" file={morningImage} onPick={setMorningImage} />
-
-                  <Button
-                    onClick={saveMorning}
-                    disabled={savingMorning || !morningPlan.trim()}
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    sx={{ borderRadius: 2, fontWeight: 900, textTransform: 'none', alignSelf: 'flex-start' }}
-                  >
-                    Save Morning
-                  </Button>
-                </Stack>
-              </Paper>
-
-              {/* Evening */}
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(59,130,246,0.08)' }}>
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                  <NightsStayIcon sx={{ color: '#3b82f6' }} />
-                  <Typography sx={{ fontWeight: 900 }}>Evening</Typography>
-                </Stack>
-
-                <Stack spacing={2}>
-                  <TextField
-                    label="What completed today (Evening)"
-                    value={eveningCompleted}
-                    onChange={(e) => setEveningCompleted(e.target.value)}
-                    multiline
-                    minRows={3}
-                  />
-
-                  <FilePicker label="Upload Evening Image (optional)" file={eveningImage} onPick={setEveningImage} />
-
-                  <Button
-                    onClick={saveEvening}
-                    disabled={savingEvening || !eveningCompleted.trim()}
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    sx={{ borderRadius: 2, fontWeight: 900, textTransform: 'none', alignSelf: 'flex-start' }}
-                  >
-                    Save Evening
-                  </Button>
-                </Stack>
-              </Paper>
-            </Stack>
+          {/* ROWS */}
+          {loading ? (
+            <Box sx={{ p: 2 }}>
+              <Typography color="text.secondary">Loading…</Typography>
+            </Box>
+          ) : rows.length === 0 ? (
+            <Box sx={{ p: 2 }}>
+              <Typography color="text.secondary">Not Added Task Yet</Typography>
+            </Box>
           ) : (
-            <Stack spacing={2}>
-              {/* Monthly */}
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(99,102,241,0.06)' }}>
-                <Typography sx={{ fontWeight: 900, mb: 1 }}>Monthly</Typography>
+            rows.map((row) => (
+              <Box
+                key={row._id}
+                sx={{
+                  display: 'flex',
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' },
+                }}
+              >
+                <Box sx={{ width: widths.date, p: 1, flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                  <Typography variant="body2" noWrap>{row.date}</Typography>
+                </Box>
 
-                <Stack spacing={2}>
-                  <TextField
-                    label="What you have to do in this month (Plan)"
-                    value={monthPlan}
-                    onChange={(e) => setMonthPlan(e.target.value)}
-                    multiline
-                    minRows={3}
-                  />
-
-                  <FilePicker
-                    label="Upload Monthly Plan Image (optional)"
-                    file={monthPlanImage}
-                    onPick={setMonthPlanImage}
-                  />
-
-                  <Button
-                    onClick={saveMonthlyPlan}
-                    disabled={savingMonthPlan || !monthPlan.trim()}
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    sx={{ borderRadius: 2, fontWeight: 900, textTransform: 'none', alignSelf: 'flex-start' }}
+                <Box sx={{ width: widths.priority, p: 0.75, flexShrink: 0 }}>
+                  <Select
+                    size="small"
+                    fullWidth
+                    value={row.priority || 'Medium'}
+                    onChange={(e) => patchRow(row._id, { priority: e.target.value })}
+                    renderValue={(v) => (
+                      <Chip size="small" label={v as string} color={priorityColor(v as string) as any} />
+                    )}
                   >
-                    Save Plan
-                  </Button>
+                    {PRIORITIES.map((p) => (
+                      <MenuItem key={p} value={p}>{p}</MenuItem>
+                    ))}
+                  </Select>
+                </Box>
 
-                  <Divider />
-
-                  <TextField
-                    label="What completed in this month"
-                    value={monthCompleted}
-                    onChange={(e) => setMonthCompleted(e.target.value)}
-                    multiline
-                    minRows={3}
-                  />
-
-                  <FilePicker
-                    label="Upload Monthly Completed Image (optional)"
-                    file={monthCompletedImage}
-                    onPick={setMonthCompletedImage}
-                  />
-
-                  <Button
-                    onClick={saveMonthlyCompleted}
-                    disabled={savingMonthCompleted || !monthCompleted.trim()}
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    sx={{ borderRadius: 2, fontWeight: 900, textTransform: 'none', alignSelf: 'flex-start' }}
+                <Box
+                  sx={{
+                    width: widths.task,
+                    p: 1,
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    noWrap
+                    sx={{ cursor: 'pointer', width: '100%' }}
+                    onClick={() => setViewRow(row)}
                   >
-                    Save Completed
-                  </Button>
-
-                  <Typography variant="caption" color="text.secondary">
-                    Month format: YYYY-MM (e.g. 2025-12)
+                    {row.task || '—'}
                   </Typography>
-                </Stack>
-              </Paper>
+                </Box>
+
+                <Box sx={{ width: widths.status, p: 0.75, flexShrink: 0 }}>
+                  <Select
+                    size="small"
+                    fullWidth
+                    value={row.status || 'Pending'}
+                    onChange={(e) => patchRow(row._id, { status: e.target.value })}
+                    renderValue={(v) => (
+                      <Chip size="small" label={v as string} color={statusColor(v as string) as any} />
+                    )}
+                  >
+                    {STATUSES.map((s) => (
+                      <MenuItem key={s} value={s}>{s}</MenuItem>
+                    ))}
+                  </Select>
+                </Box>
+
+                <Box sx={{ width: widths.actions, p: 0.75, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <IconButton size="small" color="primary" onClick={() => setViewRow(row)}>
+                    <VisibilityIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" color="error" onClick={() => removeRow(row._id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              </Box>
+            ))
+          )}
+        </Box>
+      </Paper>
+
+      {/* View Task Modal */}
+      <Dialog open={!!viewRow} onClose={() => setViewRow(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 900 }}>Task Detail</DialogTitle>
+        <DialogContent dividers>
+          {viewRow && (
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>Date</Typography>
+                <Typography>{viewRow.date}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>Priority</Typography>
+                <Box sx={{ mt: 0.5 }}>
+                  <Chip size="small" label={viewRow.priority || 'Medium'} color={priorityColor(viewRow.priority) as any} />
+                </Box>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>Status</Typography>
+                <Box sx={{ mt: 0.5 }}>
+                  <Chip size="small" label={viewRow.status || 'Pending'} color={statusColor(viewRow.status) as any} />
+                </Box>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>Task</Typography>
+                <Typography sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewRow.task || '—'}</Typography>
+              </Box>
             </Stack>
           )}
-        </Paper>
-      )}
-
-      {/* View Submitted Record */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-        <Typography sx={{ fontWeight: 900, mb: 1 }}>
-          {tab === 'daily' ? `My Daily Record • ${dailyDate}` : `My Monthly Record • ${month}`}
-        </Typography>
-
-        <Divider sx={{ mb: 2 }} />
-
-        {loadingRecord ? (
-          <Typography color="text.secondary">Loading record…</Typography>
-        ) : !record ? (
-          <Typography color="text.secondary">
-            No record found for this {tab === 'daily' ? 'date' : 'month'}.
-          </Typography>
-        ) : (
-          <Stack spacing={2}>
-            {tab === 'daily' ? (
-              <>
-                <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 900 }}>
-                    Morning (Plan)
-                  </Typography>
-                  <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.whatDoneToday || '—'}</Typography>
-                </Box>
-
-                <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 900 }}>
-                    Evening (Completed)
-                  </Typography>
-                  <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.whatCompletedToday || '—'}</Typography>
-                </Box>
-              </>
-            ) : (
-              <>
-                <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 900 }}>
-                    Plan for this month
-                  </Typography>
-                  <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.planForThisMonth || '—'}</Typography>
-                </Box>
-
-                <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 900 }}>
-                    Completed this month
-                  </Typography>
-                  <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.completedThisMonth || '—'}</Typography>
-                </Box>
-              </>
-            )}
-
-            {/* ✅ Attachments (fixed) */}
-            {Array.isArray(record.attachments) && record.attachments.length > 0 ? (
-              <>
-                <Divider />
-                <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 900 }}>
-                    Attachments
-                  </Typography>
-
-                  <Stack spacing={1} sx={{ mt: 1 }}>
-                    {record.attachments.map((url: string, idx: number) => {
-                      const name = prettyFileName(url);
-                      const img = isImageUrl(url);
-
-                      return (
-                        <Paper key={idx} variant="outlined" sx={{ p: 1, borderRadius: 2 }}>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            {img ? (
-                              <img
-                                src={url}
-                                alt={name}
-                                style={{ width: 46, height: 46, borderRadius: 8, objectFit: 'cover' }}
-                              />
-                            ) : null}
-
-                            <Box sx={{ minWidth: 0 }}>
-                              <a href={url} target="_blank" rel="noreferrer" style={{ fontWeight: 700 }}>
-                                {name}
-                              </a>
-                              <Typography variant="caption" color="text.secondary" noWrap>
-                                {url}
-                              </Typography>
-                            </Box>
-                          </Stack>
-                        </Paper>
-                      );
-                    })}
-                  </Stack>
-                </Box>
-              </>
-            ) : null}
-
-            <Divider />
-
-            {/* Manager Review */}
-            <Typography sx={{ fontWeight: 900 }}>Manager Review</Typography>
-
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                Rating:
-              </Typography>
-              <Rating value={record.rating ?? null} readOnly />
-              <Typography variant="caption" color="text.secondary">
-                {record.rating ? `${record.rating}/5` : 'Not rated yet'}
-              </Typography>
-            </Stack>
-
-            <Box>
-              <Typography variant="caption" sx={{ fontWeight: 900 }}>
-                Review
-              </Typography>
-              <Typography sx={{ whiteSpace: 'pre-wrap' }}>{record.review || 'No review yet.'}</Typography>
-            </Box>
-
-            {record.reviewByName || record.reviewBy ? (
-              <Typography variant="caption" color="text.secondary">
-                Reviewed by: {record.reviewByName || record.reviewBy}
-              </Typography>
-            ) : null}
-          </Stack>
-        )}
-      </Paper>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewRow(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
