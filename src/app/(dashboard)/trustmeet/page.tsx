@@ -19,7 +19,17 @@ const BADGE: Record<string, { bg: string; color: string; border: string; dot: st
   blue: { bg: "#E6F1FB", color: "#0C447C", border: "#85B7EB", dot: "#185FA5" },
   indigo: { bg: "#EEEDFE", color: "#3C3489", border: "#AFA9EC", dot: "#534AB7" },
 };
-
+const formatDateTime = (date: string) => {
+  if (!date) return "—";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",   // 👈 yahi missing tha purane code me
+  });
+};
 function Badge({ variant, label, pulse }: { variant: keyof typeof BADGE; label: string; pulse?: boolean }) {
   const c = BADGE[variant];
   return (
@@ -418,17 +428,8 @@ export default function TrustMeetPage() {
                         <td style={{ padding: "12px 16px", fontSize: 12, color: "#5F5E5A", whiteSpace: "nowrap" }}>{visit.doctorName}</td>
                         <td style={{ padding: "12px 16px", fontSize: 11, color: "#B4B2A9", fontFamily: "monospace", whiteSpace: "nowrap" }}>+91 {visit.doctorPhone}</td>
 
-                        <td className="p-4 text-blue-600 whitespace-nowrap">
-                          {visit.startTime
-                            ? new Date(visit.startTime).toLocaleString()
-                            : "-"}
-                        </td>
-
-                        <td className="p-4 text-blue-600 whitespace-nowrap">
-                          {visit.endTime
-                            ? new Date(visit.endTime).toLocaleString()
-                            : "—"}
-                        </td>
+                        <td>{formatDateTime(visit.startTime)}</td>
+                        <td>{formatDateTime(visit.endTime)}</td>
                         <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
                           {visit.startTime && visit.endTime ? (
                             <span style={{ fontSize: 11, color: "#534AB7", background: "#EEEDFE", border: "0.5px solid #AFA9EC", borderRadius: 6, padding: "2px 8px", fontFamily: "monospace" }}>
