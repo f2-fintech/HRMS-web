@@ -109,3 +109,53 @@ export async function fetchOneMonthly(owner_id: string, month: string) {
   );
   return resp?.data?.[0] || null;
 }
+
+// ===== TASK (sheet) helpers =====
+
+export async function fetchTasks(params: {
+  date?: string;
+  status?: string;
+  priority?: string;
+  owner_id?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const qs = new URLSearchParams();
+  if (params.date) qs.set('date', params.date);
+  if (params.status) qs.set('status', params.status);
+  if (params.priority) qs.set('priority', params.priority);
+  if (params.owner_id) qs.set('owner_id', params.owner_id);
+  qs.set('page', String(params.page || 1));
+  qs.set('limit', String(params.limit || 50));
+
+  return apiGet<{ page: number; limit: number; total: number; data: any[] }>(
+    `/department-performance/task/list?${qs.toString()}`,
+  );
+}
+
+export async function createTask(payload: {
+  date: string;
+  name?: string;
+  task?: string;
+  topic?: string;
+  durationMinutes?: number;
+  assignedBy?: string;
+  priority?: string;
+  status?: string;
+}) {
+  return apiPost(`/department-performance/task`, payload);
+}
+
+export async function updateTask(id: string, payload: Record<string, any>) {
+  return apiPatch(`/department-performance/task/${id}`, payload);
+}
+
+export async function deleteTask(id: string) {
+  const res = await fetch(`${baseUrl()}/department-performance/task/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders({ json: true }),
+  });
+  const data: any = await parseResponse(res);
+  if (!res.ok) throw new Error(data?.message || 'Delete failed');
+  return data;
+}

@@ -13,23 +13,23 @@ export default function DepartmentPerformance() {
   const [role, setRole] = useState<RoleView>('EMPLOYEE');
 
   useEffect(() => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  const roleStr = String(user?.role || '').trim();          // "1" / "2" / "3"
-  const rp = Number(user?.role_priority);                   // optional
-  const desig = String(user?.designation || '').toLowerCase().trim();
+    const roleStr = String(user?.role || '').trim();          // "1" / "2" / "3"
+    const rp = Number(user?.role_priority);                   // optional
+    const desig = String(user?.designation || '').toLowerCase().trim();
 
-  let view: RoleView = 'EMPLOYEE';
+    let view: RoleView = 'EMPLOYEE';
 
-  // ✅ HARD LOCKS
-  if (roleStr === '1' || rp === 1) view = 'ADMIN';
-  // else if (roleStr === '2' || rp === 2) view = 'MANAGER';
-  else view = 'EMPLOYEE'; // TL + normal employee
+    // ✅ HARD LOCKS
+    if (roleStr === '1' || rp === 1) view = 'ADMIN';
+    // else if (roleStr === '2' || rp === 2) view = 'MANAGER';
+    else view = 'EMPLOYEE'; // TL + normal employee
 
-  setRole(view);
+    setRole(view);
 
-  console.log('ROLE DEBUG', { roleStr, rp, desig, view, user });
-}, []);
+    console.log('ROLE DEBUG', { roleStr, rp, desig, view, user });
+  }, []);
 
   return (
     <Box sx={{ p: 2 }}>
