@@ -846,7 +846,7 @@ const BreakSheet: React.FC = () => {
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-slate-400 to-slate-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                 </button>
-                {userRole === '1' || userRole === '6' && (
+                {userRole === '1' && (
                     <button
                         onClick={handleExportBreakCount}
                         className="px-4 py-3 rounded-xl bg-green-600 text-white"
@@ -856,7 +856,7 @@ const BreakSheet: React.FC = () => {
                 )}
 
                 {/* Admin Buttons - Only shown if userRole is '1' */}
-                {userRole === '1'  && (
+                {userRole === '1' && (
                     <>
                         {/* Monitor Long Breaks Button */}
                         <button
