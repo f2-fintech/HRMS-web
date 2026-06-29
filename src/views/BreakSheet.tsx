@@ -856,7 +856,7 @@ const BreakSheet: React.FC = () => {
                 )}
 
                 {/* Admin Buttons - Only shown if userRole is '1' */}
-                {userRole === '1' || userRole === '6' && (
+                {userRole === '1'  (
                     <>
                         {/* Monitor Long Breaks Button */}
                         <button
