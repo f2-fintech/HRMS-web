@@ -37,6 +37,7 @@ export default function EmployeeGrid() {
   const [selectedDesignation, setSelectedDesignation] = useState('')
   const [page, setPage] = useState(1)
   const [attendanceStatus, setAttendanceStatus] = useState({})
+  const [showOnBreakOnly, setShowOnBreakOnly] = useState(false)
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const router = useRouter()
@@ -402,7 +403,7 @@ export default function EmployeeGrid() {
 
       const worksheet =
         XLSX.utils.json_to_sheet(allEmployeeData)
-    
+
       const workbook = XLSX.utils.book_new()
 
       XLSX.utils.book_append_sheet(
@@ -427,6 +428,14 @@ export default function EmployeeGrid() {
       console.error('Excel Download Error:', error)
     }
   }
+
+  const displayedEmployees = showOnBreakOnly
+    ? employees.filter(
+      (employee: any) =>
+        attendanceStatus[employee._id?.toString()?.trim()] === 'BREAK'
+    )
+    : employees
+
   return (
     <>
       <ToastContainer position='top-center' autoClose={3000} />
@@ -453,6 +462,21 @@ export default function EmployeeGrid() {
             </Typography>
           </Box>
           <Box display='flex' alignItems='center' gap={2}>
+            <Button
+              variant='contained'
+              onClick={() => setShowOnBreakOnly(prev => !prev)}
+              sx={{
+                backgroundColor: showOnBreakOnly ? '#1976d2' : '#e3f2fd',
+                borderRadius: '3rem',
+                fontWeight: 'bold',
+                color: showOnBreakOnly ? '#fff' : '#1976d2',
+                border: '1px solid #1976d2',
+                '&:hover': { backgroundColor: '#90caf9' }
+              }}
+            >
+              {showOnBreakOnly ? 'Show All' : '☕On Break'}
+            </Button>
+
             {allowedRoles.includes(Number(userRole)) && (
               <Button
                 sx={{
@@ -530,7 +554,7 @@ export default function EmployeeGrid() {
             <Typography sx={{ p: 4 }}>Error: {error}</Typography>
           ) : (
 
-            employees.map((employee: any) => (
+            displayedEmployees.map((employee: any) => (
               <Grid item xs={12} sm={6} md={3} key={employee._id}>
                 <EmployeeCard
                   employee={employee}
