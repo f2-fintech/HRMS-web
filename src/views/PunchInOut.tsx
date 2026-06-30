@@ -33,10 +33,11 @@ const WHITELIST_EMPLOYEE_IDS = [
     '66c881fe269ecefff3411649',
     '66bca6192f1270380b77aac5',
     '66bc8bfe2f1270380b77a920',
-     '66c98c96269ecefff34126b9',
+    // '66c98c96269ecefff34126b9',
+    // '69f05869f9659e84d84aaacb',
+    // '66c98c96269ecefff34126b9',
+    // '66bca3782f1270380b77aaa3',
     '69f05869f9659e84d84aaacb',
-    '66c98c96269ecefff34126b9',
-     '66bca3782f1270380b77aaa3'
 ];
 
 const formatTime = (obj: any) => {
@@ -536,7 +537,6 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     })
 
     const { navigateToProfile } = useRouterWithMount()
-
     const [timer, setTimer] = useState('00h 00m 00s')
     const [currentPunchIndex, setCurrentPunchIndex] = useState(0)
     const [currentDateTime, setCurrentDateTime] = useState(new Date())
@@ -569,8 +569,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const detectMobileDevice = () => {
         if (typeof navigator === "undefined" || typeof window === "undefined") return false;
-        if (isWhitelistedUser) return false;
-        const ua = navigator.userAgent.toLowerCase();
+        if (isWhitelistedUser) return false; const ua = navigator.userAgent.toLowerCase();
         const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
         const isTablet = /ipad|tablet|playbook|silk/i.test(ua) || (ua.includes('android') && !ua.includes('mobile'));
         const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
@@ -1140,12 +1139,30 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             <div className="grid grid-cols-3 gap-4 w-full mb-6 text-center">
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Day Begin</h4>
-                                    <div className="text-gray-600">{currentPunch?.punchIn || '-'}</div>
-                                </div>
+                                    <div className="text-gray-600">
+                                        {currentPunch?.createdAt
+                                            ? new Date(currentPunch.createdAt).toLocaleTimeString("en-IN", {
+                                                timeZone: "Asia/Kolkata",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                second: "2-digit",
+                                                hour12: false,
+                                            })
+                                            : "-"}
+                                    </div>                                </div>
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Day End</h4>
-                                    <div className="text-gray-600">{currentPunch?.punchOut || '-'}</div>
-                                </div>
+                                    <div className="text-gray-600">
+                                        {currentPunch?.updatedAt && currentPunch?.punchOut
+                                            ? new Date(currentPunch.updatedAt).toLocaleTimeString("en-IN", {
+                                                timeZone: "Asia/Kolkata",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                second: "2-digit",
+                                                hour12: false,
+                                            })
+                                            : "-"}
+                                    </div>                                </div>
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Total Time</h4>
                                     <div className="text-gray-600">{currentPunch?.totalTime || '-'}</div>
