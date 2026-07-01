@@ -81,9 +81,9 @@ const WorkAnniversary = ({
 
   const { workAnniversaries, loadingAnniversaries, error: reduxError } =
     useSelector((state: RootState) => state.employees)
-
+  console.log('workAnniversaries:', workAnniversaries)
   useEffect(() => {
-    dispatch(fetchWorkAnniversaries(5))
+    dispatch(fetchWorkAnniversaries(30))
       .unwrap()
       .catch(err => setError(err?.message || 'Something went wrong'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -485,7 +485,7 @@ const WorkAnniversary = ({
                               display: 'block'
                             }}
                           >
-                             {joiningDate.format('D MMM YYYY')} 
+                            {joiningDate.format('D MMM YYYY')}
                             • Completing {yearsCompleting}{' '}
                             {yearsCompleting === 1 ? 'year' : 'years'}
                           </Typography>
