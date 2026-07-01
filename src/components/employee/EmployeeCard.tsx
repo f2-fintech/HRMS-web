@@ -32,6 +32,8 @@ const StyledCard = styled(Card)(({ theme, mode }) => ({
   boxShadow: '0 4px 20px 0 rgba(0,0,0,0.12)',
   transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
   background: mode === 'dark' ? '#444' : '#fff',
+  position: 'relative',
+  isolation: 'isolate',
   '&:hover': {
     transform: 'translateY(-5px)',
     boxShadow: '0 12px 30px 0 rgba(0,0,0,0.16)',
@@ -234,19 +236,6 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
               }
             </Menu>
           </Box>
-          {/* <Box
-            sx={{
-              position: 'absolute',
-              top: 15,
-              left: 15,
-              width: 14,
-              height: 14,
-              borderRadius: '50%',
-              backgroundColor: getAttendanceDotColor(status),
-              border: '2px solid white',
-              zIndex: 10
-            }}
-          /> */}
           <Box
             sx={{
               position: 'relative',
@@ -269,7 +258,11 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
                   borderRadius: '50%',
                   backgroundColor: getAttendanceDotColor(status),
                   border: '2px solid white',
-                  zIndex: 9999,
+                  // Was 9999 — that's what let it visually "win" against other
+                  // elements. A small value is enough since it only needs to sit
+                  // above the avatar right next to it, and `isolation: isolate`
+                  // on StyledCard above keeps this contained to the card.
+                  zIndex: 2,
                   boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
                 }}
               />
@@ -284,9 +277,6 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
               />
             </Tooltip>
           </Box>
-          {/* <Tooltip title="View Profile" arrow>
-            <StyledAvatar alt={employee.first_name} src={employee?.image} mode={settings.mode} onClick={() => handleCardClick()} />
-          </Tooltip> */}
 
           <Typography
             variant='h5'

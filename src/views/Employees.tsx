@@ -462,20 +462,23 @@ export default function EmployeeGrid() {
             </Typography>
           </Box>
           <Box display='flex' alignItems='center' gap={2}>
-            <Button
-              variant='contained'
-              onClick={() => setShowOnBreakOnly(prev => !prev)}
-              sx={{
-                backgroundColor: showOnBreakOnly ? '#1976d2' : '#e3f2fd',
-                borderRadius: '3rem',
-                fontWeight: 'bold',
-                color: showOnBreakOnly ? '#fff' : '#1976d2',
-                border: '1px solid #1976d2',
-                '&:hover': { backgroundColor: '#90caf9' }
-              }}
-            >
-              {showOnBreakOnly ? 'Show All' : '☕On Break'}
-            </Button>
+            {allowedRoles.includes(Number(userRole)) && (
+
+              <Button
+                variant='contained'
+                onClick={() => setShowOnBreakOnly(prev => !prev)}
+                sx={{
+                  backgroundColor: showOnBreakOnly ? '#1976d2' : '#e3f2fd',
+                  borderRadius: '3rem',
+                  fontWeight: 'bold',
+                  color: showOnBreakOnly ? '#fff' : '#1976d2',
+                  border: '1px solid #1976d2',
+                  '&:hover': { backgroundColor: '#90caf9' }
+                }}
+              >
+                {showOnBreakOnly ? 'Show All' : '☕On Break'}
+              </Button>
+            )}
 
             {allowedRoles.includes(Number(userRole)) && (
               <Button
