@@ -21,6 +21,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EmailIcon from '@mui/icons-material/Email'
 import RestoreIcon from '@mui/icons-material/Restore';
+import LocationOnIcon from '@mui/icons-material/LocationOn'
 
 import Loader from '../loader/loader'
 import { useSettings } from '@core/hooks/useSettings'
@@ -76,7 +77,15 @@ const EmailTypography = styled(Typography)(({ theme, mode }) => ({
   }
 }))
 
-const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDelete, capitalizeWords, deletedEmployee }) => {
+const EmployeeCard = ({
+  employee,
+  id,
+  status,
+  handleEditEmployeeClick,
+  handleDelete,
+  capitalizeWords,
+  deletedEmployee
+}) => {
   const [anchorEl, setAnchorEl] = useState(null)
   const [userRole, setUserRole] = useState('')
   const [loading, setLoading] = useState(false)
@@ -136,11 +145,14 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
       case 'BREAK':
         return '#a855f7'
 
+      case 'FIELD':
+        return '#f97316'
+
       default:
         return '#d1d5db'
     }
   }
-  const getAttendanceTooltip = (status: string) => {
+  const getAttendanceTooltip = status => {
 
     switch (status) {
 
@@ -159,10 +171,17 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
       case 'BREAK':
         return 'On Break'
 
+      case 'FIELD':
+        return 'On Field'
+
       default:
         return 'No Information'
     }
   }
+
+  
+  const isOnField = ['FIELD', 'ON_FIELD', 'On Field'].includes(status)
+
   const handleCardClick = () => {
     setLoading(true)
     setTimeout(() => {
@@ -267,6 +286,40 @@ const EmployeeCard = ({ employee, id, status, handleEditEmployeeClick, handleDel
                 }}
               />
             </Tooltip>
+
+            {/* ON FIELD — distinct pulsing pin marker, different from the other punch types */}
+            {isOnField && (
+              <Tooltip title='On Field' arrow>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: -4,
+                    left: '28%',
+                    zIndex: 3,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    backgroundColor: '#f97316', // orange — stands out from status/attendance colors
+                    color: '#fff',
+                    borderRadius: '999px',
+                    padding: '2px 8px 2px 4px',
+                    boxShadow: '0 2px 8px rgba(249,115,22,0.5)',
+                    border: '2px solid white',
+                    '@keyframes fieldPulse': {
+                      '0%': { boxShadow: '0 0 0 0 rgba(249,115,22,0.6)' },
+                      '70%': { boxShadow: '0 0 0 6px rgba(249,115,22,0)' },
+                      '100%': { boxShadow: '0 0 0 0 rgba(249,115,22,0)' }
+                    },
+                    animation: 'fieldPulse 1.8s infinite'
+                  }}
+                >
+                  <LocationOnIcon sx={{ fontSize: 16 }} />
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, lineHeight: 1 }}>
+                    FIELD
+                  </Typography>
+                </Box>
+              </Tooltip>
+            )}
 
             <Tooltip title="View Profile" arrow>
               <StyledAvatar

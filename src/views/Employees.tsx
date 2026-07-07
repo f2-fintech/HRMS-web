@@ -38,7 +38,7 @@ export default function EmployeeGrid() {
   const [page, setPage] = useState(1)
   const [attendanceStatus, setAttendanceStatus] = useState({})
   const [showOnBreakOnly, setShowOnBreakOnly] = useState(false)
-
+  const [showOnFieldOnly, setShowOnFieldOnly] = useState(false)
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const router = useRouter()
   const allowedRoles = [1, 6];
@@ -188,12 +188,16 @@ export default function EmployeeGrid() {
 
       const statusMap = {}
 
-      // PRESENT
+      // PRESENT EMPLOYEES
       punchData?.forEach((item: any) => {
 
         const empId = item.employee
 
         if (!empId) return
+        if (item.type === 'FIELD') {
+          statusMap[empId.toString()] = 'FIELD'
+          return
+        }
 
         // PUNCH OUT DONE
         if (item.punchOut && item.punchOut !== '') {
@@ -434,8 +438,12 @@ export default function EmployeeGrid() {
       (employee: any) =>
         attendanceStatus[employee._id?.toString()?.trim()] === 'BREAK'
     )
-    : employees
-
+    : showOnFieldOnly
+      ? employees.filter(
+        (employee: any) =>
+          attendanceStatus[employee._id?.toString()?.trim()] === 'FIELD'
+      )
+      : employees
   return (
     <>
       <ToastContainer position='top-center' autoClose={3000} />
@@ -479,6 +487,25 @@ export default function EmployeeGrid() {
                 {showOnBreakOnly ? 'Show All' : '☕On Break'}
               </Button>
             )}
+            <Button
+              variant="contained"
+              onClick={() => {
+                setShowOnFieldOnly(prev => !prev)
+                if (!showOnFieldOnly) setShowOnBreakOnly(false)
+              }}
+              sx={{
+                backgroundColor: showOnFieldOnly ? '#2e7d32' : '#e8f5e9',
+                borderRadius: '3rem',
+                fontWeight: 'bold',
+                color: showOnFieldOnly ? '#fff' : '#2e7d32',
+                border: '1px solid #2e7d32',
+                '&:hover': {
+                  backgroundColor: '#81c784'
+                }
+              }}
+            >
+              {showOnFieldOnly ? 'Show All' : '📍 On Field'}
+            </Button>
 
             {allowedRoles.includes(Number(userRole)) && (
               <Button
@@ -505,7 +532,7 @@ export default function EmployeeGrid() {
                   fontWeight: 'bold'
                 }}
               >
-                Download Employee details
+                 Employee details
               </Button>
             )}
             {allowedRoles.includes(Number(userRole)) && (
