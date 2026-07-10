@@ -12,6 +12,8 @@ export interface Punch {
     date: string
     employee: string
     company_id: string
+    punchInImage?: string
+
 }
 
 export interface TotalWorkingHours {
@@ -79,15 +81,19 @@ export const fetchPunchByEmployeeAndDate = createAsyncThunk(
     }
 )
 
-export const addPunch = createAsyncThunk('punch/addPunch', async (punchData: Punch) => {
+export const addPunch = createAsyncThunk('punch/addPunch', async (punchData: Punch | FormData) => {
     const token = localStorage.getItem('token')
+    const isFormData = punchData instanceof FormData
+
     const response = await fetch(`${BASE_URL}/punch/create`, {
         method: 'POST',
-        headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(punchData)
+        headers: isFormData
+            ? { Authorization: `Bearer ${token}` } // Content-Type mat do, browser boundary khud set karega
+            : {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+        body: isFormData ? punchData : JSON.stringify(punchData)
     })
 
     if (!response.ok) {

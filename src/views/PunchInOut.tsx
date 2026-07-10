@@ -36,7 +36,7 @@ const WHITELIST_EMPLOYEE_IDS = [
     // '66c98c96269ecefff34126b9',
     // '69f05869f9659e84d84aaacb',
     // '66c98c96269ecefff34126b9',
-    // '66bca3782f1270380b77aaa3',
+    //'66bca3782f1270380b77aaa3',
     '69f05869f9659e84d84aaacb',
     '66c6f6d7258826c691d894e0',
     '66c98c96269ecefff34126b9'
@@ -54,6 +54,31 @@ const toSeconds = (obj: any): number => {
     return h * 3600 + m * 60 + s
 }
 
+// ─── Full Image Lightbox ────────────────────────────────────────────────────
+const ImageLightbox: React.FC<{ src: string; onClose: () => void }> = ({ src, onClose }) => (
+    <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, zIndex: 10001,
+        background: 'rgba(0,0,0,0.92)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20, cursor: 'zoom-out'
+    }}>
+        <button
+            onClick={onClose}
+            style={{
+                position: 'absolute', top: 18, right: 18,
+                background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+                width: 36, height: 36, borderRadius: '50%', fontSize: 18, cursor: 'pointer'
+            }}
+        >✕</button>
+        <img
+            src={src}
+            alt="Full view"
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '95%', maxHeight: '95%', objectFit: 'contain', borderRadius: 10 }}
+        />
+    </div>
+)
+
 // ─── Working Hours Modal ───────────────────────────────────────────────────────
 const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string; onClose: () => void; punch: any }> = ({
     totalWorkingHours,
@@ -63,6 +88,7 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
 }) => {
 
     const [selectedPunch, setSelectedPunch] = React.useState<any>(null);
+    const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
 
     const homeSec = toSeconds(totalWorkingHours?.HOME)
     const officeSec = toSeconds(totalWorkingHours?.OFFICE)
@@ -81,261 +107,314 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
     ]
 
     return (
-        <div onClick={onClose} style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
-            background: 'rgba(0,0,0,0.55)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '16px',
-        }}>
-
-            <div onClick={e => e.stopPropagation()} style={{
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                borderRadius: '20px',
-                padding: '24px',
-                width: '100%',
-                maxWidth: '620px',
-                boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
-                border: '1px solid rgba(255,255,255,0.08)',
+        <>
+            <div onClick={onClose} style={{
+                position: 'fixed', inset: 0, zIndex: 9999,
+                background: 'rgba(0,0,0,0.55)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '16px',
             }}>
 
-                {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <div style={{ fontSize: '14px', color: '#94a3b8' }}>{selectedDate}</div>
-                    <button onClick={onClose} style={{ background: 'none', color: '#94a3b8' }}>✕</button>
-                </div>
+                <div onClick={e => e.stopPropagation()} style={{
+                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                    borderRadius: '20px',
+                    padding: '24px',
+                    width: '100%',
+                    maxWidth: '620px',
+                    boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                }}>
 
-                {/* Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                    {slots.map(slot => (
-                        <div key={slot.label} style={{ background: '#1e293b', padding: '10px', borderRadius: '10px' }}>
-                            <div style={{ color: slot.color }}>{slot.icon} {slot.label}</div>
-                            <div style={{ color: '#fff' }}>{slot.value}</div>
-                        </div>
-                    ))}
-                </div>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                        <div style={{ fontSize: '14px', color: '#94a3b8' }}>{selectedDate}</div>
+                        <button onClick={onClose} style={{ background: 'none', color: '#94a3b8' }}>✕</button>
+                    </div>
 
-                {/* Timeline */}
-                <div style={{ marginTop: '16px' }}>
-                    <div style={{ color: '#94a3b8', marginBottom: '8px' }}>Activity Timeline</div>
-
-                    {punch?.map((p: any, i: number) => (
-                        <div key={i} style={{
-                            background: '#020617',
-                            borderRadius: '10px',
-                            padding: '8px',
-                            marginBottom: '6px',
-                            display: 'flex',
-                            justifyContent: 'space-between'
-                        }}>
-                            <div>
-                                <div style={{ color: '#fff' }}>
-                                    {p.punchIn} → {p.punchOut || 'Running'}
-                                </div>
-                                <div style={{ color: '#64748b', fontSize: '11px' }}>{p.type}</div>
+                    {/* Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                        {slots.map(slot => (
+                            <div key={slot.label} style={{ background: '#1e293b', padding: '10px', borderRadius: '10px' }}>
+                                <div style={{ color: slot.color }}>{slot.icon} {slot.label}</div>
+                                <div style={{ color: '#fff' }}>{slot.value}</div>
                             </div>
+                        ))}
+                    </div>
 
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <div style={{ color: '#22c55e' }}>{p.totalTime}</div>
+                    {/* Timeline */}
+                    <div style={{ marginTop: '16px' }}>
+                        <div style={{ color: '#94a3b8', marginBottom: '8px' }}>Activity Timeline</div>
 
-                                {/* 👁 BUTTON */}
-                                <span
-                                    onClick={() => setSelectedPunch(p)}
-                                    style={{
-                                        cursor: 'pointer',
-                                        fontSize: '13px',
-                                        color: '#60a5fa',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px'
-                                    }}
-                                >
-                                    👁
-
-
-                                    {p.type === 'FIELD' && p.contacts?.length > 0 && (
-                                        <span style={{
-                                            fontSize: '10px',
-                                            background: '#22c55e20',
-                                            color: '#22c55e',
-                                            padding: '2px 5px',
-                                            borderRadius: '6px',
-                                            fontWeight: 600
-                                        }}>
-                                            {p.contacts.length}
-                                        </span>
-                                    )}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Total */}
-                <div style={{ marginTop: '10px', color: '#fff' }}>
-                    Total Time After Taking Break: {formatTime(totalWorkingHours?.total)}
-                </div>
-            </div>
-
-            {/* 🔥 POPUP */}
-            {selectedPunch && (
-                <div
-                    onClick={() => setSelectedPunch(null)}
-                    style={{
-                        position: 'fixed', inset: 0, zIndex: 10000,
-                        background: 'rgba(0,0,0,0.5)',
-                        display: 'flex', justifyContent: 'center', alignItems: 'center',
-                        padding: 16,
-                    }}
-                >
-                    <div
-                        onClick={e => e.stopPropagation()}
-                        style={{
-                            background: '#fff', borderRadius: 16, width: 340,
-                            overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-                            fontFamily: 'inherit',
-                        }}
-                    >
-                        {/* Header */}
-                        <div style={{
-                            padding: '14px 18px', borderBottom: '0.5px solid #e2e8f0',
-                            display: 'flex', alignItems: 'center', gap: 10,
-                        }}>
-                            <div style={{
-                                width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        {punch?.map((p: any, i: number) => (
+                            <div key={i} style={{
+                                background: '#020617',
+                                borderRadius: '10px',
+                                padding: '8px',
+                                marginBottom: '6px',
+                                display: 'flex',
+                                justifyContent: 'space-between'
                             }}>
-                                <span style={{ fontSize: 16 }}>🚶</span>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 14, fontWeight: 500, color: '#0f172a' }}>Field Meetings</div>
-                                <div style={{ fontSize: 12, color: '#64748b' }}>
-                                    {selectedPunch.contacts?.length || 0} contacts recorded
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setSelectedPunch(null)}
-                                style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4,
-                                }}
-                            >✕</button>
-                        </div>
-
-                        {/* Contacts */}
-                        <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {selectedPunch.contacts?.map((c: any, i: number) => {
-                                const initials = c.personName
-                                    ?.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '?'
-                                const isSuccess = c.status === 'SUCCESS'
-
-                                return (
-                                    <div key={i} style={{
-                                        display: 'flex', alignItems: 'center', gap: 10,
-                                        padding: '10px 12px', background: '#f8fafc',
-                                        borderRadius: 8, border: '0.5px solid #e2e8f0',
-                                    }}>
-                                        {/* Avatar */}
-                                        <div style={{
-                                            width: 34, height: 34, borderRadius: '50%', background: '#dbeafe',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: 12, fontWeight: 500, color: '#1d4ed8', flexShrink: 0,
-                                        }}>
-                                            {initials}
-                                        </div>
-
-                                        {/* Info */}
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{
-                                                fontSize: 13, fontWeight: 500, color: '#0f172a',
-                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                            }}>
-                                                {c.personName}
-                                            </div>
-                                            <div style={{ fontSize: 12, color: '#64748b' }}>{c.contact}</div>
-
-                                        </div>
-
-                                        {/* Status badge */}
-                                        <div style={{
-                                            display: 'flex', alignItems: 'center', gap: 4,
-                                            padding: '3px 8px', borderRadius: 99, flexShrink: 0,
-                                            background: isSuccess ? '#f0fdf4' : '#fef2f2',
-                                            border: `0.5px solid ${isSuccess ? '#bbf7d0' : '#fecaca'}`,
-                                        }}>
-                                            <span style={{ fontSize: 11, fontWeight: 500, color: isSuccess ? '#15803d' : '#dc2626' }}>
-                                                {isSuccess ? '✓ Success' : '✗ Failed'}
-                                            </span>
-                                        </div>
-
+                                <div>
+                                    <div style={{ color: '#fff' }}>
+                                        {p.punchIn} → {p.punchOut || 'Running'}
                                     </div>
-                                )
-                            })}
-                        </div>
-
-                        {selectedPunch?.contacts?.some((c: any) => c.remarks) && (
-                            <div style={{
-                                margin: '0 18px 12px',
-                                padding: '10px 12px',
-                                background: '#f8fafc',
-                                borderRadius: 8,
-                                border: '0.5px solid #e2e8f0'
-                            }}>
-                                <div style={{
-                                    fontSize: 11,
-                                    color: '#94a3b8',
-                                    fontWeight: 500,
-                                    marginBottom: 4,
-                                    textTransform: 'uppercase'
-                                }}>
-                                    Remarks
+                                    <div style={{ color: '#64748b', fontSize: '11px' }}>{p.type}</div>
                                 </div>
 
-                                <div style={{ fontSize: 13, color: '#0f172a' }}>
-                                    {[...new Set(
-                                        selectedPunch.contacts
-                                            .map((c: any) => c.remarks)
-                                            .filter(Boolean)
-                                    )].join(', ')}
-                                </div>
-                            </div>
-                        )}
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <div style={{ color: '#22c55e' }}>{p.totalTime}</div>
 
-                        {/* Footer — success/fail summary + close */}
-                        <div style={{
-                            padding: '12px 18px', borderTop: '0.5px solid #e2e8f0',
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        }}>
-                            <div style={{ display: 'flex', gap: 12 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a' }} />
-                                    <span style={{ fontSize: 12, color: '#64748b' }}>
-                                        {selectedPunch.contacts?.filter((c: any) => c.status === 'SUCCESS').length} success
-                                    </span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626' }} />
-                                    <span style={{ fontSize: 12, color: '#64748b' }}>
-                                        {selectedPunch.contacts?.filter((c: any) => c.status === 'FAIL').length} failed
+                                    {/* 👁 BUTTON */}
+                                    <span
+                                        onClick={() => setSelectedPunch(p)}
+                                        style={{
+                                            cursor: 'pointer',
+                                            fontSize: '13px',
+                                            color: '#60a5fa',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                        }}
+                                    >
+                                        👁
+
+                                        {p.punchInImage && (
+                                            <span style={{
+                                                fontSize: '10px',
+                                                background: '#60a5fa20',
+                                                color: '#60a5fa',
+                                                padding: '2px 5px',
+                                                borderRadius: '6px',
+                                                fontWeight: 600
+                                            }}>
+                                                📷
+                                            </span>
+                                        )}
+
+                                        {p.type === 'FIELD' && p.contacts?.length > 0 && (
+                                            <span style={{
+                                                fontSize: '10px',
+                                                background: '#22c55e20',
+                                                color: '#22c55e',
+                                                padding: '2px 5px',
+                                                borderRadius: '6px',
+                                                fontWeight: 600
+                                            }}>
+                                                {p.contacts.length}
+                                            </span>
+                                        )}
                                     </span>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => setSelectedPunch(null)}
-                                style={{
-                                    padding: '7px 16px', border: '0.5px solid #e2e8f0', borderRadius: 8,
-                                    background: 'transparent', color: '#64748b', fontSize: 13, cursor: 'pointer',
-                                }}
-                            >
-                                Close
-                            </button>
-                        </div>
+                        ))}
+                    </div>
+
+                    {/* Total */}
+                    <div style={{ marginTop: '10px', color: '#fff' }}>
+                        Total Time After Taking Break: {formatTime(totalWorkingHours?.total)}
                     </div>
                 </div>
+
+                {/* 🔥 POPUP */}
+                {selectedPunch && (
+                    <div
+                        onClick={() => setSelectedPunch(null)}
+                        style={{
+                            position: 'fixed', inset: 0, zIndex: 10000,
+                            background: 'rgba(0,0,0,0.5)',
+                            display: 'flex', justifyContent: 'center', alignItems: 'center',
+                            padding: 16,
+                        }}
+                    >
+                        <div
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                                background: '#fff', borderRadius: 16, width: 340,
+                                overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                                fontFamily: 'inherit',
+                            }}
+                        >
+                            {/* Header */}
+                            <div style={{
+                                padding: '14px 18px', borderBottom: '0.5px solid #e2e8f0',
+                                display: 'flex', alignItems: 'center', gap: 10,
+                            }}>
+                                <div style={{
+                                    width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                }}>
+                                    <span style={{ fontSize: 16 }}>🚶</span>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 14, fontWeight: 500, color: '#0f172a' }}>Field Meetings</div>
+                                    <div style={{ fontSize: 12, color: '#64748b' }}>
+                                        {selectedPunch.contacts?.length || 0} contacts recorded
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedPunch(null)}
+                                    style={{
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4,
+                                    }}
+                                >✕</button>
+                            </div>
+
+                            {/* Punch In Image */}
+                            {selectedPunch.punchInImage && (
+                                <div style={{ padding: '12px 18px 0' }}>
+                                    <div style={{
+                                        fontSize: 11,
+                                        color: '#94a3b8',
+                                        fontWeight: 500,
+                                        marginBottom: 6,
+                                        textTransform: 'uppercase',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                    }}>
+                                        <span>Punch In Photo</span>
+                                        <span style={{ color: '#60a5fa', textTransform: 'none', fontWeight: 600, cursor: 'pointer' }}>
+                                            🔍 View full
+                                        </span>
+                                    </div>
+                                    <img
+                                        src={selectedPunch.punchInImage}
+                                        alt="Punch in location"
+                                        onClick={() => setLightboxSrc(selectedPunch.punchInImage)}
+                                        style={{
+                                            width: '100%',
+                                            maxHeight: 180,
+                                            objectFit: 'cover',
+                                            borderRadius: 8,
+                                            border: '0.5px solid #e2e8f0',
+                                            cursor: 'zoom-in'
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Contacts */}
+                            <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {selectedPunch.contacts?.map((c: any, i: number) => {
+                                    const initials = c.personName
+                                        ?.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '?'
+                                    const isSuccess = c.status === 'SUCCESS'
+
+                                    return (
+                                        <div key={i} style={{
+                                            display: 'flex', alignItems: 'center', gap: 10,
+                                            padding: '10px 12px', background: '#f8fafc',
+                                            borderRadius: 8, border: '0.5px solid #e2e8f0',
+                                        }}>
+                                            {/* Avatar */}
+                                            <div style={{
+                                                width: 34, height: 34, borderRadius: '50%', background: '#dbeafe',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 12, fontWeight: 500, color: '#1d4ed8', flexShrink: 0,
+                                            }}>
+                                                {initials}
+                                            </div>
+
+                                            {/* Info */}
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{
+                                                    fontSize: 13, fontWeight: 500, color: '#0f172a',
+                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                }}>
+                                                    {c.personName}
+                                                </div>
+                                                <div style={{ fontSize: 12, color: '#64748b' }}>{c.contact}</div>
+
+                                            </div>
+
+                                            {/* Status badge */}
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', gap: 4,
+                                                padding: '3px 8px', borderRadius: 99, flexShrink: 0,
+                                                background: isSuccess ? '#f0fdf4' : '#fef2f2',
+                                                border: `0.5px solid ${isSuccess ? '#bbf7d0' : '#fecaca'}`,
+                                            }}>
+                                                <span style={{ fontSize: 11, fontWeight: 500, color: isSuccess ? '#15803d' : '#dc2626' }}>
+                                                    {isSuccess ? '✓ Success' : '✗ Failed'}
+                                                </span>
+                                            </div>
+
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+                            {selectedPunch?.contacts?.some((c: any) => c.remarks) && (
+                                <div style={{
+                                    margin: '0 18px 12px',
+                                    padding: '10px 12px',
+                                    background: '#f8fafc',
+                                    borderRadius: 8,
+                                    border: '0.5px solid #e2e8f0'
+                                }}>
+                                    <div style={{
+                                        fontSize: 11,
+                                        color: '#94a3b8',
+                                        fontWeight: 500,
+                                        marginBottom: 4,
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        Remarks
+                                    </div>
+
+                                    <div style={{ fontSize: 13, color: '#0f172a' }}>
+                                        {[...new Set(
+                                            selectedPunch.contacts
+                                                .map((c: any) => c.remarks)
+                                                .filter(Boolean)
+                                        )].join(', ')}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Footer — success/fail summary + close */}
+                            <div style={{
+                                padding: '12px 18px', borderTop: '0.5px solid #e2e8f0',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            }}>
+                                <div style={{ display: 'flex', gap: 12 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a' }} />
+                                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                                            {selectedPunch.contacts?.filter((c: any) => c.status === 'SUCCESS').length} success
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626' }} />
+                                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                                            {selectedPunch.contacts?.filter((c: any) => c.status === 'FAIL').length} failed
+                                        </span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedPunch(null)}
+                                    style={{
+                                        padding: '7px 16px', border: '0.5px solid #e2e8f0', borderRadius: 8,
+                                        background: 'transparent', color: '#64748b', fontSize: 13, cursor: 'pointer',
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {lightboxSrc && (
+                <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
             )}
-        </div>
+        </>
     )
 }
 
+// ─── Field Punch Out Modal ─────────────────────────────────────────────────────
 const FieldPunchOutModal: React.FC<{
     onClose: () => void
     onSubmit: (contacts: ContactEntry[], remarks: string) => void
@@ -518,6 +597,146 @@ const FieldPunchOutModal: React.FC<{
     )
 }
 
+// ─── Field Punch In Image Modal ────────────────────────────────────────────────
+const PunchInImageModal: React.FC<{
+    onClose: () => void
+    onSubmit: (file: File) => void
+}> = ({ onClose, onSubmit }) => {
+    const [preview, setPreview] = useState<string | null>(null)
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [submitting, setSubmitting] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (!file.type.startsWith('image/')) {
+            alert('Please select a valid image file')
+            return
+        }
+
+        setSelectedFile(file)
+        setPreview(URL.createObjectURL(file))
+    }
+
+    const handleSubmit = async () => {
+        setSubmitting(true)
+        try {
+            await onSubmit(selectedFile || undefined)
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+        }} onClick={submitting ? undefined : onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                background: '#fff', borderRadius: 16, padding: 20, width: 360,
+                maxHeight: '90vh', overflowY: 'auto',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: 'inherit'
+            }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <div style={{
+                        width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                        <span style={{ fontSize: 16 }}>📸</span>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 15, fontWeight: 500, color: '#0f172a' }}>Field Punch In</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>    Upload a photo of your meeting location (Optional)
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        disabled={submitting}
+                        style={{
+                            background: 'none', border: 'none',
+                            cursor: submitting ? 'not-allowed' : 'pointer',
+                            color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4
+                        }}
+                    >✕</button>
+                </div>
+
+                {/* Preview / Placeholder */}
+                <div
+                    onClick={() => !submitting && fileInputRef.current?.click()}
+                    style={{
+                        width: '100%', height: 200, borderRadius: 10,
+                        border: preview ? 'none' : '1.5px dashed #cbd5e1',
+                        background: preview ? '#000' : '#f8fafc',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: submitting ? 'not-allowed' : 'pointer', overflow: 'hidden', marginBottom: 12
+                    }}
+                >
+                    {preview ? (
+                        <img src={preview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                        <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                            <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
+                            <div style={{ fontSize: 13 }}>Tap to capture / upload photo</div>
+                        </div>
+                    )}
+                </div>
+
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                />
+
+                {preview && !submitting && (
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                            width: '100%', padding: 8, marginBottom: 12,
+                            border: '1px dashed #cbd5e1', borderRadius: 8, background: 'transparent',
+                            color: '#64748b', fontSize: 13, cursor: 'pointer'
+                        }}
+                    >
+                        🔄 Retake / Change photo
+                    </button>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button
+                        onClick={onClose}
+                        disabled={submitting}
+                        style={{
+                            padding: '8px 16px', border: '0.5px solid #e2e8f0',
+                            borderRadius: 8, background: 'transparent', color: '#64748b', fontSize: 13,
+                            cursor: submitting ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={submitting}
+                        style={{
+                            padding: '8px 20px', border: 'none', borderRadius: 8,
+                            background: submitting ? '#cbd5e1' : '#2563eb',
+                            cursor: submitting ? 'not-allowed' : 'pointer',
+                            color: '#fff', fontSize: 13, fontWeight: 500,
+                        }}
+                    >
+                        {submitting ? 'Punching In...' : 'Punch In'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     selectedDate,
     selectedEmployeeId,
@@ -549,6 +768,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [isSmallScreen, setIsSmallScreen] = useState(false)
     const [showHoursModal, setShowHoursModal] = useState(false)
     const [openProfileSnackbar, setOpenProfileSnackbar] = useState(true)
+    const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)   // 👈 full-view photo lightbox
 
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id;
@@ -563,6 +783,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const [punchType, setPunchType] = useState<'HOME' | 'OFFICE' | 'FIELD'>('OFFICE');
     const [showFieldModal, setShowFieldModal] = useState(false);
+    const [showPunchInImageModal, setShowPunchInImageModal] = useState(false);
 
 
     const { settings } = useSettings()
@@ -697,17 +918,56 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
     }
 
+    // ── Actual punch-in API call (shared by normal + field-with-image flow) ──
+    const doPunchIn = async (imageFile?: File) => {
+        const now = new Date()
+        const startTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+        setPunchState({ ...punchState, isPunchIn: true, startTime, isPunchInDisabled: true, isPunchOutDisabled: false })
+
+        if (imageFile) {
+            const formData = new FormData()
+            formData.append('punchIn', startTime)
+            formData.append('punchOut', '')
+            formData.append('totalTime', '00h 00m 00s')
+            formData.append('type', punchType)
+            formData.append('date', currentDate)
+            formData.append('employee', employeeId)
+            formData.append('company_id', company_id)
+            formData.append('image', imageFile)
+
+            await dispatch(addPunch(formData)).unwrap();
+        } else {
+            const punchData = { punchIn: startTime, punchOut: '', totalTime: '00h 00m 00s', type: punchType, date: currentDate, employee: employeeId, company_id: company_id }
+            await dispatch(addPunch(punchData)).unwrap();
+        }
+
+        startPunchInTimer(now.getTime())
+    }
+
     const handlePunchIn = async () => {
         if (isMobileDevice && !isWhitelistedUser) {
             alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
             return;
         }
-        const now = new Date()
-        const startTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        const punchData = { punchIn: startTime, punchOut: '', totalTime: '00h 00m 00s', type: punchType, date: currentDate, employee: employeeId, company_id: company_id }
-        setPunchState({ ...punchState, isPunchIn: true, startTime, isPunchInDisabled: true, isPunchOutDisabled: false })
-        await dispatch(addPunch(punchData)).unwrap();
-        startPunchInTimer(now.getTime())
+
+        // FIELD type ke liye pehle meeting location ka photo lo
+        if (punchType === 'FIELD') {
+            setShowPunchInImageModal(true)
+            return
+        }
+
+        await doPunchIn()
+    }
+
+    const handlePunchInImageSubmit = async (file: File) => {
+        try {
+            await doPunchIn(file)
+            setShowPunchInImageModal(false)
+        } catch (err) {
+            console.error('Error submitting punch in image:', err)
+            alert('Failed to punch in. Please try again.')
+        }
     }
 
     const handlePunchOut = async () => {
@@ -720,10 +980,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
 
 
-        if (latestPunch?.type?.toUpperCase() === 'FIELD') {
-            setShowFieldModal(true);
-            return;
-        }
+        // if (latestPunch?.type?.toUpperCase() === 'FIELD') {
+        //     setShowFieldModal(true);
+        //     return;
+        // }
 
         const now = new Date()
         const endTime = now.toLocaleTimeString('en-US', {
@@ -878,6 +1138,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         </Snackbar>
                     )}
 
+                {showPunchInImageModal && (
+                    <PunchInImageModal
+                        onClose={() => setShowPunchInImageModal(false)}
+                        onSubmit={handlePunchInImageSubmit}
+                    />
+                )}
 
                 {showFieldModal && (
                     <FieldPunchOutModal
@@ -894,6 +1160,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         onClose={() => setShowHoursModal(false)}
                         punch={punch}
                     />
+                )}
+
+                {lightboxSrc && (
+                    <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
                 )}
 
                 <div className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl shadow-lg mt-4 mx-auto ${settings.mode === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-r from-indigo-900 to-blue-700'}`}>
@@ -1024,6 +1294,14 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     // ─── Full View ─────────────────────────────────────────────────────────────
     return (
         <>
+            {/* Field Punch In Image Modal */}
+            {showPunchInImageModal && (
+                <PunchInImageModal
+                    onClose={() => setShowPunchInImageModal(false)}
+                    onSubmit={handlePunchInImageSubmit}
+                />
+            )}
+
             {/* Field Punch Out Modal */}
             {showFieldModal && (
                 <FieldPunchOutModal
@@ -1038,6 +1316,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     onClose={() => setShowHoursModal(false)}
                     punch={punch}
                 />
+            )}
+
+            {lightboxSrc && (
+                <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
             )}
 
             <div className="max-w-6xl mx-auto py-4">
@@ -1094,6 +1376,19 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             {punchState.isPunchIn && (
                                 <div className="text-3xl font-bold text-blue-600 mb-4">{timer}</div>
                             )}
+
+                            <div className="flex gap-2 mb-4">
+                                {['HOME', 'OFFICE', 'FIELD'].map((t) => (
+                                    <button
+                                        key={t}
+                                        onClick={() => setPunchType(t as any)}
+                                        disabled={punchState.isPunchIn}
+                                        className={`px-3 py-1 rounded text-xs font-medium ${punchType === t ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-300'} ${punchState.isPunchIn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {t}
+                                    </button>
+                                ))}
+                            </div>
 
                             <div className="flex gap-4">
                                 <button
@@ -1172,6 +1467,20 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 </div>
 
                             </div>
+
+                            {currentPunch?.punchInImage && (
+                                <div className="mb-6 flex flex-col items-center">
+                                    <h4 className="font-semibold text-gray-700 mb-2 text-sm">Punch In Photo</h4>
+                                    <img
+                                        src={currentPunch.punchInImage}
+                                        alt="Punch in location"
+                                        onClick={() => setLightboxSrc(currentPunch.punchInImage)}
+                                        className="w-40 h-40 object-cover rounded-lg border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+                                    />
+                                    <span className="text-xs text-blue-500 mt-1">🔍 Tap to view full</span>
+                                </div>
+                            )}
+
                             <div className="flex gap-4">
                                 <button onClick={handlePreviousPunch} disabled={currentPunchIndex === 0}
                                     className={`px-4 py-2 rounded-lg border transition-colors duration-300 ${currentPunchIndex === 0 ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-50'}`}>

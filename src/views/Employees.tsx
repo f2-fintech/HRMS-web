@@ -444,6 +444,7 @@ export default function EmployeeGrid() {
           attendanceStatus[employee._id?.toString()?.trim()] === 'FIELD'
       )
       : employees
+
   return (
     <>
       <ToastContainer position='top-center' autoClose={3000} />
@@ -487,6 +488,7 @@ export default function EmployeeGrid() {
                 {showOnBreakOnly ? 'Show All' : '☕On Break'}
               </Button>
             )}
+            {allowedRoles.includes(Number(userRole)) && (
             <Button
               variant="contained"
               onClick={() => {
@@ -506,7 +508,7 @@ export default function EmployeeGrid() {
             >
               {showOnFieldOnly ? 'Show All' : '📍 On Field'}
             </Button>
-
+           )}
             {allowedRoles.includes(Number(userRole)) && (
               <Button
                 sx={{
@@ -568,7 +570,6 @@ export default function EmployeeGrid() {
             <FormControl fullWidth>
               <Autocomplete
                 id='designation-select'
-
                 // Use a Set to ensure unique values from both new and old fields
                 options={Array.from(new Set(designations.map(d => d.title || d.designation)))}
                 getOptionLabel={option => option || ''}
