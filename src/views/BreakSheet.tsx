@@ -94,7 +94,7 @@ const BreakSheet: React.FC = () => {
     const userDesignation = employee?.desg
     const companyId = employee?.company_id
 
-    const breakOptions = ['Select break type', 'Washroom', 'Breakfast', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'On Field', 'Other']
+    const breakOptions = ['Select break type', 'Washroom', 'Breakfast', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'Other']
 
     // Hybrid mobile detection (Option 4)
     useEffect(() => {
