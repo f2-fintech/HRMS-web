@@ -709,64 +709,77 @@ const EmployeeAttendanceStatus: React.FC = () => {
             </Box>
           )}
 
-          {!dialogLoading &&
-            selectedEmployees.map((item: any, index: number) => {
-              const employee = item?.employee || item
-              if (!employee || typeof employee !== 'object' || Array.isArray(employee)) return null
+        {!dialogLoading &&
+  [...selectedEmployees]
+    .sort((a: any, b: any) => {
+      const empA = a?.employee || a
+      const empB = b?.employee || b
 
-              const name = `${employee?.first_name || ''} ${employee?.last_name || ''}`
-              const initials = getInitials(employee?.first_name || '', employee?.last_name || '')
-              const bgColor = getAvatarColor(employee?.first_name || '')
+      const punchA = a?.punchIn || punchMap[empA?._id] || '23:59:59'
+      const punchB = b?.punchIn || punchMap[empB?._id] || '23:59:59'
 
-              const punchInRaw = item?.punchIn || punchMap[employee?._id]
+      return punchA.localeCompare(punchB)
+    })
+    .map((item: any, index: number) => {
+      const employee = item?.employee || item
+      if (!employee || typeof employee !== 'object' || Array.isArray(employee)) return null
 
-              let punchInTime: string | null = null
-              if (punchInRaw) {
-                const parsed = punchInRaw.includes('T') || punchInRaw.includes('-')
-                  ? dayjs(punchInRaw)
-                  : dayjs(`2000-01-01T${punchInRaw}`)
+      const name = `${employee?.first_name || ''} ${employee?.last_name || ''}`
+      const initials = getInitials(employee?.first_name || '', employee?.last_name || '')
+      const bgColor = getAvatarColor(employee?.first_name || '')
 
-                punchInTime = parsed.isValid() ? parsed.format('hh:mm A') : null
-              }
+      const punchInRaw = item?.punchIn || punchMap[employee?._id]
 
-              return (
-                <EmployeeRow key={employee?._id || index}>
-                  <Avatar bgcolor={bgColor}>
-                    {employee?.image ? (
-                      <img src={employee.image} alt={name} />
-                    ) : (
-                      initials
-                    )}
-                  </Avatar>
+      let punchInTime: string | null = null
+      if (punchInRaw) {
+        const parsed = punchInRaw.includes('T') || punchInRaw.includes('-')
+          ? dayjs(punchInRaw)
+          : dayjs(`2000-01-01T${punchInRaw}`)
 
-                  <Box flex={1}>
-                    <Typography fontSize='14px' fontWeight={600} color='#0f172a' lineHeight={1.3}>
-                      {name.trim() || '—'}
-                    </Typography>
-                    <Typography variant='caption' color='text.secondary'>
-                      {employee?.designation || employee?.code || ''}
-                    </Typography>
-                  </Box>
+        punchInTime = parsed.isValid() ? parsed.format('hh:mm A') : null
+      }
 
-                  {punchInTime && (
-                    <Box
-                      sx={{
-                        background: '#ecfdf5',
-                        border: '1px solid #a7f3d0',
-                        borderRadius: '8px',
-                        px: 1.2,
-                        py: 0.4,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Typography variant='caption' sx={{ color: '#059669', fontWeight: 600, fontSize: '11px' }}>
-                        🕐 {punchInTime}
-                      </Typography>
-                    </Box>
-                  )}
-                </EmployeeRow>
-              )
-            })}
+      return (
+        <EmployeeRow key={employee?._id || index}>
+          <Avatar bgcolor={bgColor}>
+            {employee?.image ? (
+              <img src={employee.image} alt={name} />
+            ) : (
+              initials
+            )}
+          </Avatar>
+
+          <Box flex={1}>
+            <Typography fontSize='14px' fontWeight={600} color='#0f172a' lineHeight={1.3}>
+              {name.trim() || '—'}
+            </Typography>
+            <Typography variant='caption' color='text.secondary'>
+              {employee?.designation || employee?.code || ''}
+            </Typography>
+          </Box>
+
+          {punchInTime && (
+            <Box
+              sx={{
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                borderRadius: '8px',
+                px: 1.2,
+                py: 0.4,
+                flexShrink: 0,
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{ color: '#059669', fontWeight: 600, fontSize: '11px' }}
+              >
+                🕐 {punchInTime}
+              </Typography>
+            </Box>
+          )}
+        </EmployeeRow>
+      )
+    })}
 
         </DialogContent>
       </Dialog>
