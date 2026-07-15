@@ -36,6 +36,8 @@ interface LocationItem {
   totalEmployeesToday: number
 }
 
+type PunchGroupKey = 'onTime' | 'grace' | 'late' | 'none'
+
 // ─── Animations ──────────────────────────────────────────────────────────────
 
 const fadeUp = keyframes`
@@ -149,6 +151,31 @@ const EmployeeRow = styled(Box)({
   },
 })
 
+const GroupHeader = styled(Box)<{ groupcolor: string; groupbg: string; groupborder: string }>(
+  ({ groupcolor, groupbg, groupborder }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    background: groupbg,
+    border: `1px solid ${groupborder}`,
+    borderRadius: '10px',
+    padding: '8px 12px',
+    marginTop: '16px',
+    marginBottom: '4px',
+    '&:first-of-type': {
+      marginTop: 0,
+    },
+    '& .dot': {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: groupcolor,
+      display: 'inline-block',
+      marginRight: '8px',
+    },
+  })
+)
+
 const Avatar = styled(Box)<{ bgcolor: string }>(({ bgcolor }) => ({
   width: 44,
   height: 44,
@@ -180,7 +207,18 @@ const getInitials = (first: string, last: string) =>
 const getAvatarColor = (name: string) =>
   avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length]
 
-// ─── Component ───────────────────────────────────────────────────────────────
+
+const PUNCH_GROUPS: Record<
+  Exclude<PunchGroupKey, 'none'>,
+  { label: string; color: string; bg: string; border: string }
+> = {
+  onTime: { label: 'Before 10:00 AM', color: '#22c55e', bg: '#ecfdf5', border: '#a7f3d0' },
+  grace: { label: '10:00 – 10:15 AM', color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+  late: { label: 'After 10:15 AM', color: '#ef4444', bg: '#fef2f2', border: '#fecaca' },
+}
+
+const NONE_GROUP = { label: 'No Punch Recorded', color: '#94a3b8', bg: '#f8fafc', border: '#e2e8f0' }
+
 
 const EmployeeAttendanceStatus: React.FC = () => {
   const [employeeCounts, setEmployeeCounts] = useState<any>({
@@ -356,36 +394,49 @@ const EmployeeAttendanceStatus: React.FC = () => {
   }, [])
 
   useEffect(() => {
-  const fetchTodaysPunches = async () => {
-    try {
-      const today = dayjs().format('YYYY-MM-DD')
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/punch/punches/date/${today}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token} ${company_id}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-      const data = await response.json()
-      const list = Array.isArray(data) ? data : (data?.data || [])
+    const fetchTodaysPunches = async () => {
+      try {
+        const today = dayjs().format('YYYY-MM-DD')
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/punch/punches/date/${today}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token} ${company_id}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+        const data = await response.json()
+        const list = Array.isArray(data) ? data : (data?.data || [])
+        const map: Record<string, string> = {}
 
-      const map: Record<string, string> = {}
-      list.forEach((p: any) => {
-        const empId = typeof p?.employee === 'string' ? p.employee : p?.employee?._id
-        if (empId && p?.punchIn) {
-          map[empId] = p.punchIn
-        }
-      })
-      setPunchMap(map)
-    } catch (error) {
-      console.error('Failed to fetch punches:', error)
+        list.forEach((p: any) => {
+          const empId =
+            typeof p?.employee === 'string'
+              ? p.employee
+              : p?.employee?._id
+
+          if (!empId || !p?.punchIn) return
+          if (!map[empId]) {
+            map[empId] = p.punchIn
+            return
+          }
+
+          const existing = dayjs(map[empId])
+          const current = dayjs(p.punchIn)
+          if (current.isBefore(existing)) {
+            map[empId] = p.punchIn
+          }
+        })
+
+        setPunchMap(map)
+      } catch (error) {
+        console.error('Failed to fetch punches:', error)
+      }
     }
-  }
-  fetchTodaysPunches()
-}, [])
+    fetchTodaysPunches()
+  }, [])
 
   // ─── Totals ────────────────────────────────────────────────────────────────
 
@@ -410,6 +461,107 @@ const EmployeeAttendanceStatus: React.FC = () => {
 
   const totalMarked = totalPresent + totalAbsent + totalLeave + totalHalfDay
   const totalNotMarked = Math.max(0, totalAll - totalMarked)
+
+  // ─── Punch-time grouping helpers ────────────────────────────────────────────
+
+  const parsePunchTime = (raw: string | null | undefined) => {
+    if (!raw) return null
+    const parsed = raw.includes('T') || raw.includes('-')
+      ? dayjs(raw)
+      : dayjs(`2000-01-01T${raw}`)
+    return parsed.isValid() ? parsed : null
+  }
+
+  const getPunchGroup = (parsed: dayjs.Dayjs | null): PunchGroupKey => {
+    if (!parsed) return 'none'
+    const tenAM = parsed.clone().hour(10).minute(0).second(0)
+    const tenFifteen = parsed.clone().hour(10).minute(15).second(0)
+
+    if (parsed.isBefore(tenAM)) return 'onTime'
+    if (!parsed.isAfter(tenFifteen)) return 'grace'
+    return 'late'
+  }
+
+  const buildGroupedEmployees = (list: any[]) => {
+    const groups: Record<PunchGroupKey, any[]> = {
+      onTime: [],
+      grace: [],
+      late: [],
+      none: [],
+    }
+
+    list.forEach((item: any) => {
+      const employee = item?.employee || item
+      if (!employee || typeof employee !== 'object' || Array.isArray(employee)) return
+
+      const punchInRaw = item?.punchIn || punchMap[employee?._id]
+      const parsed = parsePunchTime(punchInRaw)
+      const group = getPunchGroup(parsed)
+
+      groups[group].push({ item, employee, parsed })
+    })
+
+      ; (['onTime', 'grace', 'late', 'none'] as PunchGroupKey[]).forEach((key) => {
+        groups[key].sort((a, b) => {
+          const timeA = a.parsed ? a.parsed.format('HH:mm:ss') : '23:59:59'
+          const timeB = b.parsed ? b.parsed.format('HH:mm:ss') : '23:59:59'
+          return timeA.localeCompare(timeB)
+        })
+      })
+
+    return groups
+  }
+
+  const renderEmployeeRow = (entry: { item: any; employee: any; parsed: dayjs.Dayjs | null }, index: number) => {
+    const { employee, parsed } = entry
+    const name = `${employee?.first_name || ''} ${employee?.last_name || ''}`
+    const initials = getInitials(employee?.first_name || '', employee?.last_name || '')
+    const bgColor = getAvatarColor(employee?.first_name || '')
+    const punchInTime = parsed ? parsed.format('hh:mm A') : null
+
+    return (
+      <EmployeeRow key={employee?._id || index}>
+        <Avatar bgcolor={bgColor}>
+          {employee?.image ? (
+            <img src={employee.image} alt={name} />
+          ) : (
+            initials
+          )}
+        </Avatar>
+
+        <Box flex={1}>
+          <Typography fontSize='14px' fontWeight={600} color='#0f172a' lineHeight={1.3}>
+            {name.trim() || '—'}
+          </Typography>
+          <Typography variant='caption' color='text.secondary'>
+            {employee?.designation || employee?.code || ''}
+          </Typography>
+        </Box>
+
+        {punchInTime && (
+          <Box
+            sx={{
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              borderRadius: '8px',
+              px: 1.2,
+              py: 0.4,
+              flexShrink: 0,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: '#059669', fontWeight: 600, fontSize: '11px' }}
+            >
+              🕐 {punchInTime}
+            </Typography>
+          </Box>
+        )}
+      </EmployeeRow>
+    )
+  }
+
+  const groupedSelectedEmployees = buildGroupedEmployees(selectedEmployees)
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -709,77 +861,33 @@ const EmployeeAttendanceStatus: React.FC = () => {
             </Box>
           )}
 
-        {!dialogLoading &&
-  [...selectedEmployees]
-    .sort((a: any, b: any) => {
-      const empA = a?.employee || a
-      const empB = b?.employee || b
+          {!dialogLoading && selectedEmployees.length > 0 && (
+            <>
+              {(['onTime', 'grace', 'late', 'none'] as PunchGroupKey[]).map((key) => {
+                const groupList = groupedSelectedEmployees[key]
+                if (!groupList || groupList.length === 0) return null
 
-      const punchA = a?.punchIn || punchMap[empA?._id] || '23:59:59'
-      const punchB = b?.punchIn || punchMap[empB?._id] || '23:59:59'
+                const config = key === 'none' ? NONE_GROUP : PUNCH_GROUPS[key]
 
-      return punchA.localeCompare(punchB)
-    })
-    .map((item: any, index: number) => {
-      const employee = item?.employee || item
-      if (!employee || typeof employee !== 'object' || Array.isArray(employee)) return null
-
-      const name = `${employee?.first_name || ''} ${employee?.last_name || ''}`
-      const initials = getInitials(employee?.first_name || '', employee?.last_name || '')
-      const bgColor = getAvatarColor(employee?.first_name || '')
-
-      const punchInRaw = item?.punchIn || punchMap[employee?._id]
-
-      let punchInTime: string | null = null
-      if (punchInRaw) {
-        const parsed = punchInRaw.includes('T') || punchInRaw.includes('-')
-          ? dayjs(punchInRaw)
-          : dayjs(`2000-01-01T${punchInRaw}`)
-
-        punchInTime = parsed.isValid() ? parsed.format('hh:mm A') : null
-      }
-
-      return (
-        <EmployeeRow key={employee?._id || index}>
-          <Avatar bgcolor={bgColor}>
-            {employee?.image ? (
-              <img src={employee.image} alt={name} />
-            ) : (
-              initials
-            )}
-          </Avatar>
-
-          <Box flex={1}>
-            <Typography fontSize='14px' fontWeight={600} color='#0f172a' lineHeight={1.3}>
-              {name.trim() || '—'}
-            </Typography>
-            <Typography variant='caption' color='text.secondary'>
-              {employee?.designation || employee?.code || ''}
-            </Typography>
-          </Box>
-
-          {punchInTime && (
-            <Box
-              sx={{
-                background: '#ecfdf5',
-                border: '1px solid #a7f3d0',
-                borderRadius: '8px',
-                px: 1.2,
-                py: 0.4,
-                flexShrink: 0,
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{ color: '#059669', fontWeight: 600, fontSize: '11px' }}
-              >
-                🕐 {punchInTime}
-              </Typography>
-            </Box>
+                return (
+                  <Box key={key}>
+                    <GroupHeader groupcolor={config.color} groupbg={config.bg} groupborder={config.border}>
+                      <Box display='flex' alignItems='center'>
+                        <span className='dot' />
+                        <Typography variant='caption' fontWeight={700} sx={{ color: config.color, letterSpacing: '0.2px' }}>
+                          {config.label}
+                        </Typography>
+                      </Box>
+                      <Typography variant='caption' fontWeight={700} sx={{ color: config.color }}>
+                        {groupList.length} Employees
+                      </Typography>
+                    </GroupHeader>
+                    {groupList.map((entry, index) => renderEmployeeRow(entry, index))}
+                  </Box>
+                )
+              })}
+            </>
           )}
-        </EmployeeRow>
-      )
-    })}
 
         </DialogContent>
       </Dialog>
