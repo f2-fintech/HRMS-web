@@ -10,7 +10,6 @@ interface BreakListProps {
     userRole: string | number;
     handleEditClick: (breakToEdit: Break) => void;
     updateRemarks: (breakId: string, remarks: string) => void;
-
 }
 
 const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleEditClick, updateRemarks }) => {
@@ -66,7 +65,6 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
                                         Remarks: {breakEntry.remarks}
                                     </Typography>
                                 )}
-
 
                                 <Box>
                                     <button
@@ -141,7 +139,7 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
                                         </Box>
                                     </Box>
                                 )}
-                                {/* {userRole === '1' && (
+                                {userRole === '1' && (
                                     <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
                                         <Tooltip title='Edit Break'>
                                             <IconButton
@@ -160,11 +158,7 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
                                             </IconButton>
                                         </Tooltip>
                                     </Box>
-                                )} */}
-
-
-
-                                
+                                )}
                             </Stack>
                         </CardContent>
                     </Card>
