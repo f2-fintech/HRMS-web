@@ -519,6 +519,9 @@ const EmployeeAttendanceStatus: React.FC = () => {
     const bgColor = getAvatarColor(employee?.first_name || '')
     const punchInTime = parsed ? parsed.format('hh:mm A') : null
 
+    const group = getPunchGroup(parsed)
+    const badgeConfig = group === 'none' ? NONE_GROUP : PUNCH_GROUPS[group]
+
     return (
       <EmployeeRow key={employee?._id || index}>
         <Avatar bgcolor={bgColor}>
@@ -541,8 +544,8 @@ const EmployeeAttendanceStatus: React.FC = () => {
         {punchInTime && (
           <Box
             sx={{
-              background: '#ecfdf5',
-              border: '1px solid #a7f3d0',
+              background: badgeConfig.bg,
+              border: `1px solid ${badgeConfig.border}`,
               borderRadius: '8px',
               px: 1.2,
               py: 0.4,
@@ -551,7 +554,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
           >
             <Typography
               variant="caption"
-              sx={{ color: '#059669', fontWeight: 600, fontSize: '11px' }}
+              sx={{ color: badgeConfig.color, fontWeight: 600, fontSize: '11px' }}
             >
               🕐 {punchInTime}
             </Typography>
@@ -560,7 +563,6 @@ const EmployeeAttendanceStatus: React.FC = () => {
       </EmployeeRow>
     )
   }
-
   const groupedSelectedEmployees = buildGroupedEmployees(selectedEmployees)
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -568,10 +570,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
   return (
     <DashboardWrapper>
 
-      {/* ── Header Card ── */}
       <HeaderCard elevation={0}>
-
-        {/* Top row: title + total + toggle */}
         <Box display='flex' alignItems='flex-start' justifyContent='space-between' flexWrap='wrap' gap={2} mb={3}>
           <Box>
             <Typography
