@@ -13,7 +13,8 @@ import {
     CircularProgress,
     Alert,
     Divider,
-    Box
+    Box,
+    LinearProgress
 } from '@mui/material';
 import {
     Person,
@@ -26,7 +27,14 @@ import {
     Download,
     NoAccounts,
     ArrowBack,
-    Clear
+    Clear,
+    WarningAmberRounded,
+    ReportProblemOutlined,
+    TrendingUp,
+    CheckCircle,
+    StarHalf,
+    ExitToApp,
+    EventBusy
 } from '@mui/icons-material';
 import axios from 'axios';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
@@ -36,7 +44,6 @@ interface Employee {
     _id: string;
     first_name: string;
     last_name: string;
-    // add other employee properties if needed
 }
 
 interface Punch {
@@ -47,22 +54,85 @@ interface Punch {
     date: string;
 }
 
+interface OvertimeDay {
+    date: string;
+    extra: string;
+}
+
+interface IncompleteDay {
+    date: string;
+    percentage: number;
+    short: string;
+}
+
+interface EarlyLeaveDay {
+    date: string;
+    shortfall: string;
+}
+
+
+interface DailyBreakdown {
+    date: string;
+    percentage: number; 
+    isLate: boolean; 
+    isHardLate: boolean; 
+    attendanceValue: number; 
+    isEarlyLeave: boolean; 
+}
+
+interface MonthlyAnalytics {
+    employeeId: string;
+    employeeName: string;
+    totalDaysPresent: number;
+    totalLateDays: number; 
+    totalHardLateDays: number; 
+    totalAbsentDays: number;
+    totalLeaveDays: number;
+    totalWorkedTime: string;
+    totalRequiredTime: string;
+    monthCompletionPercentage: number;
+    totalAttendanceCredit: number; 
+    penalizedDays: string[]; 
+    overtimeDays: OvertimeDay[];
+    incompleteDays: IncompleteDay[];
+
+    earlyLeaveDays: EarlyLeaveDay[]; 
+    earlyLeaveBalanceRequired: boolean;
+    earlyLeaveBalanceMet: boolean; 
+    earlyLeaveWarning: boolean; 
+    compOffUsed: boolean; 
+    compOffRemaining: number; 
+
+    dailyBreakdown: DailyBreakdown[];
+}
+
+const getCompanyId = (): string => {
+    if (typeof window === 'undefined') return '';
+    try {
+        const userData = localStorage.getItem('user');
+        if (!userData) return '';
+        const { company_id } = JSON.parse(userData);
+        return company_id || '';
+    } catch (e) {
+        console.error('Failed to parse user data from localStorage', e);
+        return '';
+    }
+};
+
 const PunchesPage: React.FC = () => {
     const router = useRouter();
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [month, setMonth] = useState<string>('');
     const [punches, setPunches] = useState<Punch[]>([]);
+    const [analytics, setAnalytics] = useState<MonthlyAnalytics | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Set default month to the current month in "YYYY-MM" format
     useEffect(() => {
         const currentMonth = new Date().toISOString().slice(0, 7);
         setMonth(currentMonth);
     }, []);
-
-    // Fetch the list of employees on mount
     useEffect(() => {
         const fetchEmployees = async () => {
             try {
@@ -77,26 +147,42 @@ const PunchesPage: React.FC = () => {
                 setLoading(false);
             }
         };
-
         fetchEmployees();
     }, []);
 
-    // Fetch punches for the selected employee and month
     const fetchPunches = async (employeeId: string, selectedMonth: string) => {
         try {
             setLoading(true);
             setError(null);
-            const response = await axios.get<Punch[]>(
-                `${process.env.NEXT_PUBLIC_APP_URL}/punch/employee/${employeeId}/${selectedMonth}`
-            );
-            setPunches(response.data);
-            if (response.data.length === 0) {
+
+            const [year, monthNum] = selectedMonth.split('-');
+
+            const [punchesRes, analyticsRes] = await Promise.all([
+                axios.get<Punch[]>(
+                    `${process.env.NEXT_PUBLIC_APP_URL}/punch/employee/${employeeId}/${selectedMonth}`
+                ),
+                axios.get<MonthlyAnalytics>(
+                    `${process.env.NEXT_PUBLIC_APP_URL}/punch-analytics/monthly`,
+                    {
+                        params: {
+                            employeeId,
+                            month: parseInt(monthNum, 10),
+                            year: parseInt(year, 10),
+                            company_id: getCompanyId(),
+                        },
+                    }
+                ),
+            ]);
+            setPunches(punchesRes.data);
+            setAnalytics(analyticsRes.data);
+            if (punchesRes.data.length === 0) {
                 setError(`No punch records found for ${selectedEmployee?.first_name} ${selectedEmployee?.last_name} in ${formatMonthDisplay(selectedMonth)}`);
             }
         } catch (error) {
             console.error('Error fetching punches:', error);
             setError('Failed to fetch punch data. Please try again.');
             setPunches([]);
+            setAnalytics(null);
         } finally {
             setLoading(false);
         }
@@ -112,10 +198,9 @@ const PunchesPage: React.FC = () => {
     // Handle employee selection change
     const handleEmployeeChange = (event: any, newValue: Employee | null) => {
         setSelectedEmployee(newValue);
-
-        // Clear punches data when employee selection is cleared
         if (!newValue) {
             setPunches([]);
+            setAnalytics(null);
             setError(null);
         }
     };
@@ -125,21 +210,19 @@ const PunchesPage: React.FC = () => {
         setMonth(e.target.value);
     };
 
-    // Handle clearing the selected employee
     const handleClearEmployee = () => {
         setSelectedEmployee(null);
         setPunches([]);
+        setAnalytics(null);
         setError(null);
     };
 
-    // Manual refresh button handler
     const handleRefresh = () => {
         if (selectedEmployee && month) {
             fetchPunches(selectedEmployee._id, month);
         }
     };
 
-    // Format month for display (e.g., "2025-03" to "March 2025")
     const formatMonthDisplay = (monthStr: string): string => {
         try {
             const [year, month] = monthStr.split('-');
@@ -150,7 +233,6 @@ const PunchesPage: React.FC = () => {
         }
     };
 
-    // Format time for better display with AM/PM
     const formatTime = (timeStr: string): string => {
         try {
             if (timeStr === "") {
@@ -168,7 +250,6 @@ const PunchesPage: React.FC = () => {
         }
     };
 
-    // Calculate total hours from punch data
     const calculateTotalHours = (): string => {
         if (!punches || punches.length === 0) return "0.0";
 
@@ -187,7 +268,28 @@ const PunchesPage: React.FC = () => {
         return totalHours.toFixed(1); // Format to 1 decimal place
     };
 
-    // Navigate back to previous page
+    const getOvertimeForDate = (date: string): OvertimeDay | undefined => {
+        return analytics?.overtimeDays.find((d) => d.date === date);
+    };
+
+    const getIncompleteForDate = (date: string): IncompleteDay | undefined => {
+        return analytics?.incompleteDays.find((d) => d.date === date);
+    };
+
+    const getEarlyLeaveForDate = (date: string): EarlyLeaveDay | undefined => {
+        return analytics?.earlyLeaveDays.find((d) => d.date === date);
+    };
+
+   
+    const getBreakdownForDate = (date: string): DailyBreakdown | undefined => {
+        return analytics?.dailyBreakdown.find((d) => d.date === date);
+    };
+
+    const isPenalizedDate = (date: string): boolean => {
+        return !!analytics?.penalizedDays.includes(date);
+    };
+
+   
     const handleBack = () => {
         router.back();
     };
@@ -332,6 +434,133 @@ const PunchesPage: React.FC = () => {
                 </Box>
             )}
 
+            {/* ---- Early-leave balance warning banner ----
+                 Sirf informational — koi penalty/credit-cut nahi hota isse. */}
+            {selectedEmployee && analytics && !loading && analytics.earlyLeaveWarning && (
+                <Alert severity="warning" className="mb-6" icon={<EventBusy />}>
+                    <strong>{analytics.earlyLeaveDays.length} early-leave day(s)</strong> this month (2hr+ before required
+                    punch-out) — not yet balanced with overtime or a comp-off.
+                    {analytics.compOffRemaining > 0
+                        ? ` ${analytics.compOffRemaining} comp-off still available this month.`
+                        : ` Comp-off quota for this month is used up.`}
+                </Alert>
+            )}
+
+            {/* ---- Monthly Analytics Summary Cards ---- */}
+            {selectedEmployee && analytics && !loading && (
+                <Box className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <Box className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
+                        <Typography variant="caption" className="text-gray-500 uppercase tracking-wide">
+                            Days Present
+                        </Typography>
+                        <Typography variant="h5" className="font-bold text-gray-800">
+                            {analytics.totalDaysPresent}
+                        </Typography>
+                    </Box>
+
+                    <Box className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center shadow-sm">
+                        <Typography variant="caption" className="text-yellow-700 uppercase tracking-wide flex items-center justify-center gap-1">
+                            <WarningAmberRounded fontSize="small" /> Late Days (10:15+)
+                        </Typography>
+                        <Typography variant="h5" className="font-bold text-yellow-700">
+                            {analytics.totalLateDays}
+                        </Typography>
+                    </Box>
+
+                    <Box className="bg-red-50 border border-red-200 rounded-lg p-4 text-center shadow-sm">
+                        <Typography variant="caption" className="text-red-600 uppercase tracking-wide flex items-center justify-center gap-1">
+                            <ReportProblemOutlined fontSize="small" /> Hard Late (10:20+)
+                        </Typography>
+                        <Typography variant="h5" className="font-bold text-red-700">
+                            {analytics.totalHardLateDays}
+                        </Typography>
+                    </Box>
+
+                    <Box className="bg-green-50 border border-green-200 rounded-lg p-4 text-center shadow-sm">
+                        <Typography variant="caption" className="text-green-600 uppercase tracking-wide flex items-center justify-center gap-1">
+                            <TrendingUp fontSize="small" /> Overtime Days
+                        </Typography>
+                        <Typography variant="h5" className="font-bold text-green-700">
+                            {analytics.overtimeDays.length}
+                        </Typography>
+                    </Box>
+
+                    <Box
+                        className={`border rounded-lg p-4 text-center shadow-sm ${
+                            analytics.earlyLeaveWarning
+                                ? 'bg-amber-50 border-amber-300'
+                                : 'bg-gray-50 border-gray-200'
+                        }`}
+                    >
+                        <Typography
+                            variant="caption"
+                            className={`uppercase tracking-wide flex items-center justify-center gap-1 ${
+                                analytics.earlyLeaveWarning ? 'text-amber-700' : 'text-gray-500'
+                            }`}
+                        >
+                            <ExitToApp fontSize="small" /> Early Leave Days
+                        </Typography>
+                        <Typography
+                            variant="h5"
+                            className={`font-bold ${analytics.earlyLeaveWarning ? 'text-amber-700' : 'text-gray-800'}`}
+                        >
+                            {analytics.earlyLeaveDays.length}
+                        </Typography>
+                        {analytics.earlyLeaveBalanceRequired && (
+                            <Typography
+                                variant="caption"
+                                className={analytics.earlyLeaveBalanceMet ? 'text-green-600' : 'text-amber-600'}
+                            >
+                                {analytics.earlyLeaveBalanceMet ? 'Balanced' : 'Not balanced yet'}
+                            </Typography>
+                        )}
+                    </Box>
+
+                    <Box className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center shadow-sm">
+                        <Typography variant="caption" className="text-purple-600 uppercase tracking-wide flex items-center justify-center gap-1">
+                            <StarHalf fontSize="small" /> Attendance Credit
+                        </Typography>
+                        <Typography variant="h5" className="font-bold text-purple-700">
+                            {analytics.totalAttendanceCredit}
+                        </Typography>
+                        {analytics.penalizedDays.length > 0 && (
+                            <Typography variant="caption" className="text-purple-500">
+                                {analytics.penalizedDays.length} day(s) penalized
+                            </Typography>
+                        )}
+                    </Box>
+
+                    <Box className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-center shadow-sm">
+                        <Typography variant="caption" className="text-teal-600 uppercase tracking-wide">
+                            Comp-Off Remaining
+                        </Typography>
+                        <Typography variant="h5" className="font-bold text-teal-700">
+                            {analytics.compOffRemaining}
+                        </Typography>
+                        {analytics.compOffUsed && (
+                            <Typography variant="caption" className="text-teal-500">
+                                Used this month
+                            </Typography>
+                        )}
+                    </Box>
+
+                    <Box className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center shadow-sm">
+                        <Typography variant="caption" className="text-blue-600 uppercase tracking-wide flex items-center justify-center gap-1">
+                            <CheckCircle fontSize="small" /> Month Completion
+                        </Typography>
+                        <Typography variant="h5" className="font-bold text-blue-700">
+                            {analytics.monthCompletionPercentage}%
+                        </Typography>
+                        <LinearProgress
+                            variant="determinate"
+                            value={Math.min(100, analytics.monthCompletionPercentage)}
+                            className="mt-2 rounded-full"
+                            color={analytics.monthCompletionPercentage >= 100 ? 'success' : 'warning'}
+                        />
+                    </Box>
+                </Box>
+            )}
+
             {punches.length > 0 && !loading ? (
                 <div className="overflow-x-auto bg-gray-50 rounded-lg border border-gray-200">
                     <table className="min-w-full border-collapse">
@@ -341,23 +570,123 @@ const PunchesPage: React.FC = () => {
                                 <th className="border-b p-3 text-left text-gray-700">Punch In</th>
                                 <th className="border-b p-3 text-left text-gray-700">Punch Out</th>
                                 <th className="border-b p-3 text-left text-gray-700">Total Hours</th>
+                                <th className="border-b p-3 text-left text-gray-700">Completion %</th>
+                                <th className="border-b p-3 text-left text-gray-700">Attendance</th>
+                                <th className="border-b p-3 text-left text-gray-700">Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {punches.map((punch) => (
-                                <tr key={punch._id} className="hover:bg-blue-50 transition-colors">
-                                    <td className="border-b p-3 text-gray-800">{punch.date}</td>
-                                    <td className="border-b p-3 text-green-600 font-medium">
-                                        {formatTime(punch.punchIn)}
-                                    </td>
-                                    <td className="border-b p-3 text-red-600 font-medium">
-                                        {formatTime(punch.punchOut)}
-                                    </td>
-                                    <td className="border-b p-3 text-blue-700 font-medium">
-                                        {punch.totalTime}
-                                    </td>
-                                </tr>
-                            ))}
+                            {punches.map((punch) => {
+                                const overtime = getOvertimeForDate(punch.date);
+                                const incomplete = getIncompleteForDate(punch.date);
+                                const breakdown = getBreakdownForDate(punch.date);
+                                const earlyLeave = getEarlyLeaveForDate(punch.date);
+                                const penalized = isPenalizedDate(punch.date);
+
+                                return (
+                                    <tr key={punch._id} className="hover:bg-blue-50 transition-colors">
+                                        <td className="border-b p-3 text-gray-800">{punch.date}</td>
+                                        <td className="border-b p-3 text-green-600 font-medium">
+                                            {formatTime(punch.punchIn)}
+                                        </td>
+                                        <td className="border-b p-3 text-red-600 font-medium">
+                                            {formatTime(punch.punchOut)}
+                                        </td>
+                                        <td className="border-b p-3 text-blue-700 font-medium">
+                                            {punch.totalTime}
+                                        </td>
+                                        <td className="border-b p-3">
+                                            {breakdown ? (
+                                                <Typography
+                                                    variant="body2"
+                                                    className={`font-semibold ${breakdown.percentage >= 100 ? 'text-green-700' : breakdown.percentage >= 60 ? 'text-orange-600' : 'text-red-600'}`}
+                                                >
+                                                    {breakdown.percentage}%
+                                                </Typography>
+                                            ) : (
+                                                <Typography variant="body2" className="text-gray-400">—</Typography>
+                                            )}
+                                        </td>
+                                        <td className="border-b p-3">
+                                            {breakdown ? (
+                                                <Tooltip
+                                                    title={
+                                                        penalized
+                                                            ? 'Late penalty applied — attendance counted as 0.75 for this day'
+                                                            : 'Full attendance credited for this day'
+                                                    }
+                                                >
+                                                    <Chip
+                                                        size="small"
+                                                        label={breakdown.attendanceValue}
+                                                        color={penalized ? 'error' : 'default'}
+                                                        variant={penalized ? 'filled' : 'outlined'}
+                                                    />
+                                                </Tooltip>
+                                            ) : (
+                                                <Typography variant="body2" className="text-gray-400">—</Typography>
+                                            )}
+                                        </td>
+                                        <td className="border-b p-3">
+                                            <Box className="flex flex-wrap gap-1">
+                                                {breakdown?.isHardLate ? (
+                                                    <Tooltip title="Punched in after the hard-late threshold — counts toward penalty">
+                                                        <Chip
+                                                            size="small"
+                                                            label="Hard Late"
+                                                            color="error"
+                                                            icon={<ReportProblemOutlined />}
+                                                        />
+                                                    </Tooltip>
+                                                ) : breakdown?.isLate ? (
+                                                    <Tooltip title="Punched in after the soft-late threshold — allowed, no penalty">
+                                                        <Chip
+                                                            size="small"
+                                                            label="Late"
+                                                            color="warning"
+                                                            icon={<WarningAmberRounded />}
+                                                        />
+                                                    </Tooltip>
+                                                ) : null}
+                                                {overtime && (
+                                                    <Tooltip title={`Extra worked: ${overtime.extra}`}>
+                                                        <Chip
+                                                            size="small"
+                                                            label={`+${overtime.extra}`}
+                                                            color="success"
+                                                            icon={<TrendingUp />}
+                                                        />
+                                                    </Tooltip>
+                                                )}
+                                                {earlyLeave && (
+                                                    <Tooltip title={`Punched out ${earlyLeave.shortfall} before required time — needs overtime or comp-off balance`}>
+                                                        <Chip
+                                                            size="small"
+                                                            label={`-${earlyLeave.shortfall}`}
+                                                            color="warning"
+                                                            variant="outlined"
+                                                            icon={<ExitToApp />}
+                                                        />
+                                                    </Tooltip>
+                                                )}
+                                                {incomplete && (
+                                                    <Tooltip title={`Short by: ${incomplete.short}`}>
+                                                        <Chip
+                                                            size="small"
+                                                            label={`${incomplete.percentage}%`}
+                                                            color="error"
+                                                            variant="outlined"
+                                                        />
+                                                    </Tooltip>
+                                                )}
+                                                {!breakdown?.isLate && !breakdown?.isHardLate && !overtime && !earlyLeave && !incomplete && (
+                                                    <Chip size="small" label="On Track" variant="outlined" />
+                                                )}
+                                            </Box>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

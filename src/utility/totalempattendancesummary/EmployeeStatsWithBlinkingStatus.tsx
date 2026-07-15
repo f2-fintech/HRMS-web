@@ -187,12 +187,12 @@ const EmployeeAttendanceStatus: React.FC = () => {
     totalEmployees: 0,
     totalInterns: 0,
     totalChannelPartners: 0,
-    presentEmployees: 0,   
-    absentEmployees: 0, 
-    presentInterns: 0,  
-    absentInterns: 0,    
-    presentChannelPartners: 0,  
-    absentChannelPartners: 0, 
+    presentEmployees: 0,
+    absentEmployees: 0,
+    presentInterns: 0,
+    absentInterns: 0,
+    presentChannelPartners: 0,
+    absentChannelPartners: 0,
     employeeList: [],
     internList: [],
     channelPartnerList: [],
@@ -205,6 +205,8 @@ const EmployeeAttendanceStatus: React.FC = () => {
   const [dialogLoading, setDialogLoading] = useState<boolean>(false)
   const [dialogTitle, setDialogTitle] = useState<string>('')
   const [accClicked, setAccClicked] = useState<boolean>(false)
+
+  const [punchMap, setPunchMap] = useState<Record<string, string>>({})
 
   let token: string | null = null
   let company_id: string | null = null
@@ -352,6 +354,38 @@ const EmployeeAttendanceStatus: React.FC = () => {
     }
     fetchAttendanceCounts()
   }, [])
+
+  useEffect(() => {
+  const fetchTodaysPunches = async () => {
+    try {
+      const today = dayjs().format('YYYY-MM-DD')
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/punch/punches/date/${today}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+      const data = await response.json()
+      const list = Array.isArray(data) ? data : (data?.data || [])
+
+      const map: Record<string, string> = {}
+      list.forEach((p: any) => {
+        const empId = typeof p?.employee === 'string' ? p.employee : p?.employee?._id
+        if (empId && p?.punchIn) {
+          map[empId] = p.punchIn
+        }
+      })
+      setPunchMap(map)
+    } catch (error) {
+      console.error('Failed to fetch punches:', error)
+    }
+  }
+  fetchTodaysPunches()
+}, [])
 
   // ─── Totals ────────────────────────────────────────────────────────────────
 
@@ -684,6 +718,17 @@ const EmployeeAttendanceStatus: React.FC = () => {
               const initials = getInitials(employee?.first_name || '', employee?.last_name || '')
               const bgColor = getAvatarColor(employee?.first_name || '')
 
+              const punchInRaw = item?.punchIn || punchMap[employee?._id]
+
+              let punchInTime: string | null = null
+              if (punchInRaw) {
+                const parsed = punchInRaw.includes('T') || punchInRaw.includes('-')
+                  ? dayjs(punchInRaw)
+                  : dayjs(`2000-01-01T${punchInRaw}`)
+
+                punchInTime = parsed.isValid() ? parsed.format('hh:mm A') : null
+              }
+
               return (
                 <EmployeeRow key={employee?._id || index}>
                   <Avatar bgcolor={bgColor}>
@@ -693,7 +738,8 @@ const EmployeeAttendanceStatus: React.FC = () => {
                       initials
                     )}
                   </Avatar>
-                  <Box>
+
+                  <Box flex={1}>
                     <Typography fontSize='14px' fontWeight={600} color='#0f172a' lineHeight={1.3}>
                       {name.trim() || '—'}
                     </Typography>
@@ -701,6 +747,23 @@ const EmployeeAttendanceStatus: React.FC = () => {
                       {employee?.designation || employee?.code || ''}
                     </Typography>
                   </Box>
+
+                  {punchInTime && (
+                    <Box
+                      sx={{
+                        background: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        borderRadius: '8px',
+                        px: 1.2,
+                        py: 0.4,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Typography variant='caption' sx={{ color: '#059669', fontWeight: 600, fontSize: '11px' }}>
+                        🕐 {punchInTime}
+                      </Typography>
+                    </Box>
+                  )}
                 </EmployeeRow>
               )
             })}
