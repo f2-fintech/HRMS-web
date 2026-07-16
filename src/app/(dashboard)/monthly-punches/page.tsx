@@ -52,6 +52,7 @@ interface Punch {
     punchOut: string;
     totalTime: string;
     date: string;
+    totalDurationMinutes?: number;
 }
 
 interface OvertimeDay {
@@ -73,35 +74,35 @@ interface EarlyLeaveDay {
 
 interface DailyBreakdown {
     date: string;
-    percentage: number; 
-    isLate: boolean; 
-    isHardLate: boolean; 
-    attendanceValue: number; 
-    isEarlyLeave: boolean; 
+    percentage: number;
+    isLate: boolean;
+    isHardLate: boolean;
+    attendanceValue: number;
+    isEarlyLeave: boolean;
 }
 
 interface MonthlyAnalytics {
     employeeId: string;
     employeeName: string;
     totalDaysPresent: number;
-    totalLateDays: number; 
-    totalHardLateDays: number; 
+    totalLateDays: number;
+    totalHardLateDays: number;
     totalAbsentDays: number;
     totalLeaveDays: number;
     totalWorkedTime: string;
     totalRequiredTime: string;
     monthCompletionPercentage: number;
-    totalAttendanceCredit: number; 
-    penalizedDays: string[]; 
+    totalAttendanceCredit: number;
+    penalizedDays: string[];
     overtimeDays: OvertimeDay[];
     incompleteDays: IncompleteDay[];
 
-    earlyLeaveDays: EarlyLeaveDay[]; 
+    earlyLeaveDays: EarlyLeaveDay[];
     earlyLeaveBalanceRequired: boolean;
-    earlyLeaveBalanceMet: boolean; 
-    earlyLeaveWarning: boolean; 
-    compOffUsed: boolean; 
-    compOffRemaining: number; 
+    earlyLeaveBalanceMet: boolean;
+    earlyLeaveWarning: boolean;
+    compOffUsed: boolean;
+    compOffRemaining: number;
 
     dailyBreakdown: DailyBreakdown[];
 }
@@ -117,6 +118,105 @@ const getCompanyId = (): string => {
         console.error('Failed to parse user data from localStorage', e);
         return '';
     }
+};
+
+const parseTimeToMinutes = (timeStr: string): number | null => {
+    if (!timeStr) return null;
+    const parts = timeStr.split(':').map((p) => parseInt(p, 10));
+    if (parts.some((p) => isNaN(p))) return null;
+    const [h, m, s] = parts;
+    return h * 60 + (m || 0) + (s ? s / 60 : 0);
+};
+const formatMinutesToHM = (totalMinutes: number): string => {
+    if (!totalMinutes || totalMinutes <= 0) return '0h 0m';
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = Math.round(totalMinutes % 60);
+    return `${hours}h ${minutes}m`;
+};
+
+const calculateDurationMinutes = (punchIn: string, punchOut: string): number => {
+    const inMin = parseTimeToMinutes(punchIn);
+    const outMin = parseTimeToMinutes(punchOut);
+    if (inMin === null || outMin === null) return 0;
+    let diff = outMin - inMin;
+    if (diff < 0) diff += 24 * 60; // overnight shift edge-case
+    return diff;
+};
+
+const formatDecimalHoursToHM = (decimalStr: string): string => {
+    const decimal = parseFloat(decimalStr);
+    if (isNaN(decimal)) return '-';
+    return formatMinutesToHM(decimal * 60);
+};
+
+const parseExtraToMinutes = (extra: string): number => {
+    if (!extra) return 0;
+    const hmMatch = extra.match(/(\d+)\s*h\s*(\d+)?\s*m?/i);
+    if (hmMatch) {
+        const h = parseInt(hmMatch[1], 10) || 0;
+        const m = parseInt(hmMatch[2] || '0', 10) || 0;
+        return h * 60 + m;
+    }
+    const colonMatch = extra.match(/^(\d+):(\d+)$/);
+    if (colonMatch) {
+        return parseInt(colonMatch[1], 10) * 60 + parseInt(colonMatch[2], 10);
+    }
+    const decimal = parseFloat(extra);
+    if (!isNaN(decimal)) return decimal * 60;
+    return 0;
+};
+
+const groupPunchesByDate = (rawPunches: Punch[]): Punch[] => {
+    const grouped: { [date: string]: Punch[] } = {};
+
+    rawPunches.forEach((p) => {
+        if (!grouped[p.date]) grouped[p.date] = [];
+        grouped[p.date].push(p);
+    });
+
+    const merged: Punch[] = Object.keys(grouped).map((date) => {
+        const dayPunches = grouped[date];
+
+        // sabse pehla punch-in (time ke hisaab se sort karke)
+        const sortedByIn = [...dayPunches].sort((a, b) => {
+            const aMin = parseTimeToMinutes(a.punchIn) ?? Infinity;
+            const bMin = parseTimeToMinutes(b.punchIn) ?? Infinity;
+            return aMin - bMin;
+        });
+        const firstPunchIn = sortedByIn[0]?.punchIn || '';
+
+        // sabse aakhri punch-out (empty punch-outs ko ignore karke)
+        const withPunchOut = dayPunches.filter((p) => p.punchOut && p.punchOut !== '');
+        let lastPunchOut = '';
+        if (withPunchOut.length > 0) {
+            const sortedByOut = [...withPunchOut].sort((a, b) => {
+                const aMin = parseTimeToMinutes(a.punchOut) ?? -Infinity;
+                const bMin = parseTimeToMinutes(b.punchOut) ?? -Infinity;
+                return bMin - aMin;
+            });
+            lastPunchOut = sortedByOut[0].punchOut;
+        }
+
+        let totalDurationMinutes = 0;
+        dayPunches.forEach((p) => {
+            if (p.punchIn && p.punchOut) {
+                totalDurationMinutes += calculateDurationMinutes(p.punchIn, p.punchOut);
+            }
+        });
+
+        const totalTime = (totalDurationMinutes / 60).toFixed(2);
+
+        return {
+            _id: dayPunches[0]._id,
+            date,
+            punchIn: firstPunchIn,
+            punchOut: lastPunchOut,
+            totalTime,
+            totalDurationMinutes,
+        };
+    });
+
+    return merged.sort((a, b) => a.date.localeCompare(b.date));
 };
 
 const PunchesPage: React.FC = () => {
@@ -173,9 +273,13 @@ const PunchesPage: React.FC = () => {
                     }
                 ),
             ]);
-            setPunches(punchesRes.data);
+
+            // Same date ke multiple punch records ko merge karke first-in/last-out banaya
+            const mergedPunches = groupPunchesByDate(punchesRes.data);
+
+            setPunches(mergedPunches);
             setAnalytics(analyticsRes.data);
-            if (punchesRes.data.length === 0) {
+            if (mergedPunches.length === 0) {
                 setError(`No punch records found for ${selectedEmployee?.first_name} ${selectedEmployee?.last_name} in ${formatMonthDisplay(selectedMonth)}`);
             }
         } catch (error) {
@@ -250,22 +354,29 @@ const PunchesPage: React.FC = () => {
         }
     };
 
+    // Total minutes seedha har din ke punchIn/punchOut se sum karta hai — rounded
+    // per-day decimals ko sum karne se compounding error aata hai, isliye yeh precise hai
+    const calculateTotalMinutes = (): number => {
+        if (!punches || punches.length === 0) return 0;
+        return punches.reduce(
+            (sum, punch) => sum + (punch.totalDurationMinutes ?? calculateDurationMinutes(punch.punchIn, punch.punchOut)),
+            0
+        );
+    };
+
     const calculateTotalHours = (): string => {
         if (!punches || punches.length === 0) return "0.0";
+        return (calculateTotalMinutes() / 60).toFixed(1);
+    };
 
-        let totalHours = 0;
-
-        punches.forEach(punch => {
-            // Check if totalTime exists and is a valid format (like "8.5" or "10.0")
-            if (punch.totalTime) {
-                const hours = parseFloat(punch.totalTime);
-                if (!isNaN(hours)) {
-                    totalHours += hours;
-                }
-            }
-        });
-
-        return totalHours.toFixed(1); // Format to 1 decimal place
+    // Total overtime hours (formatted as Xh Ym) — added
+    const calculateTotalOvertime = (): string => {
+        if (!analytics?.overtimeDays || analytics.overtimeDays.length === 0) return '0h 0m';
+        const totalMinutes = analytics.overtimeDays.reduce(
+            (sum, day) => sum + parseExtraToMinutes(day.extra),
+            0
+        );
+        return formatMinutesToHM(totalMinutes);
     };
 
     const getOvertimeForDate = (date: string): OvertimeDay | undefined => {
@@ -280,7 +391,7 @@ const PunchesPage: React.FC = () => {
         return analytics?.earlyLeaveDays.find((d) => d.date === date);
     };
 
-   
+
     const getBreakdownForDate = (date: string): DailyBreakdown | undefined => {
         return analytics?.dailyBreakdown.find((d) => d.date === date);
     };
@@ -289,7 +400,7 @@ const PunchesPage: React.FC = () => {
         return !!analytics?.penalizedDays.includes(date);
     };
 
-   
+
     const handleBack = () => {
         router.back();
     };
@@ -427,7 +538,7 @@ const PunchesPage: React.FC = () => {
 
                     <Chip
                         icon={<AccessTime />}
-                        label={`Total Hours: ${calculateTotalHours()}`}
+                        label={`Total Hours: ${calculateTotalHours()} (${formatMinutesToHM(calculateTotalMinutes())})`}
                         color="success"
                         className="font-medium"
                     />
@@ -483,20 +594,22 @@ const PunchesPage: React.FC = () => {
                         <Typography variant="h5" className="font-bold text-green-700">
                             {analytics.overtimeDays.length}
                         </Typography>
+                        {/* Total overtime hours — added */}
+                        <Typography variant="caption" className="text-green-600 block">
+                            Total: {calculateTotalOvertime()}
+                        </Typography>
                     </Box>
 
                     <Box
-                        className={`border rounded-lg p-4 text-center shadow-sm ${
-                            analytics.earlyLeaveWarning
-                                ? 'bg-amber-50 border-amber-300'
-                                : 'bg-gray-50 border-gray-200'
-                        }`}
+                        className={`border rounded-lg p-4 text-center shadow-sm ${analytics.earlyLeaveWarning
+                            ? 'bg-amber-50 border-amber-300'
+                            : 'bg-gray-50 border-gray-200'
+                            }`}
                     >
                         <Typography
                             variant="caption"
-                            className={`uppercase tracking-wide flex items-center justify-center gap-1 ${
-                                analytics.earlyLeaveWarning ? 'text-amber-700' : 'text-gray-500'
-                            }`}
+                            className={`uppercase tracking-wide flex items-center justify-center gap-1 ${analytics.earlyLeaveWarning ? 'text-amber-700' : 'text-gray-500'
+                                }`}
                         >
                             <ExitToApp fontSize="small" /> Early Leave Days
                         </Typography>
@@ -593,7 +706,9 @@ const PunchesPage: React.FC = () => {
                                             {formatTime(punch.punchOut)}
                                         </td>
                                         <td className="border-b p-3 text-blue-700 font-medium">
-                                            {punch.totalTime}
+                                            {formatMinutesToHM(
+                                                punch.totalDurationMinutes ?? calculateDurationMinutes(punch.punchIn, punch.punchOut)
+                                            )}
                                         </td>
                                         <td className="border-b p-3">
                                             {breakdown ? (
