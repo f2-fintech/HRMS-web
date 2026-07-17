@@ -14,7 +14,9 @@ import {
     Alert,
     Divider,
     Box,
-    LinearProgress
+    LinearProgress,
+    ToggleButton,
+    ToggleButtonGroup
 } from '@mui/material';
 import { FormControlLabel, Checkbox } from "@mui/material";
 import {
@@ -241,9 +243,13 @@ const PunchesPage: React.FC = () => {
     const [regularizationType, setRegularizationType] = useState("");
     const [reason, setReason] = useState("");
     const [applyToAll, setApplyToAll] = useState(false);
-    // Sirf "Early Leave" type ke liye — admin kitne ghante tak early-leave
-    // "allow"/cover kar raha hai. Khali chhodne pe poora din 100% ho jaata hai.
+    // Sirf "Early Leave" type ke liye — admin ya to duration (Hrs/Min) se
+    // batayega ki kitna cover kar raha hai, ya ek clock-time se ("is time ke
+    // baad tak allowed tha"). Dono khali/unset ho to poora din 100% ho jaata hai.
+    const [coverageMode, setCoverageMode] = useState<'duration' | 'time'>('duration');
     const [regularizedHours, setRegularizedHours] = useState<string>("");
+    const [regularizedMinutes, setRegularizedMinutes] = useState<string>("");
+    const [regularizedFromTime, setRegularizedFromTime] = useState<string>("");
 
     useEffect(() => {
         const currentMonth = new Date().toISOString().slice(0, 7);
@@ -376,16 +382,32 @@ const PunchesPage: React.FC = () => {
                 return;
             }
 
+            // Coverage mode ke hisaab se payload banao:
+            //  - "duration" mode: "Xh Ym" string (jaise baaki duration fields)
+            //  - "time" mode: clock time string "HH:MM:SS" jisse pehle tak
+            //    early-leave allowed tha
+            let coveragePayload: Record<string, any> = {};
+            if (regularizationType === "Early Leave") {
+                if (coverageMode === "duration") {
+                    const hasCoverageInput = regularizedHours !== "" || regularizedMinutes !== "";
+                    if (hasCoverageInput) {
+                        const h = parseInt(regularizedHours || "0", 10) || 0;
+                        const m = parseInt(regularizedMinutes || "0", 10) || 0;
+                        coveragePayload = { regularizedTime: `${h}h ${m}m` };
+                    }
+                } else if (coverageMode === "time" && regularizedFromTime) {
+                    // <input type="time"> deta hai "HH:MM" — seconds add kar diya
+                    coveragePayload = { regularizedFromTime: `${regularizedFromTime}:00` };
+                }
+            }
+
             const payload = {
                 company_id,
                 date: regularizationDate,
                 type: regularizationType,
                 reason,
                 applyTo: applyToAll ? "All" : "SELECTED",
-                // Sirf Early Leave type + hours field bhara ho tab hi bhejo
-                ...(regularizationType === "Early Leave" && regularizedHours !== ""
-                    ? { regularizedHours: parseFloat(regularizedHours) }
-                    : {}),
+                ...coveragePayload,
                 ...(applyToAll ? {} : { employee: selectedEmployee?._id }),
             };
 
@@ -412,7 +434,10 @@ const PunchesPage: React.FC = () => {
             setRegularizationType("");
             setReason("");
             setApplyToAll(false);
+            setCoverageMode('duration');
             setRegularizedHours("");
+            setRegularizedMinutes("");
+            setRegularizedFromTime("");
             setError(null);
 
             handleRefresh();
@@ -1005,28 +1030,81 @@ const PunchesPage: React.FC = () => {
 
                     {regularizationType === "Early Leave" && (
                         <Box className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mt-4">
-                            <Box className="flex items-center gap-2 mb-2">
-                                <ExitToApp fontSize="small" className="text-amber-700" />
-                                <Typography variant="body2" className="font-medium text-amber-800">
-                                    Early Leave Coverage
-                                </Typography>
+                            <Box className="flex items-center justify-between mb-2.5">
+                                <Box className="flex items-center gap-2">
+                                    <ExitToApp fontSize="small" className="text-amber-700" />
+                                    <Typography variant="body2" className="font-medium text-amber-800">
+                                        Early Leave Coverage
+                                    </Typography>
+                                </Box>
+                                <ToggleButtonGroup
+                                    size="small"
+                                    exclusive
+                                    value={coverageMode}
+                                    onChange={(e, val) => val && setCoverageMode(val)}
+                                    className="bg-white"
+                                >
+                                    <ToggleButton value="duration" className="!px-3 !py-0.5 !text-xs !normal-case">
+                                        By Duration
+                                    </ToggleButton>
+                                    <ToggleButton value="time" className="!px-3 !py-0.5 !text-xs !normal-case">
+                                        By Clock Time
+                                    </ToggleButton>
+                                </ToggleButtonGroup>
                             </Box>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                type="number"
-                                label="Hours to regularize"
-                                placeholder="Leave blank for full day (100%)"
-                                value={regularizedHours}
-                                onChange={(e) => setRegularizedHours(e.target.value)}
-                                inputProps={{ step: 0.5, min: 0 }}
-                                className="bg-white"
-                            />
-                            <Typography variant="caption" className="text-amber-700 block mt-1.5 leading-snug">
-                                Only the specified hours will be excused. Any early-leave time beyond
-                                this will still reduce the day's completion %. Leave blank to fully
-                                excuse the day (100%).
-                            </Typography>
+
+                            {coverageMode === 'duration' ? (
+                                <>
+                                    <Box className="grid grid-cols-2 gap-3">
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            type="number"
+                                            label="Hours"
+                                            placeholder="0"
+                                            value={regularizedHours}
+                                            onChange={(e) => setRegularizedHours(e.target.value)}
+                                            inputProps={{ step: 1, min: 0 }}
+                                            className="bg-white"
+                                        />
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            type="number"
+                                            label="Minutes"
+                                            placeholder="0"
+                                            value={regularizedMinutes}
+                                            onChange={(e) => setRegularizedMinutes(e.target.value)}
+                                            inputProps={{ step: 1, min: 0, max: 59 }}
+                                            className="bg-white"
+                                        />
+                                    </Box>
+                                    <Typography variant="caption" className="text-amber-700 block mt-1.5 leading-snug">
+                                        Only the specified hours/minutes will be excused. Any early-leave
+                                        time beyond this will still reduce the day's completion %. Leave
+                                        both blank to fully excuse the day (100%).
+                                    </Typography>
+                                </>
+                            ) : (
+                                <>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        type="time"
+                                        label="Allowed to leave from"
+                                        value={regularizedFromTime}
+                                        onChange={(e) => setRegularizedFromTime(e.target.value)}
+                                        InputLabelProps={{ shrink: true }}
+                                        className="bg-white"
+                                    />
+                                    <Typography variant="caption" className="text-amber-700 block mt-1.5 leading-snug">
+                                        If the employee punched out at or after this time, the day is
+                                        fully excused (100%). If they left earlier than this, the
+                                        remaining gap will still reduce the day's completion %. Leave
+                                        blank to fully excuse the day (100%).
+                                    </Typography>
+                                </>
+                            )}
                         </Box>
                     )}
 
