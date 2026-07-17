@@ -36,7 +36,7 @@ interface LocationItem {
   totalEmployeesToday: number
 }
 
-type PunchGroupKey = 'onTime' | 'grace' | 'late' | 'none'
+type PunchGroupKey = 'onTime' | 'grace' | 'late' | 'halfday' | 'none'
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 
@@ -215,6 +215,8 @@ const PUNCH_GROUPS: Record<
   onTime: { label: 'Before 10:00 AM', color: '#22c55e', bg: '#ecfdf5', border: '#a7f3d0' },
   grace: { label: '10:00 – 10:15 AM', color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
   late: { label: 'After 10:15 AM', color: '#ef4444', bg: '#fef2f2', border: '#fecaca' },
+  halfday: { label: 'After 01:15 PM', color: '#ef4444', bg: '#fef2f2', border: '#fecaca' },
+
 }
 
 const NONE_GROUP = { label: 'No Punch Recorded', color: '#94a3b8', bg: '#f8fafc', border: '#e2e8f0' }
@@ -476,17 +478,19 @@ const EmployeeAttendanceStatus: React.FC = () => {
     if (!parsed) return 'none'
     const tenAM = parsed.clone().hour(10).minute(0).second(0)
     const tenFifteen = parsed.clone().hour(10).minute(15).second(0)
+    const onePFifteen = parsed.clone().hour(13).minute(15).second(0)
 
     if (parsed.isBefore(tenAM)) return 'onTime'
     if (!parsed.isAfter(tenFifteen)) return 'grace'
+    if (parsed.isAfter(onePFifteen)) return 'halfday'
     return 'late'
   }
-
   const buildGroupedEmployees = (list: any[]) => {
     const groups: Record<PunchGroupKey, any[]> = {
       onTime: [],
       grace: [],
       late: [],
+      halfday: [],
       none: [],
     }
 
@@ -501,7 +505,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
       groups[group].push({ item, employee, parsed })
     })
 
-      ; (['onTime', 'grace', 'late', 'none'] as PunchGroupKey[]).forEach((key) => {
+      ; (['onTime', 'grace', 'late', 'halfday', 'none'] as PunchGroupKey[]).forEach((key) => {
         groups[key].sort((a, b) => {
           const timeA = a.parsed ? a.parsed.format('HH:mm:ss') : '23:59:59'
           const timeB = b.parsed ? b.parsed.format('HH:mm:ss') : '23:59:59'
@@ -632,7 +636,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
                 {/* Present / Absent clickable badges */}
                 <Box display='flex' gap={1} mt={0.8} onClick={(e) => e.stopPropagation()}>
                   <Box
-                    onClick={() => handleOpenList('Present Employees', employeeCounts.employeeList, 'present')}
+                    onClick={() => handleOpenList('Present hhhh', employeeCounts.employeeList, 'present')}
                     sx={{
                       background: 'rgba(255,255,255,0.25)', borderRadius: '8px',
                       px: 1, py: 0.3, cursor: 'pointer',
@@ -862,7 +866,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
 
           {!dialogLoading && selectedEmployees.length > 0 && (
             <>
-              {(['onTime', 'grace', 'late', 'none'] as PunchGroupKey[]).map((key) => {
+              {(['onTime', 'grace', 'late', 'halfday', 'none'] as PunchGroupKey[]).map((key) => {
                 const groupList = groupedSelectedEmployees[key]
                 if (!groupList || groupList.length === 0) return null
 
