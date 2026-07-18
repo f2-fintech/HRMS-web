@@ -446,6 +446,40 @@ const PunchesPage: React.FC = () => {
             setError(err instanceof Error ? err.message : "Something went wrong while saving regularization");
         }
     };
+
+    const handleDownloadAll = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const [year, monthNum] = month.split('-');
+
+            const response = await axios.get(
+                `${process.env.NEXT_PUBLIC_APP_URL}/punch-analytics/company-monthly/export`,
+                {
+                    params: {
+                        month: parseInt(monthNum, 10),
+                        year: parseInt(year, 10),
+                        company_id: getCompanyId(),
+                    },
+                    responseType: 'blob',
+                }
+            );
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `attendance-report-${month}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to download report', err);
+            setError('Failed to download the report. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
     const formatTime = (timeStr: string): string => {
         try {
             if (timeStr === "") {
@@ -620,7 +654,18 @@ const PunchesPage: React.FC = () => {
                             {loading ? <CircularProgress size={20} /> : <Refresh />}
                         </IconButton>
                     </Tooltip>
-                </Box><Button
+                </Box>
+                <Button
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<Download />}
+                    onClick={handleDownloadAll}
+                    disabled={loading || !month}
+                >
+                    Download All Employees (Excel)
+                </Button>
+
+                <Button
                     variant="contained"
                     color="secondary"
                     // disabled={!selectedEmployee}
@@ -628,6 +673,9 @@ const PunchesPage: React.FC = () => {
                 >
                     Attendance Regularization
                 </Button>
+
+
+
 
                 {loading && (
                     <Box className="text-center py-4">
