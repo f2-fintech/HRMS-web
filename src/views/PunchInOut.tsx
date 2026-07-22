@@ -786,11 +786,17 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [userData, setUserData] = useState(null)
     const [isMobileDevice, setIsMobileDevice] = useState(false);
 
-    const [punchType, setPunchType] = useState<'HOME' | 'OFFICE' | 'FIELD'>('OFFICE');
-    const [showFieldModal, setShowFieldModal] = useState(false);
+    const [punchType, setPunchType] = useState<'HOME' | 'OFFICE' | 'FIELD'>(() => {
+        if (typeof window !== 'undefined') {
+            return (localStorage.getItem('punchType') as 'HOME' | 'OFFICE' | 'FIELD') || 'OFFICE';
+        }
+        return 'OFFICE';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('punchType', punchType);
+    }, [punchType]); const [showFieldModal, setShowFieldModal] = useState(false);
     const [showPunchInImageModal, setShowPunchInImageModal] = useState(false);
-
-
     const { settings } = useSettings()
     const router = useRouter()
     const isWhitelistedUser = WHITELIST_EMPLOYEE_IDS.includes(employeeId);
@@ -879,6 +885,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 .then(punchData => {
                     if (punchData.length > 0) {
                         const latestPunch = punchData[punchData.length - 1]
+
                         stopPunchTimer()
                         if (!latestPunch.punchOut) {
                             const punchInTimestamp = new Date(`${selectedDate} ${latestPunch.punchIn}`).getTime()
@@ -943,6 +950,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
             await dispatch(addPunch(formData)).unwrap();
         } else {
+
             const punchData = { punchIn: startTime, punchOut: '', totalTime: '00h 00m 00s', type: punchType, date: currentDate, employee: employeeId, company_id: company_id }
             await dispatch(addPunch(punchData)).unwrap();
         }
