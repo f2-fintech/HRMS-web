@@ -22,7 +22,8 @@ import CloseIcon from '@mui/icons-material/Close'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
 import Loader from '@/components/loader/loader'
 import LocationCard from './LocationCard'
-
+import DownloadIcon from "@mui/icons-material/Download";
+import { Button } from "@mui/material";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface LocationItem {
@@ -440,6 +441,37 @@ const EmployeeAttendanceStatus: React.FC = () => {
     fetchTodaysPunches()
   }, [])
 
+  const downloadEmployeeList = async () => {
+    try {
+      const today = dayjs().format('YYYY-MM-DD');
+      const params = new URLSearchParams({ date: today });
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/punch/export-shift-summary?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${dialogTitle}_${today}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
+
   // ─── Totals ────────────────────────────────────────────────────────────────
 
   let totalPresent = 0
@@ -636,7 +668,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
                 {/* Present / Absent clickable badges */}
                 <Box display='flex' gap={1} mt={0.8} onClick={(e) => e.stopPropagation()}>
                   <Box
-                    onClick={() => handleOpenList('Present hhhh', employeeCounts.employeeList, 'present')}
+                    onClick={() => handleOpenList('Present Employees', employeeCounts.employeeList, 'present')}
                     sx={{
                       background: 'rgba(255,255,255,0.25)', borderRadius: '8px',
                       px: 1, py: 0.3, cursor: 'pointer',
@@ -829,7 +861,7 @@ const EmployeeAttendanceStatus: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             pb: 1,
-            pt: 2.5,
+            pt: 1.5,
             px: 3,
             fontWeight: 700,
             fontSize: '1rem',
@@ -863,7 +895,22 @@ const EmployeeAttendanceStatus: React.FC = () => {
               </Typography>
             </Box>
           )}
-
+          <Box display="flex" justifyContent="flex-end" px={3} pb={1}>
+            {selectedEmployees.length > 0 && dialogTitle.toLowerCase().includes('present') && (
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<DownloadIcon />}
+                onClick={downloadEmployeeList}
+                sx={{
+                  borderRadius: "10px",
+                  textTransform: "none",
+                }}
+              >
+                Download
+              </Button>
+            )}
+          </Box>
           {!dialogLoading && selectedEmployees.length > 0 && (
             <>
               {(['onTime', 'grace', 'late', 'halfday', 'none'] as PunchGroupKey[]).map((key) => {
