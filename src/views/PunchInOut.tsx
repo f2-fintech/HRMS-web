@@ -1660,6 +1660,21 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         {/* Attendance Logs */}
                         <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 border-t border-gray-200">
                             <h2 className="text-xl font-semibold text-gray-800 mb-6">Attendance Logs</h2>
+                             {currentPunch?.type && (
+                                <div className="mb-4">
+                                    <span
+                                        className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
+                                            currentPunch.type === 'HOME'
+                                                ? 'bg-green-100 text-green-700'
+                                                : currentPunch.type === 'FIELD'
+                                                ? 'bg-yellow-100 text-yellow-700'
+                                                : 'bg-blue-100 text-blue-700'
+                                        }`}
+                                    >
+                                        {currentPunch.type === 'HOME' ? '🏠 HOME' : currentPunch.type === 'FIELD' ? '🚶 FIELD' : '🏢 OFFICE'}
+                                    </span>
+                                </div>
+                            )}
                             <div className="grid grid-cols-3 gap-4 w-full mb-6 text-center">
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Day Begin</h4>
