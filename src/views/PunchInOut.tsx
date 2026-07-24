@@ -44,7 +44,8 @@ const WHITELIST_EMPLOYEE_IDS = [
     '6a420106be086a0676598d9e',
     '681ddea86b6892f37f901890',
     '696f74810a625c190684c6f5',
-    '6a38c759faa94b723931bca5'
+    '6a38c759faa94b723931bca5',
+    '6a54bdac51196b767850dc37'
 ];
 
 const formatTime = (obj: any) => {
@@ -94,6 +95,34 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
 
     const [selectedPunch, setSelectedPunch] = React.useState<any>(null);
     const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
+
+    // 👈 NEW: re-render every second so running punches show a live-ticking total time
+    const [, setTick] = React.useState(0)
+    React.useEffect(() => {
+        const interval = setInterval(() => setTick(t => t + 1), 1000)
+        return () => clearInterval(interval)
+    }, [])
+
+    // 👈 NEW: for a running punch, calculate elapsed time live instead of showing the stale DB totalTime
+    const getLiveTotalTime = (p: any): string => {
+        if (p.punchOut) return p.totalTime || '00h 00m 00s'
+
+        const nowStr = new Date().toLocaleTimeString('en-GB', {
+            timeZone: 'Asia/Kolkata',
+            hour12: false,
+        })
+
+        const startDate = new Date(`${selectedDate}T${p.punchIn}+05:30`)
+        const endDate = new Date(`${selectedDate}T${nowStr}+05:30`)
+
+        const diffSec = Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / 1000))
+
+        const h = Math.floor(diffSec / 3600)
+        const m = Math.floor((diffSec % 3600) / 60)
+        const s = diffSec % 60
+
+        return `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`
+    }
 
     const homeSec = toSeconds(totalWorkingHours?.HOME)
     const officeSec = toSeconds(totalWorkingHours?.OFFICE)
@@ -164,10 +193,29 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                                         {p.punchIn} → {p.punchOut || 'Running'}
                                     </div>
                                     <div style={{ color: '#64748b', fontSize: '11px' }}>{p.type}</div>
+
+                                    {/* Switch logs (if backend returns them) */}
+                                    {/* Switch logs (if backend returns them) */}
+                                    {p.switchLogs?.length > 1 && (
+                                        <div style={{ color: '#64748b', fontSize: '10px', marginTop: 4 }}>
+                                            {p.switchLogs.map((s: any, idx: number) => (
+                                                <span key={idx}>
+                                                    {s.type}@{s.time}
+                                                    {s.image && (
+                                                        <span
+                                                            onClick={(e) => { e.stopPropagation(); setLightboxSrc(s.image) }}
+                                                            style={{ cursor: 'pointer', marginLeft: 2 }}
+                                                        >📷</span>
+                                                    )}
+                                                    {idx < p.switchLogs.length - 1 ? ' → ' : ''}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <div style={{ color: '#22c55e' }}>{p.totalTime}</div>
+                                    <div style={{ color: '#22c55e' }}>{getLiveTotalTime(p)}</div>
 
                                     {/* 👁 BUTTON */}
                                     <span
@@ -215,8 +263,53 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                     </div>
 
                     {/* Total */}
-                    <div style={{ marginTop: '10px', color: '#fff' }}>
-                        Total Time After Taking Break: {formatTime(totalWorkingHours?.total)}
+                    <div
+                        style={{
+                            marginTop: '16px',
+                            padding: '12px',
+                            background: '#020617',
+                            borderRadius: '10px',
+                            color: '#fff',
+                        }}
+                    >
+                        <div style={{ fontWeight: 600, marginBottom: '8px' }}>
+                            Type Switching Summary
+                        </div>
+                        {punch?.[punch.length - 1]?.switchLogs?.map((log: any, index: number) => (
+                            <div
+                                key={index}
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '6px',
+                                    fontSize: '13px',
+                                }}
+                            >
+                                <span>{log.time}</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    {log.type}
+                                    {log.image && (
+                                        <img
+                                            src={log.image}
+                                            alt="switch location"
+                                            onClick={() => setLightboxSrc(log.image)}
+                                            style={{
+                                                width: 28, height: 28, objectFit: 'cover',
+                                                borderRadius: 6, cursor: 'zoom-in',
+                                                border: '1px solid #334155'
+                                            }}
+                                        />
+                                    )}
+                                </span>
+                            </div>
+                        ))}
+
+                        <hr style={{ margin: '10px 0', borderColor: '#334155' }} />
+
+                        <div style={{ fontWeight: 600 }}>
+                            Total Working Time: {formatTime(totalWorkingHours?.total)}
+                        </div>
                     </div>
                 </div>
 
@@ -774,7 +867,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [showHoursModal, setShowHoursModal] = useState(false)
     const [openProfileSnackbar, setOpenProfileSnackbar] = useState(true)
     const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)   // 👈 full-view photo lightbox
-
+    const [switching, setSwitching] = useState(false)   // 👈 NEW: type-switch in-flight flag
+    // 👈 NEW: type-switch in-flight flag
+    const [showSwitchImageModal, setShowSwitchImageModal] = useState(false)   // 👈 NEW: FIELD switch photo modal
+    const [pendingSwitchType, setPendingSwitchType] = useState<'HOME' | 'OFFICE' | 'FIELD' | null>(null)   // 👈 NEW
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id;
     const userRole = employee?.role
@@ -891,6 +987,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             const punchInTimestamp = new Date(`${selectedDate} ${latestPunch.punchIn}`).getTime()
                             setPunchState({ ...punchState, isPunchIn: true, startTime: latestPunch.punchIn, isPunchInDisabled: true, isPunchOutDisabled: false })
                             setStartTimestamp(punchInTimestamp)
+
+                            if (latestPunch.type && ['HOME', 'OFFICE', 'FIELD'].includes(latestPunch.type)) {
+                                setPunchType(latestPunch.type)
+                            }
                             if (!selectedEmployeeId || isCurrentDate) {
                                 startPunchInTimer(punchInTimestamp)
                             } else {
@@ -1051,6 +1151,94 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }));
     };
 
+    // ── NEW: switch active punch's type in place, WITHOUT punching out ──
+    const handleTypeClick = async (newType: 'HOME' | 'OFFICE' | 'FIELD') => {
+        if (newType === punchType) return
+
+        // Not punched in yet → just change the selection locally (old behavior)
+        if (!punchState.isPunchIn) {
+            setPunchType(newType)
+            return
+        }
+
+        // Already punched in → call switch API, no punch-out involved
+        if (isMobileDevice && !isWhitelistedUser) {
+            alert('🚫 Mobile/Tablet devices are not allowed for switching type.')
+            return
+        }
+
+        // 👈 NEW: FIELD me switch karte time pehle photo lo (jaise Punch In FIELD me hota hai)
+        if (newType === 'FIELD') {
+            setPendingSwitchType(newType)
+            setShowSwitchImageModal(true)
+            return
+        }
+
+        const confirmSwitch = window.confirm(`Switch from ${punchType} to ${newType}?`)
+        if (!confirmSwitch) return
+
+        await doSwitchType(newType)
+    }
+
+    // 👈 NEW: actual switch API call — image ke saath ya bina
+    const doSwitchType = async (newType: 'HOME' | 'OFFICE' | 'FIELD', imageFile?: File) => {
+        setSwitching(true)
+        try {
+            let response: Response
+
+            if (imageFile) {
+                const formData = new FormData()
+                formData.append('type', newType)
+                formData.append('image', imageFile)
+
+                response = await fetch(
+                    `${process.env.NEXT_PUBLIC_APP_URL}/punch/switch-type/${employeeId}`,
+                    {
+                        method: 'PUT',
+                        body: formData, // 👈 Content-Type header mat lagao, browser khud set karega
+                    }
+                )
+            } else {
+                response = await fetch(
+                    `${process.env.NEXT_PUBLIC_APP_URL}/punch/switch-type/${employeeId}`,
+                    {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: newType }),
+                    }
+                )
+            }
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}))
+                throw new Error(err.message || 'Failed to switch punch type')
+            }
+
+            await response.json()
+
+            setPunchType(newType)
+            dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
+            dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
+        } catch (err: any) {
+            alert(err?.message || 'Failed to switch punch type. Please try again.')
+        } finally {
+            setSwitching(false)
+        }
+    }
+
+    // 👈 NEW: PunchInImageModal se image submit hone par ye call hoga
+    const handleSwitchImageSubmit = async (file?: File) => {
+        if (!pendingSwitchType) return
+        try {
+            await doSwitchType(pendingSwitchType, file)
+            setShowSwitchImageModal(false)
+            setPendingSwitchType(null)
+        } catch (err) {
+            console.error('Error submitting switch image:', err)
+            alert('Failed to switch type. Please try again.')
+        }
+    }
+
     useEffect(() => {
         if (punch.length > 0) {
             const latestPunch = punch[punch.length - 1];
@@ -1059,6 +1247,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     ...prev, isPunchIn: true, startTime: latestPunch.punchIn,
                     isPunchInDisabled: true, isPunchOutDisabled: false
                 }));
+                if (latestPunch.type && ['HOME', 'OFFICE', 'FIELD'].includes(latestPunch.type)) {
+                    setPunchType(latestPunch.type)
+                }
             } else {
                 setPunchState(prev => ({
                     ...prev, isPunchIn: false, startTime: latestPunch.punchIn,
@@ -1157,6 +1348,27 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         onSubmit={handlePunchInImageSubmit}
                     />
                 )}
+
+                {/* Field Punch In Image Modal */}
+                {showPunchInImageModal && (
+                    <PunchInImageModal
+                        onClose={() => setShowPunchInImageModal(false)}
+                        onSubmit={handlePunchInImageSubmit}
+                    />
+                )}
+
+                {/* Field Switch Image Modal */}
+                {showSwitchImageModal && (
+                    <PunchInImageModal
+                        onClose={() => {
+                            setShowSwitchImageModal(false)
+                            setPendingSwitchType(null)
+                        }}
+                        onSubmit={handleSwitchImageSubmit}
+                    />
+                )}
+
+                {/* Field Punch Out Modal */}
 
                 {showFieldModal && (
                     <FieldPunchOutModal
@@ -1260,11 +1472,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         {['HOME', 'OFFICE', 'FIELD'].map((t) => (
                             <button
                                 key={t}
-                                onClick={() => setPunchType(t as any)}
-                                disabled={punchState.isPunchIn}
-                                className={`px-3 py-1 rounded text-xs font-medium ${punchType === t ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white'} ${punchState.isPunchIn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                onClick={() => handleTypeClick(t as any)}
+                                disabled={switching || disablePunch || isPunchDisabledDueToMobile}
+                                className={`px-3 py-1 rounded text-xs font-medium ${punchType === t ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white'} ${switching || isPunchDisabledDueToMobile ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                title={punchState.isPunchIn ? 'Switch active punch to this type (no punch-out needed)' : ''}
                             >
-                                {t}
+                                {switching && punchType !== t ? '...' : t}
                             </button>
                         ))}
                     </div>
@@ -1394,11 +1607,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 {['HOME', 'OFFICE', 'FIELD'].map((t) => (
                                     <button
                                         key={t}
-                                        onClick={() => setPunchType(t as any)}
-                                        disabled={punchState.isPunchIn}
-                                        className={`px-3 py-1 rounded text-xs font-medium ${punchType === t ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-300'} ${punchState.isPunchIn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        onClick={() => handleTypeClick(t as any)}
+                                        disabled={switching || disablePunch || isPunchDisabledDueToMobile}
+                                        className={`px-3 py-1 rounded text-xs font-medium ${punchType === t ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-300'} ${switching || isPunchDisabledDueToMobile ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        title={punchState.isPunchIn ? 'Switch active punch to this type (no punch-out needed)' : ''}
                                     >
-                                        {t}
+                                        {switching && punchType !== t ? '...' : t}
                                     </button>
                                 ))}
                             </div>
