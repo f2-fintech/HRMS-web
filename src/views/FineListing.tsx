@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { Box, Button, Dialog, DialogContent, Typography, Grid } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import type { Dayjs } from 'dayjs'
@@ -13,11 +14,6 @@ import ConfirmDeleteDialog from '@/components/fine/ConfirmDeleteDialog'
 import FineFormDialog from '@/components/fine/FineFormDialog'
 import { useFineListing } from '@/components/fine/useFineListing'
 
-/**
- * FineListing - Main container component that uses
- * a custom hook (useFineListing) to manage all logic/state,
- * and child components for each distinct UI section.
- */
 const FineListing = () => {
   const {
     // State
@@ -46,6 +42,57 @@ const FineListing = () => {
     month,
     year
   } = useFineListing()
+
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportExcel = async () => {
+    try {
+      setExporting(true)
+
+      const token = localStorage.getItem('token')
+      const userData = localStorage.getItem('user')
+
+      if (!token || !userData) {
+        setToast?.('error', 'You are not logged in')
+        return
+      }
+
+      const { company_id } = JSON.parse(userData)
+
+      const params = new URLSearchParams()
+      if (selectedKeyword) params.append('keyword', selectedKeyword)
+      if (month) params.append('month', String(month))
+      if (year) params.append('year', String(year))
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/fines/export/excel?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Fines_${month || 'all'}_${year || new Date().getFullYear()}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      setToast?.('error', 'Excel export failed')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <>
@@ -80,17 +127,28 @@ const FineListing = () => {
             </Typography>
           </Box>
 
-          {userRole === '1' && (
+          <Box display='flex' gap={1}>
             <Button
-              sx={{ backgroundColor: '#ff902f' }}
-              variant='contained'
-              color='primary'
-              startIcon={<AddIcon />}
-              onClick={handleAddFine}
+              variant='outlined'
+              startIcon={<FileDownloadIcon />}
+              onClick={handleExportExcel}
+              disabled={exporting}
             >
-              Add Fine
+              {exporting ? 'Exporting...' : 'Export Excel'}
             </Button>
-          )}
+
+            {userRole === '1' && (
+              <Button
+                sx={{ backgroundColor: '#ff902f' }}
+                variant='contained'
+                color='primary'
+                startIcon={<AddIcon />}
+                onClick={handleAddFine}
+              >
+                Add Fine
+              </Button>
+            )}
+          </Box>
         </Box>
 
         {/* Search and Date Filters */}
