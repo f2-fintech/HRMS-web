@@ -13,7 +13,7 @@ import type { RootState } from '@/redux/store'
 import useRouterWithMount from '@/utility/useRouterWithMount';
 import { useSettings } from '@/@core/hooks/useSettings';
 import { useRouter } from 'next/navigation'
-import Snackbar from '@mui/material/Snackbar'//new
+import Snackbar from '@mui/material/Snackbar'
 import MuiAlert from '@mui/material/Alert'
 
 interface PunchInOutProps {
@@ -45,7 +45,8 @@ const WHITELIST_EMPLOYEE_IDS = [
     '681ddea86b6892f37f901890',
     '696f74810a625c190684c6f5',
     '6a38c759faa94b723931bca5',
-    '6a54bdac51196b767850dc37'
+    '6a54bdac51196b767850dc37',
+    '6a434608e73b67d9fe490eb2'
 ];
 
 const formatTime = (obj: any) => {
@@ -686,7 +687,7 @@ const FieldPunchOutModal: React.FC<{
     )
 }
 
-// ─── Field Punch In Image Modal ────────────────────────────────────────────────
+// ─── Field Punch In Image Modal ─────────────────────────────────────
 const PunchInImageModal: React.FC<{
     onClose: () => void
     onSubmit: (file: File) => void
