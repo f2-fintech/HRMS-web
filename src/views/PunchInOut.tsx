@@ -46,7 +46,8 @@ const WHITELIST_EMPLOYEE_IDS = [
     '696f74810a625c190684c6f5',
     '6a38c759faa94b723931bca5',
     '6a54bdac51196b767850dc37',
-    '6a434608e73b67d9fe490eb2'
+    '6a434608e73b67d9fe490eb2',
+    '66bf020e2f1270380b77ad5b'
 ];
 
 const formatTime = (obj: any) => {
