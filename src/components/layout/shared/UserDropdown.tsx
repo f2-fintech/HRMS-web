@@ -36,6 +36,7 @@ const UserDropdown = () => {
   // States
   const [open, setOpen] = useState(false)
   const [userData, setUserData] = useState<any>(null)
+  const [loggingOut, setLoggingOut] = useState(false)
   const dispatch = useDispatch()
 
   // Refs
@@ -60,7 +61,6 @@ const UserDropdown = () => {
     if (anchorRef.current && anchorRef.current.contains(event?.target as HTMLElement)) {
       return
     }
-
     dispatch({ type: 'RESET' })
 
     localStorage.clear()
@@ -75,6 +75,33 @@ const UserDropdown = () => {
     }
 
     setOpen(false)
+  }
+
+  const handleLogout = async () => {
+    if (loggingOut) return
+    setLoggingOut(true)
+
+    const token = localStorage.getItem('token')
+
+    if (token) {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        })
+      } catch (error) {
+        console.error('Error updating session on logout:', error)
+      }
+    }
+
+    dispatch({ type: 'RESET' })
+
+    localStorage.clear()
+
+    router.push('/login')
+    setOpen(false)
+    setLoggingOut(false)
   }
 
   useEffect(() => {
@@ -169,11 +196,12 @@ const UserDropdown = () => {
                       variant='contained'
                       color='error'
                       size='small'
+                      disabled={loggingOut}
                       endIcon={<i className='ri-logout-box-r-line' />}
-                      onClick={e => handleDropdownClose(e, '/login')}
+                      onClick={handleLogout}
                       sx={{ '& .MuiButton-endIcon': { marginInlineStart: 1.5 } }}
                     >
-                      Logout
+                      {loggingOut ? 'Logging out...' : 'Logout'}
                     </Button>
                   </div>
                 </MenuList>
