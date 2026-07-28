@@ -508,9 +508,9 @@ const EmployeeAttendanceStatus: React.FC = () => {
 
   const getPunchGroup = (parsed: dayjs.Dayjs | null): PunchGroupKey => {
     if (!parsed) return 'none'
-    const tenAM = parsed.clone().hour(10).minute(0).second(0)
-    const tenFifteen = parsed.clone().hour(10).minute(15).second(0)
-    const onePFifteen = parsed.clone().hour(13).minute(15).second(0)
+    const tenAM = parsed.clone().hour(10).minute(0).second(59)
+    const tenFifteen = parsed.clone().hour(10).minute(15).second(59)
+    const onePFifteen = parsed.clone().hour(13).minute(15).second(59)
 
     if (parsed.isBefore(tenAM)) return 'onTime'
     if (!parsed.isAfter(tenFifteen)) return 'grace'
