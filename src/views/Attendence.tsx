@@ -56,9 +56,9 @@ import DateCalendarServerRequest from '@/components/attendance/DateCalendarServe
 import Legend from '@/components/attendance/Legend'
 import AttendanceStatusList from '@/components/attendance/AttendanceStatusList'
 import LocationDropdown from '@/utility/locationdropdown/LocationDropdown'
-import { fetchMonthlyAttendanceSummary } from '@/utility/apiResponse/employeesResponse'
 import useDebounce from '@/utility/debounce/useDebounce'
 import AttendanceCard from '@/components/attendancecard/AttendanceCard'
+import { fetchMonthlyAttendanceSummary, fetchYearlyAttendanceSummary } from '@/utility/apiResponse/employeesResponse'
 
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch()
@@ -178,7 +178,74 @@ export default function AttendanceGrid() {
       console.error(error)
     }
   }
+const handleExportYearlyAttendance = async () => {
+  try {
+    setError(null)
 
+    const employeesData = await fetchYearlyAttendanceSummary(year)
+
+    if (!employeesData || employeesData.length === 0) {
+      setError('No data available to export')
+      return
+    }
+
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ]
+
+    const fileName = `${year} yearly attendance_summary.csv`
+
+    // Header: Employee Name, Location, Jan Total Leave, Feb Total Leave ... Dec Total Leave, Year Total Leave
+    const header = [
+      'Employee Name',
+      'Location',
+      ...monthNames.map(m => `${m} Total Leave`),
+      'Year Total Leave'
+    ]
+
+    const rows = employeesData.map(emp => {
+      const monthlyLeaves = (emp.months || []).map(m => {
+        const half = m.statuses?.['On Half'] || 0
+        const leave = m.statuses?.['On Leave'] || 0
+        const absent = m.statuses?.Absent || 0
+
+        return absent + leave + half * 0.5
+      })
+
+      const yearHalf = emp.yearTotal?.['On Half'] || 0
+      const yearLeave = emp.yearTotal?.['On Leave'] || 0
+      const yearAbsent = emp.yearTotal?.Absent || 0
+      const yearTotalLeave = yearAbsent + yearLeave + yearHalf * 0.5
+
+      return [
+        emp.employeeName || '',
+        emp.location || '',
+        ...monthlyLeaves,
+        yearTotalLeave
+      ]
+    })
+
+    const csvContent = [header, ...rows].map(row => row.join(',')).join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob)
+
+      link.setAttribute('href', url)
+      link.setAttribute('download', fileName)
+
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+  } catch (error: any) {
+    setError(error.message || 'Failed to export yearly attendance data')
+    console.error(error)
+  }
+}
   const debouncedSearchName = useDebounce(searchName, 500)
   const debouncedSearchLocation = useDebounce(searchLocation, 500)
 
@@ -531,7 +598,7 @@ export default function AttendanceGrid() {
           </Grid>
         </Box>
         {userRole === '1' && (
-          <Grid container spacing={6} alignItems='center' mb={2}>
+          <Grid container spacing={2} alignItems='center' mb={2}>
             {/* Employee Name Text Field */}
             <Grid item xs={12} md={4}>
               <TextField
@@ -551,52 +618,87 @@ export default function AttendanceGrid() {
             </Grid>
 
             {/* Location Dropdown */}
-            <Grid item xs={12} md={4}>
+            <Grid item xs={8} md={3}>
               <FormControl fullWidth>
                 <LocationDropdown selectedLocation={searchLocation} setSelectedLocation={setSearchLocation} />
               </FormControl>
             </Grid>
 
+
             {/* Export Button */}
-            <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                sx={{
-                  margin: '10px',
-                  padding: '15px 30px',
-                  textAlign: 'center',
-                  textTransform: 'uppercase',
-                  transition: '0.5s',
-                  backgroundSize: '200% auto',
-                  color: 'white',
-                  borderRadius: '10px',
-                  border: 0,
-                  fontWeight: 700,
-                  boxShadow: '0px 0px 14px -7px #F09819',
-                  backgroundImage: 'linear-gradient(45deg,rgb(30, 51, 104) 0%, #F09819 51%, #FF512F 100%)',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  '-webkit-user-select': 'none',
-                  touchAction: 'manipulation',
-                  height: '80%',
-                  minHeight: '50px',
-                  fontSize: '14px',
-                  '&:hover': {
-                    backgroundPosition: 'right center',
-                    color: '#fff',
-                    textDecoration: 'none'
-                  },
-                  '&:active': {
-                    transform: 'scale(0.95)'
-                  }
-                }}
-                variant='contained'
-                color='primary'
-                startIcon={<DownloadIcon />}
-                onClick={handleExportAttendance}
-              >
-                Export
-              </Button>
-            </Grid>
+<Grid
+  item
+  xs={12}
+  sx={{
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 2,
+    flexWrap: 'nowrap',
+    overflowX: 'auto',
+  }}
+>
+  <Button
+    sx={{
+      whiteSpace: 'nowrap',
+      padding: '15px 30px',
+      textTransform: 'uppercase',
+      transition: '0.5s',
+      backgroundSize: '200% auto',
+      color: 'white',
+      borderRadius: '10px',
+      border: 0,
+      fontWeight: 700,
+      boxShadow: '0px 0px 14px -7px #F09819',
+      backgroundImage:
+        'linear-gradient(45deg,rgb(30, 51, 104) 0%, #F09819 51%, #FF512F 100%)',
+      minHeight: '50px',
+      fontSize: '14px',
+      '&:hover': {
+        backgroundPosition: 'right center',
+      },
+      '&:active': {
+        transform: 'scale(0.95)',
+      },
+    }}
+    variant="contained"
+    startIcon={<DownloadIcon />}
+    onClick={handleExportAttendance}
+  >
+    Monthly Leave
+  </Button>
+
+  <Button
+    sx={{
+      whiteSpace: 'nowrap',
+      padding: '15px 30px',
+      textTransform: 'uppercase',
+      transition: '0.5s',
+      backgroundSize: '200% auto',
+      color: 'white',
+      borderRadius: '10px',
+      border: 0,
+      fontWeight: 700,
+      boxShadow: '0px 0px 14px -7px #1E3368',
+      backgroundImage:
+        'linear-gradient(45deg, #1E3368 0%, #2E7D32 51%, #66BB6A 100%)',
+      minHeight: '50px',
+      fontSize: '14px',
+      '&:hover': {
+        backgroundPosition: 'right center',
+      },
+      '&:active': {
+        transform: 'scale(0.95)',
+      },
+    }}
+    variant="contained"
+    color="success"
+    startIcon={<DownloadIcon />}
+    onClick={handleExportYearlyAttendance}
+  >
+    Yearly Leave
+  </Button>
+</Grid>
           </Grid>
         )}
       </Box>
