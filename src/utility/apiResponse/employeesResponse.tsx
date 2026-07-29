@@ -1,4 +1,3 @@
-
 import { utility } from "..";
 
 export const apiResponse = async (): Promise<any> => {
@@ -90,14 +89,16 @@ export const employeesCountResponse = async (): Promise<any> => {
   }
 };
 
-
-export const fetchMonthlyAttendanceSummary = async (month: number, year: number, page = 1, limit = 10, keyword = '', location = ''): Promise<any> => {
+// -----------------------------------------
+// Month wise summary (single month ka data)
+// -----------------------------------------
+export const fetchMonthlyAttendanceSummary = async (month: number, year: number): Promise<any> => {
   const token = localStorage?.getItem("token") || '{}';
   const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/attendence/monthly-summary?month=${month}&year=${year}&page=${page}&limit=${limit}&keyword=${keyword}&location=${location}`,
+      `${process.env.NEXT_PUBLIC_APP_URL}/attendence/monthly-summary?month=${month}&year=${year}`,
       {
         method: 'GET',
         headers: {
@@ -116,6 +117,38 @@ export const fetchMonthlyAttendanceSummary = async (month: number, year: number,
     return attendanceSummary;
   } catch (error) {
     console.error('Error fetching monthly attendance summary:', error);
+    throw error;
+  }
+};
+
+// -----------------------------------------
+// Year wise summary (poore saal ke 12 months ek sath + yearTotal)
+// -----------------------------------------
+export const fetchYearlyAttendanceSummary = async (year: number): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/attendence/yearly-summary?year=${year}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const attendanceSummary = await response.json();
+
+    return attendanceSummary;
+  } catch (error) {
+    console.error('Error fetching yearly attendance summary:', error);
     throw error;
   }
 };
@@ -149,5 +182,3 @@ export const fetchTotalShiftTime = async (date: string): Promise<any> => {
     throw error;
   }
 };
-
-
