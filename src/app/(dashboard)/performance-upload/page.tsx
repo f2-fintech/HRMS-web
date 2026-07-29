@@ -449,7 +449,7 @@ export default function PerformanceUploadPage() {
 
   const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
 
-  const isAsstOpsManager = ['Asst. Ops Manager','Ops Manager','Credit Executive','Assistant Growth Manager', 'Sr. Operations & Alliances Manager', 'Ops Executive']
+  const isAsstOpsManager = ['Asst. Ops Manager', 'Ops Manager', 'Credit Executive', 'Assistant Growth Manager', 'Sr. Operations & Alliances Manager', 'Ops Executive']
     .includes(user?.designation);
   const canUpload = isAdmin || isAsstOpsManager;
   const canAddRow = isAdmin || isAsstOpsManager;
@@ -638,31 +638,31 @@ export default function PerformanceUploadPage() {
   };
 
   const onDeleteByDate = async () => {
-  if (!dateStr) {
-    alert('Select date first');
-    return;
-  }
+    if (!dateStr) {
+      alert('Select date first');
+      return;
+    }
 
-  const confirmDelete = confirm(`Delete ALL data for ${dateStr}?`);
-  if (!confirmDelete) return;
+    const confirmDelete = confirm(`Delete ALL data for ${dateStr}?`);
+    if (!confirmDelete) return;
 
-  try {
-    const company_id =
-      localStorage.getItem('company_id') ||
-      JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
-      '';
+    try {
+      const company_id =
+        localStorage.getItem('company_id') ||
+        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        '';
 
-    await api.delete('/performance-upload/delete-by-date', {
-      params: { date: dateStr, company_id },
-    });
+      await api.delete('/performance-upload/delete-by-date', {
+        params: { date: dateStr, company_id },
+      });
 
-    alert('All records deleted for selected date');
-    await fetchList();
-  } catch (e) {
-    console.error(e);
-    alert('Delete failed');
-  }
-};
+      alert('All records deleted for selected date');
+      await fetchList();
+    } catch (e) {
+      console.error(e);
+      alert('Delete failed');
+    }
+  };
   const handleFormChange =
     (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -760,6 +760,10 @@ export default function PerformanceUploadPage() {
         | 'abnp',
     ) => rows.reduce((a, r) => a + Number(r[k] || 0), 0);
 
+    const totalGrossApproval = sum('gross_approval');
+    const totalGrossDisbursal = sum('gross_disbursal');
+    const totalDrop = sum('drop');
+
     return {
       logins: sum('login'),
       rejected: sum('rejected'),
@@ -767,11 +771,15 @@ export default function PerformanceUploadPage() {
       inProcess: sum('in_process'),
       approvals: sum('approval'),
       disbursal: sum('disbursal'),
-      drop: sum('drop'),
+      drop: totalDrop,
       cashback: sum('cashback'),
-      grossApproval: sum('gross_approval'),
-      grossDisbursal: sum('gross_disbursal'),
-      abnp: sum('abnp'),
+      grossApproval: totalGrossApproval,
+      grossDisbursal: totalGrossDisbursal,
+
+      abnp: Math.max(
+        totalGrossApproval - totalGrossDisbursal - totalDrop,
+        0,
+      ),
     };
   }, [rows]);
 
@@ -922,7 +930,7 @@ export default function PerformanceUploadPage() {
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#64748b', mt: 0.3 }}>
                   Daily login, approval, disbursal tracking panel
-                  {isFallbackDate }
+                  {isFallbackDate}
                 </Typography>
               </Box>
             </Box>
@@ -1065,27 +1073,27 @@ export default function PerformanceUploadPage() {
                 </>
               )}
               {canDeleteAll && (
-  <Button
-    size="small"
-    variant="contained"
-    startIcon={<DeleteIcon sx={{ fontSize: 18 }} />}
-    onClick={onDeleteByDate}
-    sx={{
-      borderRadius: 999,
-      textTransform: 'none',
-      fontWeight: 600,
-      px: 2.5,
-      bgcolor: '#dc2626',
-      boxShadow: '0 8px 20px rgba(220,38,38,0.35)',
-      '&:hover': { bgcolor: '#b91c1c' },
-    }}
-  >
-    Delete(datewise)
-  </Button>
-)}
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<DeleteIcon sx={{ fontSize: 18 }} />}
+                  onClick={onDeleteByDate}
+                  sx={{
+                    borderRadius: 999,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    px: 2.5,
+                    bgcolor: '#dc2626',
+                    boxShadow: '0 8px 20px rgba(220,38,38,0.35)',
+                    '&:hover': { bgcolor: '#b91c1c' },
+                  }}
+                >
+                  Delete(datewise)
+                </Button>
+              )}
             </Box>
           </Box>
-    
+
 
           <Box
             sx={{
