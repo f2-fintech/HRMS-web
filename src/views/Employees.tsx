@@ -39,6 +39,10 @@ export default function EmployeeGrid() {
   const [attendanceStatus, setAttendanceStatus] = useState({})
   const [showOnBreakOnly, setShowOnBreakOnly] = useState(false)
   const [showOnFieldOnly, setShowOnFieldOnly] = useState(false)
+
+  const [allEmployeesForFilter, setAllEmployeesForFilter] = useState<any[]>([])
+  const [filterLoading, setFilterLoading] = useState(false)
+
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const router = useRouter()
   const allowedRoles = [1, 6];
@@ -135,7 +139,7 @@ export default function EmployeeGrid() {
     }
   }
 
-
+  // Extracted so it can be reused (initial load + re-run when filters toggle)
   const fetchAttendanceStatus = async () => {
     try {
 
@@ -171,8 +175,6 @@ export default function EmployeeGrid() {
       )
 
       const leaveData = await leaveRes.json()
-      console.log('leaveData', leaveData)
-
 
       const halfRes = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/attendence/on-half/${today}`,
@@ -184,7 +186,6 @@ export default function EmployeeGrid() {
       )
 
       const halfData = await halfRes.json()
-      console.log('halfData', halfData)
 
       const statusMap = {}
 
@@ -219,7 +220,6 @@ export default function EmployeeGrid() {
         }
       })
 
-      // HALF DAY
       // HALF DAY
       halfData?.forEach((item: any) => {
 
@@ -264,7 +264,6 @@ export default function EmployeeGrid() {
         }
       })
 
-      console.log('statusMap', statusMap)
       setAttendanceStatus(statusMap)
 
     } catch (error) {
@@ -277,6 +276,55 @@ export default function EmployeeGrid() {
       fetchAttendanceStatus()
     }
   }, [token])
+
+
+  const fetchAllEmployeesForStatusFilter = async () => {
+    try {
+      setFilterLoading(true)
+
+      const companyId =
+        JSON.parse(localStorage.getItem('user') || '{}')?.company_id
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/employees/get?page=1&limit=10000&search=&designation=`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token} ${companyId}`
+          }
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch full employee list')
+      }
+
+      const data = await response.json()
+
+      // Match whatever shape employeesSlice already expects.
+      // Common shapes: { employees: [...] }, { data: [...] }, or just [...]
+      const list = Array.isArray(data)
+        ? data
+        : data.employees || data.data || []
+
+      setAllEmployeesForFilter(list)
+    } catch (error) {
+      console.error('Fetch all employees (filter) error:', error)
+      toast.error('Could not load full employee list for filtering.')
+    } finally {
+      setFilterLoading(false)
+    }
+  }
+
+  // Whenever either status filter is turned on, refresh both the
+  // attendance status map and the full employee list, so the filter
+  // is always working off fresh, complete data.
+  useEffect(() => {
+    if ((showOnBreakOnly || showOnFieldOnly) && token) {
+      fetchAttendanceStatus()
+      fetchAllEmployeesForStatusFilter()
+    }
+  }, [showOnBreakOnly, showOnFieldOnly, token])
 
   const debouncedSearchName = useDebounce(searchName, 500)
   const debouncedDesignation = useDebounce(selectedDesignation, 500)
@@ -433,17 +481,21 @@ export default function EmployeeGrid() {
     }
   }
 
+  const filterSourceList = (showOnBreakOnly || showOnFieldOnly)
+    ? allEmployeesForFilter
+    : employees
+
   const displayedEmployees = showOnBreakOnly
-    ? employees.filter(
+    ? filterSourceList.filter(
       (employee: any) =>
         attendanceStatus[employee._id?.toString()?.trim()] === 'BREAK'
     )
     : showOnFieldOnly
-      ? employees.filter(
+      ? filterSourceList.filter(
         (employee: any) =>
           attendanceStatus[employee._id?.toString()?.trim()] === 'FIELD'
       )
-      : employees
+      : filterSourceList
 
   return (
     <>
@@ -475,7 +527,10 @@ export default function EmployeeGrid() {
 
               <Button
                 variant='contained'
-                onClick={() => setShowOnBreakOnly(prev => !prev)}
+                onClick={() => {
+                  setShowOnBreakOnly(prev => !prev)
+                  if (!showOnBreakOnly) setShowOnFieldOnly(false)
+                }}
                 sx={{
                   backgroundColor: showOnBreakOnly ? '#1976d2' : '#e3f2fd',
                   borderRadius: '3rem',
@@ -602,7 +657,7 @@ export default function EmployeeGrid() {
             ))
           )}
         </Grid>
-        {loading && <Loader />}
+        {(loading || filterLoading) && <Loader />}
       </Box>
     </>
   )
