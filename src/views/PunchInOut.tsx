@@ -35,7 +35,7 @@ const WHITELIST_EMPLOYEE_IDS = [
     '66bc8bfe2f1270380b77a920',
     // '66c98c96269ecefff34126b9',
     // '69f05869f9659e84d84aaacb',
-  
+
     //'66bca3782f1270380b77aaa3',
     '69f05869f9659e84d84aaacb',
     '66c6f6d7258826c691d894e0',
@@ -48,7 +48,7 @@ const WHITELIST_EMPLOYEE_IDS = [
     '6a54bdac51196b767850dc37',
     '6a434608e73b67d9fe490eb2',
     '66bf020e2f1270380b77ad5b',
-    '6bed43b2f1270380b77ab52'
+    '66bed43b2f1270380b77ab52',
 ];
 
 const formatTime = (obj: any) => {
