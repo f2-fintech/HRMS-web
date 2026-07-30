@@ -152,6 +152,34 @@ export const fetchYearlyAttendanceSummary = async (year: number): Promise<any> =
     throw error;
   }
 };
+export const fetchLeaveByDate = async (date: string): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/attendence/leave-by-date?date=${date}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const leaveData = await response.json();
+
+    return leaveData;
+  } catch (error) {
+    console.error('Error fetching date-wise leave data:', error);
+    throw error;
+  }
+};
 
 
 export const fetchTotalShiftTime = async (date: string): Promise<any> => {
