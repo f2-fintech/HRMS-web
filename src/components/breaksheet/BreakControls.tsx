@@ -24,24 +24,26 @@ interface BreakControlsProps {
 
 
 const MOBILE_BREAK_ALLOWED_IDS = new Set<string>([
-  '66c881fe269ecefff3411649',
   '66bca8d72f1270380b77ab12',
-  '66bc8bfe2f1270380b77a920',
+  '66c881fe269ecefff3411649',
   '66bca6192f1270380b77aac5',
-  // '699e8d1b1cf053581b8a4d6e',
-  // '693926c8c3b776470f4e1a44',
-  //'66c98c96269ecefff34126b9',
-  //'66c6e8a6258826c691d89299'
+  '66bc8bfe2f1270380b77a920',
+  // '66c98c96269ecefff34126b9',
+  // '69f05869f9659e84d84aaacb',
+  // '66c98c96269ecefff34126b9',
+  //'66bca3782f1270380b77aaa3',
   '69f05869f9659e84d84aaacb',
+  '66c6f6d7258826c691d894e0',
   '66c98c96269ecefff34126b9',
-  '69f05869f9659e84d84aaacb',
-    '66c6f6d7258826c691d894e0',
-    '66c98c96269ecefff34126b9',
-    '69df1d581f85de2bfcef7ee8',
-    '6a420106be086a0676598d9e',
-    '681ddea86b6892f37f901890',
-    '696f74810a625c190684c6f5',
-    '6a38c759faa94b723931bca5'
+  '69df1d581f85de2bfcef7ee8',
+  '6a420106be086a0676598d9e',
+  '681ddea86b6892f37f901890',
+  '696f74810a625c190684c6f5',
+  '6a38c759faa94b723931bca5',
+  '6a54bdac51196b767850dc37',
+  '6a434608e73b67d9fe490eb2',
+  '66bf020e2f1270380b77ad5b',
+  '6bed43b2f1270380b77ab52'
 ]);
 
 const BreakControls: React.FC<BreakControlsProps> = ({
