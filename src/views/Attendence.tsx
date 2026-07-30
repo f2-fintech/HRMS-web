@@ -58,7 +58,7 @@ import AttendanceStatusList from '@/components/attendance/AttendanceStatusList'
 import LocationDropdown from '@/utility/locationdropdown/LocationDropdown'
 import useDebounce from '@/utility/debounce/useDebounce'
 import AttendanceCard from '@/components/attendancecard/AttendanceCard'
-import { fetchMonthlyAttendanceSummary, fetchYearlyAttendanceSummary } from '@/utility/apiResponse/employeesResponse'
+import { fetchMonthlyAttendanceSummary, fetchYearlyAttendanceSummary, fetchLeaveByDate } from '@/utility/apiResponse/employeesResponse'
 
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch()
@@ -83,6 +83,8 @@ export default function AttendanceGrid() {
 
   const [allEmployees, setAllEmployees] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  const [exportDate, setExportDate] = useState<Dayjs>(dayjs())
 
   const isMediumScreen = useMediaQuery(theme.breakpoints.down('md'))
 
@@ -246,6 +248,65 @@ const handleExportYearlyAttendance = async () => {
     console.error(error)
   }
 }
+
+
+  const handleExportDatewiseAttendance = async () => {
+    try {
+      setError(null)
+
+      const formattedDate = exportDate.format('YYYY-MM-DD')
+
+      const leaveData = await fetchLeaveByDate(formattedDate)
+
+      if (!leaveData || leaveData.length === 0) {
+        setError('No leave data available for this date')
+        return
+      }
+
+      const fileName = `${formattedDate} leave_summary.csv`
+
+      const csvContent = [
+        ['Employee Name', 'Code', 'Location', 'Status', 'Leave Unit', 'Punch In', 'Punch Out', 'Total Hours','Total Break','Date'],
+
+        ...leaveData.map((item: any) => {
+          const employeeName = `${item.employee?.first_name || ''} ${item.employee?.last_name || ''}`.trim()
+
+          return [
+            employeeName,
+            item.employee?.code || '',
+            item.employee?.location || '',
+            item.status || '',
+            item.unit ?? '',
+            item.punchIn || '-',
+            item.punchOut || '-',
+            item.totalHours || '-',
+            item.totalBreak || '-',
+            item.date || formattedDate,
+          ]
+        })
+      ]
+        .map(row => row.join(','))
+        .join('\n')
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob)
+
+        link.setAttribute('href', url)
+        link.setAttribute('download', fileName)
+
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to export date-wise attendance data')
+      console.error(error)
+    }
+  }
+
   const debouncedSearchName = useDebounce(searchName, 500)
   const debouncedSearchLocation = useDebounce(searchLocation, 500)
 
@@ -624,6 +685,19 @@ const handleExportYearlyAttendance = async () => {
               </FormControl>
             </Grid>
 
+            {/* ✅ NEW: Date picker for date-wise leave export */}
+            <Grid item xs={12} md={2}>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  label='Export Date'
+                  value={exportDate}
+                  onChange={newDate => {
+                    if (newDate) setExportDate(newDate)
+                  }}
+                  sx={{ width: '100%' }}
+                />
+              </LocalizationProvider>
+            </Grid>
 
             {/* Export Button */}
 <Grid
@@ -697,6 +771,37 @@ const handleExportYearlyAttendance = async () => {
     onClick={handleExportYearlyAttendance}
   >
     Yearly Leave
+  </Button>
+
+  {/* ✅ NEW: Date-wise leave export button */}
+  <Button
+    sx={{
+      whiteSpace: 'nowrap',
+      padding: '15px 30px',
+      textTransform: 'uppercase',
+      transition: '0.5s',
+      backgroundSize: '200% auto',
+      color: 'white',
+      borderRadius: '10px',
+      border: 0,
+      fontWeight: 700,
+      boxShadow: '0px 0px 14px -7px #6A1B9A',
+      backgroundImage:
+        'linear-gradient(45deg, #6A1B9A 0%, #8E24AA 51%, #AB47BC 100%)',
+      minHeight: '50px',
+      fontSize: '14px',
+      '&:hover': {
+        backgroundPosition: 'right center',
+      },
+      '&:active': {
+        transform: 'scale(0.95)',
+      },
+    }}
+    variant="contained"
+    startIcon={<DownloadIcon />}
+    onClick={handleExportDatewiseAttendance}
+  >
+    Datewise Leave
   </Button>
 </Grid>
           </Grid>
