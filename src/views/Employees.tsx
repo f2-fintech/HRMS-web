@@ -430,6 +430,15 @@ export default function EmployeeGrid() {
               profileData?.addressDetails?.aadhaarCardNumber ||
               '',
 
+            EmergencyContact:
+              profileData?.personalDetails?.emergencyContact || '',
+
+            EmergencyRelation:
+              profileData?.personalDetails?.emergencyRelation || '',
+
+            EmergencyRelationName:
+              profileData?.personalDetails?.emergencyRelationName || '',
+
             BankName:
               profileData?.bankDetails?.bankName || '',
 
@@ -544,26 +553,26 @@ export default function EmployeeGrid() {
               </Button>
             )}
             {allowedRoles.includes(Number(userRole)) && (
-            <Button
-              variant="contained"
-              onClick={() => {
-                setShowOnFieldOnly(prev => !prev)
-                if (!showOnFieldOnly) setShowOnBreakOnly(false)
-              }}
-              sx={{
-                backgroundColor: showOnFieldOnly ? '#2e7d32' : '#e8f5e9',
-                borderRadius: '3rem',
-                fontWeight: 'bold',
-                color: showOnFieldOnly ? '#fff' : '#2e7d32',
-                border: '1px solid #2e7d32',
-                '&:hover': {
-                  backgroundColor: '#81c784'
-                }
-              }}
-            >
-              {showOnFieldOnly ? 'Show All' : '📍 On Field'}
-            </Button>
-           )}
+              <Button
+                variant="contained"
+                onClick={() => {
+                  setShowOnFieldOnly(prev => !prev)
+                  if (!showOnFieldOnly) setShowOnBreakOnly(false)
+                }}
+                sx={{
+                  backgroundColor: showOnFieldOnly ? '#2e7d32' : '#e8f5e9',
+                  borderRadius: '3rem',
+                  fontWeight: 'bold',
+                  color: showOnFieldOnly ? '#fff' : '#2e7d32',
+                  border: '1px solid #2e7d32',
+                  '&:hover': {
+                    backgroundColor: '#81c784'
+                  }
+                }}
+              >
+                {showOnFieldOnly ? 'Show All' : '📍 On Field'}
+              </Button>
+            )}
             {allowedRoles.includes(Number(userRole)) && (
               <Button
                 sx={{
@@ -589,7 +598,7 @@ export default function EmployeeGrid() {
                   fontWeight: 'bold'
                 }}
               >
-                 Employee details
+                Employee details
               </Button>
             )}
             {allowedRoles.includes(Number(userRole)) && (
