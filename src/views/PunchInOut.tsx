@@ -1810,7 +1810,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             <div className="grid grid-cols-3 gap-4 w-full mb-6 text-center">
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Day Begin</h4>
-                                    <div className="text-gray-600">
+                                    {/* <div className="text-gray-600">
                                         {currentPunch?.createdAt
                                             ? new Date(currentPunch.createdAt).toLocaleTimeString("en-IN", {
                                                 timeZone: "Asia/Kolkata",
@@ -1820,10 +1820,14 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                                 hour12: false,
                                             })
                                             : "-"}
-                                    </div>                                </div>
+                                    </div>                             */}
+                                    <div className="text-gray-600">
+                                        {currentPunch?.punchIn || "-"}
+                                    </div>
+                                </div>
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Day End</h4>
-                                    <div className="text-gray-600">
+                                    {/* <div className="text-gray-600">
                                         {currentPunch?.updatedAt && currentPunch?.punchOut
                                             ? new Date(currentPunch.updatedAt).toLocaleTimeString("en-IN", {
                                                 timeZone: "Asia/Kolkata",
@@ -1833,7 +1837,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                                 hour12: false,
                                             })
                                             : "-"}
-                                    </div>                                </div>
+                                    </div>   */}
+                                 
+                                    <div className="text-gray-600">
+                                        {currentPunch?.punchOut || "-"}
+                                    </div>
+                                </div>
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Total Time</h4>
                                     <div className="text-gray-600">{currentPunch?.totalTime || '-'}</div>
