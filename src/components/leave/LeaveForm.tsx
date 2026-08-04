@@ -89,6 +89,48 @@ const MiniStat = ({ label, value }: { label: string; value: string }) => (
   </Box>
 )
 
+type ApprovalColor = 'success' | 'warning' | 'error'
+
+const APPROVAL_BG: Record<ApprovalColor, string> = {
+  success: 'rgba(46,125,50,0.10)',
+  warning: 'rgba(237,108,2,0.10)',
+  error: 'rgba(211,47,47,0.10)'
+}
+
+const APPROVAL_BORDER: Record<ApprovalColor, string> = {
+  success: 'rgba(46,125,50,0.3)',
+  warning: 'rgba(237,108,2,0.3)',
+  error: 'rgba(211,47,47,0.3)'
+}
+
+const ApprovalBadge = ({
+  label,
+  desc,
+  color
+}: {
+  label: string
+  desc: string
+  color: ApprovalColor
+}) => (
+  <Box
+    sx={{
+      mt: 1,
+      px: 1.2,
+      py: 0.6,
+      borderRadius: 2,
+      bgcolor: APPROVAL_BG[color],
+      border: `1px solid ${APPROVAL_BORDER[color]}`
+    }}
+  >
+    <Typography fontSize={12} fontWeight={800} sx={{ color: `${color}.main` }}>
+      {label}
+    </Typography>
+    <Typography fontSize={11} color='text.secondary'>
+      {desc}
+    </Typography>
+  </Box>
+)
+
 const AddLeavesForm = ({
   handleClose,
   leave,
@@ -307,6 +349,33 @@ const AddLeavesForm = ({
     return Number(applyMonthRow.used ?? 0)
   }, [applyMonthRow])
 
+
+  const approvalInfo = useMemo(() => {
+    if (!leaveDaysNum || leaveDaysNum <= 0) return null
+
+    const projectedTotal = Math.round((monthUsedNow + leaveDaysNum) * 10) / 10
+
+    if (projectedTotal <= 1.5) {
+      return {
+        label: 'Auto-Approved',
+        desc: `This leave will be automatically approved upon submission. (Monthly total: ${projectedTotal} days, up to 1.5 days)`,
+        color: 'success' as ApprovalColor
+      }
+    } else if (projectedTotal > 1.5 && projectedTotal <= 3) {
+      return {
+        label: 'Needs HR/Admin Approval',
+        desc: `This leave requires HR/Admin approval before it is confirmed. (Monthly total: ${projectedTotal} days)`,
+        color: 'warning' as ApprovalColor
+      }
+    } else {
+      return {
+        label: 'Needs Director Approval',
+        desc: `The monthly total has exceeded 3 days (${projectedTotal} days). This leave requires Director approval.`,
+        color: 'error' as ApprovalColor
+      }
+    }
+  }, [monthUsedNow, leaveDaysNum])
+
   const projected = useMemo(() => {
     if (!applyMonthRow) return null
 
@@ -320,11 +389,11 @@ const AddLeavesForm = ({
     const usedAfter = monthUsedNow + leaveDaysNum
 
     // comp off pehle consume hoga, baaki regular se
-    const fromCompOff   = Math.min(usedAfter, compOffAvailable)
+    const fromCompOff = Math.min(usedAfter, compOffAvailable)
     const compOffLapsed = Math.max(0, compOffAvailable - fromCompOff)
-    const fromRegular   = Math.max(0, usedAfter - fromCompOff)
+    const fromRegular = Math.max(0, usedAfter - fromCompOff)
 
-    const extraAfter   = Math.max(0, fromRegular - regularAvailable)
+    const extraAfter = Math.max(0, fromRegular - regularAvailable)
     const closingAfter = regularAvailable - Math.min(fromRegular, regularAvailable)
 
     return {
@@ -360,7 +429,16 @@ const AddLeavesForm = ({
       .then(r => r.json())
       .then(data => {
         if (data.message) {
-          toast[data.message.includes('success') ? 'success' : 'error'](data.message, { position: 'top-center' })
+          const isSuccess = data.message.includes('success')
+
+          let toastMsg = data.message
+          if (isSuccess && !leave && data.data?.status === 'Approved') {
+            toastMsg = 'Leave submitted and Auto-Approved ✅'
+          } else if (isSuccess && !leave && data.data?.status === 'Pending') {
+            toastMsg = 'Leave submitted — Pending Approval ⏳'
+          }
+
+          toast[isSuccess ? 'success' : 'error'](toastMsg, { position: 'top-center' })
         } else {
           toast.error('Unexpected error occurred', { position: 'top-center' })
         }
@@ -375,24 +453,24 @@ const AddLeavesForm = ({
           }) as any
         )
 
-        ;(async () => {
-          if (!effectiveEmployeeId || !token || !company_id) return
-          try {
-            const refreshUrl = isAdmin
-              ? `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${effectiveEmployeeId}?year=${year}&force=1`
-              : `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${effectiveEmployeeId}?year=${year}`
+          ; (async () => {
+            if (!effectiveEmployeeId || !token || !company_id) return
+            try {
+              const refreshUrl = isAdmin
+                ? `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${effectiveEmployeeId}?year=${year}&force=1`
+                : `${process.env.NEXT_PUBLIC_APP_URL}/leaves/balance/${effectiveEmployeeId}?year=${year}`
 
-            const res = await fetch(refreshUrl, {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${token} ${company_id}`,
-                'Content-Type': 'application/json'
-              }
-            })
-            const json = await res.json()
-            if (res.ok) setBalance(json)
-          } catch {}
-        })()
+              const res = await fetch(refreshUrl, {
+                method: 'GET',
+                headers: {
+                  Authorization: `Bearer ${token} ${company_id}`,
+                  'Content-Type': 'application/json'
+                }
+              })
+              const json = await res.json()
+              if (res.ok) setBalance(json)
+            } catch { }
+          })()
 
         handleClose()
       })
@@ -574,10 +652,10 @@ const AddLeavesForm = ({
 
                 <Box sx={{ mt: 1.2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <MiniStat label='Monthly Allowed Leaves (MAL)' value={fmt(projected.credit)} />
-                  <MiniStat label='Comp Off (same month)'        value={fmt(projected.compOff)} />
+                  <MiniStat label='Comp Off (same month)' value={fmt(projected.compOff)} />
                   <MiniStat label='Total Accumulated Leaves (TAL)' value={fmt(projected.available)} />
-                  <MiniStat label='Total Leaves Taken (TLT)'     value={fmt(projected.usedNow)} />
-                  <MiniStat label='New Leave (NL)'               value={fmt(leaveDaysNum)} />
+                  <MiniStat label='Total Leaves Taken (TLT)' value={fmt(projected.usedNow)} />
+                  <MiniStat label='New Leave (NL)' value={fmt(leaveDaysNum)} />
                 </Box>
 
                 {/* Comp off lapse warning */}
@@ -596,6 +674,10 @@ const AddLeavesForm = ({
                       ⚠ {fmt(projected.compOffLapsed)} comp off lapse hoga this month (use same month only)
                     </Typography>
                   </Box>
+                )}
+
+                {approvalInfo && (
+                  <ApprovalBadge label={approvalInfo.label} desc={approvalInfo.desc} color={approvalInfo.color} />
                 )}
 
                 <Box
@@ -683,7 +765,7 @@ const AddLeavesForm = ({
                 startAdornment={<LeaveTypeIcon color='action' />}
               >
                 <MenuItem value='Sick'>SICK LEAVE</MenuItem>
-                                  <MenuItem value='Compensatory'>Compensatory LEAVE</MenuItem>
+                <MenuItem value='Compensatory'>Compensatory LEAVE</MenuItem>
 
                 <MenuItem value='Casual'>CASUAL LEAVE</MenuItem>
                 <MenuItem value='Privilege'>PRIVILEGE/EARNED LEAVE</MenuItem>
