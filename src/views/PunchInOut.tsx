@@ -34,7 +34,7 @@ const WHITELIST_EMPLOYEE_IDS = [
     '66bca6192f1270380b77aac5',
     '66bc8bfe2f1270380b77a920',
     // '66c98c96269ecefff34126b9',
-    // '69f05869f9659e84d84aaacb',
+     '69f05869f9659e84d84aaacb',
 
     //'66bca3782f1270380b77aaa3',
     '69f05869f9659e84d84aaacb',
@@ -197,11 +197,22 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                                             {p.switchLogs.map((s: any, idx: number) => (
                                                 <span key={idx}>
                                                     {s.type}@{s.time}
-                                                    {s.image && (
+                                                    {s.frontImage && (
                                                         <span
-                                                            onClick={(e) => { e.stopPropagation(); setLightboxSrc(s.image) }}
+                                                            onClick={(e) => { e.stopPropagation(); setLightboxSrc(s.frontImage) }}
                                                             style={{ cursor: 'pointer', marginLeft: 2 }}
-                                                        >📷</span>
+                                                            title="Front photo"
+                                                        >📷F</span>
+                                                    )}
+                                                    {s.backImage && (
+                                                        <span
+                                                            onClick={(e) => { e.stopPropagation(); setLightboxSrc(s.backImage) }}
+                                                            style={{ cursor: 'pointer', marginLeft: 2 }}
+                                                            title="Back photo"
+                                                        >📷B</span>
+                                                    )}
+                                                    {s.agenda && (
+                                                        <span style={{ marginLeft: 2, color: '#94a3b8' }} title={s.agenda}>📝</span>
                                                     )}
                                                     {idx < p.switchLogs.length - 1 ? ' → ' : ''}
                                                 </span>
@@ -281,19 +292,39 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                                 }}
                             >
                                 <span>{log.time}</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     {log.type}
-                                    {log.image && (
+                                    {log.frontImage && (
                                         <img
-                                            src={log.image}
-                                            alt="switch location"
-                                            onClick={() => setLightboxSrc(log.image)}
+                                            src={log.frontImage}
+                                            alt="front"
+                                            onClick={() => setLightboxSrc(log.frontImage)}
                                             style={{
-                                                width: 28, height: 28, objectFit: 'cover',
+                                                width: 26, height: 26, objectFit: 'cover',
                                                 borderRadius: 6, cursor: 'zoom-in',
                                                 border: '1px solid #334155'
                                             }}
                                         />
+                                    )}
+                                    {log.backImage && (
+                                        <img
+                                            src={log.backImage}
+                                            alt="back"
+                                            onClick={() => setLightboxSrc(log.backImage)}
+                                            style={{
+                                                width: 26, height: 26, objectFit: 'cover',
+                                                borderRadius: 6, cursor: 'zoom-in',
+                                                border: '1px solid #334155'
+                                            }}
+                                        />
+                                    )}
+                                    {log.agenda && (
+                                        <span
+                                            style={{ fontSize: 10, color: '#94a3b8', maxWidth: 100, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                                            title={log.agenda}
+                                        >
+                                            📝 {log.agenda}
+                                        </span>
                                     )}
                                 </span>
                             </div>
@@ -835,18 +866,25 @@ const PunchInImageModal: React.FC<{
 }
 
 
-// ─── Field Type Switch Image Modal ─────────────────────────────────────────
+// ─── Field Type Switch Image Modal (front + back photo + agenda) ─────────────
 const SwitchTypeImageModal: React.FC<{
     targetType: 'HOME' | 'OFFICE' | 'FIELD' | null
     onClose: () => void
-    onSubmit: (file: File) => void
+    onSubmit: (frontFile: File, backFile: File, agenda: string) => void
 }> = ({ targetType, onClose, onSubmit }) => {
-    const [preview, setPreview] = useState<string | null>(null)
-    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [frontPreview, setFrontPreview] = useState<string | null>(null)
+    const [backPreview, setBackPreview] = useState<string | null>(null)
+    const [frontFile, setFrontFile] = useState<File | null>(null)
+    const [backFile, setBackFile] = useState<File | null>(null)
+    const [agenda, setAgenda] = useState('')
     const [submitting, setSubmitting] = useState(false)
-    const fileInputRef = useRef<HTMLInputElement | null>(null)
+    const frontInputRef = useRef<HTMLInputElement | null>(null)
+    const backInputRef = useRef<HTMLInputElement | null>(null)
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        which: 'front' | 'back'
+    ) => {
         const file = e.target.files?.[0]
         if (!file) return
 
@@ -855,22 +893,81 @@ const SwitchTypeImageModal: React.FC<{
             return
         }
 
-        setSelectedFile(file)
-        setPreview(URL.createObjectURL(file))
+        if (which === 'front') {
+            setFrontFile(file)
+            setFrontPreview(URL.createObjectURL(file))
+        } else {
+            setBackFile(file)
+            setBackPreview(URL.createObjectURL(file))
+        }
     }
 
     const handleSubmit = async () => {
-        if (!selectedFile) {
-            alert('📷 Photo is mandatory to switch to FIELD. Please capture or upload a photo.')
+        if (!frontFile || !backFile) {
+            alert('📷 Front aur back dono photo mandatory hain.')
+            return
+        }
+        if (!agenda.trim()) {
+            alert('📝 Agenda likhna zaroori hai.')
             return
         }
         setSubmitting(true)
         try {
-            await onSubmit(selectedFile)
+            await onSubmit(frontFile, backFile, agenda)
         } finally {
             setSubmitting(false)
         }
     }
+
+    const photoBox = (
+        label: string,
+        preview: string | null,
+        inputRef: React.RefObject<HTMLInputElement>,
+        which: 'front' | 'back'
+    ) => (
+        <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500, marginBottom: 6 }}>{label}</div>
+            <div
+                onClick={() => !submitting && inputRef.current?.click()}
+                style={{
+                    width: '100%', height: 140, borderRadius: 10,
+                    border: preview ? 'none' : '1.5px dashed #cbd5e1',
+                    background: preview ? '#000' : '#f8fafc',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: submitting ? 'not-allowed' : 'pointer', overflow: 'hidden',
+                }}
+            >
+                {preview ? (
+                    <img src={preview} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                    <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                        <div style={{ fontSize: 22, marginBottom: 4 }}>📷</div>
+                        <div style={{ fontSize: 11 }}>Tap to capture</div>
+                    </div>
+                )}
+            </div>
+            <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => handleFileChange(e, which)}
+                style={{ display: 'none' }}
+            />
+            {preview && !submitting && (
+                <button
+                    onClick={() => inputRef.current?.click()}
+                    style={{
+                        width: '100%', padding: 6, marginTop: 6,
+                        border: '1px dashed #cbd5e1', borderRadius: 8, background: 'transparent',
+                        color: '#64748b', fontSize: 11, cursor: 'pointer'
+                    }}
+                >
+                    🔄 Retake
+                </button>
+            )}
+        </div>
+    )
 
     return (
         <div style={{
@@ -878,7 +975,7 @@ const SwitchTypeImageModal: React.FC<{
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
         }} onClick={submitting ? undefined : onClose}>
             <div onClick={e => e.stopPropagation()} style={{
-                background: '#fff', borderRadius: 16, padding: 20, width: 360,
+                background: '#fff', borderRadius: 16, padding: 20, width: 400,
                 maxHeight: '90vh', overflowY: 'auto',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: 'inherit'
             }}>
@@ -895,7 +992,7 @@ const SwitchTypeImageModal: React.FC<{
                             Switch to {targetType || 'FIELD'}
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b' }}>
-                            Upload a photo of your current location
+                            Front & back photo + agenda required
                         </div>
                     </div>
                     <button
@@ -909,48 +1006,30 @@ const SwitchTypeImageModal: React.FC<{
                     >✕</button>
                 </div>
 
-                {/* Preview / Placeholder */}
-                <div
-                    onClick={() => !submitting && fileInputRef.current?.click()}
-                    style={{
-                        width: '100%', height: 200, borderRadius: 10,
-                        border: preview ? 'none' : '1.5px dashed #cbd5e1',
-                        background: preview ? '#000' : '#f8fafc',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: submitting ? 'not-allowed' : 'pointer', overflow: 'hidden', marginBottom: 12
-                    }}
-                >
-                    {preview ? (
-                        <img src={preview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                        <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                            <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
-                            <div style={{ fontSize: 13 }}>Tap to capture / upload photo</div>
-                        </div>
-                    )}
+                {/* Front + Back photo side by side */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                    {photoBox('Front Photo', frontPreview, frontInputRef, 'front')}
+                    {photoBox('Back Photo', backPreview, backInputRef, 'back')}
                 </div>
 
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                />
-
-                {preview && !submitting && (
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
+                {/* Agenda */}
+                <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500, marginBottom: 4 }}>
+                        Agenda *
+                    </div>
+                    <textarea
+                        placeholder="Purpose of this visit / meeting..."
+                        value={agenda}
+                        onChange={e => setAgenda(e.target.value)}
+                        rows={2}
+                        disabled={submitting}
                         style={{
-                            width: '100%', padding: 8, marginBottom: 12,
-                            border: '1px dashed #cbd5e1', borderRadius: 8, background: 'transparent',
-                            color: '#64748b', fontSize: 13, cursor: 'pointer'
+                            width: '100%', border: '0.5px solid #e2e8f0', borderRadius: 8,
+                            padding: '8px 10px', fontSize: 13, resize: 'none', background: '#f8fafc',
+                            color: '#1e293b', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
                         }}
-                    >
-                        🔄 Retake / Change photo
-                    </button>
-                )}
+                    />
+                </div>
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -967,7 +1046,7 @@ const SwitchTypeImageModal: React.FC<{
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={submitting || !selectedFile}
+                        disabled={submitting || !frontFile || !backFile}
                         style={{
                             padding: '8px 20px', border: 'none', borderRadius: 8,
                             background: submitting ? '#cbd5e1' : '#0284c7',
@@ -982,6 +1061,7 @@ const SwitchTypeImageModal: React.FC<{
         </div>
     )
 }
+
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     selectedDate,
     selectedEmployeeId,
@@ -1308,7 +1388,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             return
         }
 
-        // 👈 FIELD involved (switching TO FIELD ya FIELD SE switching) — photo mandatory
+        // 👈 FIELD involved (switching TO FIELD ya FIELD SE switching) — front+back photo + agenda mandatory
         if (newType === 'FIELD' || punchType === 'FIELD') {
             setPendingSwitchType(newType)
             setShowSwitchImageModal(true)
@@ -1322,16 +1402,23 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         await doSwitchType(newType)
     }
 
-    // 👈 NEW: actual switch API call — image ke saath ya bina
-    const doSwitchType = async (newType: 'HOME' | 'OFFICE' | 'FIELD', imageFile?: File) => {
+    // 👈 NEW: actual switch API call — front/back image + agenda ke saath, ya bina (HOME<->OFFICE)
+    const doSwitchType = async (
+        newType: 'HOME' | 'OFFICE' | 'FIELD',
+        frontFile?: File,
+        backFile?: File,
+        agenda?: string,
+    ) => {
         setSwitching(true)
         try {
             let response: Response
 
-            if (imageFile) {
+            if (frontFile && backFile) {
                 const formData = new FormData()
                 formData.append('type', newType)
-                formData.append('image', imageFile)
+                formData.append('frontImage', frontFile)
+                formData.append('backImage', backFile)
+                formData.append('agenda', agenda || '')
 
                 response = await fetch(
                     `${process.env.NEXT_PUBLIC_APP_URL}/punch/switch-type/${employeeId}`,
@@ -1369,10 +1456,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
 
-    const handleSwitchImageSubmit = async (file?: File) => {
+    const handleSwitchImageSubmit = async (frontFile: File, backFile: File, agenda: string) => {
         if (!pendingSwitchType) return
         try {
-            await doSwitchType(pendingSwitchType, file)
+            await doSwitchType(pendingSwitchType, frontFile, backFile, agenda)
             setShowSwitchImageModal(false)
             setPendingSwitchType(null)
         } catch (err) {
@@ -1658,6 +1745,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 <PunchInImageModal
                     onClose={() => setShowPunchInImageModal(false)}
                     onSubmit={handlePunchInImageSubmit}
+                />
+            )}
+
+            {/* FIELD type switch photo + agenda modal */}
+            {showSwitchImageModal && (
+                <SwitchTypeImageModal
+                    targetType={pendingSwitchType}
+                    onClose={() => {
+                        setShowSwitchImageModal(false)
+                        setPendingSwitchType(null)
+                    }}
+                    onSubmit={handleSwitchImageSubmit}
                 />
             )}
 
