@@ -29,7 +29,7 @@ const MOBILE_BREAK_ALLOWED_IDS = new Set<string>([
   '66bca6192f1270380b77aac5',
   '66bc8bfe2f1270380b77a920',
   // '66c98c96269ecefff34126b9',
-  // '69f05869f9659e84d84aaacb',
+   '69f05869f9659e84d84aaacb',
   // '66c98c96269ecefff34126b9',
   //'66bca3782f1270380b77aaa3',
   '69f05869f9659e84d84aaacb',
