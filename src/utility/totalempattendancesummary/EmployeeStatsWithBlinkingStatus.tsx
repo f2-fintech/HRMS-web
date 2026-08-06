@@ -569,11 +569,58 @@ const EmployeeAttendanceStatus: React.FC = () => {
         </Avatar>
 
         <Box flex={1}>
-          <Typography fontSize='14px' fontWeight={600} color='#0f172a' lineHeight={1.3}>
-            {name.trim() || '—'}
-          </Typography>
-          <Typography variant='caption' color='text.secondary'>
-            {employee?.designation || employee?.code || ''}
+          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+            <Typography
+              fontSize="14px"
+              fontWeight={600}
+              color="#0f172a"
+              lineHeight={1.3}
+            >
+              {name.trim() || "—"}
+            </Typography>
+
+            {employee?.location && (
+              <Box
+                sx={{
+                  px: 1,
+                  py: 0.2,
+                  borderRadius: "20px",
+                  bgcolor:
+                    employee.location.toLowerCase().includes("noida")
+                      ? "#e0f2fe"
+                      : "#ecfdf5",
+                  color:
+                    employee.location.toLowerCase().includes("noida")
+                      ? "#0369a1"
+                      : "#15803d",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.4,
+                }}
+              >
+                📍
+                {employee.location.toLowerCase().includes("noida")
+                  ? "N"
+                  : employee.location.toLowerCase().includes("bareilly")
+                    ? "B"
+                    : employee.location}
+              </Box>
+            )}
+          </Box>
+
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              mt: 0.3,
+            }}
+          >
+            💼 {employee?.designation || employee?.code || ""}
           </Typography>
         </Box>
 
@@ -925,12 +972,12 @@ const EmployeeAttendanceStatus: React.FC = () => {
                       <Box display='flex' alignItems='center'>
                         <span className='dot' />
                         <Typography variant='caption' fontWeight={700} sx={{ color: config.color, letterSpacing: '0.2px' }}>
-                          {config.label}
+                          {config.label} ({groupList.length} employees)
                         </Typography>
                       </Box>
-                      <Typography variant='caption' fontWeight={700} sx={{ color: config.color }}>
+                      {/* <Typography variant='caption' fontWeight={700} sx={{ color: config.color }}>
                         {groupList.length} Employees
-                      </Typography>
+                      </Typography> */}
                     </GroupHeader>
                     {groupList.map((entry, index) => renderEmployeeRow(entry, index))}
                   </Box>
