@@ -210,3 +210,219 @@ export const fetchTotalShiftTime = async (date: string): Promise<any> => {
     throw error;
   }
 };
+
+export const fetchShiftSummary = async (date: string): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem('user') || '{}')
+      : {};
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/punch/shift-summary?date=${date}&company_id=${company_id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch shift summary');
+  }
+
+  return response.json();
+};
+
+export const fetchMonthlyShiftSummary = async (
+  month: number,
+  year: number
+): Promise<any> => {
+
+  const token = localStorage?.getItem("token") || '{}';
+
+  const { company_id } =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem('user') || '{}')
+      : {};
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/punch/monthly-shift-summary?month=${month}&year=${year}&company_id=${company_id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch monthly shift summary');
+  }
+
+  return response.json();
+};
+
+export const fetchTodayLeaves = async (): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/attendence/today-leaves?company_id=${company_id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch today leaves')
+  }
+
+  return response.json()
+}
+
+export const fetchEmployeesNotPunched = async (
+  date: string
+): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('user') || '{}')
+      : {}
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/punch/employees-not-punches-by-date?date=${date}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch missing punches')
+  }
+
+  return response.json()
+}
+
+export const exportAdminReport = async () => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/admin-desk/export`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Export failed')
+  }
+
+  return response.blob()
+}
+
+export const fetchHalfDayEmployees = async (
+  date: string
+): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/attendence/on-half/${date}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch half day employees')
+  }
+
+  return response.json()
+
+}
+
+export const fetchAbsentEmployees = async (
+  date: string
+): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/attendence/byStatusOnly?status=Absent&date=${date}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch absent employees')
+  }
+
+  return response.json()
+
+}
+export const fetchEmployeesNotPunchedOut = async (
+  date: string
+): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/punch/not-punched-out?date=${date}&company_id=${company_id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch not punched out employees')
+  }
+
+  return response.json()
+
+}
