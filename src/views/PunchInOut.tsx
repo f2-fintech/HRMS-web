@@ -368,12 +368,12 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                                 }}>
                                     <span style={{ fontSize: 16 }}>🚶</span>
                                 </div>
-                                <div style={{ flex: 1 }}>
+                                {/* <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: 14, fontWeight: 500, color: '#0f172a' }}>Field Meetings</div>
                                     <div style={{ fontSize: 12, color: '#64748b' }}>
                                         {selectedPunch.contacts?.length || 0} contacts recorded
                                     </div>
-                                </div>
+                                </div> */}
                                 <button
                                     onClick={() => setSelectedPunch(null)}
                                     style={{
@@ -448,6 +448,11 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                                                     {c.personName}
                                                 </div>
                                                 <div style={{ fontSize: 12, color: '#64748b' }}>{c.contact}</div>
+                                                {c.agenda && (
+                                                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }} title={c.agenda}>
+                                                        📝 {c.agenda}
+                                                    </div>
+                                                )}
 
                                             </div>
 
@@ -462,6 +467,20 @@ const WorkingHoursModal: React.FC<{ totalWorkingHours: any; selectedDate: string
                                                     {isSuccess ? '✓ Success' : '✗ Failed'}
                                                 </span>
                                             </div>
+
+                                            {/* Meeting photo thumbnail (if present) */}
+                                            {c.image && (
+                                                <img
+                                                    src={c.image}
+                                                    alt="meeting"
+                                                    onClick={() => setLightboxSrc(c.image)}
+                                                    style={{
+                                                        width: 32, height: 32, objectFit: 'cover',
+                                                        borderRadius: 6, cursor: 'zoom-in',
+                                                        border: '1px solid #e2e8f0', flexShrink: 0,
+                                                    }}
+                                                />
+                                            )}
 
                                         </div>
                                     )
@@ -904,11 +923,11 @@ const SwitchTypeImageModal: React.FC<{
 
     const handleSubmit = async () => {
         if (!frontFile || !backFile) {
-            alert('📷 Front aur back dono photo mandatory hain.')
+            alert('📷 Front and back photos are required.')
             return
         }
         if (!agenda.trim()) {
-            alert('📝 Agenda likhna zaroori hai.')
+            alert('📝 Need to add Agenda.')
             return
         }
         setSubmitting(true)
@@ -1062,6 +1081,211 @@ const SwitchTypeImageModal: React.FC<{
     )
 }
 
+// ─── Field Meeting Log Modal (add meeting WITHOUT switching, front+back photo mandatory) ─
+const FieldLogModal: React.FC<{
+    onClose: () => void
+    onSubmit: (personName: string, contact: string, agenda: string, remarks: string, frontFile: File, backFile: File) => void
+}> = ({ onClose, onSubmit }) => {
+    const [personName, setPersonName] = useState('')
+    const [contact, setContact] = useState('')
+    const [agenda, setAgenda] = useState('')
+    const [remarks, setRemarks] = useState('')
+    const [frontPreview, setFrontPreview] = useState<string | null>(null)
+    const [backPreview, setBackPreview] = useState<string | null>(null)
+    const [frontFile, setFrontFile] = useState<File | null>(null)
+    const [backFile, setBackFile] = useState<File | null>(null)
+    const [submitting, setSubmitting] = useState(false)
+    const frontInputRef = useRef<HTMLInputElement | null>(null)
+    const backInputRef = useRef<HTMLInputElement | null>(null)
+
+    const handleFileChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        which: 'front' | 'back'
+    ) => {
+        const f = e.target.files?.[0]
+        if (!f) return
+        if (!f.type.startsWith('image/')) {
+            alert('Please select a valid image file')
+            return
+        }
+        if (which === 'front') {
+            setFrontFile(f)
+            setFrontPreview(URL.createObjectURL(f))
+        } else {
+            setBackFile(f)
+            setBackPreview(URL.createObjectURL(f))
+        }
+    }
+
+    const handleSubmit = async () => {
+        if (!personName.trim()) {
+            alert('👤 Person ka naam likhna zaroori hai.')
+            return
+        }
+        if (contact && !/^[6-9]\d{9}$/.test(contact)) {
+            alert('📱 Valid 10-digit mobile number daalo (ya khaali chhod do).')
+            return
+        }
+        if (!agenda.trim()) {
+            alert('📝 Agenda likhna zaroori hai.')
+            return
+        }
+        if (!frontFile || !backFile) {
+            alert('📷 Front aur back dono photo mandatory hain.')
+            return
+        }
+        setSubmitting(true)
+        try {
+            await onSubmit(personName, contact, agenda, remarks, frontFile, backFile)
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    const inp: React.CSSProperties = {
+        width: '100%', border: '0.5px solid #e2e8f0', borderRadius: 8,
+        padding: '8px 10px', fontSize: 13, background: '#f8fafc',
+        color: '#1e293b', outline: 'none', boxSizing: 'border-box',
+    }
+
+    const photoBox = (
+        label: string,
+        preview: string | null,
+        inputRef: React.RefObject<HTMLInputElement>,
+        which: 'front' | 'back'
+    ) => (
+        <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500, marginBottom: 6 }}>{label} *</div>
+            <div
+                onClick={() => !submitting && inputRef.current?.click()}
+                style={{
+                    width: '100%', height: 130, borderRadius: 10,
+                    border: preview ? 'none' : '1.5px dashed #cbd5e1',
+                    background: preview ? '#000' : '#f8fafc',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: submitting ? 'not-allowed' : 'pointer', overflow: 'hidden',
+                }}
+            >
+                {preview ? (
+                    <img src={preview} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                    <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                        <div style={{ fontSize: 20, marginBottom: 4 }}>📷</div>
+                        <div style={{ fontSize: 11 }}>Tap to capture</div>
+                    </div>
+                )}
+            </div>
+            <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => handleFileChange(e, which)}
+                style={{ display: 'none' }}
+            />
+            {preview && !submitting && (
+                <button
+                    onClick={() => inputRef.current?.click()}
+                    style={{
+                        width: '100%', padding: 6, marginTop: 6,
+                        border: '1px dashed #cbd5e1', borderRadius: 8, background: 'transparent',
+                        color: '#64748b', fontSize: 11, cursor: 'pointer'
+                    }}
+                >
+                    🔄 Retake
+                </button>
+            )}
+        </div>
+    )
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+        }} onClick={submitting ? undefined : onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                background: '#fff', borderRadius: 16, padding: 20, width: 400,
+                maxHeight: '90vh', overflowY: 'auto',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: 'inherit'
+            }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <div style={{
+                        width: 34, height: 34, borderRadius: '50%', background: '#DCFCE7',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                        <span style={{ fontSize: 16 }}>🤝</span>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 15, fontWeight: 500, color: '#0f172a' }}>Add Field Meeting</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>Log a meeting without punching out</div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        disabled={submitting}
+                        style={{
+                            background: 'none', border: 'none',
+                            cursor: submitting ? 'not-allowed' : 'pointer',
+                            color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4
+                        }}
+                    >✕</button>
+                </div>
+
+                {/* Name + Contact */}
+                <div style={{ marginBottom: 10 }}>
+                    <input placeholder="Person's name *" value={personName}
+                        onChange={e => setPersonName(e.target.value)} style={inp} disabled={submitting} />
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                    <input placeholder="Contact number (optional)" value={contact}
+                        onChange={e => {
+                            const value = e.target.value.replace(/\D/g, '')
+                            if (value.length <= 10) setContact(value)
+                        }} style={inp} disabled={submitting} />
+                </div>
+
+                {/* Agenda */}
+                <div style={{ marginBottom: 10 }}>
+                    <textarea placeholder="Agenda / purpose of this meeting *" value={agenda}
+                        onChange={e => setAgenda(e.target.value)} rows={2}
+                        style={{ ...inp, resize: 'none', fontFamily: 'inherit' }} disabled={submitting} />
+                </div>
+
+                {/* Remarks */}
+                <div style={{ marginBottom: 14 }}>
+                    <textarea placeholder="Remarks (optional)" value={remarks}
+                        onChange={e => setRemarks(e.target.value)} rows={2}
+                        style={{ ...inp, resize: 'none', fontFamily: 'inherit' }} disabled={submitting} />
+                </div>
+
+                {/* Front + Back photo side by side */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                    {photoBox('Front Photo', frontPreview, frontInputRef, 'front')}
+                    {photoBox('Back Photo', backPreview, backInputRef, 'back')}
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button onClick={onClose} disabled={submitting} style={{
+                        padding: '8px 16px', border: '0.5px solid #e2e8f0', borderRadius: 8,
+                        background: 'transparent', color: '#64748b', fontSize: 13,
+                        cursor: submitting ? 'not-allowed' : 'pointer'
+                    }}>
+                        Cancel
+                    </button>
+                    <button onClick={handleSubmit} disabled={submitting} style={{
+                        padding: '8px 20px', border: 'none', borderRadius: 8,
+                        background: submitting ? '#cbd5e1' : '#16a34a',
+                        cursor: submitting ? 'not-allowed' : 'pointer',
+                        color: '#fff', fontSize: 13, fontWeight: 500,
+                    }}>
+                        {submitting ? 'Saving...' : 'Save Meeting'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
 const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     selectedDate,
     selectedEmployeeId,
@@ -1098,6 +1322,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     // 👈 NEW: type-switch in-flight flag
     const [showSwitchImageModal, setShowSwitchImageModal] = useState(false)   // 👈 NEW: FIELD switch photo modal
     const [pendingSwitchType, setPendingSwitchType] = useState<'HOME' | 'OFFICE' | 'FIELD' | null>(null)   // 👈 NEW
+    const [showFieldLogModal, setShowFieldLogModal] = useState(false)   // 👈 NEW: field meeting log modal (no switch needed)
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id;
     const userRole = employee?.role
@@ -1374,6 +1599,43 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }));
     };
 
+    // 👈 NEW: add a field meeting log WITHOUT switching type / punching out (front+back photo mandatory)
+    const handleFieldLogSubmit = async (
+        personName: string,
+        contact: string,
+        agenda: string,
+        remarks: string,
+        frontFile: File,
+        backFile: File,
+    ) => {
+        const formData = new FormData()
+        formData.append('personName', personName)
+        formData.append('contact', contact)
+        formData.append('agenda', agenda)
+        formData.append('remarks', remarks)
+        formData.append('frontImage', frontFile)
+        formData.append('backImage', backFile)
+
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL}/punch/field-log/${employeeId}`,
+                { method: 'POST', body: formData }
+            )
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}))
+                throw new Error(err.message || 'Failed to add field meeting')
+            }
+
+            await response.json()
+
+            setShowFieldLogModal(false)
+            dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
+        } catch (err: any) {
+            alert(err?.message || 'Failed to add field meeting. Please try again.')
+        }
+    }
+
     // ── NEW: switch active punch's type in place, WITHOUT punching out ──
     const handleTypeClick = async (newType: 'HOME' | 'OFFICE' | 'FIELD') => {
         if (newType === punchType) return
@@ -1507,6 +1769,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const currentPunch = punch.length > 0 ? punch[currentPunchIndex] : null
     const isPunchDisabledDueToMobile = isMobileDevice && !isWhitelistedUser;
+    const latestActivePunch = punch?.length ? punch[punch.length - 1] : null;
+    const canAddFieldLog = punchType === 'FIELD' && punchState.isPunchIn && !isPunchDisabledDueToMobile;
 
     // ─── Minimal View ──────────────────────────────────────────────────────────
     if (isMinimalView) {
@@ -1587,6 +1851,14 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             setPendingSwitchType(null)
                         }}
                         onSubmit={handleSwitchImageSubmit}
+                    />
+                )}
+
+                {/* Field Meeting Log Modal — add meeting without switching/punching out */}
+                {showFieldLogModal && (
+                    <FieldLogModal
+                        onClose={() => setShowFieldLogModal(false)}
+                        onSubmit={handleFieldLogSubmit}
                     />
                 )}
 
@@ -1702,6 +1974,29 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                         ))}
                     </div>
 
+                    {/* 👈 NEW: Add Field Meeting button — sirf FIELD + punched-in ho tab dikhega */}
+                    {canAddFieldLog && (
+                        <button
+                            onClick={() => setShowFieldLogModal(true)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                background: '#16a34a', border: 'none', borderRadius: 10,
+                                padding: '7px 16px', color: '#fff', fontSize: 12, fontWeight: 600,
+                                cursor: 'pointer', width: '100%', justifyContent: 'center', marginBottom: 6,
+                            }}
+                        >
+                            🤝 Add Field Meeting
+                            {latestActivePunch?.contacts?.length > 0 && (
+                                <span style={{
+                                    background: 'rgba(255,255,255,0.25)', borderRadius: 99,
+                                    padding: '1px 7px', fontSize: 11,
+                                }}>
+                                    {latestActivePunch.contacts.length}
+                                </span>
+                            )}
+                        </button>
+                    )}
+
                     <div className="flex justify-around items-center w-full gap-4">
                         <div className="text-center">
                             <button
@@ -1760,6 +2055,14 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                 />
             )}
 
+            {/* Field Meeting Log Modal — add meeting without switching/punching out */}
+            {showFieldLogModal && (
+                <FieldLogModal
+                    onClose={() => setShowFieldLogModal(false)}
+                    onSubmit={handleFieldLogSubmit}
+                />
+            )}
+
             {/* Field Punch Out Modal */}
             {showFieldModal && (
                 <FieldPunchOutModal
@@ -1767,6 +2070,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     onSubmit={handleFieldSubmit}
                 />
             )}
+
+
             {showHoursModal && (
                 <WorkingHoursModal
                     totalWorkingHours={totalWorkingHours}
@@ -1848,6 +2153,21 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                     </button>
                                 ))}
                             </div>
+
+                            {/* 👈 NEW: Add Field Meeting button — sirf FIELD + punched-in ho tab dikhega */}
+                            {canAddFieldLog && (
+                                <button
+                                    onClick={() => setShowFieldLogModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-green-600 hover:bg-green-700 text-white mb-4"
+                                >
+                                    🤝 Add Field Meeting
+                                    {latestActivePunch?.contacts?.length > 0 && (
+                                        <span className="bg-white/25 rounded-full px-2 text-xs">
+                                            {latestActivePunch.contacts.length}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
 
                             <div className="flex gap-4">
                                 <button

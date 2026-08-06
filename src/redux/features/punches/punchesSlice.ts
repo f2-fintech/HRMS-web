@@ -97,7 +97,7 @@ export const addPunch = createAsyncThunk('punch/addPunch', async (punchData: Pun
     })
 
     if (!response.ok) {
-        throw new Error('Failed to add punch')
+        throw new Error('Already Punched In')
     }
 
     return await response.json()
