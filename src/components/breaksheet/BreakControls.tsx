@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Timer } from '@mui/icons-material';
 
 interface BreakControlsProps {
@@ -22,31 +22,6 @@ interface BreakControlsProps {
   employeeId: string | null;
 }
 
-
-const MOBILE_BREAK_ALLOWED_IDS = new Set<string>([
-  '66bca8d72f1270380b77ab12',
-  '66c881fe269ecefff3411649',
-  '66bca6192f1270380b77aac5',
-  '66bc8bfe2f1270380b77a920',
-  // '66c98c96269ecefff34126b9',
-  '69f05869f9659e84d84aaacb',
-  // '66c98c96269ecefff34126b9',
-  //'66bca3782f1270380b77aaa3',
-  '69f05869f9659e84d84aaacb',
-  '66c6f6d7258826c691d894e0',
-  '66c98c96269ecefff34126b9',
-  '69df1d581f85de2bfcef7ee8',
-  '6a420106be086a0676598d9e',
-  '681ddea86b6892f37f901890',
-  '696f74810a625c190684c6f5',
-  '6a38c759faa94b723931bca5',
-  '6a54bdac51196b767850dc37',
-  '6a434608e73b67d9fe490eb2',
-  '66bf020e2f1270380b77ad5b',
-  '66bed43b2f1270380b77ab52',
-  '6a755b9d5e49bed10a91077b'
-]);
-
 const BreakControls: React.FC<BreakControlsProps> = ({
   breakType,
   setBreakType,
@@ -65,99 +40,29 @@ const BreakControls: React.FC<BreakControlsProps> = ({
   selectedEmployeeId,
   employeeId,
 }) => {
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-
-  const detectMobileDevice = () => {
-    if (typeof window === 'undefined') return false;
-
-    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-
-    const mobileRegex =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS|FxiOS|EdgiOS/i;
-    const isMobileUA = mobileRegex.test(userAgent);
-
-    const tabletRegex = /tablet|ipad|playbook|silk/i;
-    const isTablet = tabletRegex.test(userAgent);
-
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-    const isSmallScreen = window.innerWidth < 1024 || window.innerHeight < 768;
-
-    const platform = navigator.platform || '';
-    const isMobilePlatform = /iPhone|iPad|iPod|Android|Linux armv/i.test(platform);
-
-    const hasMobileFeatures =
-      'orientation' in window ||
-      'onorientationchange' in window ||
-      navigator.maxTouchPoints > 1;
-
-    return (
-      isMobileUA ||
-      isTablet ||
-      isMobilePlatform ||
-      (isTouchDevice && isSmallScreen) ||
-      (hasMobileFeatures && isSmallScreen)
-    );
-  };
-
-  useEffect(() => {
-    const checkDevice = () => setIsMobileDevice(detectMobileDevice());
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
-  }, []);
-
-  // ✅ mobile allow logic
-  const isMobileAllowed = employeeId ? MOBILE_BREAK_ALLOWED_IDS.has(employeeId) : false;
-
-  // ✅ if device is mobile AND ID is not allowed => block
-  const blockMobile = isMobileDevice && !isMobileAllowed;
-
   const handleStartBreak = () => {
-    if (blockMobile) {
-      alert(
-        '🚫 START BREAK BLOCKED\n\nBreak controls are ONLY allowed from laptop/desktop.\n\nYour ID is not allowed for mobile breaks.'
-      );
-      return;
-    }
     handleStartTime();
   };
 
   const handleEndBreak = () => {
-    if (blockMobile) {
-      alert(
-        '🚫 END BREAK BLOCKED\n\nBreak controls are ONLY allowed from laptop/desktop.\n\nYour ID is not allowed for mobile breaks.'
-      );
-      return;
-    }
     handleEndTime();
   };
 
-  // Your existing disable logic + mobile block
+  // Your existing disable logic (mobile block removed — allowed for everyone now)
   const isDisabled =
     !isCurrentDate ||
     (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2');
 
   const isStartDisabled =
-    blockMobile ||
     isDisabled ||
     timerRunning ||
     breakType === 'Select break type' ||
     breakType === '';
 
-  const isEndDisabled = blockMobile || !isCurrentDate || !timerRunning;
+  const isEndDisabled = !isCurrentDate || !timerRunning;
 
   return (
     <div>
-      {/* ✅ show warning only if blocked */}
-      {blockMobile && (
-        <div className="mb-4 bg-red-500 text-white text-center py-3 px-4 rounded-lg font-semibold">
-          🚫 Break controls are only available on laptop/desktop devices
-        </div>
-      )}
-
-
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Break Type Selection */}
         <div className="col-span-1">
@@ -169,8 +74,8 @@ const BreakControls: React.FC<BreakControlsProps> = ({
             <select
               value={breakType}
               onChange={(e) => setBreakType(e.target.value)}
-              disabled={isDisabled || blockMobile}
-              className={`w-full py-3 px-4 border ${isDisabled || blockMobile
+              disabled={isDisabled}
+              className={`w-full py-3 px-4 border ${isDisabled
                 ? 'bg-gray-100 border-gray-300'
                 : 'border-gray-300'
                 } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
@@ -215,12 +120,11 @@ const BreakControls: React.FC<BreakControlsProps> = ({
                 setOtherBreakType(e.target.value);
                 setSpecifyError('');
               }}
-              disabled={blockMobile}
               className={`w-full py-3 px-4 border ${specifyError ? 'border-red-500' : 'border-gray-300'
                 } rounded-lg shadow-sm focus:outline-none focus:ring-2 ${specifyError
                   ? 'focus:ring-red-500 focus:border-red-500'
                   : 'focus:ring-indigo-500 focus:border-indigo-500'
-                } ${blockMobile ? 'bg-gray-100' : ''}`}
+                }`}
             />
 
             {specifyError && (
@@ -234,7 +138,6 @@ const BreakControls: React.FC<BreakControlsProps> = ({
           <button
             onClick={handleStartBreak}
             disabled={isStartDisabled}
-            title={blockMobile ? 'Only available on laptop/desktop (ID not allowed)' : ''}
             className={`w-full py-3 px-4 rounded-lg flex items-center justify-center shadow-md transition-all duration-300
               ${timerRunning
                 ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
@@ -245,7 +148,7 @@ const BreakControls: React.FC<BreakControlsProps> = ({
           >
             <Timer className="mr-2" />
             <span className="font-medium">
-              {blockMobile ? '🚫 Laptop Only' : timerRunning ? 'Break Running...' : 'Start Break'}
+              {timerRunning ? 'Break Running...' : 'Start Break'}
             </span>
           </button>
         </div>
@@ -281,7 +184,6 @@ const BreakControls: React.FC<BreakControlsProps> = ({
           <button
             onClick={handleEndBreak}
             disabled={isEndDisabled}
-            title={blockMobile ? 'Only available on laptop/desktop (ID not allowed)' : ''}
             className={`w-full py-3 px-4 rounded-lg flex items-center justify-center shadow-md transition-all duration-300
               ${isEndDisabled
                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
@@ -289,7 +191,7 @@ const BreakControls: React.FC<BreakControlsProps> = ({
               }`}
           >
             <Timer className="mr-2" />
-            <span className="font-medium">{blockMobile ? '🚫 Laptop Only' : 'End Break'}</span>
+            <span className="font-medium">End Break</span>
           </button>
         </div>
       </div>

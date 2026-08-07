@@ -28,29 +28,27 @@ interface ContactEntry {
     status: 'SUCCESS' | 'FAIL'
 }
 
-const WHITELIST_EMPLOYEE_IDS = [
-    '66bca8d72f1270380b77ab12',
-    '66c881fe269ecefff3411649',
-    '66bca6192f1270380b77aac5',
-    '66bc8bfe2f1270380b77a920',
-    // '66c98c96269ecefff34126b9',
-    '69f05869f9659e84d84aaacb',
+// const WHITELIST_EMPLOYEE_IDS = [
+//     '66bca8d72f1270380b77ab12',
+//     '66c881fe269ecefff3411649',
+//     '66bca6192f1270380b77aac5',
+//     '66bc8bfe2f1270380b77a920',
+//     '69f05869f9659e84d84aaacb',
 
-    //'66bca3782f1270380b77aaa3',
-    '69f05869f9659e84d84aaacb',
-    '66c6f6d7258826c691d894e0',
-    '66c98c96269ecefff34126b9',
-    '69df1d581f85de2bfcef7ee8',
-    '6a420106be086a0676598d9e',
-    '681ddea86b6892f37f901890',
-    '696f74810a625c190684c6f5',
-    '6a38c759faa94b723931bca5',
-    '6a54bdac51196b767850dc37',
-    '6a434608e73b67d9fe490eb2',
-    '66bf020e2f1270380b77ad5b',
-    '66bed43b2f1270380b77ab52',
-    '6a755b9d5e49bed10a91077b'
-];
+    
+//     '69f05869f9659e84d84aaacb',
+//     '66c6f6d7258826c691d894e0',
+//     '66c98c96269ecefff34126b9',
+//     '69df1d581f85de2bfcef7ee8',
+//     '6a420106be086a0676598d9e',
+//     '681ddea86b6892f37f901890',
+//     '696f74810a625c190684c6f5',
+//     '6a38c759faa94b723931bca5',
+//     '6a54bdac51196b767850dc37',
+//     '6a434608e73b67d9fe490eb2',
+//     '66bf020e2f1270380b77ad5b',
+//     '66bed43b2f1270380b77ab52',
+// ];
 
 const formatTime = (obj: any) => {
     return `${obj?.h || obj?.hours || 0}h ${obj?.m || obj?.minutes || 0}m ${obj?.s || obj?.seconds || 0}s`;
@@ -1348,11 +1346,11 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [showPunchInImageModal, setShowPunchInImageModal] = useState(false);
     const { settings } = useSettings()
     const router = useRouter()
-    const isWhitelistedUser = WHITELIST_EMPLOYEE_IDS.includes(employeeId);
+    // const isWhitelistedUser = WHITELIST_EMPLOYEE_IDS.includes(employeeId);
 
     const detectMobileDevice = () => {
         if (typeof navigator === "undefined" || typeof window === "undefined") return false;
-        if (isWhitelistedUser) return false; const ua = navigator.userAgent.toLowerCase();
+        const ua = navigator.userAgent.toLowerCase();
         const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
         const isTablet = /ipad|tablet|playbook|silk/i.test(ua) || (ua.includes('android') && !ua.includes('mobile'));
         const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
@@ -1381,7 +1379,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         checkDevice();
         window.addEventListener('resize', checkDevice);
         return () => window.removeEventListener('resize', checkDevice);
-    }, [isWhitelistedUser, employeeId]);
+    }, [employeeId]);
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -1512,10 +1510,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchIn = async () => {
-        if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH IN BLOCKED\n\n❌ Mobile/Tablet devices are not allowed for Punch In.\n✅ Use a Laptop or Desktop computer.\n\n📱 If you believe this is an error, contact your administrator.');
-            return;
-        }
+        // Mobile restriction removed for all users
+        // if (isMobileDevice) { ... }
 
         // FIELD type ke liye pehle meeting location ka photo lo
         if (punchType === 'FIELD') {
@@ -1537,10 +1533,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchOut = async () => {
-        if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 PUNCH OUT BLOCKED...');
-            return;
-        }
+        // Mobile restriction removed for all users
+        // if (isMobileDevice) { ... }
+        
         const latestPunch = punch?.length ? punch[punch.length - 1] : null;
         if (latestPunch?.type?.toUpperCase() === 'FIELD') {
             setShowFieldModal(true);
@@ -1646,10 +1641,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             return
         }
 
-        if (isMobileDevice && !isWhitelistedUser) {
-            alert('🚫 Mobile/Tablet devices are not allowed for switching type.')
-            return
-        }
+        // if (isMobileDevice && !isWhitelistedUser) {
+        //     alert('🚫 Mobile/Tablet devices are not allowed for switching type.')
+        //     return
+        // }
 
         // 👈 FIELD involved (switching TO FIELD ya FIELD SE switching) — front+back photo + agenda mandatory
         if (newType === 'FIELD' || punchType === 'FIELD') {
@@ -1769,7 +1764,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const currentPunch = punch.length > 0 ? punch[currentPunchIndex] : null
-    const isPunchDisabledDueToMobile = isMobileDevice && !isWhitelistedUser;
+    const isPunchDisabledDueToMobile = false; // Mobile allowed for everyone
     const latestActivePunch = punch?.length ? punch[punch.length - 1] : null;
     const canAddFieldLog = punchType === 'FIELD' && punchState.isPunchIn && !isPunchDisabledDueToMobile;
 
@@ -2258,7 +2253,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                             })
                                             : "-"}
                                     </div>   */}
-
+                                 
                                     <div className="text-gray-600">
                                         {currentPunch?.punchOut || "-"}
                                     </div>
