@@ -39,7 +39,9 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
           note: selected.note,
           start_date: selected.start_date,
           end_date: selected.end_date,
-          day: selected ? selected.day : calculateDaysDifference(selected.start_date, selected.end_date),
+          day: selected.day != null
+            ? selected.day.toString()
+            : calculateDaysDifference(selected.start_date, selected.end_date).toString(),
           company_id: selected.company_id
         });
       }
@@ -80,7 +82,7 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
       isValid = false;
     }
 
-    if (!formData.day.trim()) {
+    if (!formData.day || !formData.day.toString().trim()) {
       newErrors.day = 'Day is required';
       isValid = false;
     }
@@ -100,28 +102,32 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
       };
 
       if (name === 'start_date' || name === 'end_date') {
-        const days = calculateDaysDifference(updatedFormData.start_date, updatedFormData.end_date);
-
-        updatedFormData.day = isHalfDay ? (days / 2).toString() : days.toString();
+        // Half-day is decided purely by the isHalfDay flag, not by date equality.
+        if (isHalfDay) {
+          updatedFormData.day = '0.5';
+        } else {
+          const days = calculateDaysDifference(updatedFormData.start_date, updatedFormData.end_date);
+          updatedFormData.day = days.toString();
+        }
       }
 
       return updatedFormData;
     });
   };
 
+  // Returns the inclusive number of full days between start and end (min 1).
+  // Half-day logic is intentionally NOT handled here - it's controlled by the
+  // `isHalfDay` flag in handleChange, so same-day selections correctly default
+  // to a full day (1) unless the user explicitly marks it as a half day.
   const calculateDaysDifference = (start, end) => {
     if (start && end) {
       const startDate = new Date(start);
       const endDate = new Date(end);
 
-      if (startDate.toDateString() === endDate.toDateString()) {
-        return 0.5;
-      }
-
       const differenceInTime = endDate.getTime() - startDate.getTime();
-      const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+      const differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24)) + 1; // inclusive
 
-      return differenceInDays > 0 ? differenceInDays : 0;
+      return differenceInDays > 0 ? differenceInDays : 1;
     }
     return 0;
   };

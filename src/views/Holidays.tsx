@@ -12,6 +12,7 @@ import {
   TextField,
   Dialog,
   DialogContent,
+  Chip,
   createTheme,
   ThemeProvider,
   DialogActions,
@@ -24,6 +25,7 @@ import {
   useTheme,
   Paper,
   Container,
+  CircularProgress,
 } from '@mui/material';
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from '@mui/icons-material/Add';
@@ -32,12 +34,12 @@ import { DriveFileRenameOutlineOutlined } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { ToastContainer, toast } from 'react-toastify';
 import { format } from 'date-fns';
-
 import type { AppDispatch, RootState } from '@/redux/store';
 import { fetchHolidays, fetchPastHolidays } from '@/redux/features/holidays/holidaysSlice';
 import 'react-toastify/dist/ReactToastify.css';
 import AddHolidayForm from '@/components/holiday/HolidayForm';
 import { useSettings } from '@/@core/hooks/useSettings';
+import HolidayPolicyInfo from '@/components/holiday/HolidayPolicyInfo';
 
 export default function HolidayGrid() {
   const dispatch: AppDispatch = useDispatch();
@@ -385,7 +387,16 @@ export default function HolidayGrid() {
     },
   });
 
-  return (
+      // Custom empty overlay for DataGrid
+      const NoRowsOverlay = () => (
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="subtitle1" sx={{ color: settings.mode === 'dark' ? '#ddd' : '#555' }}>
+            No holidays found
+          </Typography>
+        </Box>
+      );
+
+      return (
     <ThemeProvider theme={responsiveTheme}>
       <Container maxWidth={false} disableGutters sx={{
         backgroundColor: settings.mode === 'dark' ? '#121212' : '#f4f6f9',
@@ -470,17 +481,28 @@ export default function HolidayGrid() {
             }}>
               Dashboard / {activeTab === 'upcoming' ? 'Upcoming Holidays' : 'Past Holidays'}
             </Typography>
+            <Box mt={1} display="flex" gap={1} alignItems="center">
+              <Chip label={`Total: ${activeTab === 'upcoming' ? total : pastTotal}`} color="primary" />
+              <Chip label={`Showing: ${activeTab === 'upcoming' ? (filteredHoliday.length > 0 ? filteredHoliday.length : holidays.length) : (filteredPastHoliday.length > 0 ? filteredPastHoliday.length : pastHolidays.length)}`} />
+            </Box>
           </Box>
           {userRole === '1' && activeTab === 'upcoming' && (
-            <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleHolidayAddClick} sx={{
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleHolidayAddClick} sx={{
               padding: isMobile ? '8px 12px' : '10px 20px',
               fontSize: isMobile ? '0.85rem' : '1rem',
               alignSelf: isMobile ? 'stretch' : 'auto',
+              background: 'linear-gradient(90deg, #2c3ce3 0%, #64e0e2 100%)',
+              color: 'white',
+              boxShadow: '0 6px 18px rgba(44,60,227,0.18)',
+              '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 22px rgba(44,60,227,0.22)' }
             }}>
               Add New Holiday
             </Button>
           )}
         </Paper>
+
+        {/* Holiday Policy Info Card */}
+        <HolidayPolicyInfo />
 
         {/* Tabs for Upcoming vs Past Holidays */}
         <Paper elevation={1} sx={{
@@ -584,8 +606,10 @@ export default function HolidayGrid() {
                 }
               }}
               components={{
-                Toolbar: isMobile ? undefined : GridToolbar
+                Toolbar: isMobile ? undefined : GridToolbar,
+                NoRowsOverlay
               }}
+              loading={loading}
               rows={filteredHoliday.length > 0 ? filteredHoliday : holidays}
               columns={getColumns()}
               getRowId={(row) => row._id}
@@ -641,8 +665,10 @@ export default function HolidayGrid() {
                 }
               }}
               components={{
-                Toolbar: isMobile ? undefined : GridToolbar
+                Toolbar: isMobile ? undefined : GridToolbar,
+                NoRowsOverlay
               }}
+              loading={loading}
               rows={filteredPastHoliday.length > 0 ? filteredPastHoliday : pastHolidays}
               columns={getColumns()}
               getRowId={(row) => row._id}
