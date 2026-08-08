@@ -231,6 +231,8 @@ const groupPunchesByDate = (rawPunches: Punch[]): Punch[] => {
 
 const PunchesPage: React.FC = () => {
     const router = useRouter();
+    const [userRole, setUserRole] = useState<string>('');
+    const [loggedInUserId, setLoggedInUserId] = useState<string>('');
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [month, setMonth] = useState<string>('');
@@ -243,9 +245,7 @@ const PunchesPage: React.FC = () => {
     const [regularizationType, setRegularizationType] = useState("");
     const [reason, setReason] = useState("");
     const [applyToAll, setApplyToAll] = useState(false);
-    // Sirf "Early Leave" type ke liye — admin ya to duration (Hrs/Min) se
-    // batayega ki kitna cover kar raha hai, ya ek clock-time se ("is time ke
-    // baad tak allowed tha"). Dono khali/unset ho to poora din 100% ho jaata hai.
+
     const [coverageMode, setCoverageMode] = useState<'duration' | 'time'>('duration');
     const [regularizedHours, setRegularizedHours] = useState<string>("");
     const [regularizedMinutes, setRegularizedMinutes] = useState<string>("");
@@ -256,11 +256,41 @@ const PunchesPage: React.FC = () => {
         setMonth(currentMonth);
     }, []);
     useEffect(() => {
+        const userDataStr = localStorage.getItem('user');
+        let currentRole = '';
+        let currentUserId = '';
+        if (userDataStr) {
+            try {
+                const user = JSON.parse(userDataStr);
+                currentRole = user.role || '';
+                currentUserId = user.id || '';
+                setUserRole(currentRole);
+                setLoggedInUserId(currentUserId);
+            } catch (e) {
+                console.error('Error parsing user data', e);
+            }
+        }
+
         const fetchEmployees = async () => {
             try {
                 setLoading(true);
                 const data: Employee[] = await apiResponse();
                 setEmployees(data);
+
+                if (currentRole !== '0' && currentRole !== '1') {
+                    const emp = data.find((e: Employee) => e._id === currentUserId);
+                    if (emp) {
+                        setSelectedEmployee(emp);
+                    } else if (userDataStr) {
+                        const user = JSON.parse(userDataStr);
+                        setSelectedEmployee({
+                            _id: currentUserId,
+                            first_name: user.first_name || 'My',
+                            last_name: user.last_name || 'Profile'
+                        });
+                    }
+                }
+
                 setError(null);
             } catch (error) {
                 console.error('Failed to fetch employees', error);
@@ -337,6 +367,7 @@ const PunchesPage: React.FC = () => {
     };
 
     const handleClearEmployee = () => {
+        if (userRole !== '0' && userRole !== '1') return;
         setSelectedEmployee(null);
         setPunches([]);
         setAnalytics(null);
@@ -591,13 +622,13 @@ const PunchesPage: React.FC = () => {
                                             <Person color="primary" />
                                         </InputAdornment>
                                     ),
-                                    endAdornment: (
+                                    endAdornment: (userRole === '0' || userRole === '1') ? (
                                         <InputAdornment position="end">
                                             <IconButton onClick={handleClearEmployee} size="small">
                                                 <Clear />
                                             </IconButton>
                                         </InputAdornment>
-                                    )
+                                    ) : null
                                 }}
                             />
                         </div>
@@ -655,24 +686,27 @@ const PunchesPage: React.FC = () => {
                         </IconButton>
                     </Tooltip>
                 </Box>
-                <Button
-                    variant="outlined"
-                    color="primary"
-                    startIcon={<Download />}
-                    onClick={handleDownloadAll}
-                    disabled={loading || !month}
-                >
-                    Download All Employees (Excel)
-                </Button>
+                {(userRole === '0' || userRole === '1') && (
+                    <Box className="flex gap-4 mb-4">
+                        <Button
+                            variant="outlined"
+                            color="primary"
+                            startIcon={<Download />}
+                            onClick={handleDownloadAll}
+                            disabled={loading || !month}
+                        >
+                            Download All Employees (Excel)
+                        </Button>
 
-                <Button
-                    variant="contained"
-                    color="secondary"
-                    // disabled={!selectedEmployee}
-                    onClick={() => setOpenRegularization(true)}
-                >
-                    Attendance Regularization
-                </Button>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => setOpenRegularization(true)}
+                        >
+                            Attendance Regularization
+                        </Button>
+                    </Box>
+                )}
 
 
 
