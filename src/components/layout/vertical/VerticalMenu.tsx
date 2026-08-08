@@ -97,11 +97,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               Payment
             </MenuItem>
           }
-          {userRole === '1' && (
-            <MenuItem href={`/monthly-punches`} icon={<CalendarMonthIcon />}>
-              Employees Punches
-            </MenuItem>
-          )}
+          <MenuItem href={`/monthly-punches`} icon={<CalendarMonthIcon />}>
+            {(userRole === "0" || userRole === "1") ? "Employees Punches" : "My Punches"}
+          </MenuItem>
 
           <MenuItem href={userRole === "1" ? `/teams` : `/teams-dashboard`} icon={<GroupIcon />}>
             Teams
