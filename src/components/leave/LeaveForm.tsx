@@ -766,10 +766,10 @@ const AddLeavesForm = ({
               >
                 <MenuItem value='Sick'>SICK LEAVE</MenuItem>
                 <MenuItem value='Compensatory'>Compensatory LEAVE</MenuItem>
-
                 <MenuItem value='Casual'>CASUAL LEAVE</MenuItem>
                 <MenuItem value='Privilege'>PRIVILEGE/EARNED LEAVE</MenuItem>
                 <MenuItem value='Maternity'>MATERNITY LEAVE</MenuItem>
+                <MenuItem value='Festival'>FESTIVAL LEAVE</MenuItem>
                 <MenuItem value='Others'>OTHERS</MenuItem>
               </Select>
               {errors.type && <Typography color='error'>{errors.type}</Typography>}

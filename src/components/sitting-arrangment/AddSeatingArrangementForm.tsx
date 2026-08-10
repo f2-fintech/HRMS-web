@@ -19,6 +19,7 @@ import type { AppDispatch } from '@/redux/store'
 
 interface AddSeatingArrangementFormProps {
     seatingArrangementId?: string | null
+    seatNo?: string | null
     handleClose: () => void
     onFormSubmitSuccess: (message: string) => void
     onFormSubmitError: (message: string) => void
@@ -26,6 +27,7 @@ interface AddSeatingArrangementFormProps {
 
 export default function AddSeatingArrangementForm({
     seatingArrangementId = null,
+    seatNo = null,
     handleClose,
     onFormSubmitSuccess,
     onFormSubmitError
@@ -34,7 +36,7 @@ export default function AddSeatingArrangementForm({
 
     const [employees, setEmployees] = useState<any[]>([])
     const [formData, setFormData] = useState({
-        seatNo: '',
+        seatNo: seatNo || '',
         employee: ''
     })
 
@@ -140,20 +142,34 @@ export default function AddSeatingArrangementForm({
     }
 
     return (
-        <Box sx={{ p: 3, borderRadius: 2, boxShadow: 3, backgroundColor: 'background.paper' }}>
-            <Typography variant='h6' sx={{ mb: 2, fontWeight: 'bold', textAlign: 'center' }}>
-                {seatingArrangementId ? 'Edit Seat' : 'Add Seat'}
+        <Box sx={{
+            p: 4,
+            borderRadius: '20px',
+            background: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(15px)',
+            boxShadow: '0 15px 35px rgba(0,0,0,0.2)',
+            border: '1px solid rgba(255,255,255,0.5)'
+        }}>
+            <Typography variant='h5' sx={{ mb: 4, fontWeight: 900, textAlign: 'center', color: '#2c3e50', letterSpacing: 1 }}>
+                {seatingArrangementId ? 'EDIT SEAT ALLOCATION' : 'ALLOCATE SEAT'}
             </Typography>
 
             <Grid item xs={12}>
-                <FormControl fullWidth margin='normal' sx={{ bgcolor: 'white', borderRadius: 1 }}>
+                <FormControl fullWidth margin='normal'>
                     <Autocomplete
                         options={employees}
                         getOptionLabel={option => `${option.first_name} ${option.last_name}`}
                         value={employees.find(emp => emp._id === formData.employee) || null}
                         onChange={handleEmployeeChange}
                         renderInput={params => (
-                            <TextField {...params} label='Search Employee' fullWidth required variant='outlined' />
+                            <TextField {...params} label='Search Employee' fullWidth required variant='outlined'
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '12px',
+                                        bgcolor: '#f8f9fa'
+                                    }
+                                }}
+                            />
                         )}
                     />
                 </FormControl>
@@ -171,17 +187,23 @@ export default function AddSeatingArrangementForm({
                         helperText={errors.seatNo}
                         margin='normal'
                         variant='outlined'
-                        sx={{ bgcolor: 'white', borderRadius: 1 }}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '12px',
+                                bgcolor: seatNo ? '#e9ecef' : '#f8f9fa'
+                            }
+                        }}
+                        disabled={!!seatNo}
                     />
                 </Grid>
             </Grid>
 
-            <DialogActions sx={{ mt: 3, justifyContent: 'center' }}>
-                <Button onClick={handleClose} variant='outlined' color='secondary'>
+            <DialogActions sx={{ mt: 4, justifyContent: 'center', gap: 2 }}>
+                <Button onClick={handleClose} variant='outlined' sx={{ borderRadius: '10px', px: 4, py: 1, color: '#7f8c8d', borderColor: '#bdc3c7', fontWeight: 'bold', '&:hover': { borderColor: '#7f8c8d', bgcolor: '#f1f2f6' } }}>
                     Cancel
                 </Button>
-                <Button variant='contained' color='primary' onClick={handleSubmit}>
-                    {seatingArrangementId ? 'Update' : 'Add'}
+                <Button variant='contained' onClick={handleSubmit} sx={{ borderRadius: '10px', px: 5, py: 1, background: 'linear-gradient(135deg, #3498db, #2980b9)', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(52, 152, 219, 0.4)', '&:hover': { background: 'linear-gradient(135deg, #2980b9, #2573a7)' } }}>
+                    {seatingArrangementId ? 'Update' : 'Allocate'}
                 </Button>
             </DialogActions>
         </Box>
