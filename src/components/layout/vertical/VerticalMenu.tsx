@@ -119,9 +119,15 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             <MenuItem href={`/attendance`} icon={<AccessTimeIcon />}>
               Attendance
             </MenuItem>
+             
             <MenuItem href={`/leaves`} icon={<EventAvailableIcon />}>
               Leaves
             </MenuItem>
+              {userRole === "1" && (            
+             <MenuItem href={`/attendance-activity`} icon={<AccessTimeIcon />}>
+              Attendance Activity
+            </MenuItem>)}
+             
             <MenuItem href={`/breaksheets`} icon={<FreeBreakfastIcon />}>
               Break Management
             </MenuItem>
