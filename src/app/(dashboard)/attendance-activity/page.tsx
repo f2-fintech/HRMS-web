@@ -32,15 +32,15 @@ const T = {
     ink: '#171A21',
     inkMuted: '#6E7180',
     inkFaint: '#A2A5B0',
-    signal: '#0E7C61',      // present / healthy
+    signal: '#0E7C61',     
     signalBg: '#E7F5EF',
-    amber: '#B4650B',       // half day / not punched out
+    amber: '#B4650B',       
     amberBg: '#FCF1E3',
-    danger: '#C23B2E',      // absent
+    danger: '#C23B2E',     
     dangerBg: '#FBEAE8',
-    info: '#2E4FC4',        // on leave
+    info: '#2E4FC4',        
     infoBg: '#EAEDFB',
-    neutral: '#8B8F99',     // not punched in
+    neutral: '#8B8F99',    
     neutralBg: '#F2F1ED',
     home: '#0E7C61',
     office: '#2E4FC4',
@@ -629,7 +629,8 @@ const AttendanceActivityDashboard: React.FC = () => {
         const netMins = dailyRows.map(r => toMin(r.netWorkingTime)).filter(m => m > 0)
         const avgMin = netMins.length ? Math.round(netMins.reduce((a, b) => a + b, 0) / netMins.length) : 0
         const totalFieldVisits = dailyRows.reduce((a, r) => a + (r.fieldVisits || 0), 0)
-        return { total, present, absent, onLeave, avgMin, totalFieldVisits }
+        const attendanceRate = total ? Math.round((present / total) * 100) : 0
+        return { total, present, absent, onLeave, avgMin, totalFieldVisits, attendanceRate }
     }, [dailyRows])
 
     const monthlyKpis = useMemo(() => {
@@ -682,13 +683,15 @@ const AttendanceActivityDashboard: React.FC = () => {
                     <>
                         {/* <StatCard label="Present" value={String(dailyKpis.present)} accent={T.signal} accentBg={T.signalBg} sub={`of ${dailyKpis.total} employees`} live /> */}
                         {/* <StatCard label="Absent" value={String(dailyKpis.absent)} accent={T.danger} accentBg={T.dangerBg} /> */}
-                        <StatCard label="Field Visits" value={String(dailyKpis.totalFieldVisits)} accent={T.field} accentBg={T.amberBg} sub="visits logged today">
+                        <StatCard label="Field Employees" value={String(dailyFieldEmps.length)} accent={T.field} accentBg={T.amberBg} sub="employees in field today">
                             {dailyFieldEmps.length > 0 && (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 8, width: '100%' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                                         {dailyFieldEmps.slice(0, 3).map(emp => {
                                             const avatarStyle = getAvatarStyle(emp.first_name, emp.last_name);
+
                                             const initials = initialsOf(emp.first_name, emp.last_name);
+
                                             return (
                                                 <div
                                                     key={emp.employeeId}
@@ -703,39 +706,56 @@ const AttendanceActivityDashboard: React.FC = () => {
                                                         fontSize: 8.5,
                                                         fontWeight: 750,
                                                         ...avatarStyle,
-                                                        cursor: 'help'
+                                                        cursor: 'help',
                                                     }}
                                                 >
                                                     {initials}
                                                 </div>
-                                            )
+                                            );
                                         })}
+
                                         {dailyFieldEmps.length > 3 && (
-                                            <div style={{ fontSize: 9, color: T.inkMuted, fontWeight: 600 }}>
+                                            <div style={{ fontSize: 9, color: T.inkMuted, fontWeight: 600, }}>
                                                 +{dailyFieldEmps.length - 3}
                                             </div>
                                         )}
                                     </div>
+
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setFieldEmpsModalTarget('daily'); }}
+
                                         style={{
-                                            border: 'none', background: 'rgba(46,79,196,0.08)', color: T.office, fontSize: 10, fontWeight: 700,
-                                            cursor: 'pointer', padding: '3px 7px', borderRadius: 4, transition: 'all 0.2s', whiteSpace: 'nowrap'
+                                            border: 'none',
+                                            background: 'rgba(46,79,196,0.08)',
+                                            color: T.office,
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            padding: '3px 7px',
+                                            borderRadius: 4,
+                                            transition: 'all 0.2s',
+                                            whiteSpace: 'nowrap',
                                         }}
-                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(46,79,196,0.15)'}
-                                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(46,79,196,0.08)'}
+                                        onMouseEnter={e =>
+                                        (e.currentTarget.style.background =
+                                            'rgba(46,79,196,0.15)')
+                                        }
+                                        onMouseLeave={e =>
+                                        (e.currentTarget.style.background =
+                                            'rgba(46,79,196,0.08)')
+                                        }
                                     >
                                         View Names
                                     </button>
                                 </div>
                             )}
                         </StatCard>
-                        <StatCard label="On Leave" value={String(dailyKpis.onLeave)} accent={T.info} accentBg={T.infoBg} />
-                        <StatCard label="Avg. Net Working" value={dailyKpis.avgMin ? fmtMin(dailyKpis.avgMin) : '—'} accent={T.office} accentBg={T.infoBg} sub="across punched staff" />
+                        <StatCard label="Field Visits" value={String(dailyKpis.totalFieldVisits)} accent={T.field} accentBg={T.amberBg} sub="visits logged today" />
+                        {/* <StatCard label="Field Visit Days" value={String(dailyFieldEmps.length)} accent={T.field} accentBg={T.amberBg} sub="employee visits today" /> */}
                     </>
                 ) : (
                     <>
-                        <StatCard label="Employees Tracked" value={String(monthlyKpis.employeeCount)} accent={T.signal} accentBg={T.signalBg} />
+                        <StatCard label="Field Visit Employees" value={String(monthlyFieldEmps.length)} accent={T.signal} accentBg={T.signalBg} />
                         <StatCard label="Total Field Visits" value={String(monthlyKpis.totalFieldVisits)} accent={T.field} accentBg={T.amberBg} sub="across all staff">
                             {monthlyFieldEmps.length > 0 && (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 8, width: '100%' }}>
@@ -784,8 +804,8 @@ const AttendanceActivityDashboard: React.FC = () => {
                                 </div>
                             )}
                         </StatCard>
-                        <StatCard label="Avg. Days Logged" value={String(monthlyKpis.avgDaysPerEmp)} accent={T.office} accentBg={T.infoBg} sub="per employee" />
-                        <StatCard label="Avg. Net Working" value={monthlyKpis.avgMin ? fmtMin(monthlyKpis.avgMin) : '—'} accent={T.office} accentBg={T.infoBg} sub="per logged day" />
+                        {/* <StatCard label="Avg. Days Logged" value={String(monthlyKpis.avgDaysPerEmp)} accent={T.office} accentBg={T.infoBg} sub="per employee" />
+                        <StatCard label="Avg. Net Working" value={monthlyKpis.avgMin ? fmtMin(monthlyKpis.avgMin) : '—'} accent={T.office} accentBg={T.infoBg} sub="per logged day" /> */}
                         {/* <StatCard label="Absences Logged" value={String(monthlyKpis.absences)} accent={T.danger} accentBg={T.dangerBg} /> */}
                     </>
                 )}
@@ -980,7 +1000,7 @@ const AttendanceActivityDashboard: React.FC = () => {
                                                     <td style={{ ...tdStyle, color: T.field, fontWeight: 600 }} className="aad-mono">
                                                         {totalFieldVisits > 0 ? (
                                                             <span style={{ background: T.amberBg, color: T.field, padding: '3px 8px', borderRadius: 6, fontWeight: 600, fontSize: 11.5 }}>
-                                                                 {totalFieldVisits} {totalFieldVisits === 1 ? 'time' : 'times'}
+                                                                {totalFieldVisits} {totalFieldVisits === 1 ? 'time' : 'times'}
                                                             </span>
                                                         ) : '—'}
                                                     </td>
