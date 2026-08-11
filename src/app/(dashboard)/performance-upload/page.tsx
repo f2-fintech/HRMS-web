@@ -257,12 +257,19 @@ function KpiCard({
     <Paper
       sx={{
         p: 2.1,
-        borderRadius: 2.5,
+        borderRadius: 4,
         color: '#ffffff',
         position: 'relative',
         overflow: 'hidden',
         background: bg,
-        boxShadow: '0 10px 22px rgba(15,23,42,0.18)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.2)',
+        boxShadow: '0 12px 30px rgba(15,23,42,0.15)',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-5px)',
+          boxShadow: '0 20px 40px rgba(15,23,42,0.25)',
+        }
       }}
     >
       <Box
@@ -287,18 +294,19 @@ function KpiCard({
         >
           <Box
             sx={{
-              width: 30,
-              height: 30,
-              borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.22)',
+              width: 36,
+              height: 36,
+              borderRadius: 3,
+              bgcolor: 'rgba(255,255,255,0.25)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
             }}
           >
             {leftIcon}
           </Box>
-          <TrendingUpIcon sx={{ opacity: 0.8, fontSize: 20 }} />
+          <TrendingUpIcon sx={{ opacity: 0.9, fontSize: 24, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }} />
         </Box>
 
         <Typography
@@ -355,6 +363,10 @@ export default function PerformanceUploadPage() {
   const [uploading, setUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const comparisonFileRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingComparison, setUploadingComparison] = useState(false);
+  const [comparisonData, setComparisonData] = useState<any[][]>([]);
+  const [comparisonModalOpen, setComparisonModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   // search (with debounce)
@@ -449,11 +461,34 @@ export default function PerformanceUploadPage() {
 
   const dateStr = (date ? date : dayjs()).format('YYYY-MM-DD');
 
-  const isAsstOpsManager = ['Asst. Ops Manager', 'Ops Manager', 'Credit Executive', 'Assistant Growth Manager', 'Sr. Operations & Alliances Manager', 'Ops Executive']
-    .includes(user?.designation);
-  const canUpload = isAdmin || isAsstOpsManager;
-  const canAddRow = isAdmin || isAsstOpsManager;
-  const canDeleteAll = isAdmin || isAsstOpsManager;
+  const isOps = Boolean(
+    user?.designation?.toLowerCase().includes('ops') ||
+    ['Asst. Ops Manager', 'Ops Manager', 'Credit Executive', 'Assistant Growth Manager', 'Sr. Operations & Alliances Manager', 'Ops Executive'].includes(user?.designation)
+  );
+  const canUpload = isAdmin || isOps;
+  const canAddRow = isAdmin || isOps;
+  const canDeleteAll = isAdmin || isOps;
+
+  const fetchComparisonData = async () => {
+    try {
+      const company_id =
+        localStorage.getItem('company_id') ||
+        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        '';
+      const res = await api.get('/performance-upload/comparison', {
+        params: { company_id }
+      });
+      if (res.data?.data) {
+        setComparisonData(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch comparison data', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchComparisonData();
+  }, []);
 
   const fetchList = async () => {
     try {
@@ -622,6 +657,37 @@ export default function PerformanceUploadPage() {
     } finally {
       if (fileRef.current) fileRef.current.value = '';
       setUploading(false);
+    }
+  };
+
+  const onUploadComparison = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingComparison(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const company_id =
+        localStorage.getItem('company_id') ||
+        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        '';
+
+      const res = await api.post('/performance-upload/upload-comparison', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        params: { company_id },
+      });
+      
+      setComparisonData(res.data?.data || []);
+      setComparisonModalOpen(true);
+      alert('Comparison sheet uploaded successfully.');
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.message || 'Upload failed.');
+    } finally {
+      if (comparisonFileRef.current) comparisonFileRef.current.value = '';
+      setUploadingComparison(false);
     }
   };
 
@@ -935,7 +1001,7 @@ export default function PerformanceUploadPage() {
               </Box>
             </Box>
 
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
               <Button
                 onClick={() => {
                   const header = [
@@ -986,18 +1052,21 @@ export default function PerformanceUploadPage() {
                 }}
                 size="small"
                 startIcon={<DownloadIcon sx={{ fontSize: 18 }} />}
-                sx={{
-                  borderRadius: 999,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  px: 2.5,
-                  borderColor: '#cbd5f5',
-                  bgcolor: '#ffffff',
-                  color: '#0f172a',
-                  borderWidth: 1,
-                  borderStyle: 'solid',
-                  '&:hover': { bgcolor: '#f9fafb', borderColor: '#94a3b8' },
-                }}
+                  sx={{
+                    borderRadius: 999,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    px: 3,
+                    py: 1,
+                    borderColor: '#cbd5f5',
+                    bgcolor: '#ffffff',
+                    color: '#0f172a',
+                    borderWidth: 1,
+                    borderStyle: 'solid',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                    '&:hover': { bgcolor: '#f1f5f9', borderColor: '#94a3b8', transform: 'translateY(-2px)' },
+                  }}
               >
                 Export
               </Button>
@@ -1009,39 +1078,45 @@ export default function PerformanceUploadPage() {
                 sx={{
                   borderRadius: 999,
                   textTransform: "none",
-                  fontWeight: 600,
-                  px: 2.5,
-                  bgcolor: "#06b6d4",
-                  boxShadow: "0 8px 20px rgba(6,182,212,0.35)",
-                  "&:hover": { bgcolor: "#0891b2" },
+                  fontWeight: 700,
+                  px: 3,
+                  py: 1,
+                  background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                  boxShadow: "0 8px 20px rgba(6,182,212,0.3)",
+                  transition: 'all 0.2s',
+                  "&:hover": { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: "0 10px 25px rgba(6,182,212,0.4)" },
                 }}
               >
                 Today Login
               </Button>
               {canAddRow && (
-                <>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<CalendarMonthIcon sx={{ fontSize: 18 }} />}
-                    onClick={() => {
-                      resetForm();
-                      setEditingId(null);
-                      setFormOpen(true);
-                    }}
-                    sx={{
-                      borderRadius: 999,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      px: 2.5,
-                      bgcolor: '#4f46e5',
-                      boxShadow: '0 8px 20px rgba(79,70,229,0.35)',
-                      '&:hover': { bgcolor: '#4338ca' },
-                    }}
-                  >
-                    Add Row
-                  </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<CalendarMonthIcon sx={{ fontSize: 18 }} />}
+                  onClick={() => {
+                    resetForm();
+                    setEditingId(null);
+                    setFormOpen(true);
+                  }}
+                  sx={{
+                    borderRadius: 999,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    px: 3,
+                    py: 1,
+                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                    boxShadow: '0 8px 20px rgba(79,70,229,0.3)',
+                    transition: 'all 0.2s',
+                    '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(79,70,229,0.4)' },
+                  }}
+                >
+                  Add Row
+                </Button>
+              )}
 
+              {canUpload && (
+                <>
                   <input
                     ref={fileRef}
                     type="file"
@@ -1050,24 +1125,75 @@ export default function PerformanceUploadPage() {
                     onChange={onUpload}
                   />
 
-                  {canUpload && (
+                  <input
+                    ref={comparisonFileRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    style={{ display: 'none' }}
+                    onChange={onUploadComparison}
+                  />
+
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<UploadFileIcon sx={{ fontSize: 18 }} />}
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    sx={{
+                      borderRadius: 999,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      px: 3,
+                      py: 1,
+                      background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                      boxShadow: '0 8px 20px rgba(234,88,12,0.3)',
+                      transition: 'all 0.2s',
+                      '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(234,88,12,0.4)' },
+                    }}
+                  >
+                    {uploading ? 'Uploading…' : 'Upload'}
+                  </Button>
+                  
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<UploadFileIcon sx={{ fontSize: 18 }} />}
+                    onClick={() => comparisonFileRef.current?.click()}
+                    disabled={uploadingComparison}
+                    sx={{
+                      borderRadius: 999,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      px: 3,
+                      py: 1,
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      boxShadow: '0 8px 20px rgba(16,185,129,0.3)',
+                      transition: 'all 0.2s',
+                      '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(16,185,129,0.4)' },
+                    }}
+                  >
+                    {uploadingComparison ? 'Uploading…' : 'Upload Comparison'}
+                  </Button>
+
+                  {comparisonData.length > 0 && (
                     <Button
                       size="small"
                       variant="contained"
-                      startIcon={<UploadFileIcon sx={{ fontSize: 18 }} />}
-                      onClick={() => fileRef.current?.click()}
-                      disabled={uploading}
+                      startIcon={<VisibilityIcon sx={{ fontSize: 18 }} />}
+                      onClick={() => setComparisonModalOpen(true)}
                       sx={{
                         borderRadius: 999,
                         textTransform: 'none',
-                        fontWeight: 600,
-                        px: 2.5,
-                        bgcolor: '#f97316',
-                        boxShadow: '0 8px 20px rgba(234,88,12,0.35)',
-                        '&:hover': { bgcolor: '#ea580c' },
+                        fontWeight: 700,
+                        px: 3,
+                        py: 1,
+                        background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                        boxShadow: '0 8px 20px rgba(139,92,246,0.3)',
+                        transition: 'all 0.2s',
+                        '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(139,92,246,0.4)' },
                       }}
                     >
-                      {uploading ? 'Uploading…' : 'Upload'}
+                      View Comparison
                     </Button>
                   )}
                 </>
@@ -1081,11 +1207,13 @@ export default function PerformanceUploadPage() {
                   sx={{
                     borderRadius: 999,
                     textTransform: 'none',
-                    fontWeight: 600,
-                    px: 2.5,
-                    bgcolor: '#dc2626',
-                    boxShadow: '0 8px 20px rgba(220,38,38,0.35)',
-                    '&:hover': { bgcolor: '#b91c1c' },
+                    fontWeight: 700,
+                    px: 3,
+                    py: 1,
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    boxShadow: '0 8px 20px rgba(220,38,38,0.3)',
+                    transition: 'all 0.2s',
+                    '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(220,38,38,0.4)' },
                   }}
                 >
                   Delete(datewise)
@@ -1527,43 +1655,43 @@ export default function PerformanceUploadPage() {
             <TableContainer>
               <Table size="large">
                 <TableHead>
-                  <TableRow sx={{ background: 'linear-gradient(90deg,#EEF2FF 0%, #E0EAFF 100%)' }}>
-                    <TableCell sx={{ fontWeight: 800 }}>S.No.</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>Employee</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>Code</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>Manager / TL</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                  <TableRow sx={{ background: 'linear-gradient(90deg, #1e293b 0%, #334155 100%)' }}>
+                    <TableCell sx={{ fontWeight: 800, color: 'white' }}>S.No.</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: 'white' }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: 'white' }}>Employee</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: 'white' }}>Code</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: 'white' }}>Manager / TL</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: 'white' }}>
                       Logins
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#EEF2FF' }}>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: '#fca5a5' }}>
                       Rejected
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#EEF2FF' }}>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: '#fcd34d' }}>
                       Hold
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: 'white' }}>
                       Approvals (₹)
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: 'white' }}>
                       Disbursal (₹)
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: '#fca5a5' }}>
                       Drop (₹)
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: '#67e8f9' }}>
                       Cashback (₹)
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: 'white' }}>
                       Gross Approval (₹)
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: 'white' }}>
                       Gross Disbursal (₹)
                     </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 800 }}>
+                    <TableCell align="center" sx={{ fontWeight: 800, color: 'white' }}>
                       Team Total
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: 'white' }}>
                       Actions
                     </TableCell>
                   </TableRow>
@@ -2277,7 +2405,11 @@ export default function PerformanceUploadPage() {
             },
           }}
         >
-          <DialogTitle sx={{ fontWeight: 800 }}>
+          <DialogTitle sx={{ 
+            fontWeight: 800, 
+            background: 'linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)', 
+            color: 'white' 
+          }}>
             {editingId ? 'Edit Performance' : 'Add Performance'}
           </DialogTitle>
 
@@ -2455,13 +2587,113 @@ export default function PerformanceUploadPage() {
                 }
               }}
               disabled={formSaving}
+              sx={{ color: '#64748b', fontWeight: 600, borderRadius: 999, '&:hover': { bgcolor: '#f1f5f9' } }}
             >
               Cancel
             </Button>
-            <Button variant="contained" onClick={onFormSubmit} disabled={formSaving}>
+            <Button 
+              variant="contained" 
+              onClick={onFormSubmit} 
+              disabled={formSaving}
+              sx={{
+                borderRadius: 999,
+                textTransform: 'none',
+                fontWeight: 700,
+                px: 3,
+                background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                boxShadow: '0 8px 20px rgba(79,70,229,0.3)',
+                '&:hover': { filter: 'brightness(1.1)', boxShadow: '0 10px 25px rgba(79,70,229,0.4)' }
+              }}
+            >
               {formSaving ? 'Saving…' : editingId ? 'Update Row' : 'Save Row'}
             </Button>
           </DialogActions>
+        </Dialog>
+
+        {/* Comparison Data Modal */}
+        <Dialog 
+          open={comparisonModalOpen} 
+          onClose={() => setComparisonModalOpen(false)} 
+          maxWidth="xl" 
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 4,
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              overflow: 'hidden',
+              bgcolor: '#f8fafc'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            fontWeight: 800, 
+            background: 'linear-gradient(90deg, #1e293b 0%, #334155 100%)', 
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            p: 3
+          }}>
+            Comparison Data Preview
+            <IconButton onClick={() => setComparisonModalOpen(false)} sx={{ color: 'white' }}>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent dividers sx={{ p: 0, bgcolor: 'white' }}>
+            {comparisonData.length > 0 ? (
+              <TableContainer sx={{ 
+                maxHeight: '70vh',
+                '&::-webkit-scrollbar': { width: 8, height: 8 },
+                '&::-webkit-scrollbar-track': { backgroundColor: '#f1f5f9' },
+                '&::-webkit-scrollbar-thumb': { backgroundColor: '#cbd5e1', borderRadius: 8 },
+              }}>
+                <Table stickyHeader size="small">
+                  <TableBody>
+                    {comparisonData.map((row, rowIndex) => (
+                      <TableRow 
+                        key={rowIndex}
+                        sx={{
+                          '&:hover': rowIndex >= 2 ? { bgcolor: '#f0f9ff' } : {},
+                          transition: 'background-color 0.2s ease',
+                        }}
+                      >
+                        {row.map((cell, colIndex) => {
+                          const isHeader = rowIndex < 2;
+                          // Optional: highlight comparison columns with a subtle tint
+                          const isAltColumn = colIndex % 2 !== 0 && !isHeader; 
+                          
+                          return (
+                            <TableCell 
+                              key={colIndex} 
+                              sx={{ 
+                                fontWeight: isHeader ? 700 : 500,
+                                fontSize: isHeader ? '0.85rem' : '0.8rem',
+                                color: isHeader ? '#0f172a' : '#334155',
+                                bgcolor: isHeader 
+                                  ? rowIndex === 0 ? '#e2e8f0' : '#f1f5f9' 
+                                  : isAltColumn ? '#fafafa' : 'inherit',
+                                borderBottom: '1px solid #e2e8f0',
+                                borderRight: '1px solid #f1f5f9', // Cell borders for clarity in dense data
+                                whiteSpace: 'nowrap',
+                                p: isHeader ? 1.5 : 1
+                              }}
+                            >
+                              {cell !== null && cell !== undefined ? String(cell) : ''}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Box sx={{ p: 5, textAlign: 'center' }}>
+                <Typography variant="h6" color="text.secondary">No comparison data available.</Typography>
+                <Typography variant="body2" color="text.disabled">Please upload a valid comparison CSV/Excel file.</Typography>
+              </Box>
+            )}
+          </DialogContent>
         </Dialog>
       </Box>
     </Box>
