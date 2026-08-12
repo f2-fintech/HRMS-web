@@ -48,6 +48,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
+import TeamPunches from '@/views/TeamPunches';
 import { useRouter } from 'next/navigation';
 
 interface Employee {
@@ -234,6 +235,7 @@ const PunchesPage: React.FC = () => {
     const [userRole, setUserRole] = useState<string>('');
     const [loggedInUserId, setLoggedInUserId] = useState<string>('');
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [showTeamPunches, setShowTeamPunches] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [month, setMonth] = useState<string>('');
     const [punches, setPunches] = useState<Punch[]>([]);
@@ -334,12 +336,15 @@ const PunchesPage: React.FC = () => {
             if (mergedPunches.length === 0) {
                 setError(`No punch records found for ${selectedEmployee?.first_name} ${selectedEmployee?.last_name} in ${formatMonthDisplay(selectedMonth)}`);
             }
-        } catch (error) {
-            console.error('Error fetching punches:', error);
-            setError('Failed to fetch punch data. Please try again.');
-            setPunches([]);
-            setAnalytics(null);
-        } finally {
+        } catch (error: any) {
+    setError(
+        error?.response?.data?.message ||
+        `API Error: ${error?.response?.status || 'Unknown'}`
+    );
+
+    setPunches([]);
+    setAnalytics(null);
+} finally {
             setLoading(false);
         }
     };
@@ -601,6 +606,39 @@ const PunchesPage: React.FC = () => {
 
                 <Divider className="mb-6" />
 
+                {userRole === '2' && (
+                    <Box className="mb-4">
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => setShowTeamPunches(prev => !prev)}
+                        >
+                            {showTeamPunches ? 'Hide Team Punches' : 'View Team Punches'}
+                        </Button>
+                    </Box>
+                )}
+
+                {userRole === '2' && showTeamPunches && (
+                    <TeamPunches
+                    managerId={loggedInUserId}
+                    onEmployeeClick={(employee) => {
+                        const matchedEmployee = employees.find(
+                            (emp) =>
+                                emp.first_name.trim().toLowerCase() ===
+                                    employee.first_name.trim().toLowerCase() &&
+                                emp.last_name.trim().toLowerCase() ===
+                                    employee.last_name.trim().toLowerCase()
+                        );
+
+                        if (matchedEmployee) {
+                            setSelectedEmployee(matchedEmployee);
+                            setShowTeamPunches(false);
+                        } else {
+                            console.error('Employee not found:', employee);
+                        }
+                    }}
+                />
+                )}
                 {error && (
                     <Alert severity="error" className="mb-4" onClose={() => setError(null)}>
                         {error}
@@ -634,7 +672,7 @@ const PunchesPage: React.FC = () => {
                         </div>
                     ) : (
                         <Autocomplete
-                            options={employees}
+                           options={employees}
                             getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
                             value={selectedEmployee}
                             onChange={handleEmployeeChange}
@@ -707,9 +745,6 @@ const PunchesPage: React.FC = () => {
                         </Button>
                     </Box>
                 )}
-
-
-
 
                 {loading && (
                     <Box className="text-center py-4">
