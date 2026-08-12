@@ -739,157 +739,12 @@ const FieldPunchOutModal: React.FC<{
 }
 
 // ─── Field Punch In Image Modal ─────────────────────────────────────
+// ─── Punch In Image Modal ─────────────────────────────────────
 const PunchInImageModal: React.FC<{
-    onClose: () => void
-    onSubmit: (file: File) => void
-}> = ({ onClose, onSubmit }) => {
-    const [preview, setPreview] = useState<string | null>(null)
-    const [selectedFile, setSelectedFile] = useState<File | null>(null)
-    const [submitting, setSubmitting] = useState(false)
-    const fileInputRef = useRef<HTMLInputElement | null>(null)
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-
-        if (!file.type.startsWith('image/')) {
-            alert('Please select a valid image file')
-            return
-        }
-
-        setSelectedFile(file)
-        setPreview(URL.createObjectURL(file))
-    }
-
-    const handleSubmit = async () => {
-        if (!selectedFile) {
-            alert('📷 Photo is mandatory for Field Punch In. Please capture or upload a photo.')
-            return;
-        }
-        setSubmitting(true)
-        try {
-            await onSubmit(selectedFile || undefined)
-        } finally {
-            setSubmitting(false)
-        }
-    }
-
-
-    return (
-        <div style={{
-            position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
-        }} onClick={submitting ? undefined : onClose}>
-            <div onClick={e => e.stopPropagation()} style={{
-                background: '#fff', borderRadius: 16, padding: 20, width: 360,
-                maxHeight: '90vh', overflowY: 'auto',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: 'inherit'
-            }}>
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                    <div style={{
-                        width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                        <span style={{ fontSize: 16 }}>📸</span>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 15, fontWeight: 500, color: '#0f172a' }}>Field Punch In</div>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>    Upload a photo of your meeting location
-                        </div>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        disabled={submitting || !selectedFile}
-                        style={{
-                            background: 'none', border: 'none',
-                            cursor: submitting ? 'not-allowed' : 'pointer',
-                            color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4
-                        }}
-                    >✕</button>
-                </div>
-
-                {/* Preview / Placeholder */}
-                <div
-                    onClick={() => !submitting && fileInputRef.current?.click()}
-                    style={{
-                        width: '100%', height: 200, borderRadius: 10,
-                        border: preview ? 'none' : '1.5px dashed #cbd5e1',
-                        background: preview ? '#000' : '#f8fafc',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: submitting ? 'not-allowed' : 'pointer', overflow: 'hidden', marginBottom: 12
-                    }}
-                >
-                    {preview ? (
-                        <img src={preview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                        <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                            <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
-                            <div style={{ fontSize: 13 }}>Tap to capture / upload photo</div>
-                        </div>
-                    )}
-                </div>
-
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                />
-
-                {preview && !submitting && (
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        style={{
-                            width: '100%', padding: 8, marginBottom: 12,
-                            border: '1px dashed #cbd5e1', borderRadius: 8, background: 'transparent',
-                            color: '#64748b', fontSize: 13, cursor: 'pointer'
-                        }}
-                    >
-                        🔄 Retake / Change photo
-                    </button>
-                )}
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                    <button
-                        onClick={onClose}
-                        disabled={submitting}
-                        style={{
-                            padding: '8px 16px', border: '0.5px solid #e2e8f0',
-                            borderRadius: 8, background: 'transparent', color: '#64748b', fontSize: 13,
-                            cursor: submitting ? 'not-allowed' : 'pointer'
-                        }}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={submitting || !selectedFile}
-                        style={{
-                            padding: '8px 20px', border: 'none', borderRadius: 8,
-                            background: submitting ? '#cbd5e1' : '#2563eb',
-                            cursor: submitting ? 'not-allowed' : 'pointer',
-                            color: '#fff', fontSize: 13, fontWeight: 500,
-                        }}
-                    >
-                        {submitting ? 'Punching In...' : 'Punch In'}
-                    </button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-
-// ─── Field Type Switch Image Modal (front + back photo + agenda) ─────────────
-const SwitchTypeImageModal: React.FC<{
-    targetType: 'HOME' | 'OFFICE' | 'FIELD' | null
+    punchType: 'HOME' | 'OFFICE' | 'FIELD'
     onClose: () => void
     onSubmit: (frontFile: File, backFile: File, agenda: string) => void
-}> = ({ targetType, onClose, onSubmit }) => {
+}> = ({ punchType, onClose, onSubmit }) => {
     const [frontPreview, setFrontPreview] = useState<string | null>(null)
     const [backPreview, setBackPreview] = useState<string | null>(null)
     const [frontFile, setFrontFile] = useState<File | null>(null)
@@ -1000,18 +855,14 @@ const SwitchTypeImageModal: React.FC<{
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                     <div style={{
-                        width: 34, height: 34, borderRadius: '50%', background: '#E0F2FE',
+                        width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                     }}>
-                        <span style={{ fontSize: 16 }}>🔄</span>
+                        <span style={{ fontSize: 16 }}>📸</span>
                     </div>
                     <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 15, fontWeight: 500, color: '#0f172a' }}>
-                            Switch to {targetType || 'FIELD'}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>
-                            Front & back photo + agenda required
-                        </div>
+                        <div style={{ fontSize: 15, fontWeight: 500, color: '#0f172a' }}>{punchType} Punch In</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>Front & back photo + agenda required</div>
                     </div>
                     <button
                         onClick={onClose}
@@ -1048,6 +899,207 @@ const SwitchTypeImageModal: React.FC<{
                         }}
                     />
                 </div>
+
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button
+                        onClick={onClose}
+                        disabled={submitting}
+                        style={{
+                            padding: '8px 16px', border: '0.5px solid #e2e8f0',
+                            borderRadius: 8, background: 'transparent', color: '#64748b', fontSize: 13,
+                            cursor: submitting ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={submitting || !frontFile || !backFile}
+                        style={{
+                            padding: '8px 20px', border: 'none', borderRadius: 8,
+                            background: submitting ? '#cbd5e1' : '#2563eb',
+                            cursor: submitting ? 'not-allowed' : 'pointer',
+                            color: '#fff', fontSize: 13, fontWeight: 500,
+                        }}
+                    >
+                        {submitting ? 'Punching In...' : 'Punch In'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
+
+// ─── Field Type Switch Image Modal (front + back photo + agenda) ─────────────
+const SwitchTypeImageModal: React.FC<{
+    targetType: 'HOME' | 'OFFICE' | 'FIELD' | null
+    onClose: () => void
+    onSubmit: (frontFile: File, backFile: File, agenda: string) => void
+}> = ({ targetType, onClose, onSubmit }) => {
+    const [frontPreview, setFrontPreview] = useState<string | null>(null)
+    const [backPreview, setBackPreview] = useState<string | null>(null)
+    const [frontFile, setFrontFile] = useState<File | null>(null)
+    const [backFile, setBackFile] = useState<File | null>(null)
+    const [agenda, setAgenda] = useState('')
+    const [submitting, setSubmitting] = useState(false)
+    const frontInputRef = useRef<HTMLInputElement | null>(null)
+    const backInputRef = useRef<HTMLInputElement | null>(null)
+
+    const handleFileChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        which: 'front' | 'back'
+    ) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (!file.type.startsWith('image/')) {
+            alert('Please select a valid image file')
+            return
+        }
+
+        if (which === 'front') {
+            setFrontFile(file)
+            setFrontPreview(URL.createObjectURL(file))
+        } else {
+            setBackFile(file)
+            setBackPreview(URL.createObjectURL(file))
+        }
+    }
+
+    const handleSubmit = async () => {
+        if (!frontFile || !backFile) {
+            alert('📷 Front and back photos are required.')
+            return
+        }
+        if (targetType === 'FIELD' && !agenda.trim()) {
+            alert('📝 Need to add Agenda.')
+            return
+        }
+        setSubmitting(true)
+        try {
+            await onSubmit(frontFile, backFile, agenda)
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    const photoBox = (
+        label: string,
+        preview: string | null,
+        inputRef: React.RefObject<HTMLInputElement>,
+        which: 'front' | 'back'
+    ) => (
+        <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500, marginBottom: 6 }}>{label}</div>
+            <div
+                onClick={() => !submitting && inputRef.current?.click()}
+                style={{
+                    width: '100%', height: 140, borderRadius: 10,
+                    border: preview ? 'none' : '1.5px dashed #cbd5e1',
+                    background: preview ? '#000' : '#f8fafc',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: submitting ? 'not-allowed' : 'pointer', overflow: 'hidden',
+                }}
+            >
+                {preview ? (
+                    <img src={preview} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                    <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                        <div style={{ fontSize: 22, marginBottom: 4 }}>📷</div>
+                        <div style={{ fontSize: 11 }}>Tap to capture</div>
+                    </div>
+                )}
+            </div>
+            <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => handleFileChange(e, which)}
+                style={{ display: 'none' }}
+            />
+            {preview && !submitting && (
+                <button
+                    onClick={() => inputRef.current?.click()}
+                    style={{
+                        width: '100%', padding: 6, marginTop: 6,
+                        border: '1px dashed #cbd5e1', borderRadius: 8, background: 'transparent',
+                        color: '#64748b', fontSize: 11, cursor: 'pointer'
+                    }}
+                >
+                    🔄 Retake
+                </button>
+            )}
+        </div>
+    )
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+        }} onClick={submitting ? undefined : onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                background: '#fff', borderRadius: 16, padding: 20, width: 400,
+                maxHeight: '90vh', overflowY: 'auto',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: 'inherit'
+            }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <div style={{
+                        width: 34, height: 34, borderRadius: '50%', background: '#E0F2FE',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                        <span style={{ fontSize: 16 }}>🔄</span>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 15, fontWeight: 500, color: '#0f172a' }}>
+                            Switch to {targetType || 'FIELD'}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>
+                            Front & back photo {targetType === 'FIELD' ? '+ agenda ' : ''}required
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        disabled={submitting}
+                        style={{
+                            background: 'none', border: 'none',
+                            cursor: submitting ? 'not-allowed' : 'pointer',
+                            color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 4
+                        }}
+                    >✕</button>
+                </div>
+
+                {/* Front + Back photo side by side */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                    {photoBox('Front Photo', frontPreview, frontInputRef, 'front')}
+                    {photoBox('Back Photo', backPreview, backInputRef, 'back')}
+                </div>
+
+                {/* Agenda */}
+                {targetType === 'FIELD' && (
+                    <div style={{ marginBottom: 16 }}>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500, marginBottom: 4 }}>
+                            Agenda *
+                        </div>
+                        <textarea
+                            placeholder="Purpose of this visit / meeting..."
+                            value={agenda}
+                            onChange={e => setAgenda(e.target.value)}
+                            rows={2}
+                            disabled={submitting}
+                            style={{
+                                width: '100%', border: '0.5px solid #e2e8f0', borderRadius: 8,
+                                padding: '8px 10px', fontSize: 13, resize: 'none', background: '#f8fafc',
+                                color: '#1e293b', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+                            }}
+                        />
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -1482,13 +1534,13 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     // ── Actual punch-in API call (shared by normal + field-with-image flow) ──
-    const doPunchIn = async (imageFile?: File) => {
+    const doPunchIn = async (frontFile?: File, backFile?: File, agenda?: string) => {
         const now = new Date()
         const startTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
         setPunchState({ ...punchState, isPunchIn: true, startTime, isPunchInDisabled: true, isPunchOutDisabled: false })
 
-        if (imageFile) {
+        if (frontFile && backFile) {
             const formData = new FormData()
             formData.append('punchIn', startTime)
             formData.append('punchOut', '')
@@ -1497,7 +1549,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             formData.append('date', currentDate)
             formData.append('employee', employeeId)
             formData.append('company_id', company_id)
-            formData.append('image', imageFile)
+            formData.append('frontImage', frontFile)
+            formData.append('backImage', backFile)
+            if (agenda) formData.append('agenda', agenda)
 
             await dispatch(addPunch(formData)).unwrap();
         } else {
@@ -1510,11 +1564,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchIn = async () => {
-        // Mobile restriction removed for all users
-        // if (isMobileDevice) { ... }
-
         // FIELD type ke liye pehle meeting location ka photo lo
-        if (punchType === 'FIELD') {
+        if (punchType === 'FIELD' || punchType === 'HOME') {
             setShowPunchInImageModal(true)
             return
         }
@@ -1522,9 +1573,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         await doPunchIn()
     }
 
-    const handlePunchInImageSubmit = async (file: File) => {
+    const handlePunchInImageSubmit = async (frontFile: File, backFile: File, agenda: string) => {
         try {
-            await doPunchIn(file)
+            await doPunchIn(frontFile, backFile, agenda)
             setShowPunchInImageModal(false)
         } catch (err) {
             console.error('Error submitting punch in image:', err)
@@ -2034,6 +2085,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             {/* Field Punch In Image Modal */}
             {showPunchInImageModal && (
                 <PunchInImageModal
+                    punchType={punchType}
                     onClose={() => setShowPunchInImageModal(false)}
                     onSubmit={handlePunchInImageSubmit}
                 />
@@ -2150,21 +2202,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 ))}
                             </div>
 
-                            {/* 👈 NEW: Add Field Meeting button — sirf FIELD + punched-in ho tab dikhega */}
-                            {canAddFieldLog && (
-                                <button
-                                    onClick={() => setShowFieldLogModal(true)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-green-600 hover:bg-green-700 text-white mb-4"
-                                >
-                                    🤝 Add Field Meeting
-                                    {latestActivePunch?.contacts?.length > 0 && (
-                                        <span className="bg-white/25 rounded-full px-2 text-xs">
-                                            {latestActivePunch.contacts.length}
-                                        </span>
-                                    )}
-                                </button>
-                            )}
-
+                            {/* 👈 Add Field Meeting button removed per user request */}
                             <div className="flex gap-4">
                                 <button
                                     onClick={handlePunchIn}
