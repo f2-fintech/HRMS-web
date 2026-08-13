@@ -45,6 +45,8 @@ export default function AddSeatingArrangementForm({
         employee: ''
     })
 
+    const isClearSeatAction = formData.employee === ''
+
     useEffect(() => {
         const fetchEmployees = async () => {
             try {
@@ -87,12 +89,19 @@ export default function AddSeatingArrangementForm({
             newErrors.seatNo = 'Seat number is required'
             isValid = false
         }
-        if (!formData.employee) {
+
+        if (!seatingArrangementId && !formData.employee) {
             newErrors.employee = 'Employee is required'
             isValid = false
         }
+
         setErrors(newErrors)
         return isValid
+    }
+
+    const handleClearSeat = () => {
+        setFormData(prev => ({ ...prev, employee: '' }))
+        setErrors(prev => ({ ...prev, employee: '' }))
     }
 
     const handleSubmit = () => {
@@ -107,7 +116,11 @@ export default function AddSeatingArrangementForm({
 
         const method = seatingArrangementId ? 'PUT' : 'POST'
 
-        const requestData = { ...formData, company_id: companyId };
+        const requestData = {
+            ...formData,
+            employee: formData.employee || null,
+            company_id: companyId
+        };
 
         fetch(url, {
             method,
@@ -161,8 +174,9 @@ export default function AddSeatingArrangementForm({
                         getOptionLabel={option => `${option.first_name} ${option.last_name}`}
                         value={employees.find(emp => emp._id === formData.employee) || null}
                         onChange={handleEmployeeChange}
+                        clearOnEscape
                         renderInput={params => (
-                            <TextField {...params} label='Search Employee' fullWidth required variant='outlined'
+                            <TextField {...params} label={isClearSeatAction ? 'Employee (Seat will be cleared)' : 'Search Employee'} fullWidth required={!seatingArrangementId || !isClearSeatAction} variant='outlined'
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
                                         borderRadius: '12px',
@@ -173,6 +187,19 @@ export default function AddSeatingArrangementForm({
                         )}
                     />
                 </FormControl>
+                {seatingArrangementId && (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                        <Button
+                            variant='text'
+                            size='small'
+                            color='warning'
+                            onClick={handleClearSeat}
+                            sx={{ textTransform: 'none', fontWeight: 700 }}
+                        >
+                            Clear seat allocation
+                        </Button>
+                    </Box>
+                )}
             </Grid>
 
             <Grid container spacing={3}>
@@ -203,7 +230,7 @@ export default function AddSeatingArrangementForm({
                     Cancel
                 </Button>
                 <Button variant='contained' onClick={handleSubmit} sx={{ borderRadius: '10px', px: 5, py: 1, background: 'linear-gradient(135deg, #3498db, #2980b9)', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(52, 152, 219, 0.4)', '&:hover': { background: 'linear-gradient(135deg, #2980b9, #2573a7)' } }}>
-                    {seatingArrangementId ? 'Update' : 'Allocate'}
+                    {seatingArrangementId && !formData.employee ? 'Update Empty Seat' : seatingArrangementId ? 'Update' : 'Allocate'}
                 </Button>
             </DialogActions>
         </Box>
