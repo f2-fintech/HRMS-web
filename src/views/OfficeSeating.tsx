@@ -46,10 +46,10 @@ const OfficeSeating = () => {
             bottom: row.bottom.map(id => ({ id, status: 'available' }))
         })),
         rightArea: [
-            { id: 'right-1', top: ['D06', 'D07', 'D08'], bottom: ['D12', 'D11', 'D10', 'D09'] },
-            { id: 'right-2', top: ['D13', 'D14', 'D15', 'D16'], bottom: ['D20', 'D19', 'D18', 'D17'] },
-            { id: 'right-3', top: ['D21', 'D22', 'D23', 'D24'], bottom: ['D28', 'D27', 'D26', 'D25'] },
-            { id: 'right-4', top: ['D29', 'D30', 'D31', 'D32'], bottom: ['D36', 'D35', 'D34', 'D33'] }
+            { id: 'right-1', top: ['D06', 'D07', 'D08', 'D09'], bottom: ['D12', 'D11', 'D10', 'D13'] },
+            { id: 'right-2', top: ['D14', 'D15', 'D16', 'D17'], bottom: ['D20', 'D19', 'D18', 'D21'] },
+            { id: 'right-3', top: ['D22', 'D23', 'D24', 'D25'], bottom: ['D28', 'D27', 'D26', 'D29'] },
+            { id: 'right-4', top: ['D30', 'D31', 'D32', 'D33'], bottom: ['D36', 'D35', 'D34', 'D37'] }
         ].map(row => ({
             id: row.id,
             top: row.top.map(id => ({ id, status: 'available' })),
@@ -309,11 +309,11 @@ const OfficeSeating = () => {
                             <Box display="flex" flexDirection="column" gap={3} width="240px">
                                 <Paper sx={{ ...premiumPaperStyle, height: '160px', justifyContent: 'center' }} elevation={0}>
                                     <Typography variant="subtitle2" sx={typographyHeader}>HR / WAITING</Typography>
-                                    <Box display="flex" gap={1}>{seats.hrRoom.map(s => renderSeat(s))}</Box>
+                                    {/* <Box display="flex" gap={1}>{seats.hrRoom.map(s => renderSeat(s))}</Box> */}
                                 </Paper>
                                 <Paper sx={{ ...premiumPaperStyle, height: '160px', justifyContent: 'center' }} elevation={0}>
                                     <Typography variant="subtitle2" sx={typographyHeader}>RECEPTION</Typography>
-                                    <Box display="flex" gap={1}>{seats.reception.map(s => renderSeat(s))}</Box>
+                                    {/* <Box display="flex" gap={1}>{seats.reception.map(s => renderSeat(s))}</Box> */}
                                 </Paper>
                             </Box>
 
@@ -367,10 +367,10 @@ const OfficeSeating = () => {
                                     <Typography variant="subtitle1" sx={typographyHeader}>DIRECTOR CABIN 1</Typography>
                                     <Box display="flex" flexDirection="column" alignItems="center" gap={1.5} mt={1}>
                                         <Box>{renderSeat(seats.dirCabin1[0], 180)}</Box>
-                                        <Box width="110px" height="18px" sx={{ background: 'linear-gradient(135deg, #bdc3c7, #2c3e50)', borderRadius: 2, boxShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
+                                        {/* <Box width="110px" height="18px" sx={{ background: 'linear-gradient(135deg, #bdc3c7, #2c3e50)', borderRadius: 2, boxShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
                                         <Box display="flex" gap={1.5}>
                                             {seats.dirCabin1.slice(1).map(s => renderSeat(s, 0))}
-                                        </Box>
+                                        </Box> */}
                                     </Box>
                                 </Paper>
                                 <Paper sx={{ ...premiumPaperStyle, height: '120px', justifyContent: 'center' }} elevation={0}>
@@ -409,21 +409,21 @@ const OfficeSeating = () => {
                                     <Typography variant="subtitle1" sx={typographyHeader}>DIRECTOR CABIN 2</Typography>
                                     <Box display="flex" flexDirection="column" alignItems="center" gap={1.5} mt={1}>
                                         <Box>{renderSeat(seats.dirCabin2[0], 180)}</Box>
-                                        <Box width="110px" height="18px" sx={{ background: 'linear-gradient(135deg, #bdc3c7, #2c3e50)', borderRadius: 2, boxShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
+                                        {/* <Box width="110px" height="18px" sx={{ background: 'linear-gradient(135deg, #bdc3c7, #2c3e50)', borderRadius: 2, boxShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
                                         <Box display="flex" gap={1.5}>
                                             {seats.dirCabin2.slice(1).map(s => renderSeat(s, 0))}
-                                        </Box>
+                                        </Box> */}
                                     </Box>
                                 </Paper>
-                                <Paper sx={{ ...premiumPaperStyle, gap: 3, pt: 3 }} elevation={0}>
+                                <Paper sx={{ ...premiumPaperStyle, gap: 2, pt: 2, width: '100%' }} elevation={0}>
                                     <Typography variant="subtitle1" sx={typographyHeader}>RIGHT AREA</Typography>
                                     {seats.rightArea.map((row) => (
                                         <Box key={row.id} display="flex" flexDirection="column" alignItems="center" gap={1} width="100%">
-                                            <Box display="flex" gap={1.5}>
+                                            <Box display="flex" justifyContent="center" gap={1.3} width="100%">
                                                 {row.top.map(s => renderSeat(s, 180))}
                                             </Box>
-                                            <Box width="100%" height="24px" sx={{ background: 'linear-gradient(to right, #ecf0f1, #bdc3c7)', borderRadius: 2, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)' }} />
-                                            <Box display="flex" gap={1.5}>
+                                            <Box width="100%" height="20px" sx={{ background: 'linear-gradient(to right, #ecf0f1, #bdc3c7)', borderRadius: 2, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)' }} />
+                                            <Box display="flex" justifyContent="center" gap={1.3} width="100%">
                                                 {row.bottom.map(s => renderSeat(s, 0))}
                                             </Box>
                                         </Box>
