@@ -500,8 +500,8 @@ const Profile = () => {
                             sx={{ borderRight: 1, borderColor: 'divider', minWidth: 150 }}
                         >
                             <Tab label='Overview' />
-                            <Tab label='Attendance' />
-                            <Tab label='Performance' />
+                            {/* <Tab label='Attendance' />
+                            <Tab label='Performance' /> */}
                         </Tabs>
 
                         <Box sx={{ flexGrow: 1, pl: 3, pt: 1, minWidth: 0, overflow: 'hidden', minHeight: '400px' }}>
