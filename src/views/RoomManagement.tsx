@@ -43,71 +43,130 @@ const StyledCard = styled(Card)(({ theme }) => ({
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    transition: 'transform 0.2s, box-shadow 0.2s',
+    borderRadius: '24px',
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.04)',
+    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    background: '#ffffff',
     '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: theme.shadows[8]
+        transform: 'translateY(-8px)',
+        boxShadow: '0 16px 48px rgba(0, 0, 0, 0.1)',
+        borderColor: theme.palette.primary.light,
     },
     '& .MuiCardHeader-root': {
-        paddingBottom: theme.spacing(1),
-        backgroundColor: theme.palette.primary.light,
-        color: theme.palette.primary.contrastText
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: '#fff',
+        padding: theme.spacing(3),
+    },
+    '& .MuiCardHeader-title': {
+        fontWeight: 800,
+        fontSize: '1.25rem',
+        letterSpacing: '0.5px'
     },
     '& .MuiCardHeader-subheader': {
-        color: theme.palette.primary.contrastText,
-        opacity: 0.8
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontWeight: 600,
+        marginTop: '4px'
     }
 }))
 
 const TimeSlotBox = styled(Box)(({ theme, booked }) => ({
-    padding: theme.spacing(2),
-    borderRadius: theme.shape.borderRadius,
-    backgroundColor: booked ? theme.palette.error.light : theme.palette.success.light,
-    color: booked ? theme.palette.error.contrastText : theme.palette.success.contrastText,
-    fontSize: '0.875rem',
+    padding: theme.spacing(2.5),
+    borderRadius: '16px',
+    backgroundColor: booked ? 'rgba(254, 226, 226, 0.8)' : 'rgba(220, 253, 230, 0.8)',
+    border: `1px solid ${booked ? '#f87171' : '#4ade80'}`,
+    color: booked ? '#991b1b' : '#166534',
+    fontSize: '0.95rem',
     textAlign: 'center',
-    margin: theme.spacing(0.5),
     position: 'relative',
-    transition: 'transform 0.2s',
+    transition: 'all 0.3s ease',
     cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '6px',
+    height: '100%',
     '&:hover': {
-        transform: 'scale(1.02)',
+        transform: 'translateY(-4px)',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
+        backgroundColor: booked ? '#fecaca' : '#bbf7d0',
         '& .tooltip': {
-            display: 'block',
-            opacity: 1
+            visibility: 'visible',
+            opacity: 1,
+            transform: 'translateX(-50%) translateY(0)',
         }
+    },
+    '& h3': {
+        margin: 0,
+        fontWeight: 700,
+        fontSize: '1rem',
+        letterSpacing: '0.5px'
+    },
+    '& h4': {
+        margin: 0,
+        fontWeight: 500,
+        fontSize: '0.85rem',
+        opacity: 0.9,
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
     }
 }))
 
 const Tooltip = styled(Box)(({ theme }) => ({
-    display: 'none',
+    visibility: 'hidden',
     position: 'absolute',
-    top: '100%',
+    bottom: '105%',
     left: '50%',
-    transform: 'translateX(-50%)',
-    backgroundColor: theme.palette.background.paper,
+    transform: 'translateX(-50%) translateY(10px)',
+    backgroundColor: '#ffffff',
     color: theme.palette.text.primary,
     border: `1px solid ${theme.palette.divider}`,
-    padding: theme.spacing(2),
-    borderRadius: theme.shape.borderRadius,
+    padding: theme.spacing(2.5),
+    borderRadius: '16px',
     zIndex: 1400,
-    boxShadow: theme.shadows[4],
-    transition: 'opacity 0.2s',
-    opacity: 0
+    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    opacity: 0,
+    minWidth: '220px',
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        top: '100%',
+        left: '50%',
+        marginLeft: '-8px',
+        borderWidth: '8px',
+        borderStyle: 'solid',
+        borderColor: '#ffffff transparent transparent transparent'
+    }
 }))
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
-    borderRadius: theme.shape.borderRadius * 2,
-    boxShadow: theme.shadows[3],
-    backgroundColor: theme.palette.background.default
+    borderRadius: '32px',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.05)',
+    backgroundColor: '#f8fafc',
+    border: '1px solid rgba(255, 255, 255, 0.5)',
 }))
 
 const HeaderButton = styled(Button)(({ theme }) => ({
-    borderRadius: theme.shape.borderRadius * 2,
-    padding: theme.spacing(1, 3),
+    borderRadius: '14px',
+    padding: theme.spacing(1.2, 3),
     textTransform: 'none',
-    fontWeight: 600
+    fontWeight: 700,
+    fontSize: '1rem',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: '#fff',
+    boxShadow: '0 4px 15px rgba(118, 75, 162, 0.3)',
+    transition: 'all 0.3s ease',
+    '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 8px 25px rgba(118, 75, 162, 0.5)',
+    }
 }))
 
 const RoomManagement = () => {
@@ -159,7 +218,7 @@ const RoomManagement = () => {
 
     useEffect(() => {
         const fetchRooms = async () => {
-            if (!companyId) return; // Ensure companyId is available before fetching
+            if (!companyId) return;
             try {
                 const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/room/rooms/get-all?company_id=${companyId}`);
                 const data = await response.json();
@@ -175,11 +234,11 @@ const RoomManagement = () => {
             }
         };
         fetchRooms();
-    }, [companyId]); // Add companyId as a dependency
+    }, [companyId]);
 
 
     const fetchTimeSlots = async () => {
-        if (!companyId) return; // Ensure companyId is available before making the API call
+        if (!companyId) return;
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/room/get/time-slots?date=${selectedDate}&company_id=${companyId}`);
             const data = await response.json();
@@ -207,7 +266,6 @@ const RoomManagement = () => {
 
         const timeRange = slot.timeSlots || ''
         const [startTimeString, endTimeString] = timeRange.split(' - ')
-        // Parse and set start time
         if (startTimeString) {
             const [time, modifier] = startTimeString.split(' ')
             const [hours, minutes] = time.split(':').map(Number)
@@ -230,7 +288,6 @@ const RoomManagement = () => {
             const [time, modifier] = endTimeString.split(' ')
             const [hours, minutes] = time.split(':').map(Number)
 
-            // Convert end time to a Date object
             const date = new Date(slot.date)
             let parsedHours = hours
             if (modifier === 'PM' && hours !== 12) {
@@ -343,7 +400,6 @@ const RoomManagement = () => {
                 ? `${process.env.NEXT_PUBLIC_APP_URL}/room/update/time-slots/${editingSlot._id}`
                 : `${process.env.NEXT_PUBLIC_APP_URL}/room/time-slots`;
 
-            // Prepare the payload
             const payload = {
                 room: selectedRoom.id,
                 date: selectedDate,
@@ -353,7 +409,6 @@ const RoomManagement = () => {
 
             };
 
-            // Only include employee if creating a new time slot
             if (!isUpdating) {
                 payload.employee = userId;
             }
@@ -403,67 +458,36 @@ const RoomManagement = () => {
         const renderForRoom = roomId => {
             const slots = timeSlots[roomId] || []
             return slots.map(slot => (
-                <Grid item xs={12} sm={6} md={4} lg={12} key={slot._id || slot.timeSlots} sx={{ position: 'relative' }}>
-                    <TimeSlotBox
-                        booked
-                        sx={{
-                            '&:hover .tooltip': {
-                                display: 'block',
-                                opacity: 1
-                            }
-                        }}
-                    >
+                <Grid item xs={12} sm={6} key={slot._id || slot.timeSlots} sx={{ position: 'relative' }}>
+                    <TimeSlotBox booked>
                         <h3>{slot.timeSlots}</h3>
                         <h4>{slot.reason}</h4>
-                        <Tooltip
-                            className='tooltip'
-                            sx={{
-                                display: 'none',
-                                position: 'absolute',
-                                top: '-120%',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                backgroundColor: 'white',
-                                color: 'black',
-                                border: '1px solid rgba(0, 0, 0, 0.1)',
-                                padding: 1,
-                                borderRadius: 1,
-                                boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
-                                zIndex: 10,
-                                textAlign: 'center',
-                                width: {
-                                    xs: '90%',
-                                    sm: 'auto'
-                                },
-                                whiteSpace: {
-                                    xs: 'normal',
-                                    sm: 'nowrap'
-                                }
-                            }}
-                        >
+                        <Tooltip className='tooltip'>
                             <Box>
                                 <Typography
                                     variant='caption'
                                     sx={{
                                         display: 'block',
-                                        fontWeight: 600,
-                                        marginBottom: '4px',
+                                        fontWeight: 700,
+                                        marginBottom: '12px',
                                         textAlign: 'center',
-                                        color: 'blue'
+                                        color: '#667eea',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '1px'
                                     }}
                                 >
                                     Booked By
                                 </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
                                     <Avatar
                                         src={slot.employee?.image || ''}
                                         alt={`${slot.employee?.first_name || 'N/A'} ${slot.employee?.last_name || 'N/A'}`}
-                                        sx={{ width: 40, height: 40 }}
+                                        sx={{ width: 48, height: 48, boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
                                     >
                                         {slot.employee?.first_name?.[0] || 'U'}
                                     </Avatar>
-                                    <Box>
-                                        <Typography sx={{ color: 'blue' }} variant='body2'>
+                                    <Box sx={{ textAlign: 'left' }}>
+                                        <Typography sx={{ color: '#1f2937', fontWeight: 600 }} variant='body1'>
                                             {slot.employee?.first_name} {slot.employee?.last_name}
                                         </Typography>
                                     </Box>
@@ -474,15 +498,23 @@ const RoomManagement = () => {
                             <Button
                                 sx={{
                                     position: 'absolute',
-                                    top: { xs: 8, sm: -3 },
-                                    right: { xs: 8, sm: -5 },
+                                    top: { xs: 8, sm: -10 },
+                                    right: { xs: 8, sm: -10 },
                                     minWidth: 0,
-                                    padding: { xs: 0.5, sm: 1 },
-                                    zIndex: 10
+                                    width: 32,
+                                    height: 32,
+                                    padding: 0,
+                                    borderRadius: '50%',
+                                    backgroundColor: '#fff',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                    zIndex: 10,
+                                    '&:hover': {
+                                        backgroundColor: '#f1f5f9'
+                                    }
                                 }}
                                 onClick={event => handleMenuOpen(event, slot)}
                             >
-                                <MoreVertIcon style={{ color: 'black' }} fontSize='small' />
+                                <MoreVertIcon style={{ color: '#64748b' }} fontSize='small' />
                             </Button>
                         )}
                     </TimeSlotBox>
@@ -493,29 +525,40 @@ const RoomManagement = () => {
     }, [timeSlots, userRole, userId])
 
     return (
-        <>
-            <Menu anchorEl={menuAnchorEl} open={Boolean(menuAnchorEl)} onClose={handleMenuClose}>
+        <Box sx={{ minHeight: '100vh', backgroundColor: '#f1f5f9', pt: 2, pb: 8 }}>
+            <Menu 
+                anchorEl={menuAnchorEl} 
+                open={Boolean(menuAnchorEl)} 
+                onClose={handleMenuClose}
+                PaperProps={{
+                    sx: {
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                        minWidth: '150px'
+                    }
+                }}
+            >
                 <MenuItem
                     onClick={() => {
                         handleEditSlot(selectedSlot)
                         handleMenuClose()
                     }}
-                    sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5 }}
                 >
-                    <EditIcon sx={{ color: 'blue' }} fontSize='small' />
-                    Edit
+                    <EditIcon sx={{ color: '#3b82f6' }} fontSize='small' />
+                    <Typography sx={{ fontWeight: 500 }}>Edit</Typography>
                 </MenuItem>
                 <MenuItem
                     onClick={() => {
-                        handleDeleteSlot(selectedSlot._id)
+                        handleDeleteSlot(selectedSlot?._id)
                     }}
-                    sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5 }}
                 >
-                    <DeleteIcon sx={{ color: 'red' }} fontSize='small' />
-                    Delete
+                    <DeleteIcon sx={{ color: '#ef4444' }} fontSize='small' />
+                    <Typography sx={{ fontWeight: 500, color: '#ef4444' }}>Delete</Typography>
                 </MenuItem>
             </Menu>
-            <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
+            <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: 'auto' }}>
                 <Snackbar
                     open={snackbarOpen}
                     autoHideDuration={3000}
@@ -527,8 +570,13 @@ const RoomManagement = () => {
                         severity={snackbarSeverity}
                         sx={{
                             width: '100%',
-                            backgroundColor: snackbarSeverity === 'success' ? 'green' : 'red',
-                            color: 'white'
+                            backgroundColor: snackbarSeverity === 'success' ? '#10b981' : '#ef4444',
+                            color: 'white',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            '& .MuiAlert-icon': {
+                                color: 'white'
+                            }
                         }}
                     >
                         {snackbarMessage}
@@ -541,66 +589,72 @@ const RoomManagement = () => {
                             flexDirection: { xs: 'column', sm: 'row' },
                             justifyContent: 'space-between',
                             alignItems: { xs: 'flex-start', sm: 'center' },
-                            mb: 4,
-                            gap: 2
+                            mb: 6,
+                            gap: 3
                         }}
                     >
                         <div>
                             <Typography
-                                variant='h4'
+                                variant='h3'
                                 component='h1'
                                 sx={{
-                                    fontWeight: 600,
-                                    color: 'primary.main',
-                                    mb: 1
+                                    fontWeight: 900,
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    mb: 1,
+                                    letterSpacing: '-1px'
                                 }}
                             >
-                                SPACE SCHEDULAR MANAGEMENT SYSTEM
+                                Room Management
                             </Typography>
-                            <Typography variant='subtitle1' color='text.secondary' sx={{ fontSize: '1.1rem' }}>
-                                Reserve rooms and manage time slots
+                            <Typography variant='subtitle1' sx={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 500 }}>
+                                Reserve rooms and manage time slots seamlessly
                             </Typography>
                         </div>
                         {userRole === '1' && (
                             <HeaderButton
-                                variant='contained'
                                 startIcon={<AddIcon />}
                                 onClick={() => setIsAddRoomOpen(true)}
-                                sx={{
-                                    minWidth: 150,
-                                    backgroundColor: 'primary.main',
-                                    '&:hover': {
-                                        backgroundColor: 'primary.dark'
-                                    }
-                                }}
                             >
                                 Add Room
                             </HeaderButton>
                         )}
                     </Box>
 
-                    <TextField
-                        label='Select Date'
-                        type='date'
-                        value={selectedDate}
-                        onChange={e => setSelectedDate(e.target.value)}
-                        sx={{
-                            mb: 4,
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: 2
-                            }
-                        }}
-                        InputLabelProps={{ shrink: true }}
-                    />
+                    <Box sx={{ mb: 6 }}>
+                        <TextField
+                            label='Select Date'
+                            type='date'
+                            value={selectedDate}
+                            onChange={e => setSelectedDate(e.target.value)}
+                            sx={{
+                                minWidth: '250px',
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '12px',
+                                    backgroundColor: '#fff',
+                                    transition: 'all 0.3s',
+                                    '&:hover': {
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                                    },
+                                    '&.Mui-focused': {
+                                        boxShadow: '0 4px 12px rgba(118, 75, 162, 0.15)',
+                                        borderColor: '#667eea'
+                                    }
+                                }
+                            }}
+                            InputLabelProps={{ shrink: true }}
+                        />
+                    </Box>
 
-                    <Grid container spacing={3}>
+                    <Grid container spacing={4}>
                         {rooms.map(room => (
-                            <Grid item xs={12} md={6} key={room.id}>
+                            <Grid item xs={12} md={6} lg={4} key={room.id}>
                                 <StyledCard>
                                     <CardHeader
                                         title={
-                                            <Typography variant='h6' sx={{ fontWeight: 700 }}>
-                                                {room.name.toUpperCase()}
+                                            <Typography variant='h6' sx={{ fontWeight: 800 }}>
+                                                {room.name}
                                             </Typography>
                                         }
                                         action={
@@ -610,44 +664,62 @@ const RoomManagement = () => {
                                                 onClick={() => handleBooking(room)}
                                                 disabled={new Date(selectedDate) < new Date().setHours(0, 0, 0, 0)}
                                                 sx={{
-                                                    backgroundColor: 'white',
-                                                    color: 'primary.main',
+                                                    backgroundColor: '#fff',
+                                                    color: '#667eea',
+                                                    borderRadius: '10px',
+                                                    fontWeight: 700,
+                                                    textTransform: 'none',
                                                     '&:hover': {
-                                                        backgroundColor: 'rgba(255,255,255,0.9)'
+                                                        backgroundColor: '#f8fafc',
+                                                        transform: 'translateY(-1px)',
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                                    },
+                                                    '&:disabled': {
+                                                        backgroundColor: 'rgba(255,255,255,0.5)',
+                                                        color: 'rgba(102,126,234,0.5)'
                                                     }
                                                 }}
                                             >
-                                                Book Slot
+                                                Book
                                             </Button>
                                         }
                                         subheader={
                                             <Typography
                                                 variant='subtitle2'
                                                 sx={{
-                                                    color: 'white',
-                                                    fontWeight: 800
+                                                    color: 'rgba(255,255,255,0.9)',
+                                                    fontWeight: 600,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 0.5
                                                 }}
                                             >
                                                 Capacity: {room.capacity}
                                             </Typography>
                                         }
                                     />
-                                    <CardContent sx={{ flexGrow: 1 }}>
+                                    <CardContent sx={{ flexGrow: 1, p: 3 }}>
                                         <Typography
-                                            variant='subtitle2'
+                                            variant='subtitle1'
                                             sx={{
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                mb: 2,
-                                                color: 'text.primary',
-                                                fontWeight: 500
+                                                mb: 3,
+                                                color: '#334155',
+                                                fontWeight: 700
                                             }}
                                         >
-                                            <EventIcon sx={{ mr: 1, color: 'primary.main' }} />
-                                            Today's Bookings
+                                            <EventIcon sx={{ mr: 1, color: '#667eea' }} />
+                                            Booked Slots
                                         </Typography>
-                                        <Grid container spacing={1}>
-                                            {renderTimeSlots(room.id)}
+                                        <Grid container spacing={2}>
+                                            {renderTimeSlots(room.id).length > 0 ? (
+                                                renderTimeSlots(room.id)
+                                            ) : (
+                                                <Box sx={{ width: '100%', py: 4, textAlign: 'center', color: '#94a3b8' }}>
+                                                    <Typography sx={{ fontWeight: 500 }}>No slots booked for this date.</Typography>
+                                                </Box>
+                                            )}
                                         </Grid>
                                     </CardContent>
                                 </StyledCard>
@@ -662,23 +734,27 @@ const RoomManagement = () => {
                     onClose={() => setIsAddRoomOpen(false)}
                     PaperProps={{
                         sx: {
-                            borderRadius: 2,
+                            borderRadius: '24px',
                             maxWidth: 500,
-                            width: '100%'
+                            width: '100%',
+                            boxShadow: '0 24px 48px rgba(0,0,0,0.2)'
                         }
                     }}
                 >
                     <DialogTitle
                         sx={{
-                            backgroundColor: 'primary.main',
-                            color: 'primary.contrastText',
-                            py: 2
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            color: '#fff',
+                            py: 3,
+                            fontWeight: 700
                         }}
                     >
                         Add New Room
                     </DialogTitle>
-                    <DialogContent sx={{ mt: 2 }}>
-                        <DialogContentText sx={{ mb: 3 }}>Enter room details</DialogContentText>
+                    <DialogContent sx={{ mt: 4 }}>
+                        <DialogContentText sx={{ mb: 4, color: '#64748b', fontWeight: 500 }}>
+                            Enter the details below to create a new room.
+                        </DialogContentText>
                         <Box component='form' onSubmit={handleAddRoom} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             <FormControl fullWidth required>
                                 <InputLabel>Room Name</InputLabel>
@@ -686,11 +762,11 @@ const RoomManagement = () => {
                                     value={formData.name}
                                     label='Room Name'
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    sx={{ borderRadius: 2 }}
+                                    sx={{ borderRadius: '12px' }}
                                 >
-                                    <MenuItem value='Conference'>Conference</MenuItem>
-                                    <MenuItem value='Director'>Director</MenuItem>
-                                    <MenuItem value='HR'>HR</MenuItem>
+                                    <MenuItem value='Conference'>Conference Room</MenuItem>
+                                    <MenuItem value='Director'>Meeting Room-01</MenuItem>
+                                    <MenuItem value='HR'>Meeting Room-02</MenuItem>
                                 </Select>
                             </FormControl>
                             <TextField
@@ -700,17 +776,19 @@ const RoomManagement = () => {
                                 onChange={e => setFormData({ ...formData, capacity: e.target.value })}
                                 fullWidth
                                 required
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                             />
                         </Box>
                     </DialogContent>
-                    <DialogActions sx={{ p: 3 }}>
+                    <DialogActions sx={{ p: 3, pt: 0 }}>
                         <Button
                             onClick={() => setIsAddRoomOpen(false)}
                             sx={{
-                                borderRadius: 2,
+                                borderRadius: '12px',
                                 textTransform: 'none',
-                                px: 3
+                                px: 3,
+                                fontWeight: 600,
+                                color: '#64748b'
                             }}
                         >
                             Cancel
@@ -719,9 +797,15 @@ const RoomManagement = () => {
                             onClick={handleAddRoom}
                             variant='contained'
                             sx={{
-                                borderRadius: 2,
+                                borderRadius: '12px',
                                 textTransform: 'none',
-                                px: 3
+                                px: 4,
+                                fontWeight: 600,
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                boxShadow: '0 4px 12px rgba(118, 75, 162, 0.3)',
+                                '&:hover': {
+                                    boxShadow: '0 6px 16px rgba(118, 75, 162, 0.4)'
+                                }
                             }}
                         >
                             Add Room
@@ -735,23 +819,27 @@ const RoomManagement = () => {
                     onClose={() => setIsBookingOpen(false)}
                     PaperProps={{
                         sx: {
-                            borderRadius: 2,
-                            maxWidth: 500,
-                            width: '100%'
+                            borderRadius: '24px',
+                            maxWidth: 550,
+                            width: '100%',
+                            boxShadow: '0 24px 48px rgba(0,0,0,0.2)'
                         }
                     }}
                 >
                     <DialogTitle
                         sx={{
-                            backgroundColor: 'primary.main',
-                            color: 'primary.contrastText',
-                            py: 2
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            color: '#fff',
+                            py: 3,
+                            fontWeight: 700
                         }}
                     >
-                        {isUpdating ? 'Update Book Time Slot' : 'Book a Time Slot'}
+                        {isUpdating ? 'Update Booking' : 'Book a Time Slot'}
                     </DialogTitle>
-                    <DialogContent sx={{ mt: 2 }}>
-                        <DialogContentText sx={{ mb: 3 }}>{selectedRoom && `Booking for ${selectedRoom.name}`}</DialogContentText>
+                    <DialogContent sx={{ mt: 4 }}>
+                        <DialogContentText sx={{ mb: 4, color: '#64748b', fontWeight: 500 }}>
+                            {selectedRoom && `You are booking for ${selectedRoom.name}.`}
+                        </DialogContentText>
                         <Box
                             component='form'
                             onSubmit={handleBookTimeSlot}
@@ -765,11 +853,11 @@ const RoomManagement = () => {
                                 InputLabelProps={{ shrink: true }}
                                 fullWidth
                                 required
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                             />
                             <FormControl fullWidth required>
                                 <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                    <Box sx={{ display: 'flex', gap: 2 }}>
+                                    <Box sx={{ display: 'flex', gap: 3 }}>
                                         <TimePicker
                                             label='Start Time'
                                             value={selectedStartTime}
@@ -780,7 +868,7 @@ const RoomManagement = () => {
                                                     {...params}
                                                     placeholder='Select start time'
                                                     fullWidth
-                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                                 />
                                             )}
                                         />
@@ -794,7 +882,7 @@ const RoomManagement = () => {
                                                     {...params}
                                                     placeholder='Select end time'
                                                     fullWidth
-                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                                 />
                                             )}
                                         />
@@ -803,24 +891,26 @@ const RoomManagement = () => {
                             </FormControl>
                             <TextField
                                 label='Reason'
-                                placeholder='Please mention in short way'
+                                placeholder='Briefly mention the reason for booking'
                                 multiline
                                 rows={3}
                                 fullWidth
                                 required
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                 value={reason}
                                 onChange={e => setReason(e.target.value)}
                             />
                         </Box>
                     </DialogContent>
-                    <DialogActions sx={{ p: 3 }}>
+                    <DialogActions sx={{ p: 3, pt: 0 }}>
                         <Button
                             onClick={() => setIsBookingOpen(false)}
                             sx={{
-                                borderRadius: 2,
+                                borderRadius: '12px',
                                 textTransform: 'none',
-                                px: 3
+                                px: 3,
+                                fontWeight: 600,
+                                color: '#64748b'
                             }}
                         >
                             Cancel
@@ -829,17 +919,23 @@ const RoomManagement = () => {
                             onClick={handleBookTimeSlot}
                             variant='contained'
                             sx={{
-                                borderRadius: 2,
+                                borderRadius: '12px',
                                 textTransform: 'none',
-                                px: 3
+                                px: 4,
+                                fontWeight: 600,
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                boxShadow: '0 4px 12px rgba(118, 75, 162, 0.3)',
+                                '&:hover': {
+                                    boxShadow: '0 6px 16px rgba(118, 75, 162, 0.4)'
+                                }
                             }}
                         >
-                            {isUpdating ? 'Update Slot' : 'Book Slot'}
+                            {isUpdating ? 'Update Slot' : 'Confirm Booking'}
                         </Button>
                     </DialogActions>
                 </Dialog>
             </Box>
-        </>
+        </Box>
     )
 }
 

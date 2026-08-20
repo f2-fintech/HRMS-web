@@ -30,6 +30,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt'
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital'
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
 import InventoryIcon from '@mui/icons-material/Inventory'
+import MenuBookIcon from '@mui/icons-material/MenuBook'
 
 const OfficeSeating = () => {
     const [location, setLocation] = useState('noida')
@@ -318,7 +319,7 @@ const OfficeSeating = () => {
                             </Box>
 
                             {/* Middle: Conference 12 */}
-                            <Paper sx={{ ...premiumPaperStyle,  justifyContent: 'center' }} elevation={0}>
+                            <Paper sx={{ ...premiumPaperStyle, justifyContent: 'center' }} elevation={0}>
                                 <Typography variant="subtitle1" sx={typographyHeader}>CONFERENCE 12 PAX</Typography>
                                 <Box display="flex" justifyContent="center" alignItems="stretch" gap={3} mt={2}>
                                     <Box display="flex" flexDirection="column" gap={0.5}>
@@ -446,9 +447,26 @@ const OfficeSeating = () => {
                                 <Typography variant="subtitle2" sx={typographyHeader}>SMALL CABIN 2</Typography>
                                 <Box display="flex" flexWrap="wrap" justifyContent="center" gap={1.5} mt={1}>{seats.smallCabin2.map(s => renderSeat(s))}</Box>
                             </Paper>
-                            <Paper sx={{ ...premiumPaperStyle, width: '180px', justifyContent: 'center' }} elevation={0}>
-                                <InventoryIcon sx={{ fontSize: 40, color: '#7f8c8d', mb: 1, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
-                                <Typography variant="subtitle2" sx={typographyHeader}>STORE ROOM</Typography>
+                            <Paper
+                                sx={{
+                                    ...premiumPaperStyle,
+                                    width: '180px',
+                                    justifyContent: 'center'
+                                }}
+                                elevation={0}
+                            >
+                                <MenuBookIcon
+                                    sx={{
+                                        fontSize: 40,
+                                        color: '#7f8c8d',
+                                        mb: 1,
+                                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                                    }}
+                                />
+
+                                <Typography variant="subtitle2" sx={typographyHeader}>
+                                    Reading Room
+                                </Typography>
                             </Paper>
                             <Paper sx={{ ...premiumPaperStyle, width: '350px', justifyContent: 'center' }} elevation={0}>
                                 <Typography variant="subtitle1" sx={typographyHeader}>CONFERENCE 8 PAX</Typography>
