@@ -558,6 +558,39 @@ const PunchesPage: React.FC = () => {
         return formatMinutesToHM(totalMinutes);
     };
 
+    const getValidIncompleteDays = (): IncompleteDay[] => {
+    if (!analytics?.incompleteDays) return [];
+
+    return analytics.incompleteDays.filter((incompleteDay) => {
+        const punch = punches.find(
+            (punch) => punch.date === incompleteDay.date
+        );
+
+        // Punch-Out nahi hua hai = current/active day
+        // Isko abhi incomplete count nahi karna
+        if (!punch?.punchOut) {
+            return false;
+        }
+
+        return true;
+    });
+};
+
+const calculateTotalIncompleteTime = (): string => {
+    const validIncompleteDays = getValidIncompleteDays();
+
+    if (validIncompleteDays.length === 0) {
+        return '0h 0m';
+    }
+
+    const totalMinutes = validIncompleteDays.reduce(
+        (sum, day) => sum + parseExtraToMinutes(day.short),
+        0
+    );
+
+    return formatMinutesToHM(totalMinutes);
+};
+
     const getOvertimeForDate = (date: string): OvertimeDay | undefined => {
         return analytics?.overtimeDays.find((d) => d.date === date);
     };
@@ -834,6 +867,23 @@ const PunchesPage: React.FC = () => {
                             </Typography>
                         </Box>
 
+                        <Box className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center shadow-sm">
+                            <Typography
+                                variant="caption"
+                                className="text-orange-600 uppercase tracking-wide flex items-center justify-center gap-1"
+                            >
+                                <EventBusy fontSize="small" /> Incomplete Days
+                            </Typography>
+
+                            <Typography variant="h5" className="font-bold text-orange-700">
+                                {getValidIncompleteDays().length}
+                            </Typography>
+
+                            <Typography variant="caption" className="text-orange-600 block">
+                                Short: {calculateTotalIncompleteTime()}
+                            </Typography>
+                        </Box>
+
                         <Box
                             className={`border rounded-lg p-4 text-center shadow-sm ${analytics.earlyLeaveWarning
                                 ? 'bg-amber-50 border-amber-300'
@@ -877,7 +927,7 @@ const PunchesPage: React.FC = () => {
                             )}
                         </Box>
 
-                        <Box className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-center shadow-sm">
+                        {/* <Box className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-center shadow-sm">
                             <Typography variant="caption" className="text-teal-600 uppercase tracking-wide">
                                 Comp-Off Remaining
                             </Typography>
@@ -889,7 +939,7 @@ const PunchesPage: React.FC = () => {
                                     Used this month
                                 </Typography>
                             )}
-                        </Box>
+                        </Box> */}
 
                         <Box className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center shadow-sm">
                             <Typography variant="caption" className="text-blue-600 uppercase tracking-wide flex items-center justify-center gap-1">
