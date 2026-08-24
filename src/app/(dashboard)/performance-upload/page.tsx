@@ -1001,7 +1001,16 @@ export default function PerformanceUploadPage() {
               </Box>
             </Box>
 
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                alignItems: 'center', 
+                justifyContent: { xs: 'flex-start', lg: 'flex-end' },
+                gap: 1.5,
+                flex: 1
+              }}
+            >
               <Button
                 onClick={() => {
                   const header = [
@@ -1056,16 +1065,16 @@ export default function PerformanceUploadPage() {
                     borderRadius: 999,
                     textTransform: 'none',
                     fontWeight: 700,
-                    px: 3,
-                    py: 1,
+                    px: 2,
+                    py: 0.5,
                     borderColor: '#cbd5f5',
                     bgcolor: '#ffffff',
                     color: '#0f172a',
                     borderWidth: 1,
                     borderStyle: 'solid',
                     transition: 'all 0.2s',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                    '&:hover': { bgcolor: '#f1f5f9', borderColor: '#94a3b8', transform: 'translateY(-2px)' },
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    '&:hover': { bgcolor: '#f1f5f9', borderColor: '#94a3b8', transform: 'translateY(-1px)' },
                   }}
               >
                 Export
@@ -1079,12 +1088,12 @@ export default function PerformanceUploadPage() {
                   borderRadius: 999,
                   textTransform: "none",
                   fontWeight: 700,
-                  px: 3,
-                  py: 1,
+                  px: 2,
+                  py: 0.5,
                   background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                  boxShadow: "0 8px 20px rgba(6,182,212,0.3)",
+                  boxShadow: "0 4px 10px rgba(6,182,212,0.2)",
                   transition: 'all 0.2s',
-                  "&:hover": { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: "0 10px 25px rgba(6,182,212,0.4)" },
+                  "&:hover": { filter: 'brightness(1.1)', transform: 'translateY(-1px)', boxShadow: "0 6px 15px rgba(6,182,212,0.3)" },
                 }}
               >
                 Today Login
@@ -1103,12 +1112,12 @@ export default function PerformanceUploadPage() {
                     borderRadius: 999,
                     textTransform: 'none',
                     fontWeight: 700,
-                    px: 3,
-                    py: 1,
+                    px: 2,
+                    py: 0.5,
                     background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                    boxShadow: '0 8px 20px rgba(79,70,229,0.3)',
+                    boxShadow: '0 4px 10px rgba(79,70,229,0.2)',
                     transition: 'all 0.2s',
-                    '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(79,70,229,0.4)' },
+                    '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-1px)', boxShadow: '0 6px 15px rgba(79,70,229,0.3)' },
                   }}
                 >
                   Add Row
@@ -1143,12 +1152,12 @@ export default function PerformanceUploadPage() {
                       borderRadius: 999,
                       textTransform: 'none',
                       fontWeight: 700,
-                      px: 3,
-                      py: 1,
+                      px: 2,
+                      py: 0.5,
                       background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                      boxShadow: '0 8px 20px rgba(234,88,12,0.3)',
+                      boxShadow: '0 4px 10px rgba(234,88,12,0.2)',
                       transition: 'all 0.2s',
-                      '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(234,88,12,0.4)' },
+                      '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-1px)', boxShadow: '0 6px 15px rgba(234,88,12,0.3)' },
                     }}
                   >
                     {uploading ? 'Uploading…' : 'Upload'}
@@ -1164,12 +1173,12 @@ export default function PerformanceUploadPage() {
                       borderRadius: 999,
                       textTransform: 'none',
                       fontWeight: 700,
-                      px: 3,
-                      py: 1,
+                      px: 2,
+                      py: 0.5,
                       background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      boxShadow: '0 8px 20px rgba(16,185,129,0.3)',
+                      boxShadow: '0 4px 10px rgba(16,185,129,0.2)',
                       transition: 'all 0.2s',
-                      '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(16,185,129,0.4)' },
+                      '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-1px)', boxShadow: '0 6px 15px rgba(16,185,129,0.3)' },
                     }}
                   >
                     {uploadingComparison ? 'Uploading…' : 'Upload Comparison'}
@@ -1185,12 +1194,12 @@ export default function PerformanceUploadPage() {
                         borderRadius: 999,
                         textTransform: 'none',
                         fontWeight: 700,
-                        px: 3,
-                        py: 1,
+                        px: 2,
+                        py: 0.5,
                         background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-                        boxShadow: '0 8px 20px rgba(139,92,246,0.3)',
+                        boxShadow: '0 4px 10px rgba(139,92,246,0.2)',
                         transition: 'all 0.2s',
-                        '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(139,92,246,0.4)' },
+                        '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-1px)', boxShadow: '0 6px 15px rgba(139,92,246,0.3)' },
                       }}
                     >
                       View Comparison
@@ -1208,12 +1217,12 @@ export default function PerformanceUploadPage() {
                     borderRadius: 999,
                     textTransform: 'none',
                     fontWeight: 700,
-                    px: 3,
-                    py: 1,
+                    px: 2,
+                    py: 0.5,
                     background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                    boxShadow: '0 8px 20px rgba(220,38,38,0.3)',
+                    boxShadow: '0 4px 10px rgba(220,38,38,0.2)',
                     transition: 'all 0.2s',
-                    '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-2px)', boxShadow: '0 10px 25px rgba(220,38,38,0.4)' },
+                    '&:hover': { filter: 'brightness(1.1)', transform: 'translateY(-1px)', boxShadow: '0 6px 15px rgba(220,38,38,0.3)' },
                   }}
                 >
                   Delete(datewise)
