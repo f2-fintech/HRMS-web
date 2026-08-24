@@ -392,14 +392,18 @@ export default function EmployeeGrid() {
 
             Email: employee.email || '',
 
-            Contact: employee.contact || '',
+            Contact: employee.contact || profileData?.personalDetails?.phoneNumber || '',
 
             Designation: employee.designation || '',
 
             Location: employee.location || '',
 
-            JoiningDate: employee.joining_date
-              ? new Date(employee.joining_date)
+            DOB: (employee.dob || profileData?.personalDetails?.dateOfBirth)
+              ? new Date(employee.dob || profileData?.personalDetails?.dateOfBirth).toLocaleDateString()
+              : '',
+
+            JoiningDate: (employee.joining_date || profileData?.joining_date)
+              ? new Date(employee.joining_date || profileData?.joining_date)
                 .toLocaleDateString()
               : '',
 
