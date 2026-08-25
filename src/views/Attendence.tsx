@@ -34,6 +34,7 @@ import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'
 import HomeIcon from '@mui/icons-material/Home'
 import { Download as DownloadIcon } from '@mui/icons-material'
 import ContrastIcon from '@mui/icons-material/Contrast'
+import CelebrationIcon from '@mui/icons-material/Celebration'
 
 import { useDispatch, useSelector } from 'react-redux'
 import type { Dayjs } from 'dayjs'
@@ -46,6 +47,7 @@ import { Pagination } from '@mui/material';  // If not already imported
 
 import type { AppDispatch, RootState } from '@/redux/store'
 import { fetchAttendances } from '@/redux/features/attendances/attendancesSlice'
+import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice'
 import AttendanceSummary from '@/utility/attendancesummry/AttendanceSummary'
 import EmployeeStatsWithBlinkingStatus from '@/utility/totalempattendancesummary/EmployeeStatsWithBlinkingStatus'
 import { AttendanceSummaryColumns } from '@/utility/attendancesummry/AttendanceSummaryColumns'
@@ -64,6 +66,8 @@ export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch()
   const theme = useTheme()
   const { attendances, loading, count, filteredAttendance, statusCounts } = useSelector((state: RootState) => state.attendances)
+
+  const holidays = useSelector((state: RootState) => (state as any)?.holidays?.holidays) || []
 
   const [showForm, setShowForm] = useState(false)
   const [selectedAttendance, setSelectedAttendance] = useState(null)
@@ -324,6 +328,15 @@ const handleExportYearlyAttendance = async () => {
     )
   }, [page, limit, month, year, debouncedSearchName, debouncedSearchLocation])
 
+ 
+  useEffect(() => {
+    try {
+      dispatch(fetchHolidays({ page: 1, limit: 500, keyword: '' }))
+    } catch (err) {
+      console.error('fetchHolidays failed (Festival-leave highlighting will be skipped):', err)
+    }
+  }, [dispatch, year])
+
   const handleInputChange = e => {
     const newName = e.target.value
 
@@ -386,6 +399,37 @@ const handleExportYearlyAttendance = async () => {
 
     return lastSunday
   }
+
+  const holidayDatesSet = React.useMemo(() => {
+    const set = new Set<string>()
+
+    try {
+      ;(holidays || []).forEach((h: any) => {
+        if (!h?.start_date) return
+
+        const start = new Date(h.start_date)
+        const end = h.end_date ? new Date(h.end_date) : new Date(h.start_date)
+
+        if (isNaN(start.getTime())) return
+
+        const cur = new Date(start)
+        const safeEnd = isNaN(end.getTime()) ? start : end
+
+        while (cur <= safeEnd) {
+          const y = cur.getFullYear()
+          const m = String(cur.getMonth() + 1).padStart(2, '0')
+          const d = String(cur.getDate()).padStart(2, '0')
+
+          set.add(`${y}-${m}-${d}`)
+          cur.setDate(cur.getDate() + 1)
+        }
+      })
+    } catch (err) {
+      console.error('Error building holidayDatesSet (Festival-leave highlighting will be skipped):', err)
+    }
+
+    return set
+  }, [holidays])
 
   const generateColumns = () => {
     const today = new Date()
@@ -462,6 +506,15 @@ const handleExportYearlyAttendance = async () => {
                 />
               )
             } else if (status === 'On Leave') {
+              const leaveType = params.row.days ? params.row.days[`day_${day}`]?.type || params.row.days[`day_${day}`]?.leaveType : null;
+              if (leaveType === 'Festival') {
+                return (
+                  <CelebrationIcon
+                    style={{ color: '#e65100', marginTop: '30%' }}
+                    onClick={() => handleAttendanceEditClick(attendanceId)}
+                  />
+                )
+              }
               return (
                 <PauseCircleOutlineIcon
                   style={{ color: 'orange', marginTop: '30%' }}
@@ -509,7 +562,7 @@ const handleExportYearlyAttendance = async () => {
     }, {})
 
     const groupedData = attendances.reduce((acc, curr) => {
-      const { employee, date, status, timeComplete, _id } = curr
+      const { employee, date, status, timeComplete, _id, type } = curr
 
       if (!employee || !employee._id) return acc
 
@@ -550,7 +603,20 @@ const handleExportYearlyAttendance = async () => {
         }
       }
 
-      acc[employee._id].days[`day_${day}`] = { status, _id, timeComplete }
+     
+      const y = attendanceDate.getFullYear()
+      const m = String(attendanceDate.getMonth() + 1).padStart(2, '0')
+      const d = String(attendanceDate.getDate()).padStart(2, '0')
+      const dateStr = `${y}-${m}-${d}`
+
+      const isFestivalDay = status === 'On Leave' && holidayDatesSet.has(dateStr)
+
+      acc[employee._id].days[`day_${day}`] = {
+        status,
+        _id,
+        timeComplete,
+        type: isFestivalDay ? 'Festival' : type
+      }
 
       return acc
     }, {})
@@ -561,7 +627,8 @@ const handleExportYearlyAttendance = async () => {
   }
 
   const columns = React.useMemo(() => generateColumns(), [month, year])
-  const rows = React.useMemo(() => transformData(), [attendances, statusCounts, month, year])
+  // ✅ NEW: holidayDatesSet added as a dependency so Festival detection re-runs when holidays load/change
+  const rows = React.useMemo(() => transformData(), [attendances, statusCounts, month, year, holidayDatesSet])
 
   const handleMonthChange = (date: Dayjs) => {
     const newMonth = date.month() + 1
