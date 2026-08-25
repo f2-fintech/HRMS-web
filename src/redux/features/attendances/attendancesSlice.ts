@@ -15,6 +15,7 @@ interface Attendance {
   employee_id: string
   date: Date
   status: string
+  type?: string   
   timeComplete: string
 }
 

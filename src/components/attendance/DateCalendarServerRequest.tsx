@@ -9,6 +9,7 @@ import ServerDay from './ServerDay';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/redux/store';
 import { fetchEmployeeAttendances } from '@/redux/features/attendances/attendancesSlice';
+import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
 import { CalendarToday } from '@mui/icons-material';
 
 // Styled Components
@@ -108,6 +109,8 @@ export default function DateCalendarServerRequest({
 
     const { filteredAttendance, loading } = useSelector((state: RootState) => state.attendances);
 
+    const { holidays } = useSelector((state: RootState) => state.holidays);
+
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         setUserId(user.id);
@@ -123,12 +126,50 @@ export default function DateCalendarServerRequest({
         }
     }, [dispatch, month, year, userId]);
 
+    useEffect(() => {
+        dispatch(fetchHolidays({ page: 1, limit: 500, keyword: '' }));
+    }, [dispatch, year]);
+
+    const holidayDatesSet = useMemo(() => {
+        const set = new Set<string>();
+
+        (holidays || []).forEach((h: any) => {
+            if (!h?.start_date) return;
+
+            const start = new Date(h.start_date);
+            const end = h.end_date ? new Date(h.end_date) : new Date(h.start_date);
+
+            if (isNaN(start.getTime())) return;
+
+            const cur = new Date(start);
+            const safeEnd = isNaN(end.getTime()) ? start : end;
+
+            while (cur <= safeEnd) {
+                const y = cur.getFullYear();
+                const m = String(cur.getMonth() + 1).padStart(2, '0');
+                const d = String(cur.getDate()).padStart(2, '0');
+
+                set.add(`${y}-${m}-${d}`);
+                cur.setDate(cur.getDate() + 1);
+            }
+        });
+
+        return set;
+    }, [holidays]);
+
+ 
     const attendanceData = useMemo(() => {
         return filteredAttendance.reduce((acc, { date, status }) => {
-            acc[date] = status;
+            const isFestival = status === 'On Leave' && holidayDatesSet.has(date);
+
+            acc[date] = {
+                status,
+                type: isFestival ? 'Festival' : undefined
+            };
+
             return acc;
-        }, {} as Record<string, string>);
-    }, [filteredAttendance]);
+        }, {} as Record<string, { status: string; type?: string }>);
+    }, [filteredAttendance, holidayDatesSet]);
 
     const fetchHighlightedDays = (date: Dayjs) => {
         const controller = new AbortController();

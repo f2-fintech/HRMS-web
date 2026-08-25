@@ -24,13 +24,17 @@ import {
   Person as EmployeeIcon,
   AssignmentTurnedIn as LeaveTypeIcon,
   CheckCircle as SubmitIcon,
-  EmojiObjects as ReasonIcon
+  EmojiObjects as ReasonIcon,
+  Celebration as CelebrationIcon,
+  LockOutlined as LockIcon,
 } from '@mui/icons-material'
 import { AccessTime as HalfDayIcon, AccessTime } from '@mui/icons-material'
 
 import { toast } from 'react-toastify'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { fetchLeaves } from '../../redux/features/leaves/leavesSlice'
+import { fetchHolidays, fetchPastHolidays } from '../../redux/features/holidays/holidaysSlice'
+import type { RootState } from '../../redux/store'
 
 type MonthRow = {
   month: number
@@ -145,6 +149,23 @@ const AddLeavesForm = ({
   selectedKeyword
 }: any) => {
   const dispatch = useDispatch()
+
+  // --- Holidays from Redux store (for auto-detection) ---
+  const { holidays, pastHolidays } = useSelector((state: RootState) => state.holidays)
+  const allHolidays = useMemo(() => [...(holidays || []), ...(pastHolidays || [])], [holidays, pastHolidays])
+
+  // State to track if current start_date is a holiday
+  const [detectedHoliday, setDetectedHoliday] = useState<{ title: string } | null>(null)
+
+  // Ensure holidays are loaded for auto-detection (fetch with large limit to get all)
+  useEffect(() => {
+    if (!holidays || holidays.length === 0) {
+      dispatch(fetchHolidays({ page: 1, limit: 100, keyword: '' }) as any)
+    }
+    if (!pastHolidays || pastHolidays.length === 0) {
+      dispatch(fetchPastHolidays({ page: 1, limit: 100, keyword: '' }) as any)
+    }
+  }, [])
 
   const userObj = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
@@ -291,6 +312,22 @@ const AddLeavesForm = ({
     return 0
   }
 
+  const checkIfHoliday = (dateStr: string) => {
+    if (!dateStr || !allHolidays.length) return null
+
+    const selectedDate = dateStr.slice(0, 10) // already YYYY-MM-DD from input
+
+    for (const h of allHolidays) {
+      const startDate = String(h.start_date).slice(0, 10)
+      const endDate = String(h.end_date || h.start_date).slice(0, 10)
+
+      if (selectedDate >= startDate && selectedDate <= endDate) {
+        return h
+      }
+    }
+    return null
+  }
+
   const handleChange = (e: any) => {
     const { name, value } = e.target
 
@@ -300,6 +337,17 @@ const AddLeavesForm = ({
       if (name === 'start_date' || name === 'end_date') {
         const days = calculateDaysDifference(updated.start_date, updated.end_date)
         updated.day = isHalfDay ? '0.5' : String(days || 0)
+      }
+
+      if (name === 'start_date') {
+        const matched = checkIfHoliday(value)
+        if (matched) {
+          setDetectedHoliday(matched)
+          updated.type = 'Festival'
+        } else {
+          setDetectedHoliday(null)
+          if (prev.type === 'Festival') updated.type = ''
+        }
       }
 
       return updated
@@ -755,6 +803,27 @@ const AddLeavesForm = ({
           )}
 
           <Grid item xs={12} md={6}>
+            {/* Festival auto-detect banner */}
+            {detectedHoliday && (
+              <Box
+                sx={{
+                  mb: 1.5,
+                  px: 2,
+                  py: 1,
+                  borderRadius: 2,
+                  bgcolor: '#fff8e1',
+                  border: '1px solid #e65100',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
+              
+                <Typography fontSize={13} fontWeight={700} sx={{ color: '#e65100' }}>
+                  🎉 Holiday detected: <b>{detectedHoliday.title}</b> 
+                </Typography>
+              </Box>
+            )}
             <FormControl fullWidth required error={!!errors.type} variant='outlined'>
               <InputLabel required>Type</InputLabel>
               <Select
@@ -762,7 +831,8 @@ const AddLeavesForm = ({
                 name='type'
                 value={formData.type}
                 onChange={handleChange}
-                startAdornment={<LeaveTypeIcon color='action' />}
+                startAdornment={detectedHoliday ? <CelebrationIcon sx={{ color: '#e65100' }} /> : <LeaveTypeIcon color='action' />}
+                disabled={!!detectedHoliday}  
               >
                 <MenuItem value='Sick'>SICK LEAVE</MenuItem>
                 <MenuItem value='Compensatory'>Compensatory LEAVE</MenuItem>
@@ -773,6 +843,11 @@ const AddLeavesForm = ({
                 <MenuItem value='Others'>OTHERS</MenuItem>
               </Select>
               {errors.type && <Typography color='error'>{errors.type}</Typography>}
+              {detectedHoliday && (
+                <Typography fontSize={11} sx={{ color: '#e65100', mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <LockIcon sx={{ fontSize: 12 }} /> Auto-selected based on holiday date. Change the start date to override.
+                </Typography>
+              )}
             </FormControl>
           </Grid>
 

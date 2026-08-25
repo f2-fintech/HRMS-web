@@ -22,7 +22,8 @@ import {
     Contrast as ContrastIcon,
     CalendarMonth as CalendarMonthIcon,
     Weekend as WeekendIcon,
-    Assessment as AssessmentIcon
+    Assessment as AssessmentIcon,
+    Celebration as CelebrationIcon,
 } from '@mui/icons-material';
 import useRouterWithMount from '@/utility/useRouterWithMount';
 
@@ -76,7 +77,7 @@ const AttendanceCard = ({
     const daysInMonth = getDaysInMonth(month, year);
 
 
-    const getStatusColor = (status) => {
+    const getStatusColor = (status, leaveType?: string) => {
         switch (status) {
             case 'Present':
                 return {
@@ -91,6 +92,13 @@ const AttendanceCard = ({
                     icon: <CancelIcon color="error" />
                 };
             case 'On Leave':
+                if (leaveType === 'Festival') {
+                    return {
+                        bg: '#fff8e1',
+                        text: '#e65100',
+                        icon: <CelebrationIcon sx={{ color: '#e65100' }} />
+                    };
+                }
                 return {
                     bg: '#fff3e0',
                     text: '#ef6c00',
@@ -178,6 +186,12 @@ const AttendanceCard = ({
                                 <Typography variant="body2">On Leave</Typography>
                             </Box>
                         </Tooltip>
+                        <Tooltip title="Festival Leave" arrow>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <CelebrationIcon sx={{ color: '#e65100', mr: 0.5 }} />
+                                <Typography variant="body2">Festival Leave</Typography>
+                            </Box>
+                        </Tooltip>
                         <Tooltip title="On Field" arrow>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <DirectionsRunIcon sx={{ color: '#4527a0', mr: 0.5 }} />
@@ -227,7 +241,6 @@ const AttendanceCard = ({
                         </Typography>
                         {Object.entries(statusCounts).map(([status, count]) => {
                             const statusStyle = getStatusColor(status);
-
 
                             return (
                                 <MenuItem
@@ -303,7 +316,7 @@ const AttendanceCard = ({
                         let bgColor = '#fff';
 
                         if (dayData) {
-                            const statusStyle = getStatusColor(dayData.status);
+                            const statusStyle = getStatusColor(dayData.status, dayData.type || dayData.leaveType);
 
                             content = statusStyle.icon;
                             bgColor = statusStyle.bg;
