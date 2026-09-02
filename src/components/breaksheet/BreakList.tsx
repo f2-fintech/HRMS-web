@@ -16,6 +16,14 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [remarks, setRemarks] = React.useState('');
 
+    const ALLOWED_BREAK_EDIT_IDS = [
+        '69f05869f9659e84d84aaacb',
+        '66bca6192f1270380b77aac5',
+    ];
+
+    const currentUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+    const canEditBreak = String(userRole) === '1' || ALLOWED_BREAK_EDIT_IDS.includes(String(currentUser?.id));
+
     return (
         <Grid container spacing={2}>
             {filteredBreaks.map((breakEntry, index) => (
@@ -139,6 +147,7 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
                                         </Box>
                                     </Box>
                                 )}
+
                                 {/* {userRole === '1' && (
                                     <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
                                         <Tooltip title='Edit Break'>
@@ -159,6 +168,26 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
                                         </Tooltip>
                                     </Box>
                                 )} */}
+                                {canEditBreak && (
+                                    <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+                                        <Tooltip title='Edit Break'>
+                                            <IconButton
+                                                size='small'
+                                                onClick={() => handleEditClick(breakEntry)}
+                                                sx={{
+                                                    bgcolor: 'background.paper',
+                                                    boxShadow: 1,
+                                                    '&:hover': {
+                                                        bgcolor: 'primary.light',
+                                                        color: 'white',
+                                                    },
+                                                }}
+                                            >
+                                                <MoreVert fontSize='small' />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </Box>
+                                )}
                             </Stack>
                         </CardContent>
                     </Card>

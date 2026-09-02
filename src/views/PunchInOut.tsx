@@ -35,7 +35,7 @@ interface ContactEntry {
 //     '66bc8bfe2f1270380b77a920',
 //     '69f05869f9659e84d84aaacb',
 
-    
+
 //     '69f05869f9659e84d84aaacb',
 //     '66c6f6d7258826c691d894e0',
 //     '66c98c96269ecefff34126b9',
@@ -1377,6 +1377,14 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id;
     const userRole = employee?.role
+    const allowedPunchEditIds = [
+        '66bca6192f1270380b77aac5',
+        '69f05869f9659e84d84aaacb',
+    ]
+    // const isAdminUser = String(userRole) === '1' || Number(userRole) === 1
+    // const canEditPunchTimes = isAdminUser || allowedPunchEditIds.includes(String(employee?.id))
+    const canEditPunchTimes = allowedPunchEditIds.includes(String(employee?.id))
+
     const userDesg = employee?.designation
     const totalWorkingHours = useSelector((state: RootState) => state.punches.totalWorkingHours)
     const punch = useSelector((state: RootState) => state.punches.punches)
@@ -1586,7 +1594,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const handlePunchOut = async () => {
         // Mobile restriction removed for all users
         // if (isMobileDevice) { ... }
-        
+
         const latestPunch = punch?.length ? punch[punch.length - 1] : null;
         if (latestPunch?.type?.toUpperCase() === 'FIELD') {
             setShowFieldModal(true);
@@ -1803,6 +1811,51 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     const handlePreviousPunch = () => { if (currentPunchIndex > 0) setCurrentPunchIndex(currentPunchIndex - 1) }
     const handleNextPunch = () => { if (currentPunchIndex < punch.length - 1) setCurrentPunchIndex(currentPunchIndex + 1) }
+
+    const handleAdminPunchEdit = async (field: 'punchIn' | 'punchOut') => {
+        if (!canEditPunchTimes) {
+            alert('Only admin or allowed employees can edit punch times.')
+            return
+        }
+
+        const targetPunch = punch[currentPunchIndex] ?? punch[punch.length - 1]
+        if (!targetPunch) {
+            alert('No punch record available to edit.')
+            return
+        }
+
+        const currentValue = field === 'punchIn' ? targetPunch.punchIn : targetPunch.punchOut || ''
+        const value = window.prompt(
+            `Edit ${field === 'punchIn' ? 'Punch In' : 'Punch Out'} time (HH:MM or HH:MM:SS)`,
+            currentValue
+        )
+
+        if (value === null) return
+
+        const normalized = value.trim()
+        const validTime = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(normalized)
+        if (!validTime) {
+            alert('Please enter a valid time in HH:MM or HH:MM:SS format.')
+            return
+        }
+
+        try {
+            const punchInValue = field === 'punchIn' ? normalized : targetPunch.punchIn || '00:00'
+            const punchOutValue = field === 'punchOut' ? normalized : targetPunch.punchOut || '00:00'
+            const payload: { punchIn: string; punchOut: string; totalTime: string; date?: string } = {
+                punchIn: punchInValue,
+                punchOut: punchOutValue,
+                totalTime: targetPunch.totalTime || '00h 00m 00s',
+                date: selectedDate
+            }
+
+            await dispatch(updatePunch({ employeeId, punchData: payload })).unwrap()
+            dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
+            dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
+        } catch (err: any) {
+            alert(err?.message || 'Failed to update punch time.')
+        }
+    }
 
     if (loading) {
         return <div className="flex justify-center items-center h-48">
@@ -2274,8 +2327,17 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                             })
                                             : "-"}
                                     </div>                             */}
-                                    <div className="text-gray-600">
-                                        {currentPunch?.punchIn || "-"}
+                                    <div className="text-gray-600 flex items-center justify-center gap-2">
+                                        <span>{currentPunch?.punchIn || "-"}</span>
+                                        {canEditPunchTimes && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleAdminPunchEdit('punchIn')}
+                                                className="px-2 py-1 text-[10px] rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                            >
+                                                Edit
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex flex-col">
@@ -2291,9 +2353,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                             })
                                             : "-"}
                                     </div>   */}
-                                 
-                                    <div className="text-gray-600">
-                                        {currentPunch?.punchOut || "-"}
+
+                                    <div className="text-gray-600 flex items-center justify-center gap-2">
+                                        <span>{currentPunch?.punchOut || "-"}</span>
+                                        {canEditPunchTimes && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleAdminPunchEdit('punchOut')}
+                                                className="px-2 py-1 text-[10px] rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                            >
+                                                Edit
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex flex-col">

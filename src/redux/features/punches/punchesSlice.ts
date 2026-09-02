@@ -105,9 +105,12 @@ export const addPunch = createAsyncThunk('punch/addPunch', async (punchData: Pun
 
 export const updatePunch = createAsyncThunk(
     'punch/updatePunch',
-    async ({ employeeId, punchData }: { employeeId: string; punchData: { punchOut: string; totalTime: string } }) => {
+    async ({ employeeId, punchData }: {
+        employeeId: string;
+        punchData: { punchIn: string; punchOut: string; totalTime: string; date?: string }
+    }) => {
         const token = localStorage.getItem('token')
-        const response = await fetch(`${BASE_URL}/punch/update-latest/${employeeId}`, {
+        const response = await fetch(`${BASE_URL}/punch/update-punch-times/${employeeId}`, {
             method: 'PUT',
             headers: {
                 Authorization: `Bearer ${token}`,
