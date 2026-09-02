@@ -47,7 +47,7 @@ import { Pagination } from '@mui/material';  // If not already imported
 
 import type { AppDispatch, RootState } from '@/redux/store'
 import { fetchAttendances } from '@/redux/features/attendances/attendancesSlice'
-import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice'
+import { fetchHolidays, fetchPastHolidays } from '@/redux/features/holidays/holidaysSlice'
 import AttendanceSummary from '@/utility/attendancesummry/AttendanceSummary'
 import EmployeeStatsWithBlinkingStatus from '@/utility/totalempattendancesummary/EmployeeStatsWithBlinkingStatus'
 import { AttendanceSummaryColumns } from '@/utility/attendancesummry/AttendanceSummaryColumns'
@@ -67,7 +67,10 @@ export default function AttendanceGrid() {
   const theme = useTheme()
   const { attendances, loading, count, filteredAttendance, statusCounts } = useSelector((state: RootState) => state.attendances)
 
-  const holidays = useSelector((state: RootState) => (state as any)?.holidays?.holidays) || []
+  const holidays = useSelector((state: RootState) => [
+    ...((state as any)?.holidays?.holidays || []),
+    ...((state as any)?.holidays?.pastHolidays || [])
+  ])
 
   const [showForm, setShowForm] = useState(false)
   const [selectedAttendance, setSelectedAttendance] = useState(null)
@@ -332,6 +335,7 @@ const handleExportYearlyAttendance = async () => {
   useEffect(() => {
     try {
       dispatch(fetchHolidays({ page: 1, limit: 500, keyword: '' }))
+      dispatch(fetchPastHolidays({ page: 1, limit: 500, keyword: '' }))
     } catch (err) {
       console.error('fetchHolidays failed (Festival-leave highlighting will be skipped):', err)
     }
@@ -609,7 +613,7 @@ const handleExportYearlyAttendance = async () => {
       const d = String(attendanceDate.getDate()).padStart(2, '0')
       const dateStr = `${y}-${m}-${d}`
 
-      const isFestivalDay = status === 'On Leave' && holidayDatesSet.has(dateStr)
+      const isFestivalDay = status === 'On Leave' && (holidayDatesSet.has(dateStr) || type === 'Festival')
 
       acc[employee._id].days[`day_${day}`] = {
         status,
@@ -626,7 +630,7 @@ const handleExportYearlyAttendance = async () => {
     return sortedData
   }
 
-  const columns = React.useMemo(() => generateColumns(), [month, year])
+  const columns = React.useMemo(() => generateColumns(), [month, year, holidayDatesSet])
   // ✅ NEW: holidayDatesSet added as a dependency so Festival detection re-runs when holidays load/change
   const rows = React.useMemo(() => transformData(), [attendances, statusCounts, month, year, holidayDatesSet])
 

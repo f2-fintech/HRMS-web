@@ -9,7 +9,7 @@ import ServerDay from './ServerDay';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/redux/store';
 import { fetchEmployeeAttendances } from '@/redux/features/attendances/attendancesSlice';
-import { fetchHolidays } from '@/redux/features/holidays/holidaysSlice';
+import { fetchHolidays, fetchPastHolidays } from '@/redux/features/holidays/holidaysSlice';
 import { CalendarToday } from '@mui/icons-material';
 
 // Styled Components
@@ -109,7 +109,8 @@ export default function DateCalendarServerRequest({
 
     const { filteredAttendance, loading } = useSelector((state: RootState) => state.attendances);
 
-    const { holidays } = useSelector((state: RootState) => state.holidays);
+    const { holidays, pastHolidays } = useSelector((state: RootState) => state.holidays);
+    const allHolidays = [...(holidays || []), ...(pastHolidays || [])];
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -128,12 +129,13 @@ export default function DateCalendarServerRequest({
 
     useEffect(() => {
         dispatch(fetchHolidays({ page: 1, limit: 500, keyword: '' }));
+        dispatch(fetchPastHolidays({ page: 1, limit: 500, keyword: '' }));
     }, [dispatch, year]);
 
     const holidayDatesSet = useMemo(() => {
         const set = new Set<string>();
 
-        (holidays || []).forEach((h: any) => {
+        allHolidays.forEach((h: any) => {
             if (!h?.start_date) return;
 
             const start = new Date(h.start_date);
@@ -155,16 +157,22 @@ export default function DateCalendarServerRequest({
         });
 
         return set;
-    }, [holidays]);
+    }, [allHolidays]);
 
  
     const attendanceData = useMemo(() => {
-        return filteredAttendance.reduce((acc, { date, status }) => {
-            const isFestival = status === 'On Leave' && holidayDatesSet.has(date);
 
-            acc[date] = {
+        return filteredAttendance.reduce((acc, { date, status, type }: any) => {
+            const normalizedDate = dayjs(date).format('YYYY-MM-DD');
+            const isFestival = status === 'On Leave' && (holidayDatesSet.has(normalizedDate) || type === 'Festival');
+
+            if (status === 'On Leave') {
+                console.log(`On Leave: date=${date}, normalizedDate=${normalizedDate}, type=${type}, inHolidaySet=${holidayDatesSet.has(normalizedDate)}, isFestival=${isFestival}`);
+            }
+
+            acc[normalizedDate] = {
                 status,
-                type: isFestival ? 'Festival' : undefined
+                type: isFestival ? 'Festival' : (type || undefined)
             };
 
             return acc;
