@@ -1616,7 +1616,15 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             isPunchInDisabled: false, isPunchOutDisabled: true
         })
 
-        await dispatch(updatePunch({ employeeId, punchData: { punchOut: endTime } })).unwrap()
+        await dispatch(updatePunch({
+            employeeId,
+            punchData: {
+                punchIn: latestPunch?.punchIn || punchState.startTime || '',
+                punchOut: endTime,
+                totalTime: timer,
+                date: selectedDate
+            }
+        })).unwrap()
 
         dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
         dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))

@@ -107,7 +107,7 @@ export const updatePunch = createAsyncThunk(
     'punch/updatePunch',
     async ({ employeeId, punchData }: {
         employeeId: string;
-        punchData: { punchIn: string; punchOut: string; totalTime: string; date?: string }
+        punchData: { punchIn?: string; punchOut?: string; totalTime?: string; date?: string; contacts?: any[] }
     }) => {
         const token = localStorage.getItem('token')
         const response = await fetch(`${BASE_URL}/punch/update-punch-times/${employeeId}`, {
