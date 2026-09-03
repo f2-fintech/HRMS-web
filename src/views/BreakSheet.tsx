@@ -1039,7 +1039,7 @@ const BreakSheet: React.FC = () => {
                 </div>
 
                 {/* Break Controls */}
-                {!isReadOnlyViewer && userDesignation !== 'Assistant Manager Hr' && (
+                {userDesignation !== 'Assistant Manager Hr' && (
                     <div className="mb-6">
                         <div className="border border-gray-200 rounded-lg p-5">
                             <div className="flex items-center mb-4">
