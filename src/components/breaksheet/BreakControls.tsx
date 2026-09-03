@@ -51,7 +51,7 @@ const BreakControls: React.FC<BreakControlsProps> = ({
   // Your existing disable logic (mobile block removed — allowed for everyone now)
   const isDisabled =
     !isCurrentDate ||
-    (selectedEmployeeId && selectedEmployeeId !== employeeId && userRole === '2');
+    Boolean(selectedEmployeeId && selectedEmployeeId !== employeeId);
 
   const isStartDisabled =
     isDisabled ||

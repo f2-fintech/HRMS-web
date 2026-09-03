@@ -22,8 +22,7 @@ const BreakList: React.FC<BreakListProps> = ({ filteredBreaks, userRole, handleE
     ];
 
     const currentUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
-    // const canEditBreak = String(userRole) === '1' || ALLOWED_BREAK_EDIT_IDS.includes(String(currentUser?.id));
-     const canEditBreak =ALLOWED_BREAK_EDIT_IDS.includes(String(currentUser?.id));
+    const canEditBreak = String(userRole) === '6' || ALLOWED_BREAK_EDIT_IDS.includes(String(currentUser?.id));
 
     return (
         <Grid container spacing={2}>
