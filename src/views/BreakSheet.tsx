@@ -94,6 +94,10 @@ const BreakSheet: React.FC = () => {
     const userDesignation = employee?.desg
     const companyId = employee?.company_id
 
+    const ALLOWED_VIEWER_EMPLOYEE_IDS: string[] = [
+        "66bcaa3f2f1270380b77ab24", "697083010a625c1906882679"]
+    const isReadOnlyViewer = ALLOWED_VIEWER_EMPLOYEE_IDS.includes(String(employeeId))
+
     const breakOptions = ['Select break type', 'Washroom', 'Breakfast', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'Other']
 
     // Hybrid mobile detection (Option 4)
@@ -206,9 +210,9 @@ const BreakSheet: React.FC = () => {
         setIsCurrentDate(selectedDate === today)
     }, [selectedDate])
 
-    // If user is Admin or Manager, fetch employees
+    // If user is Admin, Manager, or in ALLOWED_VIEWER_EMPLOYEE_IDS, fetch employees
     useEffect(() => {
-        if (Number(userRole) <= 2) {
+        if (Number(userRole) <= 2 || isReadOnlyViewer) {
             const fetchEmployees = async () => {
                 try {
                     const employeeData = await apiResponse()
@@ -221,7 +225,7 @@ const BreakSheet: React.FC = () => {
 
             fetchEmployees()
         }
-    }, [userRole])
+    }, [userRole, isReadOnlyViewer])
 
     // Fetch total working hours for the selectedEmployeeId and date
     useEffect(() => {
@@ -378,14 +382,14 @@ const BreakSheet: React.FC = () => {
         }
     }
 
-    // Fetch breaks for either the selected employee if manager/admin or for self
+    // Fetch breaks for either the selected employee if manager/admin/viewer or for self
     useEffect(() => {
-        if (Number(userRole) <= 2 && selectedEmployeeId) {
+        if ((Number(userRole) <= 2 || isReadOnlyViewer) && selectedEmployeeId) {
             dispatch(fetchBreaksById(selectedEmployeeId))
         } else {
             dispatch(fetchBreaksById(employeeId))
         }
-    }, [dispatch, selectedEmployeeId, userRole, employeeId])
+    }, [dispatch, selectedEmployeeId, userRole, employeeId, isReadOnlyViewer])
 
     // Filter breaks for the selected date
     useEffect(() => {
@@ -968,8 +972,8 @@ const BreakSheet: React.FC = () => {
                     <h1 className="text-2xl font-bold text-blue-600">Break Sheet</h1>
                 </div>
 
-                {/* Button for Manager to View Team Break Sheets */}
-                {userRole === '2' && (
+                {/* Button for Manager or Viewer to View Team Break Sheets */}
+                {(userRole === '2' || isReadOnlyViewer) && (
                     <div className="mb-6">
                         <button
                             onClick={handleTeamsBreakSheetClick}
@@ -990,8 +994,8 @@ const BreakSheet: React.FC = () => {
                     </div>
                 )}
 
-                {/* Employee Selection (Admin only) */}
-                {(Number(userRole) <= 1 || userRole === '6') && (<div className="mb-6">
+                {/* Employee Selection (Admin, Manager, or Read-Only Viewer) */}
+                {(Number(userRole) <= 1 || userRole === '6' || isReadOnlyViewer) && (<div className="mb-6">
                     <div className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center mb-4">
                             <h2 className="text-lg font-semibold">Employee Selection</h2>
@@ -1035,7 +1039,7 @@ const BreakSheet: React.FC = () => {
                 </div>
 
                 {/* Break Controls */}
-                {userDesignation !== 'Assistant Manager Hr' && (
+                {!isReadOnlyViewer && userDesignation !== 'Assistant Manager Hr' && (
                     <div className="mb-6">
                         <div className="border border-gray-200 rounded-lg p-5">
                             <div className="flex items-center mb-4">
