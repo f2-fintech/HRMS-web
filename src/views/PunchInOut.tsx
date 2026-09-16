@@ -1374,6 +1374,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [showSwitchImageModal, setShowSwitchImageModal] = useState(false)   // 👈 NEW: FIELD switch photo modal
     const [pendingSwitchType, setPendingSwitchType] = useState<'HOME' | 'OFFICE' | 'FIELD' | null>(null)   // 👈 NEW
     const [showFieldLogModal, setShowFieldLogModal] = useState(false)   // 👈 NEW: field meeting log modal (no switch needed)
+    const [offlineError, setOfflineError] = useState<string | null>(null) // 👈 NEW: Offline error state
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = selectedEmployeeId || employee?.id;
     const userRole = employee?.role
@@ -1543,6 +1544,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     // ── Actual punch-in API call (shared by normal + field-with-image flow) ──
     const doPunchIn = async (frontFile?: File, backFile?: File, agenda?: string) => {
+        if (!navigator.onLine) {
+            setOfflineError('No Internet Connection. Please check your network and try again.')
+            return
+        }
         const now = new Date()
         const startTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
@@ -1592,6 +1597,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handlePunchOut = async () => {
+        if (!navigator.onLine) {
+            setOfflineError('No Internet Connection. Please check your network and try again.')
+            return
+        }
         // Mobile restriction removed for all users
         // if (isMobileDevice) { ... }
 
@@ -1631,6 +1640,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }
 
     const handleFieldSubmit = async (contacts: ContactEntry[], remarks: string) => {
+        if (!navigator.onLine) {
+            setOfflineError('No Internet Connection. Please check your network and try again.')
+            return
+        }
         const now = new Date();
         const endTime = now.toLocaleTimeString('en-US', {
             hour12: false,
@@ -1671,6 +1684,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         frontFile: File,
         backFile: File,
     ) => {
+        if (!navigator.onLine) {
+            setOfflineError('No Internet Connection. Please check your network and try again.')
+            return
+        }
         const formData = new FormData()
         formData.append('personName', personName)
         formData.append('contact', contact)
@@ -1701,7 +1718,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
     // ── NEW: switch active punch's type in place, WITHOUT punching out ──
     const handleTypeClick = async (newType: 'HOME' | 'OFFICE' | 'FIELD') => {
-        if (newType === punchType) return
+        if (newType === punchType) {
+            if (newType === 'FIELD' && punchState.isPunchIn) {
+                setShowFieldLogModal(true)
+            }
+            return
+        }
 
         if (!punchState.isPunchIn) {
             setPunchType(newType)
@@ -1735,6 +1757,11 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         agenda?: string,
     ) => {
         setSwitching(true)
+        if (!navigator.onLine) {
+            setOfflineError('No Internet Connection. Please check your network and try again.')
+            setSwitching(false)
+            return
+        }
         try {
             let response: Response
 
@@ -1888,15 +1915,26 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         let punchMessage = '';
         if (punchInTime) {
             if (punchInTime <= referenceTime10_15AM && punchInTime >= referenceTime9AM) {
-                punchMessage = 'Big achievements are often the result of small habits like punctuality practiced every single⏰🚀';
+                punchMessage = 'Good Morning! Have a great day at work.';
             } else if (punchInTime > referenceTime10_15AM) {
-                punchMessage = `⏰Punctuality is not just about being on time; it's about respecting your work, your team, and your commitments.`;
+                punchMessage = 'You are marked as Late Today.';
             }
         }
 
         return (
-
             <>
+                {/* Offline Snackbar */}
+                <Snackbar
+                    open={!!offlineError}
+                    autoHideDuration={6000}
+                    onClose={() => setOfflineError(null)}
+                    anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                >
+                    <MuiAlert onClose={() => setOfflineError(null)} severity="error" sx={{ width: '100%', fontSize: '16px', fontWeight: 'bold' }}>
+                        {offlineError}
+                    </MuiAlert>
+                </Snackbar>
+
                 {/* newcode */}
                 {userData &&
                     (!userData?.personalDetails ||
@@ -2143,6 +2181,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     // ─── Full View ─────────────────────────────────────────────────────────────
     return (
         <>
+            {/* Offline Snackbar */}
+            <Snackbar
+                open={!!offlineError}
+                autoHideDuration={6000}
+                onClose={() => setOfflineError(null)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <MuiAlert onClose={() => setOfflineError(null)} severity="error" sx={{ width: '100%', fontSize: '16px', fontWeight: 'bold' }}>
+                    {offlineError}
+                </MuiAlert>
+            </Snackbar>
+
             {/* Field Punch In Image Modal */}
             {showPunchInImageModal && (
                 <PunchInImageModal

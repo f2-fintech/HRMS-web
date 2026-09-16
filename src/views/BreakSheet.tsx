@@ -41,6 +41,7 @@ import { updateRemarks } from '@/redux/features/breaksheets/breaksSlice';
 const BreakSheet: React.FC = () => {
     const dispatch: AppDispatch = useDispatch()
     const { breaks } = useSelector((state: RootState) => state.breaks)
+    const [offlineError, setOfflineError] = useState<string | null>(null)
 
     // const [isMobile, setIsMobile] = useState<boolean>(false)
     const [breakType, setBreakType] = useState<string>('')
@@ -319,6 +320,10 @@ const BreakSheet: React.FC = () => {
 
     // Handle Start Break
     const handleStartTime = () => {
+        if (!navigator.onLine) {
+            setOfflineError('No Internet Connection. Please check your network and try again.')
+            return
+        }
         if (!breakType) {
             alert('Please select a break type before starting your break.')
 
@@ -357,6 +362,10 @@ const BreakSheet: React.FC = () => {
 
     // Handle End Break
     const handleEndTime = () => {
+        if (!navigator.onLine) {
+            setOfflineError('No Internet Connection. Please check your network and try again.')
+            return
+        }
         if (startTime) {
             const now = new Date()
             const formattedEndTime = now.toLocaleTimeString('en-US')
@@ -787,6 +796,18 @@ const BreakSheet: React.FC = () => {
 
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: 'background.default' }}>
+            {/* Offline Snackbar */}
+            <Snackbar
+                open={!!offlineError}
+                autoHideDuration={6000}
+                onClose={() => setOfflineError(null)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert onClose={() => setOfflineError(null)} severity="error" sx={{ width: '100%', fontSize: '16px', fontWeight: 'bold' }}>
+                    {offlineError}
+                </Alert>
+            </Snackbar>
+
             {/* Break Reminder Notification */}
             <Snackbar
                 open={showBreakReminder}
