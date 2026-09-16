@@ -2463,6 +2463,20 @@ export default function PerformanceGrid() {
               >
                 View Performance
               </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<VisibilityIcon />}
+                onClick={() => router.push(`./performance-360`)}
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                }}
+                size="small"
+              >
+                Performance 360
+              </Button>
               {String(userRole) == '1' && (
                 <Button
                   variant="outlined"
