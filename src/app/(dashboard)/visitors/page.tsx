@@ -1,10 +1,11 @@
 'use client'
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IBM_Plex_Mono, Inter, Playfair_Display } from 'next/font/google'
 
 import {
     Alert,
+    Avatar,
     Box,
     Button,
     Chip,
@@ -27,6 +28,7 @@ import SearchIcon from '@mui/icons-material/Search'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
+import CloseIcon from '@mui/icons-material/Close'
 import { DataGrid, GridColDef } from '@mui/x-data-grid'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -59,6 +61,13 @@ type Visitor = {
     whomToMeet?: string
     description?: string
     createdAt?: string
+    companyName?: string
+    purposeOfVisit?: string
+    designation?: string
+    meetingType?: string
+    selfieUrl?: string
+    inTime?: string
+    outTime?: string
 }
 
 type VisitorForm = {
@@ -70,6 +79,13 @@ type VisitorForm = {
     questions: string
     whomToMeet: string
     description: string
+    companyName: string
+    purposeOfVisit: string
+    designation: string
+    meetingType: string
+    inTime?: string
+    outTime?: string
+    selfie: File | null
 }
 
 const emptyForm: VisitorForm = {
@@ -80,10 +96,17 @@ const emptyForm: VisitorForm = {
     otherVendorType: '',
     questions: '',
     whomToMeet: '',
-    description: ''
+    description: '',
+    companyName: '',
+    purposeOfVisit: '',
+    designation: '',
+    meetingType: '',
+    inTime: '',
+    outTime: '',
+    selfie: null
 }
 
-const VENDOR_TYPES = ['Guest', 'Banker', 'IT Vendor', 'Contractor', 'Interview', 'Delivery', 'Other']
+const VENDOR_TYPES = ['Guest', 'Banker','DSA','Channel Partner','Candidate', 'Vendor', 'Contractor', 'Interview','Client', 'Delivery', 'Other']
 
 const ADMIN_ROLES = ['0', '1', '6']
 
@@ -116,6 +139,10 @@ const VisitorsPage = () => {
     const [error, setError] = useState('')
     const [addOpen, setAddOpen] = useState(false)
     const [editVisitor, setEditVisitor] = useState<Visitor | null>(null)
+    const [previewImage, setPreviewImage] = useState<string | null>(null)
+    const [cameraOpen, setCameraOpen] = useState(false)
+    const videoRef = useRef<HTMLVideoElement>(null)
+    const streamRef = useRef<MediaStream | null>(null)
 
     const isAdmin = ADMIN_ROLES.includes(String(user?.role))
 
@@ -243,14 +270,23 @@ const VisitorsPage = () => {
         setSubmitting(true)
 
         try {
+            const formData = new FormData()
+            Object.entries(form).forEach(([key, value]) => {
+                if (key === 'selfie') {
+                    if (value) formData.append(key, value as File)
+                } else if (value !== null && value !== undefined) {
+                    formData.append(key, String(value))
+                }
+            })
+            if (user?.company_id) formData.append('company_id', user.company_id)
+            if (user?._id || user?.id) formData.append('createdBy', user._id || user.id)
+
+            const { 'Content-Type': _, ...headers } = requestHeaders as any
+
             const response = await fetch(`${apiUrl}/visitors/create-visitors`, {
                 method: 'POST',
-                headers: requestHeaders,
-                body: JSON.stringify({
-                    ...form,
-                    company_id: user?.company_id,
-                    createdBy: user?._id || user?.id
-                })
+                headers: headers,
+                body: formData
             })
             const payload = await response.json().catch(() => ({}))
 
@@ -275,10 +311,21 @@ const VisitorsPage = () => {
         setSubmitting(true)
 
         try {
+            const formData = new FormData()
+            Object.entries(form).forEach(([key, value]) => {
+                if (key === 'selfie') {
+                    if (value) formData.append(key, value as File)
+                } else if (value !== null && value !== undefined) {
+                    formData.append(key, String(value))
+                }
+            })
+
+            const { 'Content-Type': _, ...headers } = requestHeaders as any
+
             const response = await fetch(`${apiUrl}/visitors/update-visitors/${editVisitor._id}`, {
                 method: 'PATCH',
-                headers: requestHeaders,
-                body: JSON.stringify(form)
+                headers: headers,
+                body: formData
             })
             const payload = await response.json().catch(() => ({}))
 
@@ -325,10 +372,85 @@ const VisitorsPage = () => {
             otherVendorType: visitor.otherVendorType || '',
             questions: visitor.questions || '',
             whomToMeet: visitor.whomToMeet || '',
-            description: visitor.description || ''
+            description: visitor.description || '',
+            companyName: visitor.companyName || '',
+            purposeOfVisit: visitor.purposeOfVisit || '',
+            designation: visitor.designation || '',
+            meetingType: visitor.meetingType || '',
+            selfie: null
         })
         setEditVisitor(visitor)
     }
+
+    const markOut = async (visitor: Visitor) => {
+        try {
+            const formData = new FormData()
+            formData.append('outTime', new Date().toISOString())
+
+            const { 'Content-Type': _, ...headers } = requestHeaders as any
+
+            const response = await fetch(`${apiUrl}/visitors/update-visitors/${visitor._id}`, {
+                method: 'PATCH',
+                headers: headers,
+                body: formData
+            })
+            if (response.ok) {
+                toast.success('Visitor marked out')
+                loadVisitors()
+            } else {
+                toast.error('Failed to mark out')
+            }
+        } catch (error) {
+            toast.error('Failed to mark out')
+        }
+    }
+
+    const startCamera = async () => {
+        setCameraOpen(true)
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+            streamRef.current = stream
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream
+            }
+        } catch (err) {
+            toast.error("Could not access camera")
+            setCameraOpen(false)
+        }
+    }
+
+    const stopCamera = useCallback(() => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop())
+            streamRef.current = null
+        }
+        setCameraOpen(false)
+    }, [])
+
+    const capturePhoto = () => {
+        if (videoRef.current) {
+            const canvas = document.createElement('canvas')
+            canvas.width = videoRef.current.videoWidth
+            canvas.height = videoRef.current.videoHeight
+            const ctx = canvas.getContext('2d')
+            ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
+            canvas.toBlob(blob => {
+                if (blob) {
+                    const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' })
+                    setForm(current => ({ ...current, selfie: file }))
+                    stopCamera()
+                }
+            }, 'image/jpeg')
+        }
+    }
+
+    useEffect(() => {
+        return () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop())
+            }
+        }
+    }, [])
 
     const filteredVisitors = useMemo(() => {
         if (!date) return visitors
@@ -347,6 +469,22 @@ const VisitorsPage = () => {
     }, [date, visitors])
 
     const columns: GridColDef<Visitor>[] = [
+        {
+            field: 'selfieUrl',
+            headerName: 'Photo',
+            width: 70,
+            sortable: false,
+            renderCell: params => params.value ? (
+                <Avatar 
+                    src={params.value} 
+                    sx={{ width: 36, height: 36, mt: 0.5, cursor: 'pointer', border: `1px solid ${rule}` }} 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewImage(params.value);
+                    }}
+                />
+            ) : '-'
+        },
         { field: 'name', headerName: 'Name', flex: 1.1, minWidth: 150 },
         {
             field: 'contact',
@@ -372,6 +510,36 @@ const VisitorsPage = () => {
         },
         // { field: 'questions', headerName: 'Questions', minWidth: 160, flex: 1, valueGetter: (_, row) => row.questions || '-' },
         { field: 'whomToMeet', headerName: 'Whom to Meet', minWidth: 150, flex: 1, valueGetter: (_, row) => row.whomToMeet || '-' },
+        { field: 'companyName', headerName: 'Company/Org', minWidth: 150, flex: 1, valueGetter: (_, row) => row.companyName || '-' },
+        { field: 'designation', headerName: 'Designation', minWidth: 130, flex: 0.9, valueGetter: (_, row) => row.designation || '-' },
+        { field: 'purposeOfVisit', headerName: 'Purpose', minWidth: 140, flex: 1, valueGetter: (_, row) => row.purposeOfVisit || '-' },
+        { field: 'meetingType', headerName: 'Type', minWidth: 120, flex: 0.7, valueGetter: (_, row) => row.meetingType || '-' },
+        {
+            field: 'inTime',
+            headerName: 'In Time',
+            minWidth: 90,
+            flex: 0.8,
+            valueGetter: (_, row) => row.inTime ? new Date(row.inTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (row.createdAt ? new Date(row.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-')
+        },
+        {
+            field: 'outTime',
+            headerName: 'Out Time',
+            minWidth: 110,
+            flex: 0.8,
+            renderCell: params => {
+                if (params.value) return new Date(params.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return (
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={(e) => { e.stopPropagation(); markOut(params.row); }}
+                        sx={{ textTransform: 'none', borderRadius: '6px', py: 0.2, minWidth: '70px', borderColor: accent, color: accentDark }}
+                    >
+                        Mark Out
+                    </Button>
+                )
+            }
+        },
         { field: 'description', headerName: 'Description', minWidth: 180, flex: 1.1, valueGetter: (_, row) => row.description || '-' },
 
         {
@@ -448,7 +616,7 @@ const VisitorsPage = () => {
                     required
                     fullWidth
                     sx={fieldSx}
-                    label='Vendor type'
+                    label='Visitor Category'
                     value={form.vendorType}
                     onChange={event => {
                         const vendorType = event.target.value
@@ -486,6 +654,81 @@ const VisitorsPage = () => {
                 />
             </Grid>
 
+            <Grid item xs={12} md={6}>
+                <TextField fullWidth sx={fieldSx} label='Company/Org Name' placeholder='Company Name' value={form.companyName} onChange={event => updateForm('companyName', event.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+                <TextField fullWidth sx={fieldSx} label='Designation' placeholder='Visitor Designation' value={form.designation} onChange={event => updateForm('designation', event.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+                <TextField fullWidth sx={fieldSx} label='Purpose of Visit' placeholder='Purpose of Visit' value={form.purposeOfVisit} onChange={event => updateForm('purposeOfVisit', event.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+                <TextField
+                    select
+                    fullWidth
+                    sx={fieldSx}
+                    label='Meeting Type'
+                    value={form.meetingType}
+                    onChange={event => updateForm('meetingType', event.target.value)}
+                >
+                    <MenuItem value='Individual'>Individual</MenuItem>
+                    <MenuItem value='Group'>Group</MenuItem>
+                </TextField>
+            </Grid>
+            <Grid item xs={12}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} alignItems="center" sx={{ mb: 1 }}>
+                    {(form.selfie || editVisitor?.selfieUrl) && (
+                        <Avatar
+                            src={form.selfie ? URL.createObjectURL(form.selfie as Blob) : editVisitor?.selfieUrl}
+                            variant="rounded"
+                            sx={{ width: 56, height: 56, border: `1px solid ${rule}`, cursor: 'pointer' }}
+                            onClick={() => {
+                                const url = form.selfie ? URL.createObjectURL(form.selfie as Blob) : editVisitor?.selfieUrl;
+                                if (url) setPreviewImage(url);
+                            }}
+                        />
+                    )}
+                    <Button
+                        variant="outlined"
+                        component="label"
+                        fullWidth
+                        sx={{
+                            borderColor: accent,
+                            color: accentDark,
+                            textTransform: 'none',
+                            borderRadius: '8px',
+                            height: 56
+                        }}
+                    >
+                        {form.selfie ? (form.selfie as File).name : 'Upload Selfie'}
+                        <input
+                            type="file"
+                            hidden
+                            accept="image/*"
+                            onChange={e => {
+                                if (e.target.files && e.target.files[0]) {
+                                    setForm(current => ({ ...current, selfie: e.target.files![0] }))
+                                }
+                            }}
+                        />
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        fullWidth
+                        onClick={startCamera}
+                        sx={{
+                            borderColor: accent,
+                            color: accentDark,
+                            textTransform: 'none',
+                            borderRadius: '8px',
+                            height: 56
+                        }}
+                    >
+                        Take Selfie (Camera)
+                    </Button>
+                </Stack>
+            </Grid>
             <Grid item xs={12}>
                 <TextField fullWidth multiline minRows={2} sx={fieldSx} label='Description' placeholder='Additional notes' value={form.description} onChange={event => updateForm('description', event.target.value)} />
             </Grid>
@@ -824,6 +1067,49 @@ const VisitorsPage = () => {
                     </Box>
                 </Dialog>
             )}
+
+            {/* Camera Capture Dialog */}
+            <Dialog open={cameraOpen} onClose={stopCamera} fullWidth maxWidth='sm' PaperProps={{ sx: { borderRadius: '14px', borderTop: `4px solid ${accent}` } }}>
+                <DialogTitle className={display.className} sx={{ fontWeight: 700, color: ink, textAlign: 'center' }}>Take a Selfie</DialogTitle>
+                <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Box
+                        component="video"
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        sx={{
+                            width: '100%',
+                            maxWidth: 400,
+                            borderRadius: '8px',
+                            border: `1px solid ${rule}`,
+                            backgroundColor: '#000',
+                            transform: 'scaleX(-1)' // Mirror effect for front camera
+                        }}
+                    />
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2.5, justifyContent: 'center', gap: 2 }}>
+                    <Button onClick={stopCamera} sx={{ textTransform: 'none', color: textMuted }}>Cancel</Button>
+                    <Button onClick={capturePhoto} variant="contained" sx={{ bgcolor: accent, color: '#fff', textTransform: 'none', fontWeight: 600, borderRadius: '8px', '&:hover': { bgcolor: accentDark } }}>
+                        Capture Photo
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Image Preview Dialog */}
+            <Dialog open={!!previewImage} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '14px', bgcolor: 'transparent', boxShadow: 'none' } }}>
+                <DialogContent sx={{ p: 0, position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                    <IconButton 
+                        onClick={() => setPreviewImage(null)} 
+                        sx={{ position: 'absolute', top: 8, right: 8, color: '#fff', bgcolor: 'rgba(0,0,0,0.5)', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                    {previewImage && (
+                        <Box component="img" src={previewImage} sx={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '14px', objectFit: 'contain' }} />
+                    )}
+                </DialogContent>
+            </Dialog>
+
         </Box>
     )
 }
