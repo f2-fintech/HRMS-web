@@ -15,6 +15,7 @@ import { useSettings } from '@/@core/hooks/useSettings';
 import { useRouter } from 'next/navigation'
 import Snackbar from '@mui/material/Snackbar'
 import MuiAlert from '@mui/material/Alert'
+import imageCompression from 'browser-image-compression'
 
 interface PunchInOutProps {
     selectedDate: string
@@ -751,10 +752,12 @@ const PunchInImageModal: React.FC<{
     const [backFile, setBackFile] = useState<File | null>(null)
     const [agenda, setAgenda] = useState('')
     const [submitting, setSubmitting] = useState(false)
+    const [isCompressingFront, setIsCompressingFront] = useState(false)
+    const [isCompressingBack, setIsCompressingBack] = useState(false)
     const frontInputRef = useRef<HTMLInputElement | null>(null)
     const backInputRef = useRef<HTMLInputElement | null>(null)
 
-    const handleFileChange = (
+    const handleFileChange = async (
         e: React.ChangeEvent<HTMLInputElement>,
         which: 'front' | 'back'
     ) => {
@@ -767,11 +770,32 @@ const PunchInImageModal: React.FC<{
         }
 
         if (which === 'front') {
-            setFrontFile(file)
-            setFrontPreview(URL.createObjectURL(file))
+            setIsCompressingFront(true)
         } else {
-            setBackFile(file)
-            setBackPreview(URL.createObjectURL(file))
+            setIsCompressingBack(true)
+        }
+
+        try {
+            const options = {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1080,
+                useWebWorker: true,
+            }
+            const compressedFile = await imageCompression(file, options)
+
+            if (which === 'front') {
+                setFrontFile(compressedFile)
+                setFrontPreview(URL.createObjectURL(compressedFile))
+            } else {
+                setBackFile(compressedFile)
+                setBackPreview(URL.createObjectURL(compressedFile))
+            }
+        } catch (error) {
+            console.error('Error compressing image:', error)
+            alert('Failed to process image. Please try again.')
+        } finally {
+            if (which === 'front') setIsCompressingFront(false)
+            else setIsCompressingBack(false)
         }
     }
 
@@ -796,21 +820,26 @@ const PunchInImageModal: React.FC<{
         label: string,
         preview: string | null,
         inputRef: React.RefObject<HTMLInputElement>,
-        which: 'front' | 'back'
+        which: 'front' | 'back',
+        isCompressing: boolean
     ) => (
         <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500, marginBottom: 6 }}>{label}</div>
             <div
-                onClick={() => !submitting && inputRef.current?.click()}
+                onClick={() => !submitting && !isCompressing && inputRef.current?.click()}
                 style={{
                     width: '100%', height: 140, borderRadius: 10,
-                    border: preview ? 'none' : '1.5px dashed #cbd5e1',
-                    background: preview ? '#000' : '#f8fafc',
+                    border: preview && !isCompressing ? 'none' : '1.5px dashed #cbd5e1',
+                    background: preview && !isCompressing ? '#000' : '#f8fafc',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: submitting ? 'not-allowed' : 'pointer', overflow: 'hidden',
+                    cursor: (submitting || isCompressing) ? 'not-allowed' : 'pointer', overflow: 'hidden',
                 }}
             >
-                {preview ? (
+                {isCompressing ? (
+                    <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                        <div style={{ fontSize: 11 }}>Wait, Compressing...</div>
+                    </div>
+                ) : preview ? (
                     <img src={preview} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                     <div style={{ textAlign: 'center', color: '#94a3b8' }}>
@@ -827,7 +856,7 @@ const PunchInImageModal: React.FC<{
                 onChange={(e) => handleFileChange(e, which)}
                 style={{ display: 'none' }}
             />
-            {preview && !submitting && (
+            {preview && !submitting && !isCompressing && (
                 <button
                     onClick={() => inputRef.current?.click()}
                     style={{
@@ -877,8 +906,8 @@ const PunchInImageModal: React.FC<{
 
                 {/* Front + Back photo side by side */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                    {photoBox('Front Photo', frontPreview, frontInputRef, 'front')}
-                    {photoBox('Back Photo', backPreview, backInputRef, 'back')}
+                    {photoBox('Front Photo', frontPreview, frontInputRef, 'front', isCompressingFront)}
+                    {photoBox('Back Photo', backPreview, backInputRef, 'back', isCompressingBack)}
                 </div>
 
                 {/* Agenda */}
@@ -919,11 +948,30 @@ const PunchInImageModal: React.FC<{
                         disabled={submitting || !frontFile || !backFile}
                         style={{
                             padding: '8px 20px', border: 'none', borderRadius: 8,
-                            background: submitting ? '#cbd5e1' : '#2563eb',
-                            cursor: submitting ? 'not-allowed' : 'pointer',
+                            background: submitting ? '#1d4ed8' : (!frontFile || !backFile ? '#cbd5e1' : '#2563eb'),
+                            cursor: submitting || !frontFile || !backFile ? 'not-allowed' : 'pointer',
                             color: '#fff', fontSize: 13, fontWeight: 500,
+                            position: 'relative', overflow: 'hidden',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}
                     >
+                        {submitting && (
+                            <>
+                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', backgroundColor: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+                                    <div style={{
+                                        height: '100%', backgroundColor: '#facc15',
+                                        animation: 'smoothProgress 3s cubic-bezier(0.1, 0.8, 0.2, 1) forwards',
+                                    }} />
+                                </div>
+                                <style>
+                                    {`@keyframes smoothProgress {
+                                        0% { width: 0%; }
+                                        20% { width: 40%; }
+                                        100% { width: 95%; }
+                                    }`}
+                                </style>
+                            </>
+                        )}
                         {submitting ? 'Punching In...' : 'Punch In'}
                     </button>
                 </div>
@@ -946,10 +994,12 @@ const SwitchTypeImageModal: React.FC<{
     const [backFile, setBackFile] = useState<File | null>(null)
     const [agenda, setAgenda] = useState('')
     const [submitting, setSubmitting] = useState(false)
+    const [isCompressingFront, setIsCompressingFront] = useState(false)
+    const [isCompressingBack, setIsCompressingBack] = useState(false)
     const frontInputRef = useRef<HTMLInputElement | null>(null)
     const backInputRef = useRef<HTMLInputElement | null>(null)
 
-    const handleFileChange = (
+    const handleFileChange = async (
         e: React.ChangeEvent<HTMLInputElement>,
         which: 'front' | 'back'
     ) => {
@@ -962,11 +1012,32 @@ const SwitchTypeImageModal: React.FC<{
         }
 
         if (which === 'front') {
-            setFrontFile(file)
-            setFrontPreview(URL.createObjectURL(file))
+            setIsCompressingFront(true)
         } else {
-            setBackFile(file)
-            setBackPreview(URL.createObjectURL(file))
+            setIsCompressingBack(true)
+        }
+
+        try {
+            const options = {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1080,
+                useWebWorker: true,
+            }
+            const compressedFile = await imageCompression(file, options)
+
+            if (which === 'front') {
+                setFrontFile(compressedFile)
+                setFrontPreview(URL.createObjectURL(compressedFile))
+            } else {
+                setBackFile(compressedFile)
+                setBackPreview(URL.createObjectURL(compressedFile))
+            }
+        } catch (error) {
+            console.error('Error compressing image:', error)
+            alert('Failed to process image. Please try again.')
+        } finally {
+            if (which === 'front') setIsCompressingFront(false)
+            else setIsCompressingBack(false)
         }
     }
 
@@ -991,21 +1062,26 @@ const SwitchTypeImageModal: React.FC<{
         label: string,
         preview: string | null,
         inputRef: React.RefObject<HTMLInputElement>,
-        which: 'front' | 'back'
+        which: 'front' | 'back',
+        isCompressing: boolean
     ) => (
         <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500, marginBottom: 6 }}>{label}</div>
             <div
-                onClick={() => !submitting && inputRef.current?.click()}
+                onClick={() => !submitting && !isCompressing && inputRef.current?.click()}
                 style={{
                     width: '100%', height: 140, borderRadius: 10,
-                    border: preview ? 'none' : '1.5px dashed #cbd5e1',
-                    background: preview ? '#000' : '#f8fafc',
+                    border: preview && !isCompressing ? 'none' : '1.5px dashed #cbd5e1',
+                    background: preview && !isCompressing ? '#000' : '#f8fafc',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: submitting ? 'not-allowed' : 'pointer', overflow: 'hidden',
+                    cursor: (submitting || isCompressing) ? 'not-allowed' : 'pointer', overflow: 'hidden',
                 }}
             >
-                {preview ? (
+                {isCompressing ? (
+                    <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                        <div style={{ fontSize: 11 }}>Wait, Compressing...</div>
+                    </div>
+                ) : preview ? (
                     <img src={preview} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                     <div style={{ textAlign: 'center', color: '#94a3b8' }}>
@@ -1022,7 +1098,7 @@ const SwitchTypeImageModal: React.FC<{
                 onChange={(e) => handleFileChange(e, which)}
                 style={{ display: 'none' }}
             />
-            {preview && !submitting && (
+            {preview && !submitting && !isCompressing && (
                 <button
                     onClick={() => inputRef.current?.click()}
                     style={{
@@ -1044,9 +1120,17 @@ const SwitchTypeImageModal: React.FC<{
         }} onClick={submitting ? undefined : onClose}>
             <div onClick={e => e.stopPropagation()} style={{
                 background: '#fff', borderRadius: 16, padding: 20, width: 400,
-                maxHeight: '90vh', overflowY: 'auto',
+                maxHeight: '90vh', overflowY: 'auto', position: 'relative', overflowX: 'hidden',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: 'inherit'
             }}>
+                {submitting && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', backgroundColor: '#e0f2fe', overflow: 'hidden' }}>
+                        <div style={{
+                            height: '100%', backgroundColor: '#2563eb', width: '50%',
+                            animation: 'indeterminate 1.5s infinite linear', transformOrigin: '0% 50%',
+                        }} />
+                    </div>
+                )}
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                     <div style={{
@@ -1076,8 +1160,8 @@ const SwitchTypeImageModal: React.FC<{
 
                 {/* Front + Back photo side by side */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                    {photoBox('Front Photo', frontPreview, frontInputRef, 'front')}
-                    {photoBox('Back Photo', backPreview, backInputRef, 'back')}
+                    {photoBox('Front Photo', frontPreview, frontInputRef, 'front', isCompressingFront)}
+                    {photoBox('Back Photo', backPreview, backInputRef, 'back', isCompressingBack)}
                 </div>
 
                 {/* Agenda */}
@@ -1119,11 +1203,30 @@ const SwitchTypeImageModal: React.FC<{
                         disabled={submitting || !frontFile || !backFile}
                         style={{
                             padding: '8px 20px', border: 'none', borderRadius: 8,
-                            background: submitting ? '#cbd5e1' : '#0284c7',
-                            cursor: submitting ? 'not-allowed' : 'pointer',
+                            background: submitting ? '#0369a1' : (!frontFile || !backFile ? '#cbd5e1' : '#0284c7'),
+                            cursor: submitting || !frontFile || !backFile ? 'not-allowed' : 'pointer',
                             color: '#fff', fontSize: 13, fontWeight: 500,
+                            position: 'relative', overflow: 'hidden',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}
                     >
+                        {submitting && (
+                            <>
+                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', backgroundColor: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+                                    <div style={{
+                                        height: '100%', backgroundColor: '#facc15',
+                                        animation: 'smoothProgress 3s cubic-bezier(0.1, 0.8, 0.2, 1) forwards',
+                                    }} />
+                                </div>
+                                <style>
+                                    {`@keyframes smoothProgress {
+                                        0% { width: 0%; }
+                                        20% { width: 40%; }
+                                        100% { width: 95%; }
+                                    }`}
+                                </style>
+                            </>
+                        )}
                         {submitting ? 'Switching...' : `Switch to ${targetType || 'FIELD'}`}
                     </button>
                 </div>
@@ -1149,7 +1252,7 @@ const FieldLogModal: React.FC<{
     const frontInputRef = useRef<HTMLInputElement | null>(null)
     const backInputRef = useRef<HTMLInputElement | null>(null)
 
-    const handleFileChange = (
+    const handleFileChange = async (
         e: React.ChangeEvent<HTMLInputElement>,
         which: 'front' | 'back'
     ) => {
@@ -1159,12 +1262,30 @@ const FieldLogModal: React.FC<{
             alert('Please select a valid image file')
             return
         }
+        
+        // Instantly show preview
         if (which === 'front') {
-            setFrontFile(f)
             setFrontPreview(URL.createObjectURL(f))
         } else {
-            setBackFile(f)
             setBackPreview(URL.createObjectURL(f))
+        }
+
+        try {
+            const options = {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1080,
+                useWebWorker: true,
+            }
+            const compressedFile = await imageCompression(f, options)
+
+            if (which === 'front') {
+                setFrontFile(compressedFile)
+            } else {
+                setBackFile(compressedFile)
+            }
+        } catch (error) {
+            console.error('Error compressing image:', error)
+            alert('Failed to process image. Please try again.')
         }
     }
 
@@ -1256,9 +1377,17 @@ const FieldLogModal: React.FC<{
         }} onClick={submitting ? undefined : onClose}>
             <div onClick={e => e.stopPropagation()} style={{
                 background: '#fff', borderRadius: 16, padding: 20, width: 400,
-                maxHeight: '90vh', overflowY: 'auto',
+                maxHeight: '90vh', overflowY: 'auto', position: 'relative', overflowX: 'hidden',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: 'inherit'
             }}>
+                {submitting && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', backgroundColor: '#e0f2fe', overflow: 'hidden' }}>
+                        <div style={{
+                            height: '100%', backgroundColor: '#2563eb', width: '50%',
+                            animation: 'indeterminate 1.5s infinite linear', transformOrigin: '0% 50%',
+                        }} />
+                    </div>
+                )}
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                     <div style={{
@@ -1311,8 +1440,8 @@ const FieldLogModal: React.FC<{
 
                 {/* Front + Back photo side by side */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                    {photoBox('Front Photo', frontPreview, frontInputRef, 'front')}
-                    {photoBox('Back Photo', backPreview, backInputRef, 'back')}
+                    {photoBox('Front Photo', frontPreview, frontInputRef, 'front', isCompressingFront)}
+                    {photoBox('Back Photo', backPreview, backInputRef, 'back', isCompressingBack)}
                 </div>
 
                 {/* Actions */}
@@ -1326,10 +1455,29 @@ const FieldLogModal: React.FC<{
                     </button>
                     <button onClick={handleSubmit} disabled={submitting} style={{
                         padding: '8px 20px', border: 'none', borderRadius: 8,
-                        background: submitting ? '#cbd5e1' : '#16a34a',
+                        background: submitting ? '#15803d' : '#16a34a',
                         cursor: submitting ? 'not-allowed' : 'pointer',
                         color: '#fff', fontSize: 13, fontWeight: 500,
+                        position: 'relative', overflow: 'hidden',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
+                        {submitting && (
+                            <>
+                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', backgroundColor: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+                                    <div style={{
+                                        height: '100%', backgroundColor: '#facc15',
+                                        animation: 'smoothProgress 3s cubic-bezier(0.1, 0.8, 0.2, 1) forwards',
+                                    }} />
+                                </div>
+                                <style>
+                                    {`@keyframes smoothProgress {
+                                        0% { width: 0%; }
+                                        20% { width: 40%; }
+                                        100% { width: 95%; }
+                                    }`}
+                                </style>
+                            </>
+                        )}
                         {submitting ? 'Saving...' : 'Save Meeting'}
                     </button>
                 </div>
@@ -2245,9 +2393,26 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             )}
 
             <div className="max-w-6xl mx-auto py-4">
-                <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+                <div className="bg-white rounded-xl shadow-xl overflow-hidden relative">
+                    {/* Switching Line Loader */}
+                    {switching && (
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', backgroundColor: '#e0f2fe', overflow: 'hidden', zIndex: 50 }}>
+                            <div style={{
+                                height: '100%', backgroundColor: '#2563eb', width: '50%',
+                                animation: 'indeterminate 1.5s infinite linear', transformOrigin: '0% 50%',
+                            }} />
+                            <style>
+                                {`@keyframes indeterminate {
+                                    0% { transform: translateX(-100%) scaleX(0.2); }
+                                    20% { transform: translateX(-50%) scaleX(0.5); }
+                                    100% { transform: translateX(200%) scaleX(0.2); }
+                                }`}
+                            </style>
+                        </div>
+                    )}
+
                     {isPunchDisabledDueToMobile && (
-                        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 text-center">
+                        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 text-center mt-1">
                             <p className="font-bold">🚫 Mobile Device Detected</p>
                             <p className="text-sm">Punch In/Out is only allowed from Desktop or Laptop computers.</p>
                         </div>
