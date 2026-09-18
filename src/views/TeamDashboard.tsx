@@ -48,6 +48,7 @@ import {
     fetchTeamsMemberMonthlyAttendence,
     fetchWhoIsOffToday
 } from '@/redux/features/teams/teamsSlice'
+import { utility } from '@/utility'
 
 const TeamDashboard: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>()
@@ -83,8 +84,8 @@ const TeamDashboard: React.FC = () => {
     }
 
     useEffect(() => {
-        // Get company_id from localStorage
-        const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
+        // Get company_id from decoded token
+        const userData = utility().decodedToken() || {}
         setCompanyId(userData?.company_id)
 
         // Debug: Ensure `userData.id` exists

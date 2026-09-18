@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Grid, Tooltip, Avatar, IconButton } from '@mui/material';
 import WeekendIcon from '@mui/icons-material/Weekend';
+import { utility } from '@/utility';
 
 const BareillySeating = ({ location, setLocation }) => {
     const [seats, setSeats] = useState({
@@ -29,7 +30,7 @@ const BareillySeating = ({ location, setLocation }) => {
     });
     const [hoveredSeat, setHoveredSeat] = useState(null);
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken();
     const companyId = user.company_id
 
     useEffect(() => {

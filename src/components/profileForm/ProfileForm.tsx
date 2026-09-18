@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { utility } from '@/utility'
 import {
   Typography,
   Button,
@@ -167,7 +168,7 @@ const ProfileForm = ({ profileId, logedUser, setCalculateFilledTabsCount, setChe
   }
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken()
     setUserRole(user.role)
     setUserId(user.id)
   }, [])

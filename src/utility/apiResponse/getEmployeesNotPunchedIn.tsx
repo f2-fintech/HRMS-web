@@ -1,9 +1,11 @@
+import { utility } from '@/utility';
+
 export const fetchEmployeesNotPunchedInToday = async (
     date: string,
 ) => {
     let token: string | null = null;
     const { company_id } =
-        typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")!) : {};
+        typeof window !== "undefined" ? utility().decodedToken() : {};
 
     if (typeof window !== "undefined") {
         token = localStorage?.getItem("token");

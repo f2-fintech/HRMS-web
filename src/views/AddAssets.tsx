@@ -28,6 +28,7 @@ import { ToastContainer, toast } from 'react-toastify'
 import type { AppDispatch, RootState } from '@/redux/store'
 import { fetchAddAssets } from '@/redux/features/addAssets/addAssetsSlice'
 import 'react-toastify/dist/ReactToastify.css'
+import { utility } from '@/utility'
 
 type UploadType = 'LAPTOP' | 'SYSTEM'
 
@@ -123,7 +124,7 @@ export default function AddAssets() {
   }, [page, limit, selectedKeyword, debouncedFetch])
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken() || {}
     setUserRole(String(user?.role || ''))
   }, [])
 
@@ -192,7 +193,7 @@ export default function AddAssets() {
   }, [filteredaddassets, addassets, filterUploadType])
 
   function BulkUploadDialog({ handleClose }: { handleClose: () => void }) {
-    const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
+    const user = typeof window !== 'undefined' ? utility().decodedToken() : {}
     const company_id = user?.company_id || ''
 
     const [uploadType, setUploadType] = useState<UploadType>('LAPTOP')
@@ -346,7 +347,7 @@ export default function AddAssets() {
     handleClose: () => void
     asset: any
   }) {
-    const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
+    const user = typeof window !== 'undefined' ? utility().decodedToken() : {}
     const company_id = user?.company_id || ''
 
     const initialFormData: AssetFormData = asset

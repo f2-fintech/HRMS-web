@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { utility } from '@/utility';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '@/redux/store';
 import { Snackbar, Alert, MenuItem, Select } from '@mui/material';
@@ -473,7 +474,7 @@ export default function ExpenseAdmin() {
   // USER (ADMIN CHECK)
   const { isAdmin } = useMemo(() => {
     if (typeof window === 'undefined') return { isAdmin: false };
-    const user: UserLS = JSON.parse(localStorage.getItem('user') || '{}');
+    const user: UserLS = utility().decodedToken();
     const rRaw = user?.role ?? user?.role_id ?? user?.user_role ?? user?.employee_role ?? 0;
     const r = Number(rRaw) || 0;
     return { isAdmin: r === 1 || r === 5 };
@@ -533,7 +534,7 @@ export default function ExpenseAdmin() {
         setTeamsLoading(true);
 
         const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const user = utility().decodedToken();
 
         const cid = user?.company_id;
         if (!cid) {

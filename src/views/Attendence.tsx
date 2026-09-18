@@ -56,9 +56,9 @@ import DateCalendarServerRequest from '@/components/attendance/DateCalendarServe
 import Legend from '@/components/attendance/Legend'
 import AttendanceStatusList from '@/components/attendance/AttendanceStatusList'
 import LocationDropdown from '@/utility/locationdropdown/LocationDropdown'
-import { fetchMonthlyAttendanceSummary } from '@/utility/apiResponse/employeesResponse'
 import useDebounce from '@/utility/debounce/useDebounce'
 import AttendanceCard from '@/components/attendancecard/AttendanceCard'
+import { utility } from '@/utility'
 
 export default function AttendanceGrid() {
   const dispatch: AppDispatch = useDispatch()
@@ -180,7 +180,7 @@ export default function AttendanceGrid() {
   }
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken() || {}
 
     setUserRole(user.role)
     setUserId(user.id)

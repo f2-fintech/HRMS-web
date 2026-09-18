@@ -64,15 +64,7 @@ const DateWisePunches = () => {
         return { error: token ? "Token expired" : "No token found" };
     }
 
-    // Get user data
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-        // Redirect to login with page refresh
-        window.location.href = '/login';
-        return { error: "User data not found" };
-    }
-
-    const { company_id } = JSON.parse(userData);
+    const { company_id } = utility().decodedToken();
 
     useEffect(() => {
         const fetchOnHalfEmployees = async () => {

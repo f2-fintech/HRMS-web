@@ -1,6 +1,7 @@
 'use client';
 
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { utility } from '@/utility';
 
 type IncentiveTargetData = {
     _id?: string;
@@ -54,7 +55,7 @@ export const fetchTodayTarget = createAsyncThunk(
         try {
             const user =
                 typeof window !== 'undefined'
-                    ? JSON.parse(localStorage.getItem('user') || '{}')
+                    ? utility().decodedToken()
                     : {};
 
             const token =
@@ -116,7 +117,7 @@ export const saveIncentiveTarget = createAsyncThunk(
         try {
             const user =
                 typeof window !== 'undefined'
-                    ? JSON.parse(localStorage.getItem('user') || '{}')
+                    ? utility().decodedToken()
                     : {};
 
             const token =

@@ -39,7 +39,7 @@ export const fetchSeatingArrangements = createAsyncThunk<
 >('seatingArrangement/fetchSeatingArrangements', async ({ page = 1, limit = 10, keyword = '' }) => {
     const { isTokenExpired } = utility();
     const token = localStorage?.getItem('token');
-    const user = localStorage?.getItem('user'); // Retrieve the user object from localStorage
+    const user = utility().decodedToken(); // Retrieve the user object securely
     if (!token || isTokenExpired(token)) {
         // Clean up localStorage if needed
         if (token) {
@@ -55,8 +55,7 @@ export const fetchSeatingArrangements = createAsyncThunk<
         throw new Error('User information is missing');
     }
 
-    const parsedUser = JSON.parse(user); // Parse the user JSON
-    const company_id = parsedUser?.company_id; // Extract company_id
+    const company_id = (user as any)?.company_id; // Extract company_id
 
     if (!company_id) {
         throw new Error('Company ID is missing');

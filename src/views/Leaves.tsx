@@ -118,7 +118,7 @@ export default function LeavesGrid() {
   const [authUser] = useState<any>(() => {
     if (typeof window === 'undefined') return {}
     try {
-      return JSON.parse(localStorage.getItem('user') || '{}')
+      return utility().decodedToken() || {}
     } catch {
       return {}
     }
@@ -196,7 +196,7 @@ const y = Number(year)
   const handleLeavedelete = async (id: string) => {
     const { isTokenExpired } = utility()
     let token: string | null = null
-    const { company_id } = typeof window !== 'undefined' ? JSON.parse(localStorage?.getItem('user') as any) : {}
+    const { company_id } = utility().decodedToken() || {}
 
     if (typeof window !== 'undefined') token = localStorage?.getItem('token')
 

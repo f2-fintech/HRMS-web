@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfiles, setSearchQuery, setPage } from '../redux/features/profileEmployeee/profilesSlice';
+import { utility } from '@/utility';
 import {
     Box,
     Typography,
@@ -45,9 +46,8 @@ const EmployeeDocs = () => {
     const [activeTab, setActiveTab] = useState(0);
     const limit = 8;
 
-    const companyId = typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem("user"))?.company_id
-        : null;
+    const user = utility().decodedToken();
+    const companyId = (user as any)?.company_id || null;
 
     const handleScroll = () => {
         const scrollPosition = document.documentElement.scrollTop + window.innerHeight;

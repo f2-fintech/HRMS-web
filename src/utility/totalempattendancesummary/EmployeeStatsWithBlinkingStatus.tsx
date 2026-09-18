@@ -36,6 +36,7 @@ import Loader from '@/components/loader/loader'
 
 import { employeesCountResponse } from '@/utility/apiResponse/employeesResponse'
 import LocationCard from './LocationCard'
+import { utility } from '@/utility'
 
 interface AttendanceCounts {
   Present: number
@@ -192,10 +193,9 @@ const EmployeeAttendanceStatus: React.FC = () => {
   let company_id: string | null = null
 
   if (typeof window !== 'undefined') {
-    const user = localStorage.getItem('user')
+    const user = utility().decodedToken()
     if (user) {
-      const parsedUser = JSON.parse(user)
-      company_id = parsedUser?.company_id || null
+      company_id = user?.company_id || null
     }
     token = localStorage.getItem('token')
   }

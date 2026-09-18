@@ -23,6 +23,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt'
 import AddSeatingArrangementForm from '../components/sitting-arrangment/AddSeatingArrangementForm'
 import PatelNagarSeating from './PatelNagarSeating'
 import BareillySeating from './BareillySeating'
+import { utility } from '@/utility'
 
 const OfficeSeating = () => {
     const [location, setLocation] = useState('noida')
@@ -51,7 +52,7 @@ const OfficeSeating = () => {
     const [openForm, setOpenForm] = useState(false)
     const [hoveredSeat, setHoveredSeat] = useState(null)
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken()
     const userRole = user.role
     const companyId = user.company_id
 

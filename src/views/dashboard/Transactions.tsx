@@ -127,8 +127,8 @@ const Welcome = () => {
   const { capitalizeFirstLetter } = utility()
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    setUserRole(user.role)
+    const user = utility().decodedToken()
+    setUserRole(user?.role)
 
     const fetchUserData = async () => {
       try {
@@ -142,7 +142,8 @@ const Welcome = () => {
 
     const fetchLatestQuote = async () => {
       let token: string | null = null
-      const { company_id } = typeof window !== 'undefined' && JSON.parse(localStorage?.getItem('user') || '{}')
+      const user = utility().decodedToken()
+      const company_id = (user as any)?.company_id || ''
 
       if (typeof window !== 'undefined') {
         token = localStorage?.getItem('token')
@@ -213,7 +214,6 @@ const Welcome = () => {
       fetchUserData()
       fetchLatestQuote()
       getUserLocationAndFetchWeather()
-      fetchWeather()
     }
   }, [])
 
@@ -224,7 +224,7 @@ const Welcome = () => {
   }
 
   const handleSubmit = async () => {
-    const { company_id } = typeof window !== 'undefined' && JSON.parse(localStorage?.getItem('user') || '{}')
+    const { company_id } = typeof window !== 'undefined' && utility().decodedToken()
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/quotes/create`, {
         method: 'POST',
@@ -252,7 +252,7 @@ const Welcome = () => {
   }
 
   const handleEdit = async () => {
-    const { company_id } = JSON.parse(localStorage?.getItem('user') || '{}')
+    const { company_id } = utility().decodedToken()
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/quotes/update/${latestQuote._id}`, {
         method: 'PUT',

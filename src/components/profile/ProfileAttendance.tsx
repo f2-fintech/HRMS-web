@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { utility } from '@/utility';
 import {
     Box,
     Typography,
@@ -174,7 +175,7 @@ const ProfileAttendance = ({ profileId, employeeName }: ProfileAttendanceProps) 
         if (!profileId) return;
         setBreaksLoading(true);
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
-        const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+        const user = typeof window !== 'undefined' ? utility().decodedToken() : {};
         const company_id = user?.company_id || '';
         fetch(
             `${process.env.NEXT_PUBLIC_APP_URL}/breaksheet/employee?employeeId=${profileId}`,

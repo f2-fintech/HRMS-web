@@ -47,7 +47,8 @@ export const fetchAllQueries = createAsyncThunk(
     async ({ page = 1, limit = 10, keyword = '', month, year }: { page?: number; limit?: number; keyword?: string; month?: string; year?: string }) => {
         const { isTokenExpired } = utility();
         const token = localStorage.getItem('token') || '';
-        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+        const user = utility().decodedToken();
+        const company_id = (user as any)?.company_id || '';
 
         if (!token || isTokenExpired(token)) {
             // Clean up localStorage if needed
@@ -98,7 +99,8 @@ export const fetchUserQueries = createAsyncThunk(
     ) => {
         const state = getState() as RootState;
         const token = localStorage.getItem('token') || '';
-        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+        const user = utility().decodedToken();
+        const company_id = (user as any)?.company_id || '';
 
         // Construct query parameters dynamically
         const queryParams = new URLSearchParams({
@@ -136,7 +138,8 @@ export const fetchQueriesByToQueryId = createAsyncThunk(
         { toQueryId, page = 1, limit = 10, keyword = '', year }: { toQueryId: string; page?: number; limit?: number; keyword?: string; month?: string; year?: string }
     ) => {
         const token = localStorage.getItem('token') || '';
-        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+        const user = utility().decodedToken();
+        const company_id = (user as any)?.company_id || '';
 
         // Construct query parameters dynamically
         const queryParams = new URLSearchParams({

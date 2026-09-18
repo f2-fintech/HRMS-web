@@ -76,7 +76,8 @@ export const fetchPayrolls = createAsyncThunk<
     async ({ page = 1, limit = 10, keyword = '', month = '', year = '', status = '' }) => {
         const { isTokenExpired } = utility();
         let token: string | null = null;
-        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || "{}") : {};
+        const user = utility().decodedToken();
+        const company_id = (user as any)?.company_id || '';
 
         if (typeof window !== "undefined") {
             token = localStorage?.getItem('token');
@@ -125,7 +126,8 @@ export const fetchPayrollTemplates = createAsyncThunk<
     async ({ page = 1, limit = 10 }) => {
         const { isTokenExpired } = utility();
         let token: string | null = null;
-        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || "{}") : {};
+        const user = utility().decodedToken();
+        const company_id = (user as any)?.company_id || '';
 
         if (typeof window !== "undefined") {
             token = localStorage?.getItem('token');

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { utility } from '@/utility'
 import SettingsIcon from '@mui/icons-material/Settings'
 import TuneIcon from '@mui/icons-material/Tune'
 import { useDispatch, useSelector } from 'react-redux'
@@ -47,9 +48,9 @@ const DashboardAnalytics = () => {
   const { data: companyDetails, loading: companyLoading } = useSelector((state: RootState) => state.configuration)
   const { hiddenCards = [] } = useSelector((state: RootState) => state.dashboardPreferences || { hiddenCards: [] })
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const user = utility().decodedToken();
   const companyId = user?.company_id || ''
-  const employeeId = user?.id
+  const employeeId = user?.id || user?.employee_id;
 
   useEffect(() => {
     if (!userRole) {

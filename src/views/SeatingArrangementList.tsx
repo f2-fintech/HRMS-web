@@ -32,6 +32,7 @@ import {
 } from '@/redux/features/sittingArrangment/seatingArrangementSlice'
 import type { AppDispatch, RootState } from '@/redux/store'
 import AddSeatingArrangementForm from '../components/sitting-arrangment/AddSeatingArrangementForm'
+import { utility } from '@/utility'
 
 export default function SeatingArrangementList() {
     const dispatch = useDispatch<AppDispatch>()
@@ -49,7 +50,7 @@ export default function SeatingArrangementList() {
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
     const [deleteId, setDeleteId] = useState<string | null>(null)
 
-    const userData = JSON.parse(localStorage.getItem('user') || '{}')
+    const userData = utility().decodedToken() || {}
     const userRole = userData.role
     const userId = userData.id
     const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false)

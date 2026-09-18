@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { utility } from "@/utility";
 
 import {
     Paper,
@@ -116,8 +117,8 @@ export default function IncentiveTargetTable() {
     const maxYear = dayjs();
 
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const id = localStorage.getItem("company_id") || user.company_id || "";
+        const user = utility().decodedToken();
+        const id = (user as any)?.company_id || "";
 
         setCompanyId(id);
     }, []);

@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { utility } from '@/utility'
 
 import { TextField, Button, Box, Typography, CircularProgress } from '@mui/material'
 import { useSettings } from '@/@core/hooks/useSettings' // Import the useSettings hook
@@ -57,7 +58,7 @@ const AchievementForm: React.FC<AchievementFormProps> = ({ id, onSuccess, onClos
         formData.append('description', description || 'N/A')
         if (file) formData.append('file', file)
 
-        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const user = utility().decodedToken();
         const companyId = user.company_id;
         console.log('cidd kdajk', companyId);
 

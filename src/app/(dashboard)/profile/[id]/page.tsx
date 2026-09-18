@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react'
+import { utility } from '@/utility'
 import { useParams, useRouter } from 'next/navigation'
 import {
     Card,
@@ -107,7 +108,7 @@ const Profile = () => {
     // const searchParams = useSearchParams();
     const theme = useTheme()
     // const _id = searchParams.get('_id');
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken()
 
     const params = useParams()
     const userId = params.id

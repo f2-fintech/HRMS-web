@@ -10,7 +10,7 @@ const AddHolidayForm = ({ handleClose, holiday, holidays, isHalfDay, debouncedFe
   const { settings } = useSettings();  // Get current theme mode (dark/light)
   const { capitalizeInput } = utility();
 
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+  const { company_id } = utility().decodedToken() || {};
 
   const [formData, setFormData] = useState({
     title: '',

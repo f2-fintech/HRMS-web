@@ -1,5 +1,6 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { utility } from "@/utility";
 
 interface Policy {
   _id: string;
@@ -33,7 +34,8 @@ export const fetchPolicies = createAsyncThunk<
   async ({ page = 1, limit = 10, keyword = "" }) => {
 
     let token: string | null = null;
-    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+    const user = utility().decodedToken();
+    const company_id = (user as any)?.company_id || '';
 
     if (typeof window !== "undefined") {
       token = localStorage?.getItem("token");

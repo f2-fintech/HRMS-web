@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
+import { utility } from '@/utility';
 import {
     Box, Typography, Paper, Avatar, Chip, Stack, Divider,
     LinearProgress, CircularProgress, Select, MenuItem,
@@ -118,8 +119,8 @@ export default function ProfilePerformance({ profileId, employeeCode }: Props) {
     useEffect(() => {
         if (!profileId) return;
         setSelfLoading(true);
-        const token = localStorage.getItem('token') || '';
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
+        const user = utility().decodedToken();
         const params = new URLSearchParams({ employee_id: profileId, month: String(selfMonth), year: String(selfYear), page: '1', limit: '31' });
         fetch(`${process.env.NEXT_PUBLIC_APP_URL}/performance/list?${params}`, {
             headers: { Authorization: `Bearer ${token}`, 'x-company-id': user?.company_id || '' },
@@ -143,8 +144,8 @@ export default function ProfilePerformance({ profileId, employeeCode }: Props) {
     useEffect(() => {
         if (!employeeCode) return;
         setUploadLoading(true);
-        const token = localStorage.getItem('token') || '';
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
+        const user = utility().decodedToken();
         const company_id = user?.company_id || '';
         fetch(`${process.env.NEXT_PUBLIC_APP_URL}/performance-upload/get-performance?company_id=${company_id}&search=${employeeCode}`, {
             headers: { Authorization: `Bearer ${token}`, 'x-company-id': company_id },

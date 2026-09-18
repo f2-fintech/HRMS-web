@@ -1,5 +1,6 @@
 // MUI Imports
 import { useEffect, useState } from 'react'
+import { utility } from '@/utility'
 
 import { useTheme } from '@mui/material/styles'
 import PerfectScrollbar from 'react-perfect-scrollbar'
@@ -53,7 +54,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
   const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken()
 
     setUserRole(user.role || null)
   }, [])
@@ -109,9 +110,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             </MenuItem>
           )}
 
-          <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
+          {/* <MenuItem href={`/seat-layout`} icon={<HolidayVillageIcon />}>
             Seating Plan
-          </MenuItem>
+          </MenuItem> */}
         </MenuSection>
 
         {userRole !== "0" && (
@@ -135,7 +136,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
         )}
 
 
-        {userRole !== "0" && (
+        {/* {userRole !== "0" && (
           <MenuSection label='Performance & Reporting'>
             <MenuItem href={`/performance`} icon={<HeadsetMicIcon />}>
               Performance
@@ -144,7 +145,7 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               Field Visit Report
             </MenuItem>
           </MenuSection>
-        )}
+        )} */}
 
         {userRole !== "0" && (
           <MenuSection label='Finance & Expense'>

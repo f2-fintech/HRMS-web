@@ -37,6 +37,7 @@ import NotPunchedOutPage from './NotPunchedOutPage'
 import ExceedOneHourBreak from '@/components/attendance/ExceedOneHourBreak'
 import Link from 'next/link'
 import { updateRemarks } from '@/redux/features/breaksheets/breaksSlice';
+import { utility } from '@/utility'
 
 const BreakSheet: React.FC = () => {
     const dispatch: AppDispatch = useDispatch()
@@ -83,8 +84,8 @@ const BreakSheet: React.FC = () => {
 
     const [selectedEmployeeWorkingHours, setSelectedEmployeeWorkingHours] = useState<string>('00h 00m 00s')
 
-    // Retrieve employee from localStorage (if available)
-    const employee = JSON.parse(localStorage.getItem('user') || '{}')
+    // Retrieve employee from decoded token
+    const employee = utility().decodedToken()
     const employeeId = employee?.id
     const userRole = employee?.role
     const userDesignation = employee?.desg

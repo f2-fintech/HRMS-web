@@ -29,6 +29,7 @@ import {
   TablePagination,
   CircularProgress,
 } from '@mui/material'
+import { alpha, useTheme } from '@mui/material/styles'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -51,7 +52,7 @@ import {
   selectLevelWiseLoading,
   updateDesignation,
 } from '@/redux/features/designation/designationV2Slice';
-
+import { utility } from '@/utility';
 import type { AppDispatch, RootState } from '@/redux/store'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -87,81 +88,153 @@ const COLOR_PALETTE = [
 ]
 
 // ─── Department Card Component ───────────────────────────────────────────────
-const DepartmentCard = ({ dept, onAddDesignation, onViewDesignations }: any) => (
-  <Box
-    sx={{
-      backgroundColor: '#ffffff',
-      borderRadius: 3,
-      p: 2.5,
-      height: '100%',
-      boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
-      transition: 'transform 0.2s, box-shadow 0.2s',
-      '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' },
-      border: '1px solid #f1f5f9',
-      position: 'relative',
-    }}
-  >
-    <IconButton
-      onClick={() => onViewDesignations(dept)}
+const DepartmentCard = ({ dept, onAddDesignation, onViewDesignations }: any) => {
+  const theme = useTheme();
+  
+  return (
+    <Box
       sx={{
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        color: '#64748b',
-        '&:hover': { color: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)' },
+        backgroundColor: 'background.paper',
+        borderRadius: 3,
+        p: 2.5,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: theme.palette.mode === 'dark' 
+          ? '0 4px 20px rgba(0,0,0,0.4)' 
+          : '0 4px 15px rgba(0,0,0,0.06)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': { 
+          transform: 'translateY(-6px)', 
+          boxShadow: theme.palette.mode === 'dark' 
+            ? '0 12px 30px rgba(0,0,0,0.6)' 
+            : '0 10px 25px rgba(0,0,0,0.1)',
+          borderColor: dept.color || 'primary.main',
+        },
+        border: '1px solid',
+        borderColor: 'divider',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '4px',
+          height: '100%',
+          backgroundColor: dept.color || 'primary.main',
+          opacity: 0.8,
+        }
       }}
     >
-      <VisibilityIcon />
-    </IconButton>
-
-    <Box display="flex" alignItems="center" gap={1.5} mb={2} sx={{ pr: 5 }}>
-      <Box
+      <IconButton
+        onClick={() => onViewDesignations(dept)}
         sx={{
-          width: 42,
-          height: 42,
-          borderRadius: '50%',
-          backgroundColor: `${dept.color || '#64748b'}15`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '22px',
-          border: `2px solid ${(dept.color || '#64748b')}30`,
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          color: 'text.secondary',
+          '&:hover': { 
+            color: 'primary.main', 
+            backgroundColor: alpha(theme.palette.primary.main, 0.1) 
+          },
         }}
       >
-        {dept.icon || '📁'}
+        <VisibilityIcon />
+      </IconButton>
+
+      <Box display="flex" alignItems="flex-start" gap={1.5} mb={2} sx={{ pr: 5 }}>
+        <Box
+          sx={{
+            width: 46,
+            height: 46,
+            minWidth: 46,
+            borderRadius: '12px',
+            backgroundColor: alpha(dept.color || theme.palette.primary.main, 0.1),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '24px',
+            border: `1.5px solid ${alpha(dept.color || theme.palette.primary.main, 0.2)}`,
+            boxShadow: `0 0 15px ${alpha(dept.color || theme.palette.primary.main, 0.1)}`,
+          }}
+        >
+          {dept.icon || '📁'}
+        </Box>
+
+        <Box sx={{ overflow: 'hidden' }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'text.secondary', 
+              fontWeight: 700, 
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              display: 'block',
+              mb: 0.2
+            }}
+          >
+            {dept.department || 'DEPT'}
+          </Typography>
+          <Typography 
+            variant="h6" 
+            fontWeight={800} 
+            sx={{ 
+              fontSize: '1.05rem', 
+              lineHeight: 1.3,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              height: '2.6rem' // Fixed height for 2 lines
+            }}
+          >
+            {dept.department || dept.name}
+          </Typography>
+        </Box>
       </Box>
 
-      <Box>
-        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
-          {dept.department?.substring(0, 6).toUpperCase() || 'DEPT'}
-        </Typography>
-        <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.15rem' }}>
-          {dept.department || dept.name}
+      <Box sx={{ flexGrow: 1, mb: 3 }}>
+        <Typography 
+          sx={{ 
+            color: 'success.main', 
+            fontWeight: 800, 
+            fontSize: '0.8rem', 
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            mt: 0.5
+          }}
+        >
+          <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
+          {dept.designation_Count || 0} DESIGNATIONS
         </Typography>
       </Box>
+
+      <Button
+        variant="outlined"
+        size="small"
+        fullWidth
+        startIcon={<AddIcon />}
+        onClick={() => onAddDesignation(dept)}
+        sx={{
+          borderColor: alpha(dept.color || theme.palette.primary.main, 0.5),
+          color: dept.color || 'primary.main',
+          textTransform: 'none',
+          fontWeight: 700,
+          borderRadius: 2.5,
+          py: 0.8,
+          '&:hover': {
+            borderColor: dept.color || 'primary.main',
+            backgroundColor: alpha(dept.color || theme.palette.primary.main, 0.05),
+          }
+        }}
+      >
+        Add Designation
+      </Button>
     </Box>
-
-    <Typography sx={{ color: '#10b981', fontWeight: 700, fontSize: '0.95rem', mb: 3 }}>
-      {dept.designation_Count || 0} DESIGNATIONS
-    </Typography>
-
-    <Button
-      variant="outlined"
-      size="small"
-      fullWidth
-      startIcon={<AddIcon />}
-      onClick={() => onAddDesignation(dept)}
-      sx={{
-        borderColor: dept.color || '#3b82f6',
-        color: dept.color || '#3b82f6',
-        textTransform: 'none',
-        fontWeight: 600,
-      }}
-    >
-      Add Designation
-    </Button>
-  </Box>
-)
+  )
+}
 
 // Static Sample Data
 
@@ -217,7 +290,7 @@ const Designation = () => {
   // Fetch List with debounce
   const debouncedFetchList = useCallback(
     debounce(() => {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const user = utility().decodedToken() || {};
       const company_id = user?.company_id;
 
       if (!company_id) return;
@@ -238,16 +311,14 @@ const Designation = () => {
     debouncedFetchList();
     dispatch(fetchDepartments());
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-
+    const user = utility().decodedToken() || {};
     setUserRole(user.role || '');
   }, [debouncedFetchList, dispatch]);
   useEffect(() => {
     debouncedFetchList()
     dispatch(fetchDepartments())
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-
+    const user = utility().decodedToken() || {}
     setUserRole(user.role || '')
   }, [debouncedFetchList, dispatch])
 
@@ -345,7 +416,7 @@ const Designation = () => {
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken() || {};
     const company_id = user?.company_id;
 
     if (!company_id) {
@@ -502,7 +573,7 @@ const Designation = () => {
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken();
     const company_id = user?.company_id;
 
     if (!company_id) {
@@ -557,23 +628,54 @@ const Designation = () => {
     }, {})
   }, [selectedViewDepartment])
 
+  const theme = useTheme();
+
   return (
-    <Box sx={{ backgroundColor: '#f8fafc', minHeight: '100vh', pb: 6 }}>
+    <Box sx={{ backgroundColor: 'background.default', minHeight: '100vh', pb: 6 }}>
       <ToastContainer />
 
       {/* Departments Section */}
       <Box sx={{ px: { xs: 3, md: 5 }, pt: 5 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Box 
+          display="flex" 
+          justifyContent="space-between" 
+          alignItems="center" 
+          mb={4}
+          sx={{
+            p: 3,
+            borderRadius: 4,
+            background: theme.palette.mode === 'dark'
+              ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.2)} 0%, ${alpha(theme.palette.background.paper, 0.5)} 100%)`
+              : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, #ffffff 100%)`,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.05)',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
           <Box>
-            <Typography variant="h4" fontWeight={700} color="#1e2937">Departments</Typography>
-            <Typography color="text.secondary">Manage teams and designations</Typography>
+            <Typography variant="h4" fontWeight={800} sx={{ color: 'text.primary', letterSpacing: '-0.5px' }}>
+              Departments
+            </Typography>
+            <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
+              Manage teams and organizational structure
+            </Typography>
           </Box>
 
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setOpenCreateDeptModal(true)}
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+            sx={{ 
+              borderRadius: 2.5, 
+              textTransform: 'none', 
+              fontWeight: 700,
+              px: 3,
+              py: 1,
+              boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.3)}`,
+              '&:hover': {
+                boxShadow: `0 12px 25px ${alpha(theme.palette.primary.main, 0.4)}`,
+              }
+            }}
           >
             Add Department
           </Button>
@@ -581,7 +683,7 @@ const Designation = () => {
 
         {deptLoading ? (
           <Box display="flex" justifyContent="center" py={8}>
-            <CircularProgress />
+            <CircularProgress thickness={5} size={50} />
           </Box>
         ) : (
           <Grid container spacing={3}>
@@ -608,21 +710,35 @@ const Designation = () => {
         )}
       </Box>
 
-      <Box sx={{ height: '1px', backgroundColor: '#e2e8f0', mx: { xs: 3, md: 5 }, my: 6 }} />
+      <Box sx={{ height: '1px', backgroundColor: 'divider', mx: { xs: 3, md: 5 }, my: 8, opacity: 0.6 }} />
 
       {/* All Designations Section */}
       <Box sx={{ px: { xs: 3, md: 5 } }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h5" fontWeight={600}>All Designations</Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: '-0.5px' }}>
+            All Designations
+          </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-          <FormControl sx={{ minWidth: 200 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 2.5, 
+          mb: 4, 
+          flexWrap: 'wrap',
+          p: 3,
+          backgroundColor: 'background.paper',
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+        }}>
+          <FormControl sx={{ minWidth: 220 }}>
             <InputLabel>Department</InputLabel>
             <Select
               value={selectedDepartmentFilter}
               label="Department"
               onChange={(e) => setSelectedDepartmentFilter(e.target.value)}
+              sx={{ borderRadius: 2 }}
             >
               <MenuItem value="">All Departments</MenuItem>
               {departments.map((dept: any) => (
@@ -639,6 +755,7 @@ const Designation = () => {
               value={selectedLevelFilter}
               label="Level"
               onChange={(e) => setSelectedLevelFilter(e.target.value)}
+              sx={{ borderRadius: 2 }}
             >
               <MenuItem value="">All Levels</MenuItem>
               {[1, 2, 3, 4,].map((num) => (
@@ -654,23 +771,34 @@ const Designation = () => {
             variant="outlined"
             value={selectedKeyword}
             onChange={handleInputChange}
-            sx={{ minWidth: 300 }}
+            sx={{ 
+              minWidth: 350,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+              }
+            }}
           />
         </Box>
 
-        <Box sx={{ bgcolor: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <TableContainer component={Paper}>
+        <Box sx={{ 
+          bgcolor: 'background.paper', 
+          borderRadius: 4, 
+          boxShadow: theme.palette.mode === 'dark' ? '0 10px 40px rgba(0,0,0,0.5)' : '0 10px 40px rgba(0,0,0,0.06)', 
+          overflow: 'hidden',
+          border: '1px solid',
+          borderColor: 'divider'
+        }}>
+          <TableContainer>
             <Table>
               <TableHead>
-                <TableRow>
-                  {/* Added Serial Number Column */}
-                  <TableCell><strong>S.No</strong></TableCell>
-                  <TableCell><strong>Department</strong></TableCell>
-                  <TableCell><strong>Level</strong></TableCell>
-                  <TableCell><strong>Role Group</strong></TableCell>
-                  <TableCell><strong>Designation</strong></TableCell>
-                  <TableCell><strong>Salary Range (₹)</strong></TableCell>
-                  {userRole === '1' && <TableCell align="center"><strong>Actions</strong></TableCell>}
+                <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.05) }}>
+                  <TableCell sx={{ fontWeight: 800, color: 'text.primary', py: 2.5 }}>S.No</TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: 'text.primary' }}>Department</TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: 'text.primary' }}>Level</TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: 'text.primary' }}>Role Group</TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: 'text.primary' }}>Designation</TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: 'text.primary' }}>Salary Range (₹)</TableCell>
+                  {userRole === '1' && <TableCell align="center" sx={{ fontWeight: 800, color: 'text.primary' }}>Actions</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -684,7 +812,7 @@ const Designation = () => {
                   listDesignations.map((des: any, index: number) => (
                     <TableRow key={des._id} hover>
                       {/* Serial Number Calculation: (Current Page * Rows Per Page) + Index + 1 */}
-                      <TableCell>{page * rowsPerPage + index + 1}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{page * rowsPerPage + index + 1}</TableCell>
 
                       <TableCell>
                         {des.department?.department || des.department || '—' ? (
@@ -692,48 +820,73 @@ const Designation = () => {
                             label={des.department?.department || des.department || '—'}
                             size="small"
                             sx={{
-                              backgroundColor: '#fef3c7',
-                              color: '#92400e',
-                              fontWeight: 600,
-                              borderRadius: '8px',
+                              backgroundColor: alpha(theme.palette.warning.main, 0.1),
+                              color: 'warning.dark',
+                              fontWeight: 700,
+                              borderRadius: '6px',
                               textTransform: 'uppercase',
-                              fontSize: '0.75rem'
+                              fontSize: '0.7rem',
+                              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`
                             }}
                           />
                         ) : '—'}
                       </TableCell>
 
-                      <TableCell>L{des.level}</TableCell>
-                      <TableCell>{des.role_group || '—'}</TableCell>
+                      <TableCell>
+                        <Box sx={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                          color: 'primary.main',
+                          fontWeight: 800,
+                          fontSize: '0.8rem'
+                        }}>
+                          L{des.level}
+                        </Box>
+                      </TableCell>
+                      
+                      <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        {des.role_group || '—'}
+                      </TableCell>
 
                       <TableCell>
                         <Chip
                           label={des.title}
                           size="medium"
                           sx={{
-                            backgroundColor: '#e0f2fe',
-                            color: '#0369a1',
-                            fontWeight: 500,
-                            borderRadius: '9999px',
-                            px: 2,
+                            backgroundColor: alpha(theme.palette.info.main, 0.1),
+                            color: 'info.dark',
+                            fontWeight: 700,
+                            borderRadius: '8px',
+                            px: 1,
+                            border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`
                           }}
                         />
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>
                         ₹{des.salary_min || '—'} - ₹{des.salary_max || '—'}
                       </TableCell>
 
                       {userRole === '1' && (
                         <TableCell align="center">
-                          <Button
-                            variant="outlined"
+                          <IconButton
                             size="small"
-                            startIcon={<DriveFileRenameOutlineOutlined />}
-                            onClick={() => handleDesignationEditClick(des)}   // ← Pass full object
+                            onClick={() => handleDesignationEditClick(des)}
+                            sx={{ 
+                              color: 'primary.main',
+                              backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                              '&:hover': {
+                                backgroundColor: alpha(theme.palette.primary.main, 0.15),
+                              }
+                            }}
                           >
-                            Edit
-                          </Button>
+                            <DriveFileRenameOutlineOutlined fontSize="small" />
+                          </IconButton>
                         </TableCell>
                       )}
                     </TableRow>
@@ -762,35 +915,52 @@ const Designation = () => {
         </Box>
       </Box>
 
-      {/* Edit Designation Modal */}
-      <Dialog open={openEditModal} onClose={() => setOpenEditModal(false)} fullWidth maxWidth="md">
-        <DialogTitle>
-          <Typography variant="h5" fontWeight={700}>
+      <Dialog 
+        open={openEditModal} 
+        onClose={() => setOpenEditModal(false)} 
+        fullWidth 
+        maxWidth="sm"
+        PaperProps={{
+          sx: { borderRadius: 4, backgroundImage: 'none' }
+        }}
+      >
+        <DialogTitle sx={{ p: 3, pb: 0 }}>
+          <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.5px' }}>
             Edit Designation
           </Typography>
+          <IconButton
+            onClick={() => setOpenEditModal(false)}
+            sx={{ position: 'absolute', right: 16, top: 16, color: 'text.secondary' }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ pt: 3 }}>
+        <DialogContent sx={{ p: 3, pt: 4 }}>
           {editingDesignation && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <TextField
                 fullWidth
                 label="Designation Title"
+                variant="outlined"
                 value={editingDesignation.title}
                 onChange={(e) => setEditingDesignation({
                   ...editingDesignation,
                   title: e.target.value
                 })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
 
               <TextField
                 fullWidth
                 label="Role Group"
+                variant="outlined"
                 value={editingDesignation.role_group}
                 onChange={(e) => setEditingDesignation({
                   ...editingDesignation,
                   role_group: e.target.value
                 })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
 
               <FormControl fullWidth>
@@ -802,6 +972,7 @@ const Designation = () => {
                     ...editingDesignation,
                     level: Number(e.target.value)
                   })}
+                  sx={{ borderRadius: 2 }}
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
                     <MenuItem key={num} value={num}>L{num}</MenuItem>
@@ -819,7 +990,10 @@ const Designation = () => {
                     ...editingDesignation,
                     salary_min: e.target.value ? Number(e.target.value) : ''
                   })}
-                  InputProps={{ startAdornment: '₹' }}
+                  InputProps={{ 
+                    startAdornment: <Box component="span" sx={{ mr: 1, color: 'text.secondary' }}>₹</Box>,
+                    sx: { borderRadius: 2 }
+                  }}
                 />
                 <TextField
                   fullWidth
@@ -830,65 +1004,137 @@ const Designation = () => {
                     ...editingDesignation,
                     salary_max: e.target.value ? Number(e.target.value) : ''
                   })}
-                  InputProps={{ startAdornment: '₹' }}
+                  InputProps={{ 
+                    startAdornment: <Box component="span" sx={{ mr: 1, color: 'text.secondary' }}>₹</Box>,
+                    sx: { borderRadius: 2 }
+                  }}
                 />
               </Box>
             </Box>
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpenEditModal(false)}>Cancel</Button>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={() => setOpenEditModal(false)}
+            sx={{ fontWeight: 600, color: 'text.secondary' }}
+          >
+            Cancel
+          </Button>
           <Button
             variant="contained"
             onClick={handleUpdateDesignation}
             disabled={!editingDesignation?.title}
+            sx={{ 
+              borderRadius: 2, 
+              px: 4, 
+              fontWeight: 700,
+              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`
+            }}
           >
-            Update Designation
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* View Designations Modal */}
-      <Dialog open={openViewModal} onClose={() => setOpenViewModal(false)} fullWidth maxWidth="md">
-        <DialogTitle>
-          <Typography variant="h5" fontWeight={700}>
-            {selectedViewDepartment?.department || selectedViewDepartment?.name} - Designations
-          </Typography>
+      <Dialog 
+        open={openViewModal} 
+        onClose={() => setOpenViewModal(false)} 
+        fullWidth 
+        maxWidth="md"
+        PaperProps={{
+          sx: { borderRadius: 4, backgroundImage: 'none' }
+        }}
+      >
+        <DialogTitle sx={{ p: 3, pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Box
+              sx={{
+                width: 42,
+                height: 42,
+                borderRadius: '12px',
+                backgroundColor: alpha(selectedViewDepartment?.color || theme.palette.primary.main, 0.1),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                border: `1px solid ${alpha(selectedViewDepartment?.color || theme.palette.primary.main, 0.2)}`,
+              }}
+            >
+              {selectedViewDepartment?.icon || '📁'}
+            </Box>
+            <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.5px' }}>
+              {selectedViewDepartment?.department || selectedViewDepartment?.name}
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={() => setOpenViewModal(false)}
+            sx={{ position: 'absolute', right: 16, top: 16, color: 'text.secondary' }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ pt: 3 }}>
+        <DialogContent sx={{ p: 3 }}>
           {levelWiseLoading ? (
-            <Box display="flex" justifyContent="center" py={6}>
-              <CircularProgress />
+            <Box display="flex" justifyContent="center" py={8}>
+              <CircularProgress thickness={5} size={40} />
             </Box>
           ) : levelWiseData?.levels && levelWiseData.levels.length > 0 ? (
             levelWiseData.levels.map((levelGroup: any) => (
               <Box key={levelGroup.level} sx={{ mb: 4 }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 2, color: '#1e2937' }}>
-                  {levelGroup.level}
+                <Typography 
+                  variant="subtitle1" 
+                  fontWeight={800} 
+                  sx={{ 
+                    mb: 2, 
+                    color: 'primary.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}
+                >
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                  Level {levelGroup.level}
                 </Typography>
-                <TableContainer component={Paper}>
+                
+                <TableContainer 
+                  component={Paper} 
+                  variant="outlined" 
+                  sx={{ 
+                    borderRadius: 3, 
+                    overflow: 'hidden',
+                    borderColor: 'divider',
+                    backgroundColor: 'background.default'
+                  }}
+                >
                   <Table size="small">
                     <TableHead>
-                      <TableRow>
-                        <TableCell><strong>Designation</strong></TableCell>
-                        <TableCell><strong>Role Group</strong></TableCell>
-                        <TableCell><strong>Salary Range (₹)</strong></TableCell>
+                      <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.03) }}>
+                        <TableCell sx={{ fontWeight: 700 }}>Designation</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Role Group</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Salary Range (₹)</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {levelGroup.designations.map((des: any) => (
-                        <TableRow key={des._id}>
-                          <TableCell>
+                        <TableRow key={des._id} hover>
+                          <TableCell sx={{ py: 1.5 }}>
                             <Chip
                               label={des.title}
                               size="medium"
-                              sx={{ backgroundColor: '#e0f2fe', color: '#0369a1', fontWeight: 500 }}
+                              sx={{ 
+                                backgroundColor: alpha(theme.palette.info.main, 0.1), 
+                                color: 'info.dark', 
+                                fontWeight: 700,
+                                borderRadius: '6px'
+                              }}
                             />
                           </TableCell>
-                          <TableCell>{des.role_group || '—'}</TableCell>
-                          <TableCell>
+                          <TableCell sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                            {des.role_group || '—'}
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>
                             ₹{des.salary_min || '—'} - ₹{des.salary_max || '—'}
                           </TableCell>
                         </TableRow>
@@ -899,70 +1145,99 @@ const Designation = () => {
               </Box>
             ))
           ) : (
-            <Typography>No designations found for this department.</Typography>
+            <Box sx={{ py: 6, textAlign: 'center' }}>
+              <Typography color="text.secondary" variant="body1">
+                No designations found for this department.
+              </Typography>
+            </Box>
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpenViewModal(false)} variant="contained">
-            Close
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={() => setOpenViewModal(false)} 
+            variant="contained"
+            fullWidth
+            sx={{ borderRadius: 2, fontWeight: 700, py: 1 }}
+          >
+            Done
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Add Designation Modal */}
-      <Dialog open={openAddDesignationModal} onClose={() => setOpenAddDesignationModal(false)} fullWidth maxWidth="lg">
-        <DialogTitle>
-          <Typography variant="h5" fontWeight={700}>
-            Add Designations - {departments.find(d => (d._id || d.id) === selectedDepartmentId)?.department || 'Department'}
+      <Dialog 
+        open={openAddDesignationModal} 
+        onClose={() => setOpenAddDesignationModal(false)} 
+        fullWidth 
+        maxWidth="lg"
+        PaperProps={{
+          sx: { borderRadius: 4, backgroundImage: 'none' }
+        }}
+      >
+        <DialogTitle sx={{ p: 3, pb: 2 }}>
+          <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.5px' }}>
+            Add Designations
           </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+            Department: {departments.find(d => (d._id || d.id) === selectedDepartmentId)?.department || '—'}
+          </Typography>
+          <IconButton
+            onClick={() => setOpenAddDesignationModal(false)}
+            sx={{ position: 'absolute', right: 16, top: 16, color: 'text.secondary' }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ pt: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-            Levels & Designations
-          </Typography>
-
-          <TableContainer component={Paper}>
+        <DialogContent sx={{ p: 3 }}>
+          <TableContainer 
+            component={Paper} 
+            variant="outlined" 
+            sx={{ 
+              borderRadius: 3, 
+              borderColor: 'divider',
+              overflow: 'hidden'
+            }}
+          >
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell>Level</TableCell>
-                  <TableCell>Role Group</TableCell>
-                  <TableCell>Designations</TableCell>
-                  <TableCell>Salary Range (₹)</TableCell>
+                <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.05) }}>
+                  <TableCell sx={{ fontWeight: 800 }}>Level</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Role Group</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Designations</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Salary Range (₹)</TableCell>
                   <TableCell width={60} />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {levels.map((level, index) => (
                   <TableRow key={index} sx={{ verticalAlign: 'top' }}>
-                    <TableCell sx={{ width: 120 }}>
+                    <TableCell sx={{ width: 140, py: 3 }}>
                       <Select
                         fullWidth
                         size="small"
                         value={level.level}
                         onChange={(e) => updateLevel(index, 'level', e.target.value)}
-                        sx={{ height: 48 }}
+                        sx={{ borderRadius: 2, height: 48, fontWeight: 700 }}
                       >
                         {Array.from({ length: 4 }, (_, i) => (
-                          <MenuItem key={i} value={`L${i + 1}`}>L{i + 1}</MenuItem>
+                          <MenuItem key={i} value={`L${i + 1}`}>Level {i + 1}</MenuItem>
                         ))}
                       </Select>
                     </TableCell>
 
-                    <TableCell sx={{ width: 180 }}>
+                    <TableCell sx={{ width: 220, py: 3 }}>
                       <TextField
                         fullWidth
                         size="small"
                         placeholder="e.g. Executive, Manager"
                         value={level.roleGroup}
                         onChange={(e) => updateLevel(index, 'roleGroup', e.target.value)}
-                        sx={{ '& .MuiInputBase-root': { height: 48 } }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, height: 48 } }}
                       />
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell sx={{ py: 3 }}>
                       <TextField
                         fullWidth
                         size="small"
@@ -974,50 +1249,73 @@ const Designation = () => {
                             e.target.value = ''
                           }
                         }}
-                        sx={{ mb: 2, '& .MuiInputBase-root': { height: 48, fontSize: '1rem' } }}
+                        sx={{ 
+                          mb: 2, 
+                          '& .MuiOutlinedInput-root': { borderRadius: 2, height: 48 } 
+                        }}
                       />
 
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {level.designations.map((des: string, i: number) => (
                           <Chip
                             key={i}
                             label={des}
                             size="medium"
                             onDelete={() => removeDesignationFromLevel(index, i)}
+                            sx={{ 
+                              borderRadius: '6px', 
+                              fontWeight: 600,
+                              backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                              color: 'primary.main',
+                              border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`
+                            }}
                           />
                         ))}
                         {level.designations.length === 0 && (
-                          <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
-                            No designations added yet
+                          <Typography variant="body2" color="text.disabled" sx={{ py: 1, fontStyle: 'italic' }}>
+                            Add at least one designation...
                           </Typography>
                         )}
                       </Box>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell sx={{ py: 3 }}>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <TextField
                           size="small"
-                          placeholder="From"
+                          placeholder="Min"
                           value={level.salaryFrom}
                           onChange={(e) => updateLevel(index, 'salaryFrom', e.target.value)}
-                          InputProps={{ startAdornment: '₹' }}
-                          sx={{ width: 135, '& .MuiInputBase-root': { height: 48 } }}
+                          InputProps={{ 
+                            startAdornment: <Box component="span" sx={{ mr: 0.5, color: 'text.secondary' }}>₹</Box>,
+                            sx: { borderRadius: 2, height: 48 }
+                          }}
+                          sx={{ width: 120 }}
                         />
                         <TextField
                           size="small"
-                          placeholder="To"
+                          placeholder="Max"
                           value={level.salaryTo}
                           onChange={(e) => updateLevel(index, 'salaryTo', e.target.value)}
-                          InputProps={{ startAdornment: '₹' }}
-                          sx={{ width: 135, '& .MuiInputBase-root': { height: 48 } }}
+                          InputProps={{ 
+                            startAdornment: <Box component="span" sx={{ mr: 0.5, color: 'text.secondary' }}>₹</Box>,
+                            sx: { borderRadius: 2, height: 48 }
+                          }}
+                          sx={{ width: 120 }}
                         />
                       </Box>
                     </TableCell>
 
-                    <TableCell>
-                      <IconButton color="error" onClick={() => removeLevel(index)} sx={{ mt: 0.5 }}>
-                        <DeleteIcon />
+                    <TableCell sx={{ py: 3 }}>
+                      <IconButton 
+                        color="error" 
+                        onClick={() => removeLevel(index)} 
+                        sx={{ 
+                          backgroundColor: alpha(theme.palette.error.main, 0.05),
+                          '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.1) }
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
                       </IconButton>
                     </TableCell>
                   </TableRow>
@@ -1026,46 +1324,91 @@ const Designation = () => {
             </Table>
           </TableContainer>
 
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={addNewLevel} sx={{ mt: 3 }}>
+          <Button 
+            variant="outlined" 
+            startIcon={<AddIcon />} 
+            onClick={addNewLevel} 
+            sx={{ 
+              mt: 3, 
+              borderRadius: 2, 
+              textTransform: 'none', 
+              fontWeight: 700,
+              borderWidth: 2,
+              '&:hover': { borderWidth: 2 }
+            }}
+          >
             Add Next Level
           </Button>
         </DialogContent>
 
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpenAddDesignationModal(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveAllDesignations}>
-            Save All Designations
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={() => setOpenAddDesignationModal(false)}
+            sx={{ fontWeight: 600, color: 'text.secondary' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveAllDesignations}
+            sx={{ 
+              borderRadius: 2, 
+              px: 4, 
+              fontWeight: 700,
+              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`
+            }}
+          >
+            Save Designations
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Create New Department Modal with Icon Dropdown + Color Palette */}
-      <Dialog open={openCreateDeptModal} onClose={() => setOpenCreateDeptModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Typography variant="h6" fontWeight={600}>Create New Department</Typography>
+      <Dialog 
+        open={openCreateDeptModal} 
+        onClose={() => setOpenCreateDeptModal(false)} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 4, backgroundImage: 'none' }
+        }}
+      >
+        <DialogTitle sx={{ p: 3, pb: 1 }}>
+          <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.5px' }}>
+            Create New Department
+          </Typography>
+          <IconButton
+            onClick={() => setOpenCreateDeptModal(false)}
+            sx={{ position: 'absolute', right: 16, top: 16, color: 'text.secondary' }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
+
+        <DialogContent sx={{ p: 3, pt: 4 }}>
           <TextField
             label="Department Name"
             fullWidth
+            variant="outlined"
+            placeholder="e.g. Engineering, Marketing"
             value={newDeptName}
             onChange={(e) => setNewDeptName(e.target.value)}
             sx={{
-              mb: 3,
-              '& input': { textTransform: 'capitalize' } // Visual only
+              mb: 4,
+              '& .MuiOutlinedInput-root': { borderRadius: 2 },
+              '& input': { textTransform: 'capitalize' }
             }}
           />
-          {/* Icon Dropdown with Clear Option in List */}
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel>Select Icon</InputLabel>
+
+          <FormControl fullWidth sx={{ mb: 4 }}>
+            <InputLabel>Department Icon</InputLabel>
             <Select
               value={newDeptIcon}
               onChange={(e) => setNewDeptIcon(e.target.value)}
-              label="Select Icon"
+              label="Department Icon"
+              sx={{ borderRadius: 2 }}
             >
-              {/* Clear Option */}
               <MenuItem value="">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: '#64748b' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.disabled' }}>
                   <CloseIcon fontSize="small" />
                   <span>No Icon</span>
                 </Box>
@@ -1074,46 +1417,69 @@ const Designation = () => {
               {AVAILABLE_ICONS.map((iconObj) => (
                 <MenuItem key={iconObj.value} value={iconObj.value}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <span style={{ fontSize: '1.6rem' }}>{iconObj.value}</span>
-                    <span>{iconObj.label}</span>
+                    <Box 
+                      sx={{ 
+                        fontSize: '1.4rem', 
+                        width: 32, 
+                        height: 32, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center' 
+                      }}
+                    >
+                      {iconObj.value}
+                    </Box>
+                    <Typography variant="body2">{iconObj.label}</Typography>
                   </Box>
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          {/* Color Palette */}
-          <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
-            Select Color
+          <Typography variant="subtitle2" fontWeight={700} gutterBottom sx={{ mb: 2 }}>
+            Theme Color
           </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
             {COLOR_PALETTE.map((color) => (
               <Box
                 key={color}
                 onClick={() => setNewDeptColor(color)}
                 sx={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: '50%',
+                  width: 36,
+                  height: 36,
+                  borderRadius: '10px',
                   backgroundColor: color,
                   cursor: 'pointer',
-                  border: newDeptColor === color ? '3px solid #1e2937' : '2px solid #e2e8f0',
-                  transition: 'all 0.2s',
-                  '&:hover': { transform: 'scale(1.15)' },
+                  border: '3px solid',
+                  borderColor: newDeptColor === color ? 'text.primary' : 'transparent',
+                  boxShadow: newDeptColor === color ? `0 0 0 2px ${alpha(color, 0.3)}` : 'none',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': { transform: 'scale(1.2)' },
                 }}
               />
             ))}
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpenCreateDeptModal(false)}>Cancel</Button>
+
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={() => setOpenCreateDeptModal(false)}
+            sx={{ fontWeight: 600, color: 'text.secondary' }}
+          >
+            Cancel
+          </Button>
           <Button
             variant="contained"
             onClick={handleCreateDepartment}
             disabled={!newDeptName.trim() || creating}
-            startIcon={creating ? <CircularProgress size={20} color="inherit" /> : null}
+            sx={{ 
+              borderRadius: 2, 
+              px: 4, 
+              fontWeight: 700,
+              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`
+            }}
           >
-            {creating ? 'Creating...' : 'Create Department'}
+            {creating ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Create Department'}
           </Button>
         </DialogActions>
       </Dialog>

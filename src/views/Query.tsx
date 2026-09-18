@@ -37,6 +37,7 @@ import {
   fetchAllQueries,
 } from '@/redux/features/queries/queriesSlice';
 import QueryForm from '@/components/query/QueryForm';
+import { utility } from '@/utility';
 
 dayjs.extend(utc);
 
@@ -177,7 +178,7 @@ const Query = () => {
   );
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken() || {};
     setUserRole(user.role);
     setUserId(user.id);
 
@@ -185,8 +186,7 @@ const Query = () => {
       try {
         setTeamsLoading(true);
         const token = localStorage.getItem('token') || '';
-        const cid =
-          localStorage.getItem('company_id') || user.company_id || '';
+        const cid = (user as any)?.company_id || '';
 
         const resp = await fetch(`${API_BASE_URL}/teams/get-all-teams`, {
           headers: {

@@ -16,6 +16,7 @@ import { apiResponse } from '../../utility/apiResponse/employeesResponse'
 import { fetchSeatingArrangements } from '@/redux/features/sittingArrangment/seatingArrangementSlice'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '@/redux/store'
+import { utility } from '@/utility'
 
 interface AddSeatingArrangementFormProps {
     seatingArrangementId?: string | null
@@ -96,7 +97,7 @@ export default function AddSeatingArrangementForm({
     const handleSubmit = () => {
         if (!validateForm()) return
 
-        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const user = utility().decodedToken() || {};
         const companyId = user.company_id
 
         const url = seatingArrangementId

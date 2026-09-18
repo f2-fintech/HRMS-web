@@ -18,7 +18,8 @@ import {
   FormControl,
   FormHelperText,
   Collapse,
-  Paper
+  Paper,
+  Avatar
 } from '@mui/material'
 import type { RootState } from '@/redux/store'
 import { utility } from '@/utility'
@@ -41,8 +42,7 @@ interface TeamFormData {
 
 export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
 
-  const { company_id } =
-    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user')!) : {}
+  const { company_id } = utility().decodedToken() || {};
 
   const { teams } = useSelector((state: RootState) => state.teams)
   const { employees } = useSelector((state: RootState) => state.employees)
@@ -203,167 +203,239 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
      UI STARTS HERE
   ================================================================== */
   return (
-    <Box sx={{ flexGrow: 1, padding: 2 }}>
-      <Box display="flex" justifyContent="space-between" mb={2}>
-        <Typography variant="h5" fontWeight="600">
-          {team ? 'Edit Team' : 'Add Team'}
-        </Typography>
-        <IconButton onClick={handleClose}>
-          <CloseIcon />
+    <Box sx={{ p: 0, overflow: 'hidden' }}>
+      {/* Form Header */}
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        p: 3, 
+        borderBottom: '1px solid', 
+        borderColor: 'divider',
+        bgcolor: 'rgba(0,0,0,0.02)'
+      }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', mb: 0.5 }}>
+            {team ? 'Update Team' : 'Create New Team'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Configure your team structure and hierarchy
+          </Typography>
+        </Box>
+        <IconButton 
+          onClick={handleClose}
+          sx={{ 
+            bgcolor: 'background.paper', 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            '&:hover': { bgcolor: 'error.light', color: 'error.main' }
+          }}
+        >
+          <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
 
-      <Grid container spacing={3}>
+      <Box sx={{ p: 4, maxHeight: '80vh', overflowY: 'auto' }}>
+        <Grid container spacing={4}>
+          {/* TEAM NAME */}
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Team Name"
+              placeholder="e.g. IT Development"
+              name="name"
+              value={formData.name}
+              onChange={e => capitalizeInput(e, handleChange)}
+              error={!!errors.name}
+              helperText={errors.name}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
 
-        {/* TEAM NAME */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Team Name"
-            name="name"
-            value={formData.name}
-            onChange={e => capitalizeInput(e, handleChange)}
-            error={!!errors.name}
-            helperText={errors.name}
-          />
-        </Grid>
+          {/* CODE */}
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Team Code"
+              placeholder="e.g. IT-01"
+              name="code"
+              value={formData.code}
+              onChange={handleChange}
+              error={!!errors.code}
+              helperText={errors.code}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
 
-        {/* MANAGER */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth error={!!errors.manager_id}>
-            <InputLabel>Select Manager</InputLabel>
-            <Select
-              name="manager_id"
-              value={formData.manager_id}
-              onChange={handleManagerChange}
-            >
-              {employees.map(emp => (
-                <MenuItem key={emp._id} value={emp._id}>
-                  {emp.first_name} {emp.last_name}
-                </MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>{errors.manager_id}</FormHelperText>
-          </FormControl>
-        </Grid>
+          {/* MANAGER */}
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth error={!!errors.manager_id}>
+              <InputLabel shrink>Select Team Manager</InputLabel>
+              <Select
+                name="manager_id"
+                value={formData.manager_id}
+                onChange={handleManagerChange}
+                displayEmpty
+                notched
+                label="Select Team Manager"
+              >
+                <MenuItem value="" disabled>Select a manager</MenuItem>
+                {employees.map(emp => (
+                  <MenuItem key={emp._id} value={emp._id}>
+                    {emp.first_name} {emp.last_name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>{errors.manager_id}</FormHelperText>
+            </FormControl>
+          </Grid>
 
-        {/* EMPLOYEES */}
-        <Grid item xs={12} md={6}>
-          <Autocomplete
-            multiple
-            options={employees}
-            getOptionLabel={o => `${o.first_name} ${o.last_name}`}
-            value={selectedEmployees}
-            onChange={handleEmployeeChange}
-            renderInput={params => (
-              <TextField
-                {...params}
-                label="Select Employees"
-                error={!!errors.employee_ids}
-                helperText={errors.employee_ids}
-              />
-            )}
-          />
-        </Grid>
-
-        {/* CODE */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Team Code"
-            name="code"
-            value={formData.code}
-            onChange={handleChange}
-            error={!!errors.code}
-            helperText={errors.code}
-          />
-        </Grid>
-
-        {/* NEW: MANUAL TL SELECTOR */}
-        {selectedEmployees.length > 0 && (
-          <Grid item xs={12}>
+          {/* EMPLOYEES */}
+          <Grid item xs={12} md={6}>
             <Autocomplete
               multiple
-              options={selectedEmployees}
-              getOptionLabel={op => `${op.first_name} ${op.last_name}`}
-              onChange={(e, val) => {
-                const newTLs = val.map(tl => ({
-                  tl_id: tl._id,
-                  employees: []
-                }))
-                setTls(newTLs)
-                setShowTlSection(newTLs.length > 0)
-              }}
+              options={employees}
+              getOptionLabel={o => `${o.first_name} ${o.last_name}`}
+              value={selectedEmployees}
+              onChange={handleEmployeeChange}
               renderInput={params => (
-                <TextField {...params} label="Select Team Leaders (TL)" />
+                <TextField
+                  {...params}
+                  label="Assign Members"
+                  placeholder="Search and select employees..."
+                  error={!!errors.employee_ids}
+                  helperText={errors.employee_ids}
+                  InputLabelProps={{ shrink: true }}
+                />
               )}
             />
           </Grid>
-        )}
 
-        {/* TL SECTION */}
-        <Grid item xs={12}>
-          <Collapse in={showTlSection}>
-            <Typography variant="h6" fontWeight="600" mt={2}>
-              Team Leaders & Assigned Employees
-            </Typography>
-
-            {tls.map((tl, index) => {
-              const tlEmp = employees.find(e => e._id === tl.tl_id)
-
-              /** Only non-TLs employees are assignable */
-              const assignableEmployees = selectedEmployees.filter(
-                emp => !tls.some(t => t.tl_id === emp._id)
-              )
-
-              return (
-                <Paper
-                  elevation={2}
-                  key={tl.tl_id}
-                  sx={{
-                    p: 2,
-                    mt: 2,
-                    borderRadius: 2,
-                    borderLeft: '4px solid #ff902f',
-                    background: '#f2f2f2'
+          {/* TL SELECTOR */}
+          {selectedEmployees.length > 0 && (
+            <Grid item xs={12}>
+              <Box sx={{ mt: 2, p: 3, bgcolor: 'primary.light', borderRadius: 4, color: 'white' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                  Define Hierarchy
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 2, opacity: 0.9 }}>
+                  Optional: Select specific Team Leaders from the assigned members.
+                </Typography>
+                <Autocomplete
+                  multiple
+                  options={selectedEmployees}
+                  getOptionLabel={op => `${op.first_name} ${op.last_name}`}
+                  onChange={(e, val) => {
+                    const newTLs = val.map(tl => ({
+                      tl_id: tl._id,
+                      employees: []
+                    }))
+                    setTls(newTLs)
+                    setShowTlSection(newTLs.length > 0)
                   }}
-                >
-                  <Typography fontWeight="bold" mb={1}>
-                    TL: {tlEmp?.first_name} {tlEmp?.last_name}
-                  </Typography>
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': { bgcolor: 'white', borderRadius: 2 },
+                    '& .MuiInputLabel-root': { color: 'primary.main' }
+                  }}
+                  renderInput={params => (
+                    <TextField {...params} label="Select Team Leaders (TL)" />
+                  )}
+                />
+              </Box>
+            </Grid>
+          )}
 
-                  <Autocomplete
-                    multiple
-                    options={assignableEmployees}
-                    getOptionLabel={op => `${op.first_name} ${op.last_name}`}
-                    value={tl.employees}
-                    onChange={(e, val) => {
-                      const copy = [...tls]
-                      copy[index].employees = val
-                      setTls(copy)
-                    }}
-                    renderInput={params => (
-                      <TextField {...params} label="Employees under this TL" />
-                    )}
-                  />
-                </Paper>
-              )
-            })}
-          </Collapse>
-        </Grid>
+          {/* TL SECTION */}
+          <Grid item xs={12}>
+            <Collapse in={showTlSection}>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Assign Employees to TLs
+                </Typography>
 
-        {/* SUBMIT */}
-        <Grid item xs={12}>
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{ p: 2, backgroundColor: '#ff902f' }}
-            onClick={handleSubmit}
-          >
-            {team ? 'UPDATE TEAM' : 'ADD TEAM'}
-          </Button>
+                {tls.map((tl, index) => {
+                  const tlEmp = employees.find(e => e._id === tl.tl_id)
+                  const assignableEmployees = selectedEmployees.filter(
+                    emp => !tls.some(t => t.tl_id === emp._id)
+                  )
+
+                  return (
+                    <Paper
+                      elevation={0}
+                      key={tl.tl_id}
+                      sx={{
+                        p: 3,
+                        mb: 2,
+                        borderRadius: 3,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: 'background.paper',
+                        transition: 'all 0.2s',
+                        '&:hover': { borderColor: 'primary.main', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: '0.75rem' }}>
+                          TL
+                        </Avatar>
+                        <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                          {tlEmp?.first_name} {tlEmp?.last_name}
+                        </Typography>
+                      </Box>
+
+                      <Autocomplete
+                        multiple
+                        options={assignableEmployees}
+                        getOptionLabel={op => `${op.first_name} ${op.last_name}`}
+                        value={tl.employees}
+                        onChange={(e, val) => {
+                          const copy = [...tls]
+                          copy[index].employees = val
+                          setTls(copy)
+                        }}
+                        renderInput={params => (
+                          <TextField {...params} label="Assign employees to this TL" size="small" />
+                        )}
+                      />
+                    </Paper>
+                  )
+                })}
+              </Box>
+            </Collapse>
+          </Grid>
         </Grid>
-      </Grid>
+      </Box>
+
+      {/* Form Actions */}
+      <Box sx={{ 
+        p: 3, 
+        borderTop: '1px solid', 
+        borderColor: 'divider', 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        gap: 2,
+        bgcolor: 'rgba(0,0,0,0.02)'
+      }}>
+        <Button 
+          variant="outlined" 
+          onClick={handleClose}
+          sx={{ px: 4, py: 1.2, borderRadius: 2 }}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          sx={{ 
+            px: 6, 
+            py: 1.2, 
+            borderRadius: 2,
+            background: 'linear-gradient(135deg, #2c3ce3 0%, #5665f3 100%)',
+            '&:hover': { background: 'linear-gradient(135deg, #1a248a 0%, #2c3ce3 100%)' }
+          }}
+        >
+          {team ? 'Update Team' : 'Create Team'}
+        </Button>
+      </Box>
     </Box>
   )
 }

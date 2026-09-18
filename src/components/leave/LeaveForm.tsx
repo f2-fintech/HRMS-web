@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { utility } from '@/utility'
 import {
   Box,
   Button,
@@ -100,7 +101,7 @@ const AddLeavesForm = ({
 }: any) => {
   const dispatch = useDispatch()
 
-  const userObj = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
+  const userObj = typeof window !== 'undefined' ? utility().decodedToken() : {}
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const company_id = userObj?.company_id
 
@@ -184,7 +185,7 @@ const AddLeavesForm = ({
     }
 
     run()
-  }, [effectiveEmployeeId, year, isAdmin])
+  }, [effectiveEmployeeId, year, isAdmin, token, company_id])
 
   useEffect(() => {
     if (leave) {

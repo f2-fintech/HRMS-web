@@ -62,7 +62,7 @@ export default function DeletedEmployeeGrid() {
             router.push('/login');
         } else {
             if (userRole === '') {
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                const user = utility().decodedToken();
                 setUserRole(user.role);
             }
         }

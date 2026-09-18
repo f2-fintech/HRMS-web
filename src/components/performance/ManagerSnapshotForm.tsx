@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { utility } from '@/utility';
 
 import {
   Box,
@@ -41,8 +42,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token') || '';
-    const userRaw = localStorage.getItem('user');
-    const user = userRaw ? JSON.parse(userRaw) : null;
+    const user = utility().decodedToken();
 
     const company_id =
       user?.company_id ??

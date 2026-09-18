@@ -1,6 +1,7 @@
 import React from 'react'
-import { Box, Typography, Button, Card, CardHeader, CardContent, Avatar, Grid, Dialog, DialogContent } from '@mui/material'
-import { useSettings } from '@/@core/hooks/useSettings' // Import useSettings
+import { Box, Typography, Button, Card, CardHeader, CardContent, Avatar, Grid, Dialog, DialogContent, IconButton } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
+import { useSettings } from '@/@core/hooks/useSettings'
 
 interface TeamDetailsDialogProps {
     viewDetails: TeamType | null
@@ -17,7 +18,7 @@ export default function TeamDetailsDialog({
     onClose,
     getEmployeeCountByIds
 }: TeamDetailsDialogProps) {
-    const { settings } = useSettings() // Accessing the settings for theme mode
+    const { settings } = useSettings()
     const manager = employees.find(emp => emp._id === viewDetails?.manager_id)
 
     return (
@@ -28,221 +29,193 @@ export default function TeamDetailsDialog({
             maxWidth='md'
             PaperProps={{
                 sx: {
-                    width: '100%',
-                    maxWidth: { xs: '100%', sm: 600, md: 900 },
-                    margin: { xs: 0, sm: 2 },
-                    height: { xs: '100%', sm: 'auto' },
-                    maxHeight: { xs: '100%', sm: 'calc(100% - 64px)' },
-                    borderRadius: { xs: 0, sm: '20px' },
-                    backgroundColor: settings.mode === 'dark' ? '#333' : '#fff'  // Adjust background color for dark mode
+                    borderRadius: { xs: 0, sm: '24px' },
+                    overflow: 'hidden',
+                    bgcolor: 'background.paper',
+                    backgroundImage: 'none',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
                 }
             }}
         >
-            <DialogContent
-                sx={{
-                    padding: { xs: 2, sm: 3 },
-                    overflow: 'auto',
-                    height: { xs: '100vh', sm: 'auto' },
-                    color: settings.mode === 'dark' ? 'white' : 'black' // Adjust text color for dark mode
-                }}
-            >
-                {/* Header */}
+            <DialogContent sx={{ p: 0, position: 'relative' }}>
+                {/* Header with Gradient */}
                 <Box
                     sx={{
-                        backgroundColor: settings.mode === 'dark' ? '#555' : '#7b1fa2', // Adjust header background color for dark mode
-                        padding: '10px',
+                        background: 'linear-gradient(135deg, #2c3ce3 0%, #5665f3 100%)',
+                        p: { xs: 3, sm: 4 },
                         color: 'white',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        flexDirection: 'column'
+                        textAlign: 'center',
+                        position: 'relative'
                     }}
                 >
-                    <Typography variant='h4' fontWeight='bold' sx={{ zIndex: 1, position: 'relative' }}>
+                    <Typography variant='h4' sx={{ fontWeight: 800, mb: 0.5, letterSpacing: '-0.02em' }}>
                         {viewDetails?.name.toUpperCase()}
                     </Typography>
-                    <Typography variant='h6' sx={{ opacity: 0.8, zIndex: 1, position: 'relative' }}>
-                        Team Code: {viewDetails?.code}
-                    </Typography>
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            top: -20,
-                            right: -20,
-                            width: 200,
-                            height: 200,
-                            borderRadius: '50%',
-                            backgroundColor: 'rgba(255,255,255,0.1)',
-                            zIndex: 1
-                        }}
-                    />
+                    <Box sx={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: 1, 
+                        bgcolor: 'rgba(255,255,255,0.15)',
+                        px: 2,
+                        py: 0.5,
+                        borderRadius: '20px',
+                        backdropFilter: 'blur(4px)'
+                    }}>
+                        <Typography variant='subtitle2' sx={{ fontWeight: 600 }}>
+                            TEAM CODE: {viewDetails?.code}
+                        </Typography>
+                    </Box>
+                    <IconButton 
+                        onClick={onClose}
+                        sx={{ position: 'absolute', top: 16, right: 16, color: 'white' }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
                 </Box>
 
-                {/* Content */}
-                <Box
-                    sx={{
-                        padding: { xs: '10px', sm: '20px', md: '30px' },
-                        display: 'flex',
-                        flexDirection: { xs: 'column', lg: 'row' },
-                        gap: { xs: 2, md: 4 }
-                    }}
-                >
-                    {/* Manager Section */}
-                    <Card
-                        elevation={3}
-                        sx={{
-                            flex: 1,
-                            borderRadius: '15px',
-                            overflow: 'hidden',
-                            transition: 'all 0.3s ease',
-                            height: '100%',
-                            '&:hover': { transform: 'translateY(-5px)', boxShadow: 6 },
-                            backgroundColor: settings.mode === 'dark' ? '#444' : 'white' // Adjust background color for manager card
-                        }}
-                    >
-                        <CardHeader title='Team Manager' sx={{ backgroundColor: '#7b1fa2', color: 'white' }} />
-                        <CardContent sx={{ padding: '20px' }}>
-                            {manager ? (
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                    <Avatar
-                                        src={manager.image}
-                                        sx={{ width: 80, height: 80, border: '3px solid #7b1fa2' }}
-                                    />
-                                    <Box>
-                                        <Typography variant='h6'>
-                                            {manager.first_name} {manager.last_name}
-                                        </Typography>
-                                        <Typography variant='body2' color='textSecondary' sx={{ textAlign: 'center' }}>
-                                            {manager.designation}
-                                        </Typography>
-                                    </Box>
+                {/* Content Area */}
+                <Box sx={{ p: { xs: 2, sm: 4 }, bgcolor: settings.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
+                    <Grid container spacing={4}>
+                        {/* Manager Column */}
+                        <Grid item xs={12} lg={4}>
+                            <Card sx={{ 
+                                height: '100%', 
+                                borderRadius: 4, 
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: 'none'
+                            }}>
+                                <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'rgba(0,0,0,0.02)' }}>
+                                    <Typography variant="subtitle1" fontWeight={700}>Team Manager</Typography>
                                 </Box>
-                            ) : (
-                                <Typography>No manager assigned</Typography>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Employees Section */}
-                    <Card
-                        elevation={3}
-                        sx={{
-                            flex: 2,
-                            borderRadius: '15px',
-                            overflowY: 'auto',
-                            transition: 'all 0.3s ease',
-                            '&:hover': { transform: 'translateY(-5px)', boxShadow: 6 },
-                            height: '285px',
-                            position: 'relative',
-                            backgroundColor: settings.mode === 'dark' ? '#444' : 'white', // Adjust background color for employee card
-                            '&::-webkit-scrollbar': {
-                                width: '12px',
-                                background: 'transparent'
-                            },
-                            '&::-webkit-scrollbar-track': {
-                                background: 'rgba(0,0,0,0.1)',
-                                borderRadius: '10px',
-                                margin: '10px 0'
-                            },
-                            '&::-webkit-scrollbar-thumb': {
-                                background: 'linear-gradient(45deg, #6a11cb 0%, #2575fc 100%)',
-                                borderRadius: '10px',
-                                border: '3px solid transparent',
-                                backgroundClip: 'content-box',
-                                '&:hover': {
-                                    background: 'linear-gradient(45deg, #8e2de2 0%, #4a00e0 100%)',
-                                    backgroundClip: 'content-box'
-                                }
-                            },
-                            '&::after': {
-                                content: '""',
-                                position: 'absolute',
-                                top: 0,
-                                right: 0,
-                                width: '12px',
-                                height: '100%',
-                                background: 'rgba(255,255,255,0.1)',
-                                borderRadius: '0 15px 15px 0',
-                                pointerEvents: 'none'
-                            },
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: '#6a11cb transparent'
-                        }}
-                    >
-                        <CardHeader title='Team Members' sx={{ backgroundColor: '#7b1fa2', color: 'white' }} />
-                        <CardContent sx={{ padding: '20px' }}>
-                            <Grid container spacing={2}>
-                                {viewDetails?.employee_ids.split(',').map(id => {
-                                    const employee = employees.find(emp => emp._id === id)
-                                    if (!employee) return null
-                                    return (
-                                        <Grid item xs={6} sm={4} key={id}>
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    alignItems: 'center',
-                                                    textAlign: 'center',
-                                                    padding: '10px',
-                                                    borderRadius: '10px',
-                                                    backgroundColor: settings.mode === 'dark' ? '#555' : '#f3e5f5', // Adjust background for employee item
-                                                    transition: 'all 0.3s ease',
-                                                    height: '100%',
-                                                    '&:hover': { backgroundColor: settings.mode === 'dark' ? '#666' : '#e1bee7', transform: 'scale(1.05)' }
+                                <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
+                                    {manager ? (
+                                        <>
+                                            <Avatar
+                                                src={manager.image}
+                                                sx={{ 
+                                                    width: 100, 
+                                                    height: 100, 
+                                                    mb: 2,
+                                                    border: '4px solid',
+                                                    borderColor: 'primary.light',
+                                                    boxShadow: '0 8px 16px rgba(44, 60, 227, 0.2)'
                                                 }}
                                             >
-                                                <Avatar
-                                                    src={employee.image}
-                                                    sx={{
-                                                        width: 60,
-                                                        height: 60,
-                                                        marginBottom: 1,
-                                                        border: '2px solid #7b1fa2'
-                                                    }}
-                                                />
-                                                <Typography variant='body2' fontWeight='bold'>
-                                                    {employee.first_name} {employee.last_name}
-                                                </Typography>
-                                                <Typography variant='caption' color='textSecondary'>
-                                                    {employee.designation}
-                                                </Typography>
-                                            </Box>
-                                        </Grid>
-                                    )
-                                })}
-                            </Grid>
-                        </CardContent>
-                    </Card>
+                                                {manager.first_name.charAt(0)}
+                                            </Avatar>
+                                            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                                {manager.first_name} {manager.last_name}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                                {manager.designation}
+                                            </Typography>
+                                            <Button 
+                                                variant="outlined" 
+                                                size="small" 
+                                                sx={{ borderRadius: 2 }}
+                                            >
+                                                View Profile
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Typography color="text.secondary">No manager assigned</Typography>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </Grid>
+
+                        {/* Members Column */}
+                        <Grid item xs={12} lg={8}>
+                            <Card sx={{ 
+                                height: '100%', 
+                                borderRadius: 4,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: 'none'
+                            }}>
+                                <Box sx={{ 
+                                    p: 2, 
+                                    borderBottom: '1px solid', 
+                                    borderColor: 'divider', 
+                                    bgcolor: 'rgba(0,0,0,0.02)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <Typography variant="subtitle1" fontWeight={700}>Team Members</Typography>
+                                    <Box sx={{ bgcolor: 'primary.main', color: 'white', px: 1.5, py: 0.25, borderRadius: 2, fontSize: '0.75rem', fontWeight: 700 }}>
+                                        {viewDetails ? getEmployeeCountByIds(viewDetails.employee_ids, employees, viewDetails.manager_id) : 0} Total
+                                    </Box>
+                                </Box>
+                                <CardContent sx={{ 
+                                    maxHeight: 400, 
+                                    overflowY: 'auto',
+                                    '&::-webkit-scrollbar': { width: 6 },
+                                    '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 }
+                                }}>
+                                    <Grid container spacing={2}>
+                                        {viewDetails?.employee_ids.split(',').map(id => {
+                                            const employee = employees.find(emp => emp._id === id)
+                                            if (!employee) return null
+                                            return (
+                                                <Grid item xs={12} sm={6} key={id}>
+                                                    <Box sx={{ 
+                                                        display: 'flex', 
+                                                        alignItems: 'center', 
+                                                        gap: 2, 
+                                                        p: 1.5, 
+                                                        borderRadius: 3,
+                                                        border: '1px solid transparent',
+                                                        transition: 'all 0.2s',
+                                                        '&:hover': { 
+                                                            bgcolor: 'background.paper',
+                                                            borderColor: 'primary.light',
+                                                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                                                        }
+                                                    }}>
+                                                        <Avatar src={employee.image} sx={{ width: 44, height: 44 }}>
+                                                            {employee.first_name.charAt(0)}
+                                                        </Avatar>
+                                                        <Box sx={{ minWidth: 0 }}>
+                                                            <Typography variant="body2" sx={{ fontWeight: 600, noWrap: true }}>
+                                                                {employee.first_name} {employee.last_name}
+                                                            </Typography>
+                                                            <Typography variant="caption" color="text.secondary" sx={{ noWrap: true, display: 'block' }}>
+                                                                {employee.designation}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
+                                                </Grid>
+                                            )
+                                        })}
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    </Grid>
                 </Box>
 
-                {/* Footer */}
-                <Box
-                    sx={{
-                        backgroundColor: settings.mode === 'dark' ? '#333' : '#ede7f6', // Adjust footer background for dark mode
-                        padding: '20px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}
-                >
-                    <Typography variant='body2' color='textSecondary'>
-                        Total Members:{' '}
-                        {viewDetails
-                            ? getEmployeeCountByIds(viewDetails.employee_ids, employees, viewDetails.manager_id)
-                            : 1}
-                    </Typography>
+                {/* Footer Actions */}
+                <Box sx={{ 
+                    p: 3, 
+                    borderTop: '1px solid', 
+                    borderColor: 'divider',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    bgcolor: 'background.paper'
+                }}>
                     <Button
                         variant='contained'
-                        color='secondary'
                         onClick={onClose}
-                        sx={{
-                            borderRadius: '20px',
-                            textTransform: 'none',
-                            fontWeight: 'bold'
+                        sx={{ 
+                            px: 4, 
+                            py: 1, 
+                            borderRadius: 2,
+                            background: 'linear-gradient(135deg, #2c3ce3 0%, #5665f3 100%)'
                         }}
                     >
-                        Close
+                        Close Details
                     </Button>
                 </Box>
             </DialogContent>

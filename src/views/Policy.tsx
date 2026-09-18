@@ -94,7 +94,7 @@ const PolicyGrid = () => {
   }, [page, limit, selectedKeyword, debouncedFetch])
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken() || {}
 
     setUserRole(user.role)
     setUserId(user.id)
@@ -299,7 +299,7 @@ const PolicyGrid = () => {
 
 
   const AddPolicyForm = ({ handleClose, policy }: AddPolicyFormProps) => {
-    const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || '{}') : {};
+    const user = utility().decodedToken() || {}
     const company_id = user?.company_id;
 
     const [formData, setFormData] = useState({

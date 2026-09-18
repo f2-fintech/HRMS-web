@@ -78,7 +78,7 @@ const UserDropdown = () => {
   }
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken() || {}
 
     const fetchUserData = async () => {
       try {

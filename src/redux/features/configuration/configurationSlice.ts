@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "@/redux/store";
+import { utility } from "@/utility";
 
 // Define the configuration data structure
 interface Configuration {
@@ -42,8 +43,8 @@ export const fetchConfiguration = createAsyncThunk<
     }
 
     let token: string | null = null;
-    const user = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user") || "{}") : {};
-    const company_id = user?.company_id;
+    const user = utility().decodedToken();
+    const company_id = (user as any)?.company_id || '';
 
     if (typeof window !== "undefined") {
         token = localStorage?.getItem("token");

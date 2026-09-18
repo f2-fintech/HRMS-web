@@ -45,10 +45,10 @@ const SixMonthAward = () => {
     }, []);
 
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        setUserId(user.id);
-        setUserDesg(user.designation);
-        setUserRole(user.role);
+        const user = utility().decodedToken();
+        setUserId(user?.id);
+        setUserDesg(user?.designation);
+        setUserRole(user?.role);
 
         const fetchEmployeesAndAwards = async () => {
             let token: string | null = null;
@@ -96,7 +96,7 @@ const SixMonthAward = () => {
     const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         let token: string | null = null;
-        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+        const { company_id } = typeof window !== "undefined" ? utility().decodedToken() : {};
 
         if (typeof window !== "undefined") {
             token = localStorage?.getItem("token");

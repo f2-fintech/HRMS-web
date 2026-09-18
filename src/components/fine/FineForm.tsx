@@ -31,6 +31,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 import type { AppDispatch } from '@/redux/store';
 import { fetchFines } from '@/redux/features/fines/fineSlice';
+import { utility } from '@/utility';
 
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -100,9 +101,8 @@ export default function FineForm({ fine, onClose, setToast, month, year }: FineF
 
     try {
       let token = null;
-      const { company_id } = typeof window !== "undefined" && localStorage?.getItem("user")
-        ? JSON.parse(localStorage.getItem("user"))
-        : {};
+      const user = utility().decodedToken();
+      const company_id = (user as any)?.company_id || '';
       if (typeof window !== 'undefined') {
         token = localStorage?.getItem('token');
       }

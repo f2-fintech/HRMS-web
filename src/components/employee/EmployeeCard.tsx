@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { utility } from '@/utility'
 
 import { useRouter } from 'next/navigation'
 
@@ -96,7 +97,7 @@ const EmployeeCard = ({ employee, id, handleEditEmployeeClick, handleDelete, cap
 
   useEffect(() => {
     if (userRole === '') {
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      const user = utility().decodedToken()
 
       setUserRole(user.role)
     }

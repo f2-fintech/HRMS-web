@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { utility } from '@/utility';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import type { Dayjs } from 'dayjs';
@@ -60,7 +61,7 @@ api.interceptors.request.use((config) => {
 
     const companyId =
       localStorage.getItem('company_id') ||
-      JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+      utility().decodedToken()?.company_id ||
       '';
 
     if (!config.headers) config.headers = {};
@@ -439,10 +440,7 @@ export default function PerformanceUploadPage() {
   }, [q]);
 
   useEffect(() => {
-    const u =
-      typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('user') || '{}')
-        : {};
+    const u = utility().decodedToken();
     setUser(u);
     setIsAdmin(String(u?.role) === '1');
   }, []);
@@ -462,7 +460,7 @@ export default function PerformanceUploadPage() {
 
       const company_id =
         localStorage.getItem('company_id') ||
-        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        utility().decodedToken()?.company_id ||
         '';
 
       const todayStr = dayjs().format('YYYY-MM-DD');
@@ -556,7 +554,7 @@ export default function PerformanceUploadPage() {
       setTeamTotalsLoading(true);
       const company_id =
         localStorage.getItem('company_id') ||
-        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        utility().decodedToken()?.company_id ||
         '';
 
       const res = await api.get('/performance-upload/team-totals', {
@@ -584,7 +582,7 @@ export default function PerformanceUploadPage() {
 
       const company_id =
         localStorage.getItem('company_id') ||
-        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        utility().decodedToken()?.company_id ||
         '';
 
       const res = await api.get(`/performance-upload/team-breakdown/${code}`, {
@@ -649,7 +647,7 @@ export default function PerformanceUploadPage() {
   try {
     const company_id =
       localStorage.getItem('company_id') ||
-      JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+      utility().decodedToken()?.company_id ||
       '';
 
     await api.delete('/performance-upload/delete-by-date', {
@@ -699,7 +697,7 @@ export default function PerformanceUploadPage() {
 
       const company_id =
         localStorage.getItem('company_id') ||
-        JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+        utility().decodedToken()?.company_id ||
         '';
 
       const approvalNumber = sanitizeMoney(form.approval_lakh);

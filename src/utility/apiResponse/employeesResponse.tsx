@@ -27,14 +27,14 @@ export const apiResponse = async (): Promise<any> => {
   }
 
   // Get user data
-  const userData = localStorage.getItem('user');
-  if (!userData) {
+  const user = utility().decodedToken();
+  if (!user || Object.keys(user).length === 0) {
     // Redirect to login with page refresh
     window.location.href = '/login';
     return { error: "User data not found" };
   }
 
-  const { company_id } = JSON.parse(userData);
+  const { company_id } = user;
 
   try {
     const response = await fetch(
@@ -63,7 +63,7 @@ export const apiResponse = async (): Promise<any> => {
 export const employeesCountResponse = async (): Promise<any> => {
 
   const token = localStorage?.getItem("token") || '{}';
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+  const { company_id } = typeof window !== "undefined" ? utility().decodedToken() : {};
 
   try {
     const response = await fetch(
@@ -93,7 +93,7 @@ export const employeesCountResponse = async (): Promise<any> => {
 
 export const fetchMonthlyAttendanceSummary = async (month: number, year: number, page = 1, limit = 10, keyword = '', location = ''): Promise<any> => {
   const token = localStorage?.getItem("token") || '{}';
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+  const { company_id } = typeof window !== "undefined" ? utility().decodedToken() : {};
 
   try {
     const response = await fetch(
@@ -123,7 +123,7 @@ export const fetchMonthlyAttendanceSummary = async (month: number, year: number,
 
 export const fetchTotalShiftTime = async (date: string): Promise<any> => {
   const token = localStorage?.getItem("token") || '{}';
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+  const { company_id } = typeof window !== "undefined" ? utility().decodedToken() : {};
 
   try {
     const response = await fetch(

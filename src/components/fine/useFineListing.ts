@@ -6,6 +6,7 @@ import { debounce } from 'lodash'
 
 import type { RootState, AppDispatch } from '@/redux/store'
 import { fetchFines } from '@/redux/features/fines/fineSlice'
+import { utility } from '@/utility'
 
 export const useFineListing = () => {
     const dispatch = useDispatch<AppDispatch>()
@@ -28,9 +29,9 @@ export const useFineListing = () => {
     const month = selectedDate.format('MM')
     const year = selectedDate.format('YYYY')
 
-    // Effect: get user role from localStorage
+    // Effect: get user role from decoded token
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const user = utility().decodedToken()
         setUserRole(user.role)
         setUserId(user.id)
     }, [])

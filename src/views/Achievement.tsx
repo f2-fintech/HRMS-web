@@ -29,6 +29,7 @@ import { styled, keyframes } from '@mui/material/styles';
 
 import AchievementForm from '@/components/acheivement/AchievementForm';
 import { useSettings } from '@/@core/hooks/useSettings';
+import { utility } from '@/utility';
 
 const API_URL = process.env.NEXT_PUBLIC_APP_URL + '/achievements';
 const DUMMY_IMAGE = 'https://img.freepik.com/premium-vector/figure-wooden-dummy-climb-up-wooden-stairs-concept-career-up-business-growth-up-success-life-management-achievement-concept-success_131476-99.jpg';
@@ -208,7 +209,7 @@ const Achievement = () => {
     const [userData, setUserData] = useState(null);
 
     useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const storedUser = utility().decodedToken();
         setUserData(storedUser);
     }, []);
 
@@ -220,7 +221,7 @@ const Achievement = () => {
         setLoading(true);
 
         try {
-            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const userData = utility().decodedToken();
             const companyId = userData?.company_id;
 
             if (!companyId) {

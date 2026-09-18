@@ -23,7 +23,7 @@ export const fetchTotalWorkingHours = createAsyncThunk(
     'punch/fetchTotalWorkingHours',
     async ({ employeeId, date }: { employeeId: string | null; date: string }) => {
         const token = localStorage.getItem('token');
-        const { company_id }: any = localStorage.getItem('user') || {};
+        const { company_id }: any = utility().decodedToken() || {};
         const url = `${BASE_URL}/punch/working-hours?employeeId=${employeeId}&date=${date}`
 
         const response = await fetch(url, {
@@ -47,7 +47,7 @@ export const fetchPunchByEmployeeAndDate = createAsyncThunk(
     async ({ employeeId, date }: { employeeId: string | null; date: string }) => {
         const { isTokenExpired } = utility()
         const token = localStorage.getItem('token');
-        const { company_id }: any = localStorage.getItem('user') || {};
+        const { company_id }: any = utility().decodedToken() || {};
         const url = `${BASE_URL}/punch/employee/${employeeId}?date=${date}`
 
         if (!token || isTokenExpired(token)) {

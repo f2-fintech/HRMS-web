@@ -38,6 +38,7 @@ import type { AppDispatch, RootState } from '@/redux/store'
 import { fetchTimeSheet, filterTimesheet, resetFilter } from '@/redux/features/timesheet/timesheetSlice'
 import { fetchAttendances, fetchEmployeeAttendances } from '@/redux/features/attendances/attendancesSlice'
 import { apiResponse } from '@/utility/apiResponse/employeesResponse'
+import { utility } from '@/utility'
 
 export default function TimeSheetGrid() {
   const dispatch: AppDispatch = useDispatch()
@@ -115,7 +116,7 @@ export default function TimeSheetGrid() {
   }, [dispatch, userId, userRole, timesheets.length, attendances.length, employees.length])
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken() || {}
 
     setUserRole(user.role)
     setUserId(user.id)

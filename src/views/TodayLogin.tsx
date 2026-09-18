@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
+import { utility } from "@/utility";
 
 const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_APP_URL });
 function getDuration(start?: string, end?: string) {
@@ -284,10 +285,7 @@ export default function TodayLogin() {
     const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
-        const u =
-            typeof window !== "undefined"
-                ? JSON.parse(localStorage.getItem("user") || "{}")
-                : {};
+        const u = utility().decodedToken() || {};
         setUser(u);
         setIsAdmin(String(u?.role) === "1");
     }, []);

@@ -1,6 +1,7 @@
 // NotPunchedOutPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Typography, Grid, Card, CardContent, Avatar, CircularProgress } from '@mui/material';
+import { utility } from '@/utility';
 
 interface Employee {
     first_name: string;
@@ -23,7 +24,7 @@ const NotPunchedOutPage: React.FC<NotPunchedOutPageProps> = ({ selectedDate }) =
                 let token: string | null = null;
                 const { company_id } =
                     typeof window !== 'undefined'
-                        ? JSON.parse(localStorage?.getItem('user') || '{}')
+                        ? utility().decodedToken()
                         : {};
 
                 if (typeof window !== 'undefined') {

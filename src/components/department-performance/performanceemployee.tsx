@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { utility } from '@/utility';
 import {
   Box,
   Button,
@@ -74,8 +75,7 @@ export default function PerformanceEmployee() {
   const [savingMonthCompleted, setSavingMonthCompleted] = useState(false);
 
   const myId = useMemo(() => {
-    if (typeof window === 'undefined') return '';
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken();
     return String(user?.employee_id || user?._id || user?.id || '').trim();
   }, []);
 

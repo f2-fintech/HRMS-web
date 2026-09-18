@@ -8,6 +8,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 
 import OfficeSeating from './OfficeSeating'; // Import Noida seating layout
 import BareillySeating from './BareillySeating';
+import { utility } from '@/utility';
 
 const PatelNagarSeating = ({ location, setLocation }) => {
 
@@ -19,7 +20,7 @@ const PatelNagarSeating = ({ location, setLocation }) => {
     const [hoveredSeat, setHoveredSeat] = useState(null);
 
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken();
     const companyId = user.company_id
 
     useEffect(() => {

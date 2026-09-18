@@ -5,6 +5,8 @@ import ExpenseEmployee from "./expenseemployee";
 import ExpenseManager from "./expensemanager";
 import ExpenseAdmin from "./expenseadmin";
 
+import { utility } from "@/utility";
+
 type UserLS = {
   role?: number | string;
   role_id?: number | string;
@@ -12,15 +14,10 @@ type UserLS = {
 };
 
 function getUserRoleNumber(): number {
-  if (typeof window === "undefined") return 0;
-  try {
-    const user: UserLS = JSON.parse(localStorage.getItem("user") || "{}");
-    const rRaw = user?.role ?? user?.role_id ?? user?.user_role ?? 0;
-    const r = Number(rRaw) || 0;
-    return r;
-  } catch {
-    return 0;
-  }
+  const user: UserLS = utility().decodedToken() || {};
+  const rRaw = user?.role ?? user?.role_id ?? user?.user_role ?? 0;
+  const r = Number(rRaw) || 0;
+  return r;
 }
 
 export default function ExpenseTracker() {

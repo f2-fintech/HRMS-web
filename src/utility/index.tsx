@@ -105,6 +105,22 @@ export const utility = () => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
+  /**
+   * Decodes the JWT token from local storage and returns the payload.
+   * @returns {any | null} - The decoded token payload, or null if not found or invalid.
+   */
+  const decodedToken = (): any | null => {
+    if (typeof window === 'undefined') return null;
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    try {
+      return jwtDecode(token);
+    } catch (err) {
+      console.error('Error decoding token:', err);
+      return null;
+    }
+  };
+
   return {
     getRole,
     getLocalStorage,
@@ -113,5 +129,6 @@ export const utility = () => {
     capitalizeInput,
     isTokenExpired,
     capitalizeFirstLetter,
+    decodedToken,
   };
 };

@@ -1,6 +1,6 @@
-import type { PayloadAction } from '@reduxjs/toolkit';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import type { RootState } from '@/redux/store';
+import { utility } from '@/utility';
 
 /** ===== Common Types ===== */
 export type PerfStatus = 'planned' | 'in_progress' | 'done';
@@ -73,7 +73,7 @@ const initialState: PerformanceState = {
 const getAuth = () => {
   if (typeof window === 'undefined') return { token: null as string | null, company_id: '', userId: '', role: '' };
   const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = utility().decodedToken() || {};
   return {
     token,
     company_id: user?.company_id ?? user?.companyId ?? user?.company?._id ?? '',

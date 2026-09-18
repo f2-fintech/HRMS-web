@@ -7,7 +7,7 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useSelector, useDispatch } from 'react-redux'
 import PreviewIcon from '@mui/icons-material/Preview'
-import { Box, Grid, Typography, Button, TextField, Dialog, DialogContent, Alert, DialogActions } from '@mui/material'
+import { Box, Grid, Typography, Button, TextField, Dialog, DialogContent, Alert, DialogActions, Paper, Avatar, IconButton } from '@mui/material'
 import type { GridColDef } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
 import AddIcon from '@mui/icons-material/Add'
@@ -18,6 +18,7 @@ import { fetchTeams } from '@/redux/features/teams/teamsSlice'
 import { fetchEmployees } from '@/redux/features/employees/employeesSlice'
 import type { RootState, AppDispatch } from '@/redux/store'
 import { useSettings } from '@/@core/hooks/useSettings'
+import { utility } from '@/utility'
 
 // Dynamically import components with loading states
 const AddTeamForm = dynamic(() => import('../components/teams/AddTeamForm'), {
@@ -64,57 +65,32 @@ export default function TeamGrid() {
   // Check for mobile views
   const [isMobile, setIsMobile] = useState(false)
 
-  // Enhanced theme with responsive design
+  // Professional & Simple Theme
   const theme = createTheme({
     palette: {
       mode: settings.mode === 'dark' ? 'dark' : 'light',
       primary: {
-        main: '#2c3ce3'
-      },
-      secondary: {
-        main: '#ff902f'
-      },
-      error: {
-        main: '#f44336'
+        main: '#2c3ce3',
       },
       background: {
-        default: settings.mode === 'dark' ? '#121212' : '#f7f9fc',
+        default: settings.mode === 'dark' ? '#121212' : '#f4f7fb',
         paper: settings.mode === 'dark' ? '#1e1e1e' : '#ffffff',
-      },
-      text: {
-        primary: settings.mode === 'dark' ? '#ffffff' : '#333333',
       }
     },
     typography: {
-      fontFamily: "'Inter', 'Roboto', 'Arial', sans-serif",
-      h4: {
-        fontWeight: 700
-      },
-      h5: {
-        fontWeight: 600
-      },
-      h6: {
-        fontWeight: 600
-      }
+      fontFamily: "'Inter', sans-serif",
+      h5: { fontWeight: 700 },
+    },
+    shape: {
+      borderRadius: 8
     },
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
-            borderRadius: '8px',
             textTransform: 'none',
-            fontWeight: 600
-          }
-        }
-      },
-      MuiDataGrid: {
-        styleOverrides: {
-          root: {
-            border: 'none',
-            '& .MuiDataGrid-columnHeader': {
-              backgroundColor: '#2c3ce3',
-              color: '#ffffff'
-            }
+            fontWeight: 600,
+            borderRadius: '6px',
           }
         }
       }
@@ -127,12 +103,9 @@ export default function TeamGrid() {
       setIsMobile(window.innerWidth < 768)
     }
 
-    handleResize() // Set initial value
+    handleResize()
     window.addEventListener('resize', handleResize)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   // Debounced fetch
@@ -144,8 +117,7 @@ export default function TeamGrid() {
   )
 
   useEffect(() => {
-    // Get userRole from localStorage
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken() || {}
     setUserRole(user.role)
   }, [])
 
@@ -207,14 +179,14 @@ export default function TeamGrid() {
         .then(response => response.json())
         .then(data => {
           if (data.message) {
-            toast.success(data.message, { position: 'top-center' })
+            toast.success(data.message)
             debouncedFetch()
           } else {
-            toast.error('Error deleting team', { position: 'top-center' })
+            toast.error('Error deleting team')
           }
         })
         .catch(error => {
-          toast.error('Unexpected error occurred', { position: 'top-center' })
+          toast.error('Unexpected error occurred')
         })
         .finally(() => {
           setOpenAlert(false)
@@ -226,7 +198,7 @@ export default function TeamGrid() {
   // Utility Functions
   const getManagerNameById = (id: string, employees: EmployeeType[]) => {
     const manager = employees.find(employee => employee._id === id)
-    return manager ? `${manager.first_name} ${manager.last_name}` : ''
+    return manager ? `${manager.first_name} ${manager.last_name}` : 'Not Assigned'
   }
 
   const getEmployeeCountByIds = (ids: string, employees: EmployeeType[], managerId?: string) => {
@@ -237,49 +209,34 @@ export default function TeamGrid() {
     return validIds.length + (isManagerIncluded ? 1 : 0)
   }
 
-  const getEmployeeNamesByIds = (ids: string, employees: EmployeeType[]) => {
-    if (!ids) return ''
-    const idArray = ids.split(',')
-    const names = idArray.map(id => {
-      const employee = employees.find(emp => emp._id === id)
-      return employee ? `${employee.first_name} ${employee.last_name}` : ''
-    })
-    return names.join(', ')
-  }
-
-  // Responsive columns based on screen size
+  // Professional Columns
   const columns: GridColDef[] = [
     {
       field: 'name',
       headerName: 'Team Name',
       flex: 1,
-      minWidth: 150,
+      minWidth: 180,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="body1" fontWeight={500}>
-            {params.value}
-          </Typography>
-        </Box>
+        <Typography variant="body2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', height: '100%' }}>
+          {params.value}
+        </Typography>
       )
     },
     {
       field: 'manager_id',
-      headerName: 'Manager',
+      headerName: 'Team Lead',
       flex: 1,
-      minWidth: 160,
+      minWidth: 180,
       renderCell: params => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Person fontSize="small" sx={{ color: theme.palette.primary.main }} />
-          <Typography variant="body2">
-            {getManagerNameById(params.value, employees)}
-          </Typography>
-        </Box>
+        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          {getManagerNameById(params.value, employees)}
+        </Typography>
       )
     },
     {
       field: 'employee_ids',
       headerName: 'Members',
-      flex: 0.7,
+      flex: 0.6,
       minWidth: 100,
       headerAlign: 'center',
       align: 'center',
@@ -290,14 +247,20 @@ export default function TeamGrid() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 1,
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(66, 66, 255, 0.1)' : 'rgba(44, 60, 227, 0.08)',
-            borderRadius: '16px',
-            px: 2,
-            py: 0.5
+            height: '100%',
+            width: '100%'
           }}>
-            <People fontSize="small" />
-            <Typography variant="body2">{count}</Typography>
+            <Box sx={{
+              bgcolor: 'rgba(44, 60, 227, 0.1)',
+              color: '#2c3ce3',
+              borderRadius: '4px',
+              px: 1.5,
+              py: 0.25,
+              fontWeight: 700,
+              fontSize: '0.75rem'
+            }}>
+              {count}
+            </Box>
           </Box>
         );
       }
@@ -306,17 +269,13 @@ export default function TeamGrid() {
       field: 'code',
       headerName: 'Code',
       minWidth: 100,
-      flex: 0.6,
+      flex: 0.5,
+      headerAlign: 'center',
+      align: 'center',
       renderCell: (params) => (
-        <Box sx={{
-          fontFamily: 'monospace',
-          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
-          borderRadius: '4px',
-          px: 1,
-          py: 0.5
-        }}>
+        <Typography variant="body2" sx={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center', height: '100%' }}>
           {params.value}
-        </Box>
+        </Typography>
       )
     },
     ...(userRole === '1'
@@ -330,25 +289,21 @@ export default function TeamGrid() {
           align: 'center',
           headerAlign: 'center',
           renderCell: ({ row: { _id } }) => (
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <Button
-                color="info"
-                variant="contained"
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <IconButton
                 size="small"
-                sx={{ minWidth: '40px' }}
                 onClick={() => handleEditTeamClick(_id)}
+                sx={{ color: '#2c3ce3' }}
               >
                 <DriveFileRenameOutlineOutlined fontSize="small" />
-              </Button>
-              <Button
-                color="error"
-                variant="contained"
+              </IconButton>
+              <IconButton
                 size="small"
-                sx={{ minWidth: '40px' }}
                 onClick={() => confirmDeleteTeam(_id)}
+                sx={{ color: 'error.main' }}
               >
                 <DeleteIcon fontSize="small" />
-              </Button>
+              </IconButton>
             </Box>
           )
         }
@@ -363,49 +318,43 @@ export default function TeamGrid() {
       align: 'center',
       headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Button
-          color="primary"
-          variant="contained"
-          size="small"
-          sx={{ minWidth: '40px' }}
-          onClick={() => handleViewDetails(row)}
-        >
-          <PreviewIcon fontSize="small" />
-        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+          <IconButton
+            size="small"
+            onClick={() => handleViewDetails(row)}
+            sx={{ color: '#2c3ce3' }}
+          >
+            <PreviewIcon fontSize="small" />
+          </IconButton>
+        </Box>
       )
     }
   ];
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ flexGrow: 1, padding: 2 }}>
-        {/* Alert Dialog for Delete Confirmation */}
+      <Box sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
+        <ToastContainer position="top-center" />
+
+        {/* Delete Confirmation */}
         <Dialog open={openAlert} onClose={() => setOpenAlert(false)}>
           <DialogContent>
-            <Alert severity='warning'>Are you sure you want to delete this team? This action cannot be undone.</Alert>
+            <Typography variant="body1">Are you sure you want to delete this team?</Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenAlert(false)} color='primary'>
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmDelete} color='secondary' autoFocus>
-              Confirm
-            </Button>
+            <Button onClick={() => setOpenAlert(false)}>Cancel</Button>
+            <Button onClick={handleConfirmDelete} color="error" variant="contained">Delete</Button>
           </DialogActions>
         </Dialog>
 
-        {/* Toast Container */}
-        <ToastContainer />
-
-        {/* Dialog for Add/Edit Team Form */}
-        <Dialog open={showForm} onClose={handleClose} fullWidth maxWidth='md'>
+        {/* Form Dialog */}
+        <Dialog open={showForm} onClose={handleClose} fullWidth maxWidth="md">
           <DialogContent>
-            {/* Pass debouncedFetch so that form can refresh data after submit */}
             <AddTeamForm team={selectedTeam} handleClose={handleClose} debouncedFetch={debouncedFetch} />
           </DialogContent>
         </Dialog>
 
-        {/* Dialog for Team Details */}
+        {/* Details Dialog */}
         <TeamDetailsDialog
           viewDetails={viewDetails}
           employees={employees}
@@ -415,69 +364,98 @@ export default function TeamGrid() {
         />
 
         {/* Header */}
-        <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
-            <Typography style={{ fontSize: '2em', color: settings.mode === 'dark' ? 'white' : '#2c3ce3', }} variant='h5' gutterBottom>
+            <Typography variant="h5" sx={{ color: '#2c3ce3', fontWeight: 700 }}>
               Team
             </Typography>
-            <Typography
-              style={{ color: settings.mode === 'dark' ? 'white' : '#2c3ce3', fontSize: '1em', fontWeight: 'bold' }}
-              variant='subtitle1'
-              gutterBottom
-            >
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
               Dashboard / Team
             </Typography>
           </Box>
-          <Box display='flex' alignItems='center'>
-            {userRole === '1' && (
-              <Button
-                style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
-                variant='contained'
-                color='warning'
-                startIcon={<AddIcon />}
-                onClick={handleAddTeamClick}
-              >
-                Add Team
-              </Button>
-            )}
-          </Box>
+          {userRole === '1' && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddTeamClick}
+              sx={{ bgcolor: '#ff902f', '&:hover': { bgcolor: '#e6822a' } }}
+            >
+              Add Team
+            </Button>
+          )}
         </Box>
 
-        {/* Search Input */}
-        <Grid container spacing={6} alignItems='center' mb={2}>
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label='search'
-              variant='outlined'
-              value={selectedKeyword}
-              onChange={handleInputChange}
-            />
-          </Grid>
-        </Grid>
+        {/* Search */}
+        <Box sx={{ mb: 3, width: { xs: '100%', md: 300 } }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search teams..."
+            value={selectedKeyword}
+            onChange={handleInputChange}
+            InputProps={{
+              startAdornment: <Search sx={{ color: 'text.secondary', mr: 1, fontSize: 20 }} />,
+            }}
+          />
+        </Box>
 
         {/* Data Grid */}
-        <Grid item xs={12} sm={12} md={12}>
+        <Paper sx={{ height: 650, width: '100%', borderRadius: 2, overflow: 'hidden' }}>
           <DataGrid
-            sx={{
-              height: 'calc(130vh - 200px)',
-              '& .mui-yrdy0g-MuiDataGrid-columnHeaderRow ': {
-                background: '#2c3ce3 !important',
-                color: 'white'
-              }
-            }}
             rows={teams}
             columns={columns}
             getRowId={row => row._id}
-            paginationMode='server'
+            loading={loading}
+            paginationMode="server"
             rowCount={total}
-            pageSizeOptions={[10, 20, 30]}
+            pageSizeOptions={[10, 20, 50]}
             onPaginationModelChange={handlePaginationModelChange}
             paginationModel={{ page: page - 1, pageSize: limit }}
             checkboxSelection
             disableRowSelectionOnClick
+            sx={{
+              border: 'none',
+              '& .MuiDataGrid-columnHeaders': {
+                bgcolor: '#2c3ce3',
+                color: '#ffffff',
+                borderBottom: 'none',
+              },
+              '& .MuiDataGrid-columnHeader': {
+                bgcolor: '#2c3ce3',
+                color: '#ffffff',
+                '&:focus': { outline: 'none' },
+                '&:focus-within': { outline: 'none' },
+              },
+              '& .MuiDataGrid-columnHeaderTitle': {
+                fontWeight: 700,
+                color: '#ffffff',
+              },
+              '& .MuiDataGrid-iconButtonContainer': {
+                color: '#ffffff',
+              },
+              '& .MuiDataGrid-menuIcon': {
+                color: '#ffffff',
+              },
+              '& .MuiDataGrid-sortIcon': {
+                color: '#ffffff',
+              },
+              '& .MuiCheckbox-root': {
+                color: '#2c3ce3', // Row checkboxes
+              },
+              '& .MuiDataGrid-columnHeader .MuiCheckbox-root': {
+                color: '#ffffff !important', // Header checkbox
+              },
+              '& .MuiDataGrid-cell': {
+                display: 'flex',
+                alignItems: 'center',
+                borderColor: 'divider',
+              },
+              '& .MuiDataGrid-row:hover': {
+                bgcolor: 'rgba(44, 60, 227, 0.04)',
+              }
+            }}
           />
-        </Grid>
+        </Paper>
       </Box>
     </ThemeProvider>
   )

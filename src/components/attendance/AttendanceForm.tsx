@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { utility } from '@/utility';
 
 import {
   Box,
@@ -30,7 +31,7 @@ import { addOrUpdateAttendance } from '../../redux/features/attendances/attendan
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
 
 const AddAttendanceForm = ({ handleClose, attendance, prefillEmployee, prefillEmployeeName, prefillDate, attendances }) => {
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+  const { company_id } = utility().decodedToken();
 
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(false);

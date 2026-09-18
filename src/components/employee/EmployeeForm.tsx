@@ -98,7 +98,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
   const dispatch: AppDispatch = useDispatch()
   const { capitalizeInput } = utility()
 
-  const { role, company_id } = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user')) : {}
+  const { role, company_id } = typeof window !== 'undefined' ? utility().decodedToken() : {}
 
   const formBackgroundColor = settings.mode === 'dark' ? '#333' : '#f5f5f5'
   const textColor = settings.mode === 'dark' ? '#fff' : '#000'
@@ -177,7 +177,7 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
   }, [selectedDepartmentId, formData.designation, allDesignations, employee])
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken()
     const company_id = user?.company_id
 
     if (company_id) {

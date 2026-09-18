@@ -38,6 +38,7 @@ import { fetchHolidays, fetchPastHolidays } from '@/redux/features/holidays/holi
 import 'react-toastify/dist/ReactToastify.css';
 import AddHolidayForm from '@/components/holiday/HolidayForm';
 import { useSettings } from '@/@core/hooks/useSettings';
+import { utility } from '@/utility';
 
 export default function HolidayGrid() {
   const dispatch: AppDispatch = useDispatch();
@@ -138,7 +139,7 @@ export default function HolidayGrid() {
 
   // Load user role from localStorage
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || '{}');
+    const user = utility().decodedToken();
     setUserRole(user.role);
     setUserId(user.id);
   }, []);

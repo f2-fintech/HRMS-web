@@ -12,6 +12,7 @@ import {
 import type { RootState } from '@/redux/store'
 import useRouterWithMount from '@/utility/useRouterWithMount';
 import { useSettings } from '@/@core/hooks/useSettings';
+import { utility } from '@/utility';
 
 interface PunchInOutProps {
     selectedDate: string
@@ -36,8 +37,8 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     disablePunch,
     isMinimalView = false
 }) => {
-    const user = typeof window !== 'undefined' ? localStorage?.getItem('user') : null
-    const { company_id } = user ? JSON.parse(user) : {}
+    const user = utility().decodedToken() || {}
+    const { company_id } = user
     const dispatch = useDispatch()
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -60,7 +61,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const [currentTime, setCurrentTime] = useState(new Date())
     const [logoUrl, setLogoUrl] = useState('/images/logos/fintech.png');
     const [isSmallScreen, setIsSmallScreen] = useState(false)
-    const employee = JSON.parse(localStorage.getItem('user') || '{}')
+    const employee = utility().decodedToken() || {}
     const employeeId = selectedEmployeeId || employee?.id;
     const userRole = employee?.role
     const userDesg = employee?.designation
@@ -171,7 +172,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }, [isWhitelistedUser, employeeId]);
 
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const user = utility().decodedToken() || {}
 
         const fetchUserData = async () => {
             try {

@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { utility } from '@/utility';
 import {
   Avatar,
   Box,
@@ -120,7 +121,7 @@ const normalizeUrl = (url: string) => {
   return `${base}${u.startsWith('/') ? '' : '/'}${u}`;
 };
 const getRoleFlags = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = utility().decodedToken();
 
   const rpRaw =
     user?.role_priority ??
@@ -184,7 +185,7 @@ export default function PerformanceAdmin() {
     const run = async () => {
       const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
       const token = localStorage.getItem('token') || '';
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const user = utility().decodedToken();
       const companyId = localStorage.getItem('company_id') || user.company_id || '';
 
       const { isAdmin } = getRoleFlags();

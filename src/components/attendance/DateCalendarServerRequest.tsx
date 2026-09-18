@@ -4,6 +4,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DayCalendarSkeleton } from '@mui/x-date-pickers/DayCalendarSkeleton';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { utility } from '@/utility';
 import dayjs, { Dayjs } from 'dayjs';
 import ServerDay from './ServerDay';
 import { useDispatch, useSelector } from 'react-redux';
@@ -103,14 +104,16 @@ export default function DateCalendarServerRequest({
     const [isLoading, setIsLoading] = useState(false);
     const [highlightedDays, setHighlightedDays] = useState<number[]>([]);
     const [userId, setUserId] = useState<string>('');
+    const [companyId, setCompanyId] = useState<string>('');
 
     const dispatch: AppDispatch = useDispatch();
 
     const { filteredAttendance, loading } = useSelector((state: RootState) => state.attendances);
 
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const user = utility().decodedToken();
         setUserId(user.id);
+        setCompanyId(user.company_id || '');
     }, []);
 
     useEffect(() => {

@@ -38,6 +38,7 @@ import { styled } from '@mui/material/styles'
 import { TimePicker } from '@mui/x-date-pickers/TimePicker'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { utility } from '@/utility'
 
 const StyledCard = styled(Card)(({ theme }) => ({
     height: '100%',
@@ -136,7 +137,7 @@ const RoomManagement = () => {
     }
 
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const user = utility().decodedToken() || {}
         setUserId(user.id || null)
         setUserRole(user.role || null)
         setCompanyId(user.company_id || null)

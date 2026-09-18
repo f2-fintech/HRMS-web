@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { utility } from '@/utility';
 
 interface Block {
   id: string;
@@ -66,7 +67,7 @@ const getAuthHeaders = (): HeadersInit => {
   }
   
   const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = utility().decodedToken() || {};
   const company_id = user.company_id || '';
   const user_id = user.id || '';
   const role = user.role || '';
@@ -136,7 +137,7 @@ export const createPage = createAsyncThunk(
     shared_with?: string[];
   }) => {
     const user = typeof window !== 'undefined' 
-      ? JSON.parse(localStorage.getItem('user') || '{}') 
+      ? utility().decodedToken() 
       : {};
     
     const payload = {
@@ -261,7 +262,7 @@ export const uploadCover = createAsyncThunk(
     formData.append('cover', file);
 
     const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken() || {};
     const company_id = user.company_id || '';
     const user_id = user.id || '';
     const role = user.role || '';
@@ -361,7 +362,7 @@ export const createChildPage = createAsyncThunk(
     };
   }) => {
     const user = typeof window !== 'undefined' 
-      ? JSON.parse(localStorage.getItem('user') || '{}') 
+      ? utility().decodedToken() 
       : {};
     
     const payload = {

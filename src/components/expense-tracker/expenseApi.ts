@@ -1,5 +1,7 @@
 'use client';
 
+import { utility } from '@/utility';
+
 export const baseUrl = () =>
     process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 
@@ -7,7 +9,7 @@ type HeadersOpts = { json?: boolean };
 
 export const getAuthHeaders = (opts: HeadersOpts = { json: true }) => {
     const token = localStorage.getItem('token') || '';
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken();
     const companyId = localStorage.getItem('company_id') || user.company_id || '';
 
     const headers: Record<string, string> = {

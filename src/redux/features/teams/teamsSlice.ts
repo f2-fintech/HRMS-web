@@ -85,7 +85,8 @@ export const fetchTeams = createAsyncThunk('teams/fetchTeams', async ({ page, li
     return { error: token ? "Token expired" : "No token found" };
   }
 
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+  const user = utility().decodedToken();
+  const company_id = (user as any)?.company_id || '';
   const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/teams/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`,
     {
       method: 'GET',
@@ -106,7 +107,8 @@ export const fetchTeamsByManager = createAsyncThunk(
   'teams/fetchTeamsByManager',
   async (managerId: string) => {
     const token = typeof window !== "undefined" ? localStorage.getItem('token') : "";
-    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+    const user = utility().decodedToken();
+    const company_id = (user as any)?.company_id || '';
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/teams/manager/${managerId}`, {
       method: 'GET',
       headers: {
@@ -129,8 +131,8 @@ export const fetchWhoIsOffToday = createAsyncThunk<
   { state: RootState }
 >('teams/fetchWhoIsOffToday', async ({ team_id, company_id, date }) => {
   let token: string | null = null;
-  const { company_id: storedCompanyId } =
-    typeof window !== 'undefined' ? JSON.parse(localStorage?.getItem('user')) : {};
+  const user = utility().decodedToken();
+  const storedCompanyId = (user as any)?.company_id || '';
   if (typeof window !== 'undefined') {
     token = localStorage?.getItem('token');
   }
@@ -160,8 +162,8 @@ export const fetchNotInYetToday = createAsyncThunk<
   { state: RootState }
 >('teams/fetchNotInYetToday', async ({ team_id, company_id, date }) => {
   let token: string | null = null;
-  const { company_id: storedCompanyId } =
-    typeof window !== 'undefined' ? JSON.parse(localStorage?.getItem('user')) : {};
+  const user = utility().decodedToken();
+  const storedCompanyId = (user as any)?.company_id || '';
   if (typeof window !== 'undefined') {
     token = localStorage?.getItem('token');
   }
@@ -190,8 +192,8 @@ export const fetchAttendanceSummary = createAsyncThunk<
   { state: RootState }
 >('teams/fetchAttendanceSummary', async ({ team_id, company_id, date }) => {
   let token: string | null = null;
-  const { company_id: storedCompanyId } =
-    typeof window !== 'undefined' ? JSON.parse(localStorage?.getItem('user')) : {};
+  const user = utility().decodedToken();
+  const storedCompanyId = (user as any)?.company_id || '';
   if (typeof window !== 'undefined') {
     token = localStorage?.getItem('token');
   }
@@ -220,8 +222,8 @@ export const fetchTeamsMemberMonthlyAttendence = createAsyncThunk<
   { state: RootState }
 >('teams/fetchTeamsMemberMonthlyAttendence', async ({ team_id, company_id, month, year }) => {
   let token: string | null = null;
-  const { company_id: storedCompanyId } =
-    typeof window !== 'undefined' ? JSON.parse(localStorage?.getItem('user')) : {};
+  const user = utility().decodedToken();
+  const storedCompanyId = (user as any)?.company_id || '';
   if (typeof window !== 'undefined') {
     token = localStorage?.getItem('token');
   }

@@ -27,7 +27,7 @@ const initialState: AwardsState = {
 // Async thunk to fetch awards from the server
 export const fetchAwards = createAsyncThunk<Award[]>('awards/fetchAwards', async () => {
   let token: string | null = null;
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+  const { company_id } = utility().decodedToken() || {};
 
   if (typeof window !== "undefined") {
     token = localStorage?.getItem("token");
@@ -55,8 +55,7 @@ export const fetchSpecificAwards = createAsyncThunk<Award[], void, { rejectValue
   async (_, { rejectWithValue }) => {
     try {
       let token: string | null = null;
-      const user =
-        typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+      const user = utility().decodedToken() || {};
       const company_id = user.company_id;
 
       if (typeof window !== 'undefined') {

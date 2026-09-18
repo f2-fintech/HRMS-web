@@ -8,6 +8,7 @@ import {
     saveIncentiveTarget,
     clearIncentiveTargetState,
 } from '@/redux/features/incentiveTarget/incentiveTargetSlice';
+import { utility } from '@/utility';
 
 type SaveIncentiveTargetPayload = {
     designation: string;
@@ -30,14 +31,12 @@ export function useIncentiveTarget() {
 
     // Get employee & company from localStorage
     const getUserContext = () => {
-        if (typeof window === "undefined") return null;
-
         try {
-            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            const user = utility().decodedToken();
 
             return {
-                employee_id: user?.id,
-                company_id: user?.company_id,
+                employee_id: (user as any)?.id,
+                company_id: (user as any)?.company_id,
             };
         } catch {
             return null;

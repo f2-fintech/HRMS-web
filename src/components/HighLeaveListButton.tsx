@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import { utility } from '@/utility'
 import dayjs from 'dayjs'
 import {
   Box,
@@ -54,7 +55,7 @@ export default function HighLeaveListButton({
     try {
       const user =
         typeof window !== 'undefined'
-          ? JSON.parse(localStorage.getItem('user') || '{}')
+          ? utility().decodedToken()
           : {}
       const token =
         typeof window !== 'undefined' ? localStorage.getItem('token') : null

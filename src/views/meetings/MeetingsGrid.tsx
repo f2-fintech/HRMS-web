@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { utility } from '@/utility';
 import {
   Alert,
   Avatar,
@@ -467,7 +468,7 @@ const MeetingsGrid = () => {
 
   const getAuth = () => {
     const tokenRaw = localStorage.getItem('token') || '';
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken();
     const cid = String(user?.company_id || user?.companyId || '');
 
     if (!tokenRaw || !cid) return { auth: '', company_id: cid, user };

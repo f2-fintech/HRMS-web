@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
+import { utility } from '@/utility';
 
 import axios from 'axios';
 import {
@@ -69,8 +70,7 @@ api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token') || '';
 
     const companyId =
-      localStorage.getItem('company_id') ||
-      JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+      utility().decodedToken()?.company_id ||
       '';
 
     if (!config.headers) config.headers = {};
@@ -1658,10 +1658,7 @@ export default function PerformanceGrid() {
     : dayjs().format("YYYY-MM-DD");
 
   useEffect(() => {
-    const user =
-      typeof window !== "undefined"
-        ? JSON.parse(localStorage.getItem("user") || "{}")
-        : {};
+    const user = utility().decodedToken() || {}
 
     const token = localStorage.getItem("token");
 
@@ -1959,9 +1956,7 @@ export default function PerformanceGrid() {
         let company_id: string | undefined;
 
         if (typeof window !== 'undefined') {
-          const u = JSON.parse(
-            localStorage.getItem('user') || '{}'
-          );
+          const u = utility().decodedToken();
 
           company_id =
             localStorage.getItem('company_id') ||
@@ -2021,7 +2016,7 @@ export default function PerformanceGrid() {
         let company_id: string | undefined;
 
         if (typeof window !== 'undefined') {
-          const u = JSON.parse(localStorage.getItem('user') || '{}');
+          const u = utility().decodedToken();
           company_id = localStorage.getItem('company_id') || u?.company_id || undefined;
         }
         const res = await api.get('/performance-upload/team-totals', {
@@ -2080,7 +2075,7 @@ export default function PerformanceGrid() {
       let company_id: string | undefined;
 
       if (typeof window !== 'undefined') {
-        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        const u = utility().decodedToken();
         company_id = localStorage.getItem('company_id') || u?.company_id || undefined;
       }
 
@@ -2121,8 +2116,8 @@ export default function PerformanceGrid() {
   const fetchTodayLeaves = async () => {
     try {
       console.log("🔥 Fetching Today's Leaves...");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const company_id = localStorage.getItem("company_id") || user.company_id || "";
+      const user = utility().decodedToken();
+      const company_id = localStorage.getItem("company_id") || user?.company_id || "";
       const url = `${process.env.NEXT_PUBLIC_APP_URL}/attendence/today-leaves?company_id=${company_id}`;
       const response = await fetch(url, {
         headers: {

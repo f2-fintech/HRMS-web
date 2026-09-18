@@ -27,6 +27,7 @@ import type { AppDispatch, RootState } from '@/redux/store';
 import 'react-toastify/dist/ReactToastify.css';
 import AddCompanyForm from '@/components/company/CompanyForm';
 import { fetchCompanies } from '@/redux/features/company/companyslice';
+import { utility } from '@/utility';
 
 // Custom Theme
 const theme = createTheme({
@@ -110,7 +111,7 @@ export default function CompanyListing() {
     };
 
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem("user") || '{}');
+        const user = utility().decodedToken();
 
         setUserRole(user.role);
         setUserId(user.id);

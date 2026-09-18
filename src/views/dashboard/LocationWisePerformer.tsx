@@ -104,8 +104,9 @@ const LocationWisePerformer = () => {
     }
   }
 
+
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const storedUser = utility().decodedToken()
     setUser(storedUser)
 
     const fetchEmployees = async () => {

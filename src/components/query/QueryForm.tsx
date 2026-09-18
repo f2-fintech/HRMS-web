@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { utility } from '@/utility';
 import {
   Autocomplete,
   Box,
@@ -69,7 +70,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
 
   const user =
     typeof window !== 'undefined'
-      ? JSON.parse(localStorage.getItem('user') || '{}')
+      ? utility().decodedToken()
       : {};
   const company_id = user?.company_id;
 
@@ -162,9 +163,9 @@ useEffect(() => {
       setEmployees(empData);
 
       
-      const token = localStorage.getItem('token') || '';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
       const cid =
-        localStorage.getItem('company_id') || company_id || '';
+        (typeof window !== 'undefined' ? localStorage.getItem('company_id') : '') || company_id || '';
 
       const resp = await fetch(
         `${API_BASE_URL}/teams/get-allowed-team` ,
@@ -380,8 +381,8 @@ useEffect(() => {
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token') || '';
-      const companyId = localStorage.getItem('company_id') || company_id || '';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
+      const companyId = (typeof window !== 'undefined' ? localStorage.getItem('company_id') : '') || company_id || '';
 
       const payload = {
         toQuery: formData.toQuery,
@@ -446,9 +447,9 @@ useEffect(() => {
     try {
       setReplySubmitting(true);
 
-      const token = localStorage.getItem('token') || '';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
       const companyId =
-        localStorage.getItem('company_id') || company_id || '';
+        (typeof window !== 'undefined' ? localStorage.getItem('company_id') : '') || company_id || '';
 
       const payload = {
         query_id: query._id,

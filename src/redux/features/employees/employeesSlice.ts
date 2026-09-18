@@ -2,6 +2,7 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 
 import type { RootState } from '../../store'
+import { utility } from '@/utility'
 
 interface Employee {
   _doc: any
@@ -56,7 +57,8 @@ export const fetchWorkAnniversaries = createAsyncThunk(
   'employees/fetchWorkAnniversaries',
   async (days: number = 30) => {
     let token: string | null = null
-    const { company_id } = typeof window !== 'undefined' && JSON.parse(localStorage?.getItem('user') || '{}')
+    const user = utility().decodedToken()
+    const company_id = (user as any)?.company_id || ''
 
     if (typeof window !== 'undefined') {
       token = localStorage?.getItem('token')
@@ -82,7 +84,8 @@ export const fetchUpcomingBirthdays = createAsyncThunk(
   'employees/fetchUpcomingBirthdays',
   async (days: number = 30) => {
     let token: string | null = null
-    const { company_id } = typeof window !== 'undefined' && JSON.parse(localStorage?.getItem('user') || '{}')
+    const user = utility().decodedToken()
+    const company_id = (user as any)?.company_id || ''
 
     if (typeof window !== 'undefined') {
       token = localStorage?.getItem('token')
@@ -118,8 +121,10 @@ export const fetchEmployees = createAsyncThunk(
     const state = getState() as RootState
     const isSearch = search.trim().length > 0
 
+    const user = utility().decodedToken()
+    const company_id = (user as any)?.company_id || ''
+
     let token: string | null = null
-    const { company_id } = typeof window !== 'undefined' && JSON.parse(localStorage?.getItem('user') || '{}')
 
     if (typeof window !== 'undefined') {
       token = localStorage?.getItem('token')
@@ -171,7 +176,8 @@ export const deleteEmployees = createAsyncThunk(
     const isSearch = search.trim().length > 0
 
     let token: string | null = null
-    const { company_id } = typeof window !== 'undefined' && JSON.parse(localStorage?.getItem('user') || '{}')
+    const user = utility().decodedToken()
+    const company_id = (user as any)?.company_id || ''
 
     if (typeof window !== 'undefined') {
       token = localStorage?.getItem('token')

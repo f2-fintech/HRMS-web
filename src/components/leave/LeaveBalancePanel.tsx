@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { utility } from '@/utility'
 import {
   Box,
   Card,
@@ -141,7 +142,7 @@ export default function LeaveBalancePanel({
       if (!employeeId) return
 
       const user =
-        typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
+        typeof window !== 'undefined' ? utility().decodedToken() : {}
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       const company_id = user?.company_id

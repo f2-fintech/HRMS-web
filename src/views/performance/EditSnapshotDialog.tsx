@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { utility } from '@/utility';
 
 import axios from 'axios';
 import {
@@ -32,7 +33,7 @@ api.interceptors.request.use((config) => {
 
     const companyId =
       localStorage.getItem('company_id') ||
-      JSON.parse(localStorage.getItem('user') || '{}')?.company_id ||
+      utility().decodedToken()?.company_id ||
       '';
 
     if (!config.headers) config.headers = {};

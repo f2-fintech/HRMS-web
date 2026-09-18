@@ -18,7 +18,8 @@ export interface Break {
 export const fetchBreaksById = createAsyncThunk('breaks/fetchBreaksById', async (employeeId: string | null) => {
     const { isTokenExpired } = utility();
     const token = localStorage.getItem('token');
-    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+    const user = utility().decodedToken();
+    const company_id = (user as any)?.company_id || '';
     const url = employeeId ? `${BASE_URL}/breaksheet/employee?employeeId=${employeeId}` : `${BASE_URL}/breaksheet/employee`;
 
     if (!token || isTokenExpired(token)) {
@@ -50,7 +51,8 @@ export const fetchBreaksById = createAsyncThunk('breaks/fetchBreaksById', async 
 export const addBreak = createAsyncThunk('breaks/addBreak', async (breakData: Break) => {
     const { isTokenExpired } = utility();
     const token = localStorage.getItem('token');
-    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+    const user = utility().decodedToken();
+    const company_id = (user as any)?.company_id || '';
 
     if (!token || isTokenExpired(token)) {
         // Clean up localStorage if needed
@@ -84,7 +86,8 @@ export const updateBreak = createAsyncThunk(
     async ({ id, updatedBreak }: { id: string; updatedBreak: Break }) => {
         const { isTokenExpired } = utility();
         const token = localStorage.getItem('token');
-        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+        const user = utility().decodedToken();
+    const company_id = (user as any)?.company_id || '';
 
         if (!token || isTokenExpired(token)) {
             // Clean up localStorage if needed
@@ -119,7 +122,8 @@ export const updateLatestBreak = createAsyncThunk(
     async ({ employeeId, breakData }: { employeeId: string; breakData: { endTime: string; duration: string } }) => {
         const { isTokenExpired } = utility();
         const token = localStorage.getItem('token');
-        const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+        const user = utility().decodedToken();
+    const company_id = (user as any)?.company_id || '';
 
         if (!token || isTokenExpired(token)) {
             // Clean up localStorage if needed
@@ -155,10 +159,8 @@ export const updateRemarks = createAsyncThunk(
   async ({ breakId, remarks }: { breakId: string; remarks: string }) => {
     const { isTokenExpired } = utility();
     const token = localStorage.getItem('token');
-    const { company_id } =
-      typeof window !== "undefined"
-        ? JSON.parse(localStorage?.getItem("user")!)
-        : {};
+    const user = utility().decodedToken();
+    const company_id = (user as any)?.company_id || '';
 
     if (!token || isTokenExpired(token)) {
       if (token) localStorage.removeItem('token');

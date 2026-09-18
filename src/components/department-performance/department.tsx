@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { utility } from '@/utility';
 import { Box } from '@mui/material';
 
 import PerformanceAdmin from './performanceadmin';
@@ -13,7 +14,7 @@ export default function DepartmentPerformance() {
   const [role, setRole] = useState<RoleView>('EMPLOYEE');
 
   useEffect(() => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = utility().decodedToken();
 
   const roleStr = String(user?.role || '').trim();          // "1" / "2" / "3"
   const rp = Number(user?.role_priority);                   // optional

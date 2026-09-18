@@ -24,6 +24,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { fetchConfiguration } from '@/utility/setting-configuration/settingConfig';
+import { utility } from '@/utility';
 
 // Styled components
 const ImageContainer = styled(Box)(({ theme }) => ({
@@ -76,7 +77,8 @@ const AccountDetails = () => {
   const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
   const [openAlert, setOpenAlert] = useState(false);
 
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+  const user = utility().decodedToken();
+  const company_id = (user as any)?.company_id || '';
 
   const API_URL = process.env.NEXT_PUBLIC_APP_URL;
 

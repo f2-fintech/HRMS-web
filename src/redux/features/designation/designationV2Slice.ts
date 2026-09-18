@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { utility } from '@/utility';
 
 import type { RootState } from '../../store';
 
@@ -79,7 +80,7 @@ const getAuthData = () => {
     }
 
     const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken();
 
 
     return { token, company_id: user?.company_id };

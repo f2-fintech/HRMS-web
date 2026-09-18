@@ -52,6 +52,7 @@ import {
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { toast } from 'react-toastify';
 import type { AppDispatch, RootState } from '@/redux/store';
+import { utility } from '@/utility';
 import {
   fetchPageById,
   updatePage,
@@ -120,7 +121,8 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   }, []);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken() || {};
+    const companyId = user.company_id;
     setUserRole(user.role);
     setUserId(user.id);
 
@@ -203,6 +205,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       // Check if user is admin or page creator
       const isAdmin = userRole === '1';
       // Handle created_by as either string or populated object
+      const { company_id } = utility().decodedToken() || {};
       const creatorId = typeof currentPage.created_by === 'string'
         ? currentPage.created_by
         : currentPage.created_by?._id || currentPage.created_by?.id;

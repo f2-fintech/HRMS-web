@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { utility } from '@/utility';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/redux/store';
 import { createExpense, listExpenses, todayISO, adminVerifyExpense } from './expenseApi';
@@ -310,7 +311,7 @@ type PaymentMode = 'account' | 'upi' | 'qr';
 async function updateExpenseRequest(id: string, body: Record<string, any>, files: File[]) {
   const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
-  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+  const user = typeof window !== 'undefined' ? utility().decodedToken() : {};
   const companyId =
     (typeof window !== 'undefined' && (localStorage.getItem('company_id') || (user as any).company_id)) || '';
 
@@ -341,7 +342,7 @@ async function updateExpenseRequest(id: string, body: Record<string, any>, files
 async function softDeleteExpenseRequest(id: string) {
   const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
-  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+  const user = typeof window !== 'undefined' ? utility().decodedToken() : {};
   const companyId =
     (typeof window !== 'undefined' && (localStorage.getItem('company_id') || (user as any).company_id)) || '';
 
@@ -627,7 +628,7 @@ export default function ExpenseEmployee() {
   const { myIds, isAdmin } = useMemo(() => {
     if (typeof window === 'undefined') return { myIds: [] as string[], isAdmin: false };
 
-    const user: UserLS = JSON.parse(localStorage.getItem('user') || '{}');
+    const user: UserLS = utility().decodedToken();
 
     const ids = [user?.employee_id, user?._id, user?.id]
       .filter(Boolean)
@@ -814,10 +815,7 @@ export default function ExpenseEmployee() {
         const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 
         const token = localStorage.getItem('token') || '';
-        const user =
-          typeof window !== 'undefined'
-            ? JSON.parse(localStorage.getItem('user') || '{}')
-            : {};
+        const user = utility().decodedToken();
         const company_id = (user as any)?.company_id || '';
         const cid = localStorage.getItem('company_id') || company_id || '';
 

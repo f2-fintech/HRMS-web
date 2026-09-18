@@ -49,8 +49,8 @@ const Award = () => {
   // Helpers
   // -----------------------------
   const getUserCtx = useCallback(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    const token = localStorage.getItem('token') || ''
+    const user = utility().decodedToken()
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''
     const company_id = user?.company_id || ''
     return { user, token, company_id }
   }, [])
@@ -146,11 +146,7 @@ const Award = () => {
  
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
-
-    if (typeof window !== "undefined") {
-      token = localStorage?.getItem("token");
-    }
+    const { company_id } = getUserCtx();
 
     try {
       let url = `${process.env.NEXT_PUBLIC_APP_URL}/awards/performer/month`

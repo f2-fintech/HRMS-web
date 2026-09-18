@@ -44,9 +44,9 @@ import type { AppDispatch, RootState } from '@/redux/store'
 import { fetchAssests } from '@/redux/features/assests/assestsSlice'
 import { fetchEmployees } from '@/redux/features/employees/employeesSlice'
 import { fetchAddAssets } from '@/redux/features/addAssets/addAssetsSlice'
-import { apiResponse } from '@/utility/apiResponse/employeesResponse'
 import { group } from 'console'
 import AddAssets from './AddAssets'
+import { utility } from '@/utility'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'bold'
@@ -104,7 +104,7 @@ export default function AssestsGrid() {
   }, [dispatch, assests?.length, page, limit, selectedKeyword])
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const user = utility().decodedToken() || {}
 
     setUserRole(user.role)
     setUserId(user.id)
@@ -113,7 +113,7 @@ export default function AssestsGrid() {
   const AddAssetForm: React.FC<AddAssetFormProps> = ({ handleClose, asset }) => {
     const { employees } = useSelector((state: RootState) => state.employees)
     const { addassets } = useSelector((state: RootState) => state.addAssets)
-    const user = typeof window !== 'undefined' ? JSON.parse(localStorage?.getItem('user') || '{}') : {}
+    const user = utility().decodedToken() || {}
     const company_id = user?.company_id
 
     const [formData, setFormData] = useState({

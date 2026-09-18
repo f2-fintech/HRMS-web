@@ -47,7 +47,8 @@ export const fetchLeaves = createAsyncThunk<{
   async ({ page, limit, keyword, month, year }: { page: number; limit: number; keyword: string; month: string; year: string }) => {
     const { isTokenExpired } = utility();
     let token: string | null = null;
-    const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
+    const user = utility().decodedToken();
+    const company_id = (user as any)?.company_id || '';
 
     if (typeof window !== "undefined") {
       token = localStorage?.getItem('token');

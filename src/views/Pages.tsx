@@ -67,6 +67,7 @@ import type { AppDispatch, RootState } from '@/redux/store';
 import { fetchPages, deletePage, fetchPageTree, createPage } from '@/redux/features/pages/pagesSlice';
 import Loader from '@/components/loader/loader';
 import useDebounce from '@/utility/debounce/useDebounce';
+import { utility } from '@/utility';
 
 // Interface for Page with children
 interface PageNode {
@@ -111,7 +112,7 @@ export default function PagesView() {
   const isAdmin = userRole === '1';
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = utility().decodedToken();
     setUserRole(user.role);
     setUserId(user.id);
     // Set default view mode based on role

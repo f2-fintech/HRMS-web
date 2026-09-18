@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { utility } from '@/utility';
 
 // Types
 export type ColumnType = 
@@ -119,7 +120,7 @@ const getAuthHeaders = (): HeadersInit => {
   }
   
   const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = utility().decodedToken() || {};
   const company_id = user.company_id || '';
   const user_id = user.id || '';
   const role = user.role || '';
