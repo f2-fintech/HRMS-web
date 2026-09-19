@@ -1,0 +1,996 @@
+import React, { useEffect, useState } from 'react'
+import dayjs from 'dayjs'
+import {
+  Box,
+  Typography,
+  Grid,
+  Paper,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Collapse,
+  CircularProgress
+} from '@mui/material'
+import { styled, keyframes } from '@mui/material/styles'
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
+import WorkIcon from '@mui/icons-material/Work'
+import SchoolIcon from '@mui/icons-material/School'
+import HandshakeIcon from '@mui/icons-material/Handshake'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import CloseIcon from '@mui/icons-material/Close'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+import Loader from '@/components/loader/loader'
+import LocationCard from './LocationCard'
+import DownloadIcon from "@mui/icons-material/Download";
+import { Button } from "@mui/material";
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface LocationItem {
+  _id: string
+  Present: number
+  Absent: number
+  On_Leave: number
+  On_Half: number
+  On_Field: number
+  On_Wfh: number
+  totalEmployeesToday: number
+}
+
+type PunchGroupKey = 'onTime' | 'grace' | 'late' | 'halfday' | 'none'
+
+// ─── Animations ──────────────────────────────────────────────────────────────
+
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+`
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+`
+
+// ─── Styled Components ────────────────────────────────────────────────────────
+
+const DashboardWrapper = styled(Box)({
+  fontFamily: `'DM Sans', 'Segoe UI', sans-serif`,
+  padding: '24px',
+})
+
+const HeaderCard = styled(Paper)({
+  borderRadius: '20px',
+  padding: '28px 32px',
+  marginBottom: '20px',
+  background: '#ffffff',
+  border: '1px solid #e8eaf0',
+  boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+  animation: `${fadeUp} 0.4s ease both`,
+})
+
+const TotalBadge = styled(Box)({
+  background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+  borderRadius: '16px',
+  padding: '16px 20px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  minWidth: '200px',
+})
+
+const CategoryChip = styled(Paper)<{ chipcolor: string }>(({ chipcolor }) => ({
+  borderRadius: '16px',
+  padding: '16px 20px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  background: chipcolor,
+  cursor: 'pointer',
+  transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+  '&:hover': {
+    transform: 'translateY(-3px)',
+    boxShadow: '0 6px 20px rgba(0,0,0,0.14)',
+  },
+}))
+
+const IconCircle = styled(Box)({
+  width: 42,
+  height: 42,
+  borderRadius: '50%',
+  background: 'rgba(255,255,255,0.2)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+})
+
+const StatusCard = styled(Paper)<{ cardcolor: string; delay?: number }>(({ cardcolor, delay = 0 }) => ({
+  borderRadius: '18px',
+  padding: '20px 22px',
+  background: cardcolor,
+  cursor: 'pointer',
+  transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+  animation: `${fadeUp} 0.4s ease ${delay}ms both`,
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+  },
+}))
+
+const StatusNumber = styled(Typography)({
+  fontSize: '2.2rem',
+  fontWeight: 700,
+  color: 'white',
+  lineHeight: 1.1,
+  letterSpacing: '-0.5px',
+})
+
+const ExpandButton = styled(IconButton)<{ expanded: boolean }>(({ expanded }) => ({
+  background: '#f1f3f9',
+  borderRadius: '10px',
+  padding: '8px',
+  transition: 'background 0.2s ease',
+  '& .MuiSvgIcon-root': {
+    transition: 'transform 0.3s ease',
+    transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+  },
+  '&:hover': {
+    background: '#e2e6f3',
+  },
+}))
+
+const EmployeeRow = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  padding: '10px 0',
+  borderBottom: '1px solid #f1f3f9',
+  '&:last-child': {
+    borderBottom: 'none',
+  },
+})
+
+const GroupHeader = styled(Box)<{ groupcolor: string; groupbg: string; groupborder: string }>(
+  ({ groupcolor, groupbg, groupborder }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    background: groupbg,
+    border: `1px solid ${groupborder}`,
+    borderRadius: '10px',
+    padding: '8px 12px',
+    marginTop: '16px',
+    marginBottom: '4px',
+    '&:first-of-type': {
+      marginTop: 0,
+    },
+    '& .dot': {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: groupcolor,
+      display: 'inline-block',
+      marginRight: '8px',
+    },
+  })
+)
+
+const Avatar = styled(Box)<{ bgcolor: string }>(({ bgcolor }) => ({
+  width: 44,
+  height: 44,
+  borderRadius: '50%',
+  background: bgcolor,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '15px',
+  fontWeight: 600,
+  color: 'white',
+  flexShrink: 0,
+  overflow: 'hidden',
+  '& img': {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+}))
+
+const avatarColors = [
+  '#6366f1', '#10b981', '#f59e0b', '#ef4444',
+  '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6',
+]
+
+const getInitials = (first: string, last: string) =>
+  `${first?.[0] || ''}${last?.[0] || ''}`.toUpperCase()
+
+const getAvatarColor = (name: string) =>
+  avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length]
+
+
+const PUNCH_GROUPS: Record<
+  Exclude<PunchGroupKey, 'none'>,
+  { label: string; color: string; bg: string; border: string }
+> = {
+  onTime: { label: 'Before 10:00 AM', color: '#22c55e', bg: '#ecfdf5', border: '#a7f3d0' },
+  grace: { label: '10:00 – 10:15 AM', color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+  late: { label: 'After 10:15 AM', color: '#ef4444', bg: '#fef2f2', border: '#fecaca' },
+  halfday: { label: 'After 01:15 PM', color: '#ef4444', bg: '#fef2f2', border: '#fecaca' },
+
+}
+
+const NONE_GROUP = { label: 'No Punch Recorded', color: '#94a3b8', bg: '#f8fafc', border: '#e2e8f0' }
+
+
+const EmployeeAttendanceStatus: React.FC = () => {
+  const [employeeCounts, setEmployeeCounts] = useState<any>({
+    totalEmployees: 0,
+    totalInterns: 0,
+    totalChannelPartners: 0,
+    presentEmployees: 0,
+    absentEmployees: 0,
+    presentInterns: 0,
+    absentInterns: 0,
+    presentChannelPartners: 0,
+    absentChannelPartners: 0,
+    employeeList: [],
+    internList: [],
+    channelPartnerList: [],
+  })
+
+  const [attendanceCountsByLocation, setAttendanceCountsByLocation] = useState<LocationItem[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([])
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false)
+  const [dialogLoading, setDialogLoading] = useState<boolean>(false)
+  const [dialogTitle, setDialogTitle] = useState<string>('')
+  const [accClicked, setAccClicked] = useState<boolean>(false)
+
+  const [punchMap, setPunchMap] = useState<Record<string, string>>({})
+
+  let token: string | null = null
+  let company_id: string | null = null
+
+  if (typeof window !== 'undefined') {
+    const user = localStorage.getItem('user')
+    if (user) {
+      const parsedUser = JSON.parse(user)
+      company_id = parsedUser?.company_id || null
+    }
+    token = localStorage.getItem('token')
+  }
+
+  const handleOpenList = (title: string, list: any[], filterType?: 'present' | 'absent' | 'all') => {
+    setDialogTitle(title)
+    let filteredList = Array.isArray(list) ? list : []
+
+    if (filterType === 'present') {
+      filteredList = filteredList.filter((e) => e.isPresent === true)
+    } else if (filterType === 'absent') {
+      filteredList = filteredList.filter((e) => e.isPresent === false)
+    }
+
+    setSelectedEmployees(filteredList)
+    setDialogOpen(true)
+  }
+
+  const handleStatusClickGlobal = async (status: string, label: string) => {
+    try {
+      setDialogTitle(label)
+      setDialogLoading(true)
+      setDialogOpen(true)
+      setSelectedEmployees([])
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/byStatusOnly?status=${encodeURIComponent(status)}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+      const data = await response.json()
+      setSelectedEmployees(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setDialogLoading(false)
+    }
+  }
+
+  const handleNotMarkedClick = async () => {
+    try {
+      setDialogTitle("Not Marked Employees")
+      setDialogLoading(true)
+      setDialogOpen(true)
+      setSelectedEmployees([])
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/not-marked-today`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+      const data = await response.json()
+      setSelectedEmployees(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setDialogLoading(false)
+    }
+  }
+
+  const handleStatusClick = async (status: string, location: string) => {
+    try {
+      setDialogTitle(`${status} — ${location}`)
+      setDialogLoading(true)
+      setDialogOpen(true)
+      setSelectedEmployees([])
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/attendence/attendenceByStatus?status=${encodeURIComponent(status)}&location=${encodeURIComponent(location)}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+      const employeesData = await response.json()
+      setSelectedEmployees(Array.isArray(employeesData) ? employeesData : [])
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setDialogLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const fetchEmployeeCategoryCounts = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/employees/employee-category-count`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token} ${company_id}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+        const data = await response.json()
+        setEmployeeCounts(data)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+    fetchEmployeeCategoryCounts()
+  }, [])
+
+  useEffect(() => {
+    const fetchAttendanceCounts = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/attendence/location-counts`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token} ${company_id}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+        const data = await response.json()
+        setAttendanceCountsByLocation(Array.isArray(data) ? data : [])
+        setLoading(false)
+      } catch (error) {
+        console.error(error)
+        setLoading(false)
+      }
+    }
+    fetchAttendanceCounts()
+  }, [])
+
+  useEffect(() => {
+    const fetchTodaysPunches = async () => {
+      try {
+        const today = dayjs().format('YYYY-MM-DD')
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/punch/punches/date/${today}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token} ${company_id}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+        const data = await response.json()
+        const list = Array.isArray(data) ? data : (data?.data || [])
+        const map: Record<string, string> = {}
+
+        list.forEach((p: any) => {
+          const empId =
+            typeof p?.employee === 'string'
+              ? p.employee
+              : p?.employee?._id
+
+          if (!empId || !p?.punchIn) return
+          if (!map[empId]) {
+            map[empId] = p.punchIn
+            return
+          }
+
+          const existing = dayjs(map[empId])
+          const current = dayjs(p.punchIn)
+          if (current.isBefore(existing)) {
+            map[empId] = p.punchIn
+          }
+        })
+
+        setPunchMap(map)
+      } catch (error) {
+        console.error('Failed to fetch punches:', error)
+      }
+    }
+    fetchTodaysPunches()
+  }, [])
+
+  const downloadEmployeeList = async () => {
+    try {
+      const today = dayjs().format('YYYY-MM-DD');
+      const params = new URLSearchParams({ date: today });
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/punch/export-shift-summary?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token} ${company_id}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${dialogTitle}_${today}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
+
+  // ─── Totals ────────────────────────────────────────────────────────────────
+
+  let totalPresent = 0
+  let totalAbsent = 0
+  let totalLeave = 0
+  let totalHalfDay = 0
+  let totalWorkforce = 0
+
+  for (const item of attendanceCountsByLocation) {
+    totalPresent += Number(item?.Present || 0)
+    totalAbsent += Number(item?.Absent || 0)
+    totalLeave += Number(item?.On_Leave || 0)
+    totalHalfDay += Number(item?.On_Half || 0)
+    totalWorkforce += Number(item?.totalEmployeesToday || 0)
+  }
+
+  const totalAll =
+    Number(employeeCounts.totalEmployees || 0) +
+    Number(employeeCounts.totalInterns || 0) +
+    Number(employeeCounts.totalChannelPartners || 0)
+
+  const totalMarked = totalPresent + totalAbsent + totalLeave + totalHalfDay
+  const totalNotMarked = Math.max(0, totalAll - totalMarked)
+
+  // ─── Punch-time grouping helpers ────────────────────────────────────────────
+
+  const parsePunchTime = (raw: string | null | undefined) => {
+    if (!raw) return null
+    const parsed = raw.includes('T') || raw.includes('-')
+      ? dayjs(raw)
+      : dayjs(`2000-01-01T${raw}`)
+    return parsed.isValid() ? parsed : null
+  }
+
+  const getPunchGroup = (parsed: dayjs.Dayjs | null): PunchGroupKey => {
+    if (!parsed) return 'none'
+    const tenAM = parsed.clone().hour(10).minute(0).second(59)
+    const tenFifteen = parsed.clone().hour(10).minute(15).second(59)
+    const onePFifteen = parsed.clone().hour(13).minute(15).second(59)
+
+    if (parsed.isBefore(tenAM)) return 'onTime'
+    if (!parsed.isAfter(tenFifteen)) return 'grace'
+    if (parsed.isAfter(onePFifteen)) return 'halfday'
+    return 'late'
+  }
+  const buildGroupedEmployees = (list: any[]) => {
+    const groups: Record<PunchGroupKey, any[]> = {
+      onTime: [],
+      grace: [],
+      late: [],
+      halfday: [],
+      none: [],
+    }
+
+    list.forEach((item: any) => {
+      const employee = item?.employee || item
+      if (!employee || typeof employee !== 'object' || Array.isArray(employee)) return
+
+      const punchInRaw = item?.punchIn || punchMap[employee?._id]
+      const parsed = parsePunchTime(punchInRaw)
+      const group = getPunchGroup(parsed)
+
+      groups[group].push({ item, employee, parsed })
+    })
+
+      ; (['onTime', 'grace', 'late', 'halfday', 'none'] as PunchGroupKey[]).forEach((key) => {
+        groups[key].sort((a, b) => {
+          const timeA = a.parsed ? a.parsed.format('HH:mm:ss') : '23:59:59'
+          const timeB = b.parsed ? b.parsed.format('HH:mm:ss') : '23:59:59'
+          return timeA.localeCompare(timeB)
+        })
+      })
+
+    return groups
+  }
+
+  const renderEmployeeRow = (entry: { item: any; employee: any; parsed: dayjs.Dayjs | null }, index: number) => {
+    const { employee, parsed } = entry
+    const name = `${employee?.first_name || ''} ${employee?.last_name || ''}`
+    const initials = getInitials(employee?.first_name || '', employee?.last_name || '')
+    const bgColor = getAvatarColor(employee?.first_name || '')
+    const punchInTime = parsed ? parsed.format('hh:mm A') : null
+
+    const group = getPunchGroup(parsed)
+    const badgeConfig = group === 'none' ? NONE_GROUP : PUNCH_GROUPS[group]
+
+    return (
+      <EmployeeRow key={employee?._id || index}>
+        <Avatar bgcolor={bgColor}>
+          {employee?.image ? (
+            <img src={employee.image} alt={name} />
+          ) : (
+            initials
+          )}
+        </Avatar>
+
+        <Box flex={1}>
+          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+            <Typography
+              fontSize="14px"
+              fontWeight={600}
+              color="#0f172a"
+              lineHeight={1.3}
+            >
+              {name.trim() || "—"}
+            </Typography>
+
+            {employee?.location && (
+              <Box
+                sx={{
+                  px: 1,
+                  py: 0.2,
+                  borderRadius: "20px",
+                  bgcolor:
+                    employee.location.toLowerCase().includes("noida")
+                      ? "#e0f2fe"
+                      : "#ecfdf5",
+                  color:
+                    employee.location.toLowerCase().includes("noida")
+                      ? "#0369a1"
+                      : "#15803d",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.4,
+                }}
+              >
+                📍
+                {employee.location.toLowerCase().includes("noida")
+                  ? "N"
+                  : employee.location.toLowerCase().includes("bareilly")
+                    ? "B"
+                    : employee.location}
+              </Box>
+            )}
+          </Box>
+
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              mt: 0.3,
+            }}
+          >
+            💼 {employee?.designation || employee?.code || ""}
+          </Typography>
+        </Box>
+
+        {punchInTime && (
+          <Box
+            sx={{
+              background: badgeConfig.bg,
+              border: `1px solid ${badgeConfig.border}`,
+              borderRadius: '8px',
+              px: 1.2,
+              py: 0.4,
+              flexShrink: 0,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: badgeConfig.color, fontWeight: 600, fontSize: '11px' }}
+            >
+              🕐 {punchInTime}
+            </Typography>
+          </Box>
+        )}
+      </EmployeeRow>
+    )
+  }
+  const groupedSelectedEmployees = buildGroupedEmployees(selectedEmployees)
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
+  return (
+    <DashboardWrapper>
+
+      <HeaderCard elevation={0}>
+        <Box display='flex' alignItems='flex-start' justifyContent='space-between' flexWrap='wrap' gap={2} mb={3}>
+          <Box>
+            <Typography
+              variant='h5'
+              fontWeight={700}
+              color='#0f172a'
+              letterSpacing='-0.4px'
+              gutterBottom
+            >
+              Attendance Dashboard
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              {dayjs().format('dddd, MMMM D, YYYY')}
+            </Typography>
+          </Box>
+
+          <Box display='flex' alignItems='center' gap={1.5}>
+            <TotalBadge>
+              <IconCircle>
+                <PeopleAltIcon sx={{ fontSize: 22, color: 'white' }} />
+              </IconCircle>
+              <Box>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.65)', display: 'block' }}>
+                  Total employees
+                </Typography>
+                <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
+                  {totalAll}
+                </Typography>
+              </Box>
+            </TotalBadge>
+
+            <ExpandButton
+              expanded={accClicked}
+              onClick={() => setAccClicked(!accClicked)}
+              size='small'
+              aria-label='Toggle location cards'
+            >
+              <ExpandMoreIcon sx={{ color: '#475569' }} />
+            </ExpandButton>
+          </Box>
+        </Box>
+
+        {/* Category cards */}
+        <Grid container spacing={2} mb={3}>
+          {/* EMPLOYEES CARD */}
+          <Grid item xs={12} sm={4}>
+            <CategoryChip elevation={0} chipcolor='#10b981'
+              onClick={() => handleOpenList('All Employees', employeeCounts.employeeList, 'all')}
+            >
+              <IconCircle><WorkIcon sx={{ fontSize: 22, color: 'white' }} /></IconCircle>
+              <Box flex={1}>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.75)', display: 'block' }}>
+                  Employees
+                </Typography>
+                <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
+                  {Number(employeeCounts.totalEmployees || 0)}
+                </Typography>
+
+                {/* Present / Absent clickable badges */}
+                <Box display='flex' gap={1} mt={0.8} onClick={(e) => e.stopPropagation()}>
+                  <Box
+                    onClick={() => handleOpenList('Present Employees', employeeCounts.employeeList, 'present')}
+                    sx={{
+                      background: 'rgba(255,255,255,0.25)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(255,255,255,0.4)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ✅ {employeeCounts.presentEmployees} Present
+                    </Typography>
+                  </Box>
+                  <Box
+                    onClick={() => handleOpenList('Absent Employees', employeeCounts.employeeList, 'absent')}
+                    sx={{
+                      background: 'rgba(0,0,0,0.18)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(0,0,0,0.28)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ❌ {employeeCounts.absentEmployees} Absent
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </CategoryChip>
+          </Grid>
+
+          {/* INTERNS CARD */}
+          <Grid item xs={12} sm={4}>
+            <CategoryChip elevation={0} chipcolor='#f59e0b'
+              onClick={() => handleOpenList('All Interns', employeeCounts.internList, 'all')}
+            >
+              <IconCircle><SchoolIcon sx={{ fontSize: 22, color: 'white' }} /></IconCircle>
+              <Box flex={1}>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.75)', display: 'block' }}>
+                  Interns
+                </Typography>
+                <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
+                  {Number(employeeCounts.totalInterns || 0)}
+                </Typography>
+                <Box display='flex' gap={1} mt={0.8} onClick={(e) => e.stopPropagation()}>
+                  <Box
+                    onClick={() => handleOpenList('Present Interns', employeeCounts.internList, 'present')}
+                    sx={{
+                      background: 'rgba(255,255,255,0.25)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(255,255,255,0.4)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ✅ {employeeCounts.presentInterns} Present
+                    </Typography>
+                  </Box>
+                  <Box
+                    onClick={() => handleOpenList('Absent Interns', employeeCounts.internList, 'absent')}
+                    sx={{
+                      background: 'rgba(0,0,0,0.18)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(0,0,0,0.28)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ❌ {employeeCounts.absentInterns} Absent
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </CategoryChip>
+          </Grid>
+
+          {/* CHANNEL PARTNERS CARD */}
+          <Grid item xs={12} sm={4}>
+            <CategoryChip elevation={0} chipcolor='#6366f1'
+              onClick={() => handleOpenList('All Channel Partners', employeeCounts.channelPartnerList, 'all')}
+            >
+              <IconCircle><HandshakeIcon sx={{ fontSize: 22, color: 'white' }} /></IconCircle>
+              <Box flex={1}>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.75)', display: 'block' }}>
+                  Channel partners
+                </Typography>
+                <Typography variant='h6' fontWeight={700} color='white' lineHeight={1}>
+                  {Number(employeeCounts.totalChannelPartners || 0)}
+                </Typography>
+                <Box display='flex' gap={1} mt={0.8} onClick={(e) => e.stopPropagation()}>
+                  <Box
+                    onClick={() => handleOpenList('Present Channel Partners', employeeCounts.channelPartnerList, 'present')}
+                    sx={{
+                      background: 'rgba(255,255,255,0.25)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(255,255,255,0.4)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ✅ {employeeCounts.presentChannelPartners} Present
+                    </Typography>
+                  </Box>
+                  <Box
+                    onClick={() => handleOpenList('Absent Channel Partners', employeeCounts.channelPartnerList, 'absent')}
+                    sx={{
+                      background: 'rgba(0,0,0,0.18)', borderRadius: '8px',
+                      px: 1, py: 0.3, cursor: 'pointer',
+                      '&:hover': { background: 'rgba(0,0,0,0.28)' }
+                    }}
+                  >
+                    <Typography variant='caption' sx={{ color: 'white', fontWeight: 600, fontSize: '11px' }}>
+                      ❌ {employeeCounts.absentChannelPartners} Absent
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </CategoryChip>
+          </Grid>
+        </Grid>
+
+        {/* Attendance status cards */}
+        <Grid container spacing={2}>
+          {[
+            { label: 'Present', value: `${totalPresent}/${totalAll}`, color: '#22c55e', status: 'Present', title: 'Present Employees', delay: 0 },
+            { label: 'Absent', value: `${totalAbsent}/${totalAll}`, color: '#ef4444', status: 'Absent', title: 'Absent Employees', delay: 60 },
+            { label: 'On leave', value: `${totalLeave}/${totalAll}`, color: '#f59e0b', status: 'On Leave', title: 'On Leave Employees', delay: 120 },
+            { label: 'Half day', value: `${totalHalfDay}/${totalAll}`, color: '#3b82f6', status: 'On Half', title: 'Half Day Employees', delay: 180 },
+            { label: 'Not marked', value: `${totalNotMarked}/${totalAll}`, color: '#94a3b8', status: 'Not Marked', title: 'Not Marked Employees', delay: 240 },
+          ].map((s) => (
+            <Grid item xs={6} sm={2.4} key={s.label}>
+              <StatusCard
+                elevation={0}
+                cardcolor={s.color}
+                delay={s.delay}
+                onClick={() => s.status === 'Not Marked' ? handleNotMarkedClick() : handleStatusClickGlobal(s.status, s.title)}
+              >
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.78)', fontWeight: 500, letterSpacing: '0.3px', textTransform: 'uppercase', fontSize: '11px' }}>
+                  {s.label}
+                </Typography>
+                <StatusNumber>{s.value}</StatusNumber>
+                <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px', mt: 0.5, display: 'block' }}>
+                  Tap to view list
+                </Typography>
+              </StatusCard>
+            </Grid>
+          ))}
+        </Grid>
+
+      </HeaderCard>
+
+      {/* ── Location Cards ── */}
+      <Collapse in={accClicked}>
+        {loading ? (
+          <Box display='flex' justifyContent='center' py={4}>
+            <Loader />
+          </Box>
+        ) : (
+          <>
+            <Box display='flex' alignItems='center' gap={1} mb={1.5} px={0.5}>
+              <LocationOnIcon sx={{ fontSize: 18, color: '#6366f1' }} />
+              <Typography variant='body2' fontWeight={600} color='#475569'>
+                By location
+              </Typography>
+            </Box>
+            <Grid container spacing={1.5}>
+              {attendanceCountsByLocation.map((item) => (
+                <LocationCard
+                  key={item._id}
+                  location={item._id}
+                  data={item}
+                  handleStatusClick={handleStatusClick}
+                />
+              ))}
+            </Grid>
+          </>
+        )}
+      </Collapse>
+
+      {/* ── Employee List Dialog ── */}
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth='sm'
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            border: '1px solid #e8eaf0',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.12)',
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pb: 1,
+            pt: 1.5,
+            px: 3,
+            fontWeight: 700,
+            fontSize: '1rem',
+            color: '#0f172a',
+          }}
+        >
+          {dialogTitle}
+          <IconButton
+            size='small'
+            onClick={() => setDialogOpen(false)}
+            sx={{ background: '#f1f3f9', borderRadius: '8px', '&:hover': { background: '#e2e6f3' } }}
+          >
+            <CloseIcon fontSize='small' />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ px: 3, pb: 3 }}>
+
+          {dialogLoading && (
+            <Box display='flex' justifyContent='center' alignItems='center' py={4} gap={2}>
+              <CircularProgress size={20} sx={{ color: '#6366f1' }} />
+              <Typography variant='body2' color='text.secondary'>Loading...</Typography>
+            </Box>
+          )}
+
+          {!dialogLoading && selectedEmployees.length === 0 && (
+            <Box textAlign='center' py={4}>
+              <PeopleAltIcon sx={{ fontSize: 40, color: '#e2e8f0', mb: 1 }} />
+              <Typography color='text.secondary' variant='body2'>
+                No employees found.
+              </Typography>
+            </Box>
+          )}
+          <Box display="flex" justifyContent="flex-end" px={3} pb={1}>
+            {selectedEmployees.length > 0 && dialogTitle.toLowerCase().includes('present') && (
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<DownloadIcon />}
+                onClick={downloadEmployeeList}
+                sx={{
+                  borderRadius: "10px",
+                  textTransform: "none",
+                }}
+              >
+                Download
+              </Button>
+            )}
+          </Box>
+          {!dialogLoading && selectedEmployees.length > 0 && (
+            <>
+              {(['onTime', 'grace', 'late', 'halfday', 'none'] as PunchGroupKey[]).map((key) => {
+                const groupList = groupedSelectedEmployees[key]
+                if (!groupList || groupList.length === 0) return null
+
+                const config = key === 'none' ? NONE_GROUP : PUNCH_GROUPS[key]
+
+                return (
+                  <Box key={key}>
+                    <GroupHeader groupcolor={config.color} groupbg={config.bg} groupborder={config.border}>
+                      <Box display='flex' alignItems='center'>
+                        <span className='dot' />
+                        <Typography variant='caption' fontWeight={700} sx={{ color: config.color, letterSpacing: '0.2px' }}>
+                          {config.label} ({groupList.length} employees)
+                        </Typography>
+                      </Box>
+                      {/* <Typography variant='caption' fontWeight={700} sx={{ color: config.color }}>
+                        {groupList.length} Employees
+                      </Typography> */}
+                    </GroupHeader>
+                    {groupList.map((entry, index) => renderEmployeeRow(entry, index))}
+                  </Box>
+                )
+              })}
+            </>
+          )}
+
+        </DialogContent>
+      </Dialog>
+
+    </DashboardWrapper>
+  )
+}
+
+export default EmployeeAttendanceStatus
