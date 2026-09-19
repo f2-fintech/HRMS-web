@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import {
   Box,
   Button,
@@ -69,6 +70,7 @@ interface AggregatedEmployee {
     _timestamp: number;
     _tlName: string;
   }>;
+  sortedMonths: any[];
 }
 
 export default function Performance360() {
@@ -150,7 +152,8 @@ export default function Performance360() {
         performingMonth: 0,
         unactiveMonth: 0,
         avgMonthlyDisbursal: 0,
-        monthsMap: {}
+        monthsMap: {},
+        sortedMonths: []
       });
     });
 
@@ -187,15 +190,82 @@ export default function Performance360() {
       }
     });
 
+    // Find global max timestamp to determine the end month
+    let globalMaxTimestamp = dayjs().valueOf();
+    if (dbTransactions.length > 0) {
+      globalMaxTimestamp = Math.max(...dbTransactions.map((t: any) => t.monthValue || 0));
+    }
+    const globalEnd = dayjs(globalMaxTimestamp).startOf('month');
+
     // Post-processing for months count and averages
     map.forEach(emp => {
+      // Fill missing months from DOJ
+      let startDate: dayjs.Dayjs | null = null;
+      if (emp.doj && emp.doj !== '-') {
+        let dStr = String(emp.doj).trim();
+        if (/^\d{2}[-/]\d{2}[-/]\d{4}$/.test(dStr)) {
+          const parts = dStr.split(/[-/]/);
+          startDate = dayjs(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        } else {
+          startDate = dayjs(dStr);
+        }
+      }
+
+      if (startDate && startDate.isValid()) {
+        startDate = startDate.startOf('month');
+        let endDate = globalEnd;
+
+        // Cap at LWD if employee has left
+        if (emp.lwd && emp.lwd !== '-') {
+          let lwdStr = String(emp.lwd).trim();
+          let lwdDate: dayjs.Dayjs | null = null;
+          if (/^\d{2}[-/]\d{2}[-/]\d{4}$/.test(lwdStr)) {
+            const parts = lwdStr.split(/[-/]/);
+            lwdDate = dayjs(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          } else {
+            lwdDate = dayjs(lwdStr);
+          }
+          if (lwdDate && lwdDate.isValid() && lwdDate.startOf('month').isBefore(endDate)) {
+            endDate = lwdDate.startOf('month');
+          }
+        }
+
+        let current = startDate.clone();
+        while (current.isBefore(endDate) || current.isSame(endDate, 'month')) {
+          const currentYear = current.year();
+          const currentMonth = current.month();
+          
+          const existingMatch = Object.values(emp.monthsMap).find((m: any) => {
+             const mDate = dayjs(m._timestamp);
+             return mDate.year() === currentYear && mDate.month() === currentMonth;
+          });
+          
+          if (!existingMatch) {
+             const mStr = current.format('MMM-YY').toUpperCase();
+             emp.monthsMap[mStr] = {
+                monthStr: mStr,
+                noOfDisbursed: 0,
+                netAmount: 0,
+                manager: '-',
+                cashBack: 0,
+                _timestamp: current.valueOf(),
+                _tlName: '-'
+             };
+          }
+          current = current.add(1, 'month');
+        }
+      }
+
       const monthsList = Object.values(emp.monthsMap) as any[];
       // Sort months chronologically
       monthsList.sort((a, b) => a._timestamp - b._timestamp);
+      emp.sortedMonths = monthsList;
       
       // The most recent month gives the "Current" Manager and TL
-      if (monthsList.length > 0) {
-        const latestMonth = monthsList[monthsList.length - 1];
+      // Only pick from months that actually have a manager (ignore generated 0 months)
+      const monthsWithManager = monthsList.filter(m => m.manager !== '-');
+      if (monthsWithManager.length > 0) {
+        const latestMonth = monthsWithManager[monthsWithManager.length - 1];
         emp.currentManager = latestMonth.manager;
         emp.currentTL = latestMonth._tlName;
       }
@@ -416,7 +486,7 @@ export default function Performance360() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {Object.values(selectedEmp.monthsMap).map((m, idx) => (
+                {selectedEmp.sortedMonths.map((m: any, idx: number) => (
                   <TableRow key={idx}>
                     <TableCell>{m.monthStr}</TableCell>
                     <TableCell>{m.noOfDisbursed}</TableCell>

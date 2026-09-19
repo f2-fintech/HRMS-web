@@ -1655,7 +1655,10 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         stopPunchTimer();
 
         const punchData = {
+            punchIn: punchState.startTime || '',
             punchOut: endTime,
+            totalTime: timer,
+            date: selectedDate,
             contacts: contacts.map(c => ({
                 ...c,
                 remarks
@@ -1847,7 +1850,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     const handlePreviousPunch = () => { if (currentPunchIndex > 0) setCurrentPunchIndex(currentPunchIndex - 1) }
     const handleNextPunch = () => { if (currentPunchIndex < punch.length - 1) setCurrentPunchIndex(currentPunchIndex + 1) }
 
-    const handleAdminPunchEdit = async (field: 'punchIn' | 'punchOut') => {
+    const handleAdminPunchEdit = async (field: 'punchIn' | 'punchOut' | 'totalTime') => {
         if (!canEditPunchTimes) {
             alert('Only admin or allowed employees can edit punch times.')
             return
@@ -1859,28 +1862,32 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             return
         }
 
-        const currentValue = field === 'punchIn' ? targetPunch.punchIn : targetPunch.punchOut || ''
+        const currentValue = field === 'punchIn' ? targetPunch.punchIn : field === 'punchOut' ? targetPunch.punchOut || '' : targetPunch.totalTime || ''
         const value = window.prompt(
-            `Edit ${field === 'punchIn' ? 'Punch In' : 'Punch Out'} time (HH:MM or HH:MM:SS)`,
+            `Edit ${field === 'punchIn' ? 'Punch In time (HH:MM or HH:MM:SS)' : field === 'punchOut' ? 'Punch Out time (HH:MM or HH:MM:SS)' : 'Total Time (e.g. 08h 30m 00s)'}`,
             currentValue
         )
 
         if (value === null) return
 
         const normalized = value.trim()
-        const validTime = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(normalized)
-        if (!validTime) {
-            alert('Please enter a valid time in HH:MM or HH:MM:SS format.')
-            return
+        
+        if (field !== 'totalTime') {
+            const validTime = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(normalized)
+            if (!validTime) {
+                alert('Please enter a valid time in HH:MM or HH:MM:SS format.')
+                return
+            }
         }
 
         try {
             const punchInValue = field === 'punchIn' ? normalized : targetPunch.punchIn || '00:00'
             const punchOutValue = field === 'punchOut' ? normalized : targetPunch.punchOut || '00:00'
+            const totalTimeValue = field === 'totalTime' ? normalized : targetPunch.totalTime || '00h 00m 00s'
             const payload: { punchIn: string; punchOut: string; totalTime: string; date?: string } = {
                 punchIn: punchInValue,
                 punchOut: punchOutValue,
-                totalTime: targetPunch.totalTime || '00h 00m 00s',
+                totalTime: totalTimeValue,
                 date: selectedDate
             }
 
@@ -2427,8 +2434,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 </div>
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Total Time</h4>
-                                    <div className="text-gray-600">{currentPunch?.totalTime || '-'}</div>
-
+                                    <div className="text-gray-600 flex items-center justify-center gap-2">
+                                        <span>{currentPunch?.totalTime || '-'}</span>
+                                        {canEditPunchTimes && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleAdminPunchEdit('totalTime')}
+                                                className="px-2 py-1 text-[10px] rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                            >
+                                                Edit
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                             </div>
