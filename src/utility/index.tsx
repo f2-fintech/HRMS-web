@@ -91,16 +91,19 @@ export const utility = () => {
    * @returns {boolean} - True if the token is expired, false otherwise.
    */
   const isTokenExpired = (token: string | null): boolean => {
-    if (!token) return true;
+    // Disabled auto-logout: always return false to prevent token expiration logic
+    return false;
+  // if (!token) return true;
 
-    try {
-      const decodedToken = jwtDecode<JwtPayload>(token);
-      const currentTime = Date.now() / 1000; // in seconds
-      return decodedToken.exp ? decodedToken.exp < currentTime : true;
-    } catch (error) {
-      return true;
-    }
-  };
+  //   try {
+  //     const decodedToken = jwtDecode<JwtPayload>(token);
+  //     const currentTime = Date.now() / 1000; // in seconds
+  //     return decodedToken.exp ? decodedToken.exp < currentTime : true;
+  //   } catch (error) {
+  //     return true;
+  //   }
+  // }; 
+ };
   const capitalizeFirstLetter = (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
