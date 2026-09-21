@@ -19,7 +19,8 @@ export const fetchBreaksById = createAsyncThunk('breaks/fetchBreaksById', async 
     const { isTokenExpired } = utility();
     const token = localStorage.getItem('token');
     const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
-    const url = employeeId ? `${BASE_URL}/breaksheet/employee?employeeId=${employeeId}` : `${BASE_URL}/breaksheet/employee`;
+    const timestamp = new Date().getTime();
+    const url = employeeId ? `${BASE_URL}/breaksheet/employee?employeeId=${employeeId}&_t=${timestamp}` : `${BASE_URL}/breaksheet/employee?_t=${timestamp}`;
 
     if (!token || isTokenExpired(token)) {
         // Clean up localStorage if needed
