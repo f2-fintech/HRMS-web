@@ -19,6 +19,7 @@ import * as XLSX from "xlsx";
 
 import { apiResponse, fetchTotalShiftTime } from '../utility/apiResponse/employeesResponse' // Adjust the path if needed
 import { fetchTotalWorkingHours } from '@/redux/features/punches/punchesSlice'
+import { socket } from '@/utility/socket'
 
 import PunchInOut from '@/views/PunchInOut'
 import NotPunchedInToday from '@/views/NotPunchedInToday'
@@ -399,6 +400,37 @@ const BreakSheet: React.FC = () => {
             dispatch(fetchBreaksById(employeeId))
         }
     }, [dispatch, selectedEmployeeId, userRole, employeeId, isReadOnlyViewer])
+
+    useEffect(() => {
+        const handleBreakUpdated = (data: any) => {
+            if (data.employeeId === (selectedEmployeeId || employeeId)) {
+                dispatch(fetchBreaksById(selectedEmployeeId || employeeId))
+                    .unwrap()
+                    .then((breakData: Break[]) => {
+                        const runningBreak = breakData?.find((b: Break) => !b.endTime)
+                        if (runningBreak) {
+                            setStartTime(runningBreak.startTime)
+                            const startTS = getTimestampFromTime(runningBreak.startTime, runningBreak.date)
+                            setStartTimestamp(startTS)
+                            setTimerRunning(true)
+                            startBreakTimer(startTS)
+                            setBreakType(runningBreak.type || '')
+                        } else {
+                            stopBreakTimer()
+                            setTimerRunning(false)
+                            setStartTime('')
+                            setEndTime('')
+                            setBreakType('Select break type')
+                            setDuration('00h 00m 00s')
+                        }
+                    })
+            }
+        }
+        socket.on('break_updated', handleBreakUpdated)
+        return () => {
+            socket.off('break_updated', handleBreakUpdated)
+        }
+    }, [dispatch, selectedEmployeeId, employeeId])
 
     // Filter breaks for the selected date
     useEffect(() => {

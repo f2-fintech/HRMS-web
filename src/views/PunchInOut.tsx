@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation'
 import Snackbar from '@mui/material/Snackbar'
 import MuiAlert from '@mui/material/Alert'
 import imageCompression from 'browser-image-compression'
+import { socket } from '@/utility/socket';
 
 interface PunchInOutProps {
     selectedDate: string
@@ -1668,6 +1669,38 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }))
         }
     }, [dispatch, employeeId, selectedDate, isCurrentDate])
+
+    useEffect(() => {
+        const handlePunchUpdated = (data: any) => {
+            if (data.employeeId === employeeId) {
+                if (employeeId && selectedDate) {
+                    dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }))
+                        .unwrap()
+                        .then(punchData => {
+                            if (punchData.length > 0) {
+                                const latestPunch = punchData[punchData.length - 1];
+                                stopPunchTimer();
+                                if (!latestPunch.punchOut) {
+                                    const punchInTimestamp = new Date(`${selectedDate} ${latestPunch.punchIn}`).getTime();
+                                    setPunchState(prev => ({ ...prev, isPunchIn: true, startTime: latestPunch.punchIn, isPunchInDisabled: true, isPunchOutDisabled: false }));
+                                    setStartTimestamp(punchInTimestamp);
+                                    startPunchInTimer(punchInTimestamp);
+                                } else {
+                                    setPunchState(prev => ({ ...prev, isPunchIn: false, startTime: '', isPunchInDisabled: false, isPunchOutDisabled: true, timer: '00:00:00' }));
+                                }
+                            }
+                        });
+                    dispatch(fetchTotalWorkingHours({ employeeId, date: selectedDate }));
+                }
+            }
+        };
+
+        socket.on('punch_updated', handlePunchUpdated);
+
+        return () => {
+            socket.off('punch_updated', handlePunchUpdated);
+        };
+    }, [employeeId, selectedDate, dispatch]);
 
     useEffect(() => {
         return () => {

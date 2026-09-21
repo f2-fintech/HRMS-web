@@ -18,6 +18,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import HighlightOffIcon from '@mui/icons-material/HighlightOff'
 import DashboardViewButton from './DashboardViewButton'
 import DashboardViewModal from './DashboardViewModal'
+import { socket } from '@/utility/socket'
 
 import {
   apiResponse,
@@ -128,6 +129,20 @@ const DashboardCards = ({
 
     }
 
+  }, [selectedDate])
+
+  useEffect(() => {
+    const handlePunchUpdated = () => {
+      if (selectedDate) {
+        loadDashboard()
+      }
+    }
+    socket.on('punch_updated', handlePunchUpdated)
+    socket.on('break_updated', handlePunchUpdated)
+    return () => {
+      socket.off('punch_updated', handlePunchUpdated)
+      socket.off('break_updated', handlePunchUpdated)
+    }
   }, [selectedDate])
   const loadDashboard = async () => {
 
