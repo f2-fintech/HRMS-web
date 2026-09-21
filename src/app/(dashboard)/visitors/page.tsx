@@ -106,7 +106,7 @@ const emptyForm: VisitorForm = {
     selfie: null
 }
 
-const VENDOR_TYPES = ['Guest', 'Banker','DSA','Channel Partner','Candidate', 'Vendor', 'Contractor', 'Interview','Client', 'Delivery', 'Other']
+const VENDOR_TYPES = ['Guest', 'Banker', 'DSA', 'Channel Partner', 'Candidate', 'Vendor', 'Contractor', 'Interview', 'Client', 'Delivery', 'Other']
 
 const ADMIN_ROLES = ['0', '1', '6']
 
@@ -462,7 +462,8 @@ const VisitorsPage = () => {
 
             if (Number.isNaN(visitorDate.getTime())) return false
 
-            const day = visitorDate.toISOString().slice(0, 10)
+            const pad = (n: number) => n.toString().padStart(2, '0')
+            const day = `${visitorDate.getFullYear()}-${pad(visitorDate.getMonth() + 1)}-${pad(visitorDate.getDate())}`
 
             return day === date
         })
@@ -475,9 +476,9 @@ const VisitorsPage = () => {
             width: 70,
             sortable: false,
             renderCell: params => params.value ? (
-                <Avatar 
-                    src={params.value} 
-                    sx={{ width: 36, height: 36, mt: 0.5, cursor: 'pointer', border: `1px solid ${rule}` }} 
+                <Avatar
+                    src={params.value}
+                    sx={{ width: 36, height: 36, mt: 0.5, cursor: 'pointer', border: `1px solid ${rule}` }}
                     onClick={(e) => {
                         e.stopPropagation();
                         setPreviewImage(params.value);
@@ -515,6 +516,13 @@ const VisitorsPage = () => {
         { field: 'purposeOfVisit', headerName: 'Purpose', minWidth: 140, flex: 1, valueGetter: (_, row) => row.purposeOfVisit || '-' },
         { field: 'meetingType', headerName: 'Type', minWidth: 120, flex: 0.7, valueGetter: (_, row) => row.meetingType || '-' },
         {
+            field: 'createdAt',
+            headerName: 'Date',
+            minWidth: 110,
+            flex: 0.8,
+            valueGetter: (_, row) => row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-GB') : '-'
+        },
+        {
             field: 'inTime',
             headerName: 'In Time',
             minWidth: 90,
@@ -551,18 +559,20 @@ const VisitorsPage = () => {
             renderCell: (params: any) => (
                 <Stack direction='row' gap={0.5}>
 
-                    {/* Edit - Admin + Employee */}
-                    <Tooltip title='Edit'>
-                        <IconButton
-                            size='small'
-                            onClick={() => openEdit(params.row)}
-                        >
-                            <EditIcon
-                                fontSize='small'
-                                sx={{ color: inkSoft }}
-                            />
-                        </IconButton>
-                    </Tooltip>
+                    {/* Edit - Admin + Specific Employee */}
+                    {(isAdmin || user?.employeeId === '6a54bdac51196b767850dc37') && (
+                        <Tooltip title='Edit'>
+                            <IconButton
+                                size='small'
+                                onClick={() => openEdit(params.row)}
+                            >
+                                <EditIcon
+                                    fontSize='small'
+                                    sx={{ color: inkSoft }}
+                                />
+                            </IconButton>
+                        </Tooltip>
+                    )}
 
                     {/* Delete - Admin only */}
                     {isAdmin && (
@@ -730,7 +740,7 @@ const VisitorsPage = () => {
                 </Stack>
             </Grid>
             <Grid item xs={12}>
-                <TextField fullWidth multiline minRows={2} sx={fieldSx} label='Description' placeholder='Additional notes' value={form.description} onChange={event => updateForm('description', event.target.value)} />
+                <TextField fullWidth multiline minRows={2} sx={fieldSx} label='Description' placeholder='Additional notes(If Needed)' value={form.description} onChange={event => updateForm('description', event.target.value)} />
             </Grid>
         </Grid>
     )
@@ -787,7 +797,7 @@ const VisitorsPage = () => {
 
                     </Box>
 
-                    <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'stretch', sm: 'center' }} gap={{ xs: 2, sm: 4 }} sx={{ position: 'relative', zIndex: 1 }}>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'stretch', sm: 'center' }} gap={{ xs: 2, sm: 4 }} sx={{ position: 'relative' }}>
                         {visitors.length > 0 && (
                             <Box sx={{ textAlign: { xs: 'left', sm: 'right' }, px: 2, py: 1, borderLeft: `3px solid ${accent}`, bgcolor: `${accent}0C`, borderRadius: '0 8px 8px 0' }}>
                                 <Typography className={display.className} sx={{ fontWeight: 700, fontSize: '1.1rem', color: ink, lineHeight: 1 }}>
@@ -863,7 +873,7 @@ const VisitorsPage = () => {
                             value={date}
                             onChange={event => setDate(event.target.value)}
                             InputLabelProps={{ shrink: true }}
-                            sx={{ width: 165, ...fieldSx }}
+                            sx={{ width: 165, ...fieldSx ,zIndex:0}}
                         />
                         {date && (
                             <Button
@@ -1098,8 +1108,8 @@ const VisitorsPage = () => {
             {/* Image Preview Dialog */}
             <Dialog open={!!previewImage} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '14px', bgcolor: 'transparent', boxShadow: 'none' } }}>
                 <DialogContent sx={{ p: 0, position: 'relative', display: 'flex', justifyContent: 'center' }}>
-                    <IconButton 
-                        onClick={() => setPreviewImage(null)} 
+                    <IconButton
+                        onClick={() => setPreviewImage(null)}
                         sx={{ position: 'absolute', top: 8, right: 8, color: '#fff', bgcolor: 'rgba(0,0,0,0.5)', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
                     >
                         <CloseIcon />
