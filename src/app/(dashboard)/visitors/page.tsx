@@ -68,6 +68,7 @@ type Visitor = {
     selfieUrl?: string
     inTime?: string
     outTime?: string
+    meetingStatus?: string
 }
 
 type VisitorForm = {
@@ -85,6 +86,7 @@ type VisitorForm = {
     meetingType: string
     inTime?: string
     outTime?: string
+    meetingStatus?: string
     selfie: File | null
 }
 
@@ -101,6 +103,7 @@ const emptyForm: VisitorForm = {
     purposeOfVisit: '',
     designation: '',
     meetingType: '',
+    meetingStatus: 'Pending',
     inTime: '',
     outTime: '',
     selfie: null
@@ -316,7 +319,25 @@ const VisitorsPage = () => {
                 if (key === 'selfie') {
                     if (value) formData.append(key, value as File)
                 } else if (value !== null && value !== undefined) {
-                    formData.append(key, String(value))
+                    if (key === 'outTime' && value) {
+                        const timeStr = String(value);
+                        if (timeStr.includes(':') && timeStr.length <= 5) {
+                            const [hours, minutes] = timeStr.split(':');
+                            const dt = editVisitor.inTime ? new Date(editVisitor.inTime) : (editVisitor.createdAt ? new Date(editVisitor.createdAt) : new Date());
+                            dt.setHours(parseInt(hours, 10));
+                            dt.setMinutes(parseInt(minutes, 10));
+                            formData.append(key, dt.toISOString());
+                        } else {
+                            const dt = new Date(String(value));
+                            if (!isNaN(dt.getTime())) {
+                                formData.append(key, dt.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
+                    } else {
+                        formData.append(key, String(value))
+                    }
                 }
             })
 
@@ -364,6 +385,14 @@ const VisitorsPage = () => {
     }
 
     const openEdit = (visitor: Visitor) => {
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const formatLocal = (d?: string) => {
+            if (!d) return '';
+            const dt = new Date(d);
+            if (isNaN(dt.getTime())) return '';
+            return `${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+        };
+
         setForm({
             name: visitor.name || '',
             contact: visitor.contact || '',
@@ -377,9 +406,35 @@ const VisitorsPage = () => {
             purposeOfVisit: visitor.purposeOfVisit || '',
             designation: visitor.designation || '',
             meetingType: visitor.meetingType || '',
+            meetingStatus: visitor.meetingStatus || 'Pending',
+            outTime: formatLocal(visitor.outTime),
             selfie: null
         })
         setEditVisitor(visitor)
+    }
+
+    const updateVisitorField = async (visitorId: string, payload: any) => {
+        try {
+            const formData = new FormData()
+            Object.entries(payload).forEach(([key, value]) => {
+                formData.append(key, String(value))
+            })
+            const { 'Content-Type': _, ...headers } = requestHeaders as any
+
+            const response = await fetch(`${apiUrl}/visitors/update-visitors/${visitorId}`, {
+                method: 'PATCH',
+                headers: headers,
+                body: formData
+            })
+            if (response.ok) {
+                toast.success('Updated successfully')
+                loadVisitors(search.trim() || undefined)
+            } else {
+                toast.error('Failed to update')
+            }
+        } catch (error) {
+            toast.error('Failed to update')
+        }
     }
 
     const markOut = async (visitor: Visitor) => {
@@ -532,21 +587,71 @@ const VisitorsPage = () => {
         {
             field: 'outTime',
             headerName: 'Out Time',
-            minWidth: 110,
-            flex: 0.8,
+            minWidth: 180,
+            flex: 1,
             renderCell: params => {
-                if (params.value) return new Date(params.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const localVal = params.value ? (() => {
+                    const dt = new Date(params.value);
+                    if (isNaN(dt.getTime())) return '';
+                    const pad = (n: number) => n.toString().padStart(2, '0');
+                    return `${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+                })() : '';
+
                 return (
-                    <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={(e) => { e.stopPropagation(); markOut(params.row); }}
-                        sx={{ textTransform: 'none', borderRadius: '6px', py: 0.2, minWidth: '70px', borderColor: accent, color: accentDark }}
-                    >
-                        Mark Out
-                    </Button>
+                    <Stack direction="row" alignItems="center" justifyContent="flex-start" gap={1} sx={{ width: '100%', height: '100%' }}>
+                        {params.value || isAdmin || user?.employeeId === '6a54bdac51196b767850dc37' ? (
+                            <TextField
+                                type="time"
+                                size="small"
+                                variant="standard"
+                                defaultValue={localVal}
+                                InputProps={{ disableUnderline: true, sx: { fontSize: '0.85rem' } }}
+                                sx={{ width: 85 }}
+                                onBlur={(e) => {
+                                    if (e.target.value !== localVal && e.target.value) {
+                                        const [hours, minutes] = e.target.value.split(':');
+                                        const dt = params.row.inTime ? new Date(params.row.inTime) : (params.row.createdAt ? new Date(params.row.createdAt) : new Date());
+                                        dt.setHours(parseInt(hours, 10));
+                                        dt.setMinutes(parseInt(minutes, 10));
+                                        updateVisitorField(params.row._id, { outTime: dt.toISOString() });
+                                    }
+                                }}
+                            />
+                        ) : null}
+                        {!params.value && (
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={(e) => { e.stopPropagation(); markOut(params.row); }}
+                                sx={{ textTransform: 'none', borderRadius: '6px', py: 0.2, minWidth: '60px', px: 1, borderColor: accent, color: accentDark, fontSize: '0.75rem' }}
+                            >
+                                Mark Out
+                            </Button>
+                        )}
+                    </Stack>
                 )
             }
+        },
+        {
+            field: 'meetingStatus',
+            headerName: 'Status',
+            minWidth: 110,
+            flex: 0.8,
+            renderCell: params => (
+                <TextField
+                    select
+                    size="small"
+                    value={params.value || 'Pending'}
+                    onChange={(e) => updateVisitorField(params.row._id, { meetingStatus: e.target.value })}
+                    variant="standard"
+                    InputProps={{ disableUnderline: true, sx: { fontSize: '0.85rem' } }}
+                    sx={{ mt: 1, minWidth: 90 }}
+                >
+                    <MenuItem value="Pending">Pending</MenuItem>
+                    <MenuItem value="Met">Met</MenuItem>
+                    <MenuItem value="Not Met">Not Met</MenuItem>
+                </TextField>
+            )
         },
         { field: 'description', headerName: 'Description', minWidth: 180, flex: 1.1, valueGetter: (_, row) => row.description || '-' },
 
@@ -686,6 +791,35 @@ const VisitorsPage = () => {
                     <MenuItem value='Group'>Group</MenuItem>
                 </TextField>
             </Grid>
+            {!!editVisitor && (
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        select
+                        fullWidth
+                        sx={fieldSx}
+                        label='Status'
+                        value={form.meetingStatus}
+                        onChange={event => updateForm('meetingStatus', event.target.value)}
+                    >
+                        <MenuItem value='Pending'>Pending</MenuItem>
+                        <MenuItem value='Met'>Met</MenuItem>
+                        <MenuItem value='Not Met'>Not Met</MenuItem>
+                    </TextField>
+                </Grid>
+            )}
+            {!!editVisitor && (
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        type='time'
+                        fullWidth
+                        sx={fieldSx}
+                        label='Out Time'
+                        InputLabelProps={{ shrink: true }}
+                        value={form.outTime || ''}
+                        onChange={event => updateForm('outTime', event.target.value)}
+                    />
+                </Grid>
+            )}
             <Grid item xs={12}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} alignItems="center" sx={{ mb: 1 }}>
                     {(form.selfie || editVisitor?.selfieUrl) && (
