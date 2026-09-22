@@ -14,7 +14,13 @@ import {
   DialogContent,
   MenuItem,
   Tabs,
-  Tab
+  Tab,
+  Checkbox,
+  FormControlLabel,
+  List,
+  ListItem,
+  ListItemText,
+  CircularProgress
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
@@ -27,6 +33,7 @@ import { ToastContainer, toast } from 'react-toastify'
 
 import type { AppDispatch, RootState } from '@/redux/store'
 import { fetchAddAssets } from '@/redux/features/addAssets/addAssetsSlice'
+import { fetchEmployees } from '@/redux/features/employees/employeesSlice'
 import 'react-toastify/dist/ReactToastify.css'
 
 type UploadType = 'LAPTOP' | 'SYSTEM'
@@ -45,6 +52,7 @@ type AssetFormData = {
   mouse: string
   keyboard: string
   headphone: string
+  empCode?: string
   company_id: string
 }
 
@@ -60,8 +68,8 @@ const defaultLaptopForm = (company_id: string): AssetFormData => ({
   cpu: '',
   ups: '',
   mouse: '',
-  keyboard: '',
   headphone: '',
+  empCode: '',
   company_id
 })
 
@@ -77,8 +85,8 @@ const defaultSystemForm = (company_id: string): AssetFormData => ({
   cpu: '',
   ups: '',
   mouse: '',
-  keyboard: '',
   headphone: '',
+  empCode: '',
   company_id
 })
 
@@ -98,6 +106,7 @@ const normalizeStatus = (status: string) => {
 export default function AddAssets() {
   const dispatch: AppDispatch = useDispatch()
   const { addassets, filteredaddassets, total } = useSelector((state: RootState) => state.addAssets)
+  const { employees, loading: employeesLoading } = useSelector((state: RootState) => state.employees)
 
   const [showForm, setShowForm] = useState(false)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
@@ -107,24 +116,57 @@ export default function AddAssets() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
   const [filterUploadType, setFilterUploadType] = useState<string>('')
+  const [isAdminOrIT, setIsAdminOrIT] = useState<boolean>(false)
+  const [empCode, setEmpCode] = useState<string>('')
+  const [showAccessModal, setShowAccessModal] = useState(false)
+  const [authorizedUserIds, setAuthorizedUserIds] = useState<string[]>([])
+  const [accessSaving, setAccessSaving] = useState(false)
+  const [accessSearchKeyword, setAccessSearchKeyword] = useState('')
 
   const debouncedFetch = useCallback(
-    debounce((currentPage: number, currentLimit: number, keyword: string) => {
-      dispatch(fetchAddAssets({ page: currentPage, limit: currentLimit, keyword }))
+    debounce((currentPage: number, currentLimit: number, keyword: string, uploadType: string, empCodeFilter: string) => {
+      dispatch(fetchAddAssets({ page: currentPage, limit: currentLimit, keyword, uploadType, empCode: empCodeFilter }))
     }, 300),
     [dispatch]
   )
 
   useEffect(() => {
-    debouncedFetch(page, limit, selectedKeyword)
+    // Pass empCode if they are a regular user (not admin/IT)
+    debouncedFetch(page, limit, selectedKeyword, filterUploadType, isAdminOrIT ? '' : empCode)
     return () => {
       debouncedFetch.cancel()
     }
-  }, [page, limit, selectedKeyword, debouncedFetch])
+  }, [page, limit, selectedKeyword, filterUploadType, isAdminOrIT, empCode, debouncedFetch])
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    setUserRole(String(user?.role || ''))
+    const fetchAccess = async () => {
+      try {
+        const userStr = localStorage.getItem('user')
+        if (!userStr) return
+        const user = JSON.parse(userStr)
+        const role = String(user?.role || '')
+        const code = String(user?.code || '')
+        
+        setUserRole(role)
+        setEmpCode(code)
+        
+        const token = localStorage.getItem('token')
+        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/add-assets/get-access`, {
+          headers: { Authorization: `Bearer ${token} ${user?.company_id}` }
+        })
+        
+        if (res.ok) {
+          const data = await res.json()
+          setAuthorizedUserIds(data.authorizedUserIds || [])
+          setIsAdminOrIT(role === '1' || role === '0' || (data.authorizedUserIds || []).includes(user?.id))
+        } else {
+          setIsAdminOrIT(role === '1' || role === '0')
+        }
+      } catch (error) {
+        console.error('Error fetching access:', error)
+      }
+    }
+    fetchAccess()
   }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,7 +208,7 @@ export default function AddAssets() {
         position: 'top-center'
       })
 
-      debouncedFetch(page, limit, selectedKeyword)
+      debouncedFetch(page, limit, selectedKeyword, filterUploadType, isAdminOrIT ? '' : empCode)
     } catch (error: any) {
       toast.error(error?.message || 'Failed to delete inventory', {
         position: 'top-center'
@@ -184,12 +226,8 @@ export default function AddAssets() {
   }
 
   const displayedRows = useMemo(() => {
-    const baseRows = filteredaddassets?.length > 0 ? filteredaddassets : addassets
-
-    if (!filterUploadType) return baseRows
-
-    return baseRows.filter((row: any) => String(row.uploadType || '').toUpperCase() === filterUploadType)
-  }, [filteredaddassets, addassets, filterUploadType])
+    return filteredaddassets?.length > 0 ? filteredaddassets : addassets
+  }, [filteredaddassets, addassets])
 
   function BulkUploadDialog({ handleClose }: { handleClose: () => void }) {
     const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
@@ -238,7 +276,7 @@ export default function AddAssets() {
         })
 
         handleClose()
-        debouncedFetch(page, limit, selectedKeyword)
+        debouncedFetch(page, limit, selectedKeyword, filterUploadType, isAdminOrIT ? '' : empCode)
       } catch (error: any) {
         toast.error(error?.message || 'Bulk upload failed', {
           position: 'top-center'
@@ -470,7 +508,7 @@ export default function AddAssets() {
         })
 
         handleClose()
-        debouncedFetch(page, limit, selectedKeyword)
+        debouncedFetch(page, limit, selectedKeyword, filterUploadType, isAdminOrIT ? '' : empCode)
       } catch (error: any) {
         toast.error(error?.message || 'Failed to save asset', {
           position: 'top-center'
@@ -504,6 +542,18 @@ export default function AddAssets() {
               onChange={handleChange}
               error={!!errors.assetName}
               helperText={errors.assetName}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label='EMP CODE'
+              name='empCode'
+              value={formData.empCode}
+              onChange={handleChange}
+              error={!!errors.empCode}
+              helperText={errors.empCode}
             />
           </Grid>
 
@@ -640,7 +690,7 @@ export default function AddAssets() {
     )
   }
 
-  const columns: GridColDef[] = [
+  const allColumns: GridColDef[] = [
     {
       sortable: false,
       field: 'lineNo',
@@ -767,7 +817,16 @@ export default function AddAssets() {
       headerClassName: 'super-app-theme--header',
       renderCell: params => (params.row.uploadType === 'SYSTEM' ? params.row.headphone || '-' : '-')
     },
-    ...(userRole === '1'
+    {
+      field: 'empCode',
+      headerName: 'EMP CODE',
+      width: 130,
+      align: 'center',
+      headerAlign: 'center',
+      headerClassName: 'super-app-theme--header',
+      renderCell: params => params.row.empCode || '-'
+    },
+    ...(isAdminOrIT
       ? [
         {
           field: 'actions',
@@ -802,6 +861,71 @@ export default function AddAssets() {
       : [])
   ]
 
+  const columns = allColumns.filter(col => {
+    // Hide rentPerMonth for normal users
+    if (!isAdminOrIT && col.field === 'rentPerMonth') {
+      return false;
+    }
+
+    if (filterUploadType === 'LAPTOP') {
+      return ['lineNo', 'assetName', 'empCode', 'companyPartNo', 'brand', 'status', 'rentPerMonth', 'actions'].includes(col.field);
+    }
+    if (filterUploadType === 'SYSTEM') {
+      return ['lineNo', 'assetName', 'empCode', 'systemType', 'tft', 'cpu', 'ups', 'mouse', 'keyboard', 'headphone', 'actions'].includes(col.field);
+    }
+    return true; // Show all if no filter is selected
+  });
+
+  const handleSaveAccess = async () => {
+    try {
+      setAccessSaving(true)
+      const token = localStorage.getItem('token')
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/add-assets/update-access`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token} ${user?.company_id}`
+        },
+        body: JSON.stringify({ authorizedUserIds })
+      })
+      
+      if (res.ok) {
+        toast.success('Access updated successfully')
+        setShowAccessModal(false)
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Failed to update access')
+      }
+    } catch (error: any) {
+      toast.error('An error occurred while updating access')
+    } finally {
+      setAccessSaving(false)
+    }
+  }
+
+  const handleToggleAccess = (empId: string) => {
+    setAuthorizedUserIds(prev => 
+      prev.includes(empId) ? prev.filter(id => id !== empId) : [...prev, empId]
+    )
+  }
+
+  const handleOpenAccessModal = () => {
+    dispatch(fetchEmployees({ limit: 1000 }))
+    setShowAccessModal(true)
+  }
+
+  const filteredModalEmployees = employees.filter(emp => {
+    if (!accessSearchKeyword) return true
+    const searchLower = accessSearchKeyword.toLowerCase()
+    return (
+      (emp.first_name || '').toLowerCase().includes(searchLower) ||
+      (emp.last_name || '').toLowerCase().includes(searchLower) ||
+      (emp.email || '').toLowerCase().includes(searchLower)
+    )
+  })
+
   return (
     <Box>
       <ToastContainer />
@@ -819,6 +943,51 @@ export default function AddAssets() {
           </DialogContent>
         </Dialog>
 
+        <Dialog open={showAccessModal} onClose={() => setShowAccessModal(false)} fullWidth maxWidth='sm'>
+          <DialogContent>
+            <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+              <Typography variant='h6'>Manage Inventory Access</Typography>
+              <IconButton onClick={() => setShowAccessModal(false)}><CloseIcon /></IconButton>
+            </Box>
+            <Typography variant='body2' color='textSecondary' mb={2}>
+              Select the employees who should have full access to add, edit, delete, and view all inventory data.
+            </Typography>
+            <TextField 
+              fullWidth 
+              size="small" 
+              placeholder="Search employee by name or email..." 
+              value={accessSearchKeyword}
+              onChange={e => setAccessSearchKeyword(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            {employeesLoading ? (
+              <Box display='flex' justifyContent='center' p={3}><CircularProgress /></Box>
+            ) : (
+              <List sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #eee', borderRadius: 1 }}>
+                {filteredModalEmployees.map(emp => (
+                  <ListItem key={emp._id} divider button onClick={() => handleToggleAccess(emp._id)}>
+                    <Checkbox checked={authorizedUserIds.includes(emp._id)} />
+                    <ListItemText primary={`${emp.first_name} ${emp.last_name || ''}`} secondary={emp.email} />
+                  </ListItem>
+                ))}
+                {filteredModalEmployees.length === 0 && (
+                  <Box p={2} textAlign="center" color="textSecondary">No employees found.</Box>
+                )}
+              </List>
+            )}
+            <Box display='flex' justifyContent='flex-end' mt={3}>
+              <Button 
+                variant='contained' 
+                onClick={handleSaveAccess} 
+                disabled={accessSaving}
+                sx={{ backgroundColor: '#ff902f', '&:hover': { backgroundColor: '#e07d26' } }}
+              >
+                {accessSaving ? 'Saving...' : 'Save Access'}
+              </Button>
+            </Box>
+          </DialogContent>
+        </Dialog>
+
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
           <Box>
             <Typography style={{ fontSize: '2em' }} variant='h5' gutterBottom>
@@ -829,8 +998,17 @@ export default function AddAssets() {
             </Typography>
           </Box>
 
-          {userRole === '1' && (
-            <Box display='flex' alignItems='center' gap={2}>
+          {isAdminOrIT && (
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              {userRole === '1' && (
+                <Button
+                  variant='outlined'
+                  onClick={handleOpenAccessModal}
+                  sx={{ borderColor: '#ff902f', color: '#ff902f', '&:hover': { borderColor: '#e07d26' } }}
+                >
+                  Manage Access
+                </Button>
+              )}
               <Button
                 style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
                 variant='contained'
@@ -871,7 +1049,10 @@ export default function AddAssets() {
               fullWidth
               label='Filter by Upload Type'
               value={filterUploadType}
-              onChange={e => setFilterUploadType(e.target.value)}
+              onChange={e => {
+                setFilterUploadType(e.target.value)
+                setPage(1)
+              }}
             >
               <MenuItem value=''>All</MenuItem>
               <MenuItem value='LAPTOP'>Laptop</MenuItem>

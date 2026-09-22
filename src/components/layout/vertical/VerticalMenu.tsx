@@ -203,13 +203,11 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           </MenuSection>
         )}
 
-        {userRole === '1' && (
-          <MenuSection label='Assets & Inventory'>
-            <MenuItem href={`/inventory`} icon={<ProductionQuantityLimitsIcon />}>
-              Assets / Inventory
-            </MenuItem>
-          </MenuSection>
-        )}
+        <MenuSection label='Assets & Inventory'>
+          <MenuItem href={`/inventory`} icon={<ProductionQuantityLimitsIcon />}>
+            Assets / Inventory
+          </MenuItem>
+        </MenuSection>
       </Menu>
     </ScrollWrapper>
   )
