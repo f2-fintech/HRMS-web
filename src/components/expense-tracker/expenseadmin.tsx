@@ -24,6 +24,7 @@ import {
   softDeleteExpense,
 } from './expenseApi';
 import { fetchEmployees } from '@/redux/features/employees/employeesSlice';
+import FixedPaymentsModal from './FixedPaymentsModal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 const getFileNameFromUrl = (url: string) => {
@@ -572,6 +573,7 @@ export default function ExpenseAdmin() {
 
   // CREATE / EDIT STATES
   const [open, setOpen] = useState(false);
+  const [fixedPaymentsOpen, setFixedPaymentsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -1279,6 +1281,19 @@ export default function ExpenseAdmin() {
       >
         <h2 style={{ margin: 0, fontSize: 20, color: '#111827' }}></h2>
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <button
+            onClick={() => setFixedPaymentsOpen(true)}
+            style={{
+              ...pillButtonPrimary,
+              boxShadow: '0 8px 18px rgba(14, 116, 144, 0.3)',
+              background: 'linear-gradient(135deg, #10b981, #047857)',
+              padding: '6px 14px',
+              fontSize: 12,
+              marginRight: 10,
+            }}
+          >
+            Fixed Payments
+          </button>
           <button
             onClick={() => {
               if (open) resetForm();
@@ -2942,6 +2957,8 @@ export default function ExpenseAdmin() {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+      {/* Modals */}
+      <FixedPaymentsModal open={fixedPaymentsOpen} onClose={() => setFixedPaymentsOpen(false)} />
     </div>
   );
 }
