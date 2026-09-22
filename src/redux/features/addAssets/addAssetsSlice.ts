@@ -34,10 +34,10 @@ const initialState: addAssetsState = {
 
 export const fetchAddAssets = createAsyncThunk<
   { addassets: addAsset[]; total: number },
-  { page?: number; limit?: number; keyword?: string }
+  { page?: number; limit?: number; keyword?: string; uploadType?: string; empCode?: string }
 >(
   "add-assets/fetchAddAssets",
-  async ({ page = 1, limit = 10, keyword = "" }) => {
+  async ({ page = 1, limit = 10, keyword = "", uploadType = "", empCode = "" }) => {
     const { isTokenExpired } = utility();
     let token: string | null = null;
     const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage?.getItem("user")) : {};
@@ -60,7 +60,7 @@ export const fetchAddAssets = createAsyncThunk<
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL}/add-assets/get?page=${page}&limit=${limit}&keyword=${encodeURIComponent(
         keyword
-      )}`,
+      )}&uploadType=${encodeURIComponent(uploadType)}&empCode=${encodeURIComponent(empCode)}`,
       {
         method: 'GET',
         headers: {
