@@ -35,11 +35,19 @@ export default function NotificationDropdown() {
         }
       });
       const data = await res.json();
-      setNotifications(data);
+      
+      const safeData = {
+        birthdays: data.birthdays || [],
+        anniversaries: data.anniversaries || [],
+        payments: data.payments || [],
+        feeds: data.feeds || []
+      };
 
-      const tCount = data.birthdays.length + data.anniversaries.length + (data.payments ? data.payments.length : 0) + (data.feeds ? data.feeds.length : 0);
+      setNotifications(safeData);
+
+      const tCount = safeData.birthdays.length + safeData.anniversaries.length + safeData.payments.length + safeData.feeds.length;
       const lastSeenStr = localStorage.getItem('lastSeenNotifications');
-      if (lastSeenStr !== JSON.stringify(data)) {
+      if (lastSeenStr !== JSON.stringify(safeData)) {
         setUnreadCount(tCount);
       } else {
         setUnreadCount(0);
