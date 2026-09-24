@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { debounce } from 'lodash'
 import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid'
 import {
@@ -1019,6 +1020,15 @@ export default function AddAssets() {
                 Bulk Upload
               </Button>
 
+              <Link href="/it-inventory" passHref>
+                <Button
+                  style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
+                  variant='contained'
+                  color='warning'
+                >
+                  IT Asset Inventory
+                </Button>
+              </Link>
               <Button
                 style={{ borderRadius: 50, backgroundColor: '#ff902f' }}
                 variant='contained'
