@@ -22,6 +22,7 @@ import VideoCallIcon from '@mui/icons-material/VideoCall'
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital'
 import SupportAgentIcon from '@mui/icons-material/SupportAgent'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote'
 
 import InventoryIcon from '@mui/icons-material/Inventory';
 
@@ -172,6 +173,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
 
         {userRole !== "0" && (
           <MenuSection label='Finance & Expense'>
+            <MenuItem href={`/payroll`} icon={<RequestQuoteIcon />}>
+              Payroll & Payslips
+            </MenuItem>
             <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
               Expense Tracker
             </MenuItem>

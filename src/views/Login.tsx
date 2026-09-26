@@ -137,6 +137,8 @@ const Login = ({ mode }: { mode: Mode }) => {
         company_id: data.payload.company_id
       }));
 
+      sessionStorage.removeItem('birthday_seen');
+
       toast.success('Login successful!', {
         position: 'top-center'
       })
