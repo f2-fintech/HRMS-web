@@ -20,6 +20,8 @@ import PunchInOut from '@/views/PunchInOut'
 import Achievement from '@/views/Achievement'
 import IndianNewsViewer from '@/views/dashboard/IndianNewsViewer'
 
+import BirthdayAnimation from '@/components/BirthdayAnimation'
+
 import { fetchConfiguration } from '@/redux/features/configuration/configurationSlice'
 
 import {
@@ -88,6 +90,8 @@ const DashboardAnalytics = () => {
   }
 
   return (
+    <>
+    <BirthdayAnimation userId={user?.id} />
     <Grid container spacing={6}>
       {/* Common New Year Dashboard */}
       <Grid item xs={12} md={12} lg={12}>
@@ -235,6 +239,7 @@ const DashboardAnalytics = () => {
         </>
       )}
     </Grid>
+    </>
   )
 }
 
