@@ -1,0 +1,380 @@
+import React, { useState, useEffect } from 'react'
+
+import { useRouter } from 'next/navigation'
+
+import {
+  Card,
+  CardContent,
+  Box,
+  IconButton,
+  Menu,
+  MenuItem,
+  Avatar,
+  Typography,
+  Chip,
+  styled,
+  Tooltip
+} from '@mui/material'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import PermIdentityIcon from '@mui/icons-material/PermIdentity'
+import EditIcon from '@mui/icons-material/Edit'
+import DeleteIcon from '@mui/icons-material/Delete'
+import EmailIcon from '@mui/icons-material/Email'
+import RestoreIcon from '@mui/icons-material/Restore';
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+
+import Loader from '../loader/loader'
+import { useSettings } from '@core/hooks/useSettings'
+import 'react-toastify/dist/ReactToastify.css'
+
+const StyledCard = styled(Card)(({ theme, mode }) => ({
+  height: '100%',
+  borderRadius: '16px',
+  boxShadow: '0 4px 20px 0 rgba(0,0,0,0.12)',
+  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+  background: mode === 'dark' ? '#444' : '#fff',
+  position: 'relative',
+  isolation: 'isolate',
+  '&:hover': {
+    transform: 'translateY(-5px)',
+    boxShadow: '0 12px 30px 0 rgba(0,0,0,0.16)',
+    cursor: 'pointer'
+  }
+}))
+
+const StyledAvatar = styled(Avatar)(({ theme, mode }) => ({
+  width: 100,
+  height: 100,
+  margin: '0 auto',
+  border: `4px solid ${mode === 'dark' ? theme.palette.background.paper : theme.palette.background.default}`,
+  boxShadow: '0 2px 10px 0 rgba(0,0,0,0.12)'
+}))
+
+const StyledChip = styled(Chip)(({ theme }) => ({
+  fontWeight: 'bold',
+  textTransform: 'uppercase',
+  margin: theme.spacing(2, 0)
+}))
+
+const EmailContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: theme.shape.borderRadius,
+  wordBreak: 'break-all'
+}))
+
+const EmailTypography = styled(Typography)(({ theme, mode }) => ({
+  fontSize: '0.875rem',
+  textAlign: 'center',
+  color: mode === 'dark' ? theme.palette.text.primary : theme.palette.text.secondary,
+  backgroundColor: mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200],
+  padding: theme.spacing(0.5),
+  borderRadius: theme.shape.borderRadius,
+  wordBreak: 'break-all',
+  '&:hover': {
+    color: theme.palette.primary.main
+  }
+}))
+
+const EmployeeCard = ({
+  employee,
+  id,
+  status,
+  handleEditEmployeeClick,
+  handleDelete,
+  capitalizeWords,
+  deletedEmployee
+}) => {
+  const [anchorEl, setAnchorEl] = useState(null)
+  const [userRole, setUserRole] = useState('')
+  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const editRoles = [1, 6];
+  const deleteRoles = [1];
+
+  const { settings } = useSettings()
+
+  // 1. Get Designation (Checks nested object first for new data, falls back to old string)
+  const designationDisplay = employee.designation_id?.title || employee.designation || 'N/A';
+
+  const handleMenuOpen = event => {
+    event.stopPropagation()
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+  }
+
+  useEffect(() => {
+    if (userRole === '') {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+
+      setUserRole(user.role)
+    }
+  }, [userRole])
+
+  const getEmployeeStatusColor = status => {
+    switch (status) {
+      case 'pending':
+        return 'warning'
+      case 'inactive':
+        return 'error'
+      default:
+        return 'success'
+    }
+  }
+
+  const getAttendanceDotColor = status => {
+
+    switch (status) {
+
+      case 'PRESENT':
+        return '#22c55e'
+
+      case 'LEAVE':
+        return '#ef4444'
+
+      case 'HALF_DAY':
+        return '#facc15'
+
+      case 'COMPLETED':
+        return '#3b82f6'
+
+      case 'BREAK':
+        return '#a855f7'
+
+      case 'FIELD':
+        return '#f97316'
+
+      default:
+        return '#d1d5db'
+    }
+  }
+  const getAttendanceTooltip = status => {
+
+    switch (status) {
+
+      case 'PRESENT':
+        return 'Active'
+
+      case 'LEAVE':
+        return 'On Leave'
+
+      case 'HALF_DAY':
+        return 'Half Day'
+
+      case 'COMPLETED':
+        return 'Completed day'
+
+      case 'BREAK':
+        return 'On Break'
+
+      case 'FIELD':
+        return 'On Field'
+
+      default:
+        return 'No Information'
+    }
+  }
+
+  
+  const isOnField = ['FIELD', 'ON_FIELD', 'On Field'].includes(status)
+
+  const handleCardClick = () => {
+    setLoading(true)
+    setTimeout(() => {
+      router.push(`/profile/${deletedEmployee ? employee._id : id}`)
+    }, 500)
+  }
+
+  const handleEmailClick = e => {
+    e.stopPropagation()
+    window.location.href = `mailto:${employee.email}`
+  }
+
+  return (
+    <StyledCard
+      mode={settings.mode}
+      sx={{ position: 'relative' }}
+    >
+      {loading ? (
+        <Box display='flex' justifyContent='center' alignItems='center' height='100%'>
+          <Loader />
+        </Box>
+      ) : (
+        <CardContent>
+          <Box display='flex' justifyContent='flex-end'>
+            <IconButton style={{ color: settings.mode === 'dark' ? 'white' : 'blue' }} aria-label='settings' onClick={handleMenuOpen}>
+              <MoreVertIcon />
+            </IconButton>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+              {/* Edit */}
+              {editRoles.includes(Number(userRole)) && !deletedEmployee && (
+                <MenuItem
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleMenuClose()
+                    handleEditEmployeeClick(deletedEmployee ? employee._id : id)
+                  }}
+                >
+                  <EditIcon fontSize='small' style={{ marginRight: 8 }} />
+                  Edit
+                </MenuItem>
+              )}
+
+              {/* Delete / Restore */}
+              {deleteRoles.includes(Number(userRole)) && (
+                <MenuItem
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleMenuClose()
+                    handleDelete(id)
+                  }}
+                >
+                  {deletedEmployee ? (
+                    <RestoreIcon fontSize='small' style={{ marginRight: 8 }} />
+                  ) : (
+                    <DeleteIcon fontSize='small' style={{ marginRight: 8 }} />
+                  )}
+                  {deletedEmployee ? 'Restore' : 'Delete'}
+                </MenuItem>
+              )}
+              {!deletedEmployee &&
+                <MenuItem
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleMenuClose()
+                    handleCardClick()
+                  }}
+                >
+                  <PermIdentityIcon fontSize='small' style={{ marginRight: 8 }} />
+                  Profile
+                </MenuItem>
+              }
+            </Menu>
+          </Box>
+          <Box
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              justifyContent: 'center',
+              mb: 2
+            }}
+          >
+            <Tooltip
+              title={getAttendanceTooltip(status)}
+              arrow
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 4,
+                  right: '28%',
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  backgroundColor: getAttendanceDotColor(status),
+                  border: '2px solid white',
+                  // Was 9999 — that's what let it visually "win" against other
+                  // elements. A small value is enough since it only needs to sit
+                  // above the avatar right next to it, and `isolation: isolate`
+                  // on StyledCard above keeps this contained to the card.
+                  zIndex: 2,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+                }}
+              />
+            </Tooltip>
+
+            {/* ON FIELD — distinct pulsing pin marker, different from the other punch types */}
+            {isOnField && (
+              <Tooltip title='On Field' arrow>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: -4,
+                    left: '28%',
+                    zIndex: 3,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    backgroundColor: '#f97316', // orange — stands out from status/attendance colors
+                    color: '#fff',
+                    borderRadius: '999px',
+                    padding: '2px 8px 2px 4px',
+                    boxShadow: '0 2px 8px rgba(249,115,22,0.5)',
+                    border: '2px solid white',
+                    '@keyframes fieldPulse': {
+                      '0%': { boxShadow: '0 0 0 0 rgba(249,115,22,0.6)' },
+                      '70%': { boxShadow: '0 0 0 6px rgba(249,115,22,0)' },
+                      '100%': { boxShadow: '0 0 0 0 rgba(249,115,22,0)' }
+                    },
+                    animation: 'fieldPulse 1.8s infinite'
+                  }}
+                >
+                  <LocationOnIcon sx={{ fontSize: 16 }} />
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, lineHeight: 1 }}>
+                    FIELD
+                  </Typography>
+                </Box>
+              </Tooltip>
+            )}
+
+            <Tooltip title="View Profile" arrow>
+              <StyledAvatar
+                alt={employee.first_name}
+                src={employee?.image}
+                mode={settings.mode}
+                onClick={() => handleCardClick()}
+              />
+            </Tooltip>
+          </Box>
+
+          <Typography
+            variant='h5'
+            component='div'
+            align='center'
+            sx={{ mt: 2, fontWeight: 'bold', color: settings.mode === 'dark' ? 'white' : 'black' }}
+          >
+            {capitalizeWords(employee.first_name)} {capitalizeWords(employee.last_name)}
+          </Typography>
+
+          {/* DESIGNATION DISPLAY - Cleaned up to show only title */}
+          <Typography
+            variant='subtitle1'
+            color={settings.mode === 'dark' ? 'white' : 'black'}
+            align='center'
+            sx={{ mt: 1, fontWeight: 500 }}
+          >
+            {designationDisplay}
+          </Typography>
+
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+            <StyledChip label={employee.status} color={getEmployeeStatusColor(employee.status)} size='small' />
+          </Box>
+
+          <EmailContainer>
+            <Tooltip title='Click to send email' arrow>
+              <EmailTypography mode={settings.mode} onClick={handleEmailClick}>
+                <EmailIcon fontSize='small' sx={{ mr: 1, verticalAlign: 'middle' }} />
+                {employee.email}
+              </EmailTypography>
+            </Tooltip>
+          </EmailContainer>
+
+          <Typography
+            variant='subtitle1'
+            color={settings.mode === 'dark' ? 'white' : 'black'}
+            align='center'
+            sx={{ mt: 2, opacity: 0.8 }}
+          >
+            {employee.code}
+          </Typography>
+        </CardContent>
+      )}
+    </StyledCard>
+  )
+}
+
+export default EmployeeCard
