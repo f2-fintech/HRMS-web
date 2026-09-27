@@ -204,6 +204,17 @@ export default function BirthdayAnimation({ userId }: { userId?: string }) {
   const [seconds, setSeconds] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      if (musicPlaying) {
+        audioRef.current.play().catch(console.error);
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [musicPlaying]);
 
   useEffect(() => {
     if (!userId) return;
@@ -275,6 +286,9 @@ export default function BirthdayAnimation({ userId }: { userId?: string }) {
         
         @keyframes eq { 0%, 100% { height: 4px; } 50% { height: 14px; } }
       `}</style>
+      
+      {/* BACKGROUND AUDIO */}
+      <audio ref={audioRef} src="/birthday-song.mp3" loop />
 
       {/* LOADER */}
       <AnimatePresence>
