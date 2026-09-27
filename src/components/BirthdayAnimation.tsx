@@ -284,7 +284,7 @@ export default function BirthdayAnimation({ userId }: { userId?: string }) {
         .section-pad { padding: min(14vh, 140px) 0; }
         .wrap { width: min(1100px, 92vw); margin: 0 auto; text-align: center; }
         
-        @keyframes eq { 0%, 100% { height: 4px; } 50% { height: 14px; } }
+        @keyframes eq { 0%, 100% { height: 3px; } 50% { height: 14px; } }
       `}</style>
       
       {/* BACKGROUND AUDIO */}
