@@ -176,15 +176,16 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             <MenuItem href={`/payroll`} icon={<RequestQuoteIcon />}>
               Payroll & Payslips
             </MenuItem>
-            <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
-              Expense Tracker
-            </MenuItem>
+
             <MenuItem href={`/fine`} icon={<GavelIcon />}>
               Fine
             </MenuItem>
           </MenuSection>
         )}
 
+        <MenuItem href={`/expense-tracker`} icon={<AccountBalanceWalletIcon />}>
+          Expense Tracker
+        </MenuItem>
         {userRole !== "0" && (
           <MenuSection label='Operations & Support'>
             <MenuItem href={`/departmentPerformance`} icon={<AssessmentIcon />}>

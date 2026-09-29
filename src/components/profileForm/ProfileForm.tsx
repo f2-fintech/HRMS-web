@@ -199,7 +199,8 @@ const ProfileForm = ({
     const checkIfExist = async () => {
       try {
         const checkResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/profile/${profileId}`, {
-          method: 'GET'
+          method: 'GET',
+          cache: 'no-store'
         })
 
         if (checkResponse.ok) {
