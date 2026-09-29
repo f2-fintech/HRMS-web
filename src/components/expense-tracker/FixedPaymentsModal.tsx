@@ -1,6 +1,7 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Stack, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Checkbox, FormControlLabel, Chip } from '@mui/material';
+import React, { useEffect, useState, useRef } from 'react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Stack, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Checkbox, FormControlLabel, Chip, CircularProgress } from '@mui/material';
+import * as XLSX from 'xlsx';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 
@@ -8,8 +9,9 @@ export default function FixedPaymentsModal({ open, onClose }: { open: boolean, o
   const [reminders, setReminders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [form, setForm] = useState({ title: '', amount: '', dueDate: '', emails: '', isRecurring: false, notes: '', status: 'Pending' });
+  const [form, setForm] = useState({ category: 'Others', title: '', amount: '', dueDate: '', emails: '', isRecurring: false, notes: '', status: 'Pending' });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) fetchReminders();
@@ -36,30 +38,39 @@ export default function FixedPaymentsModal({ open, onClose }: { open: boolean, o
         emails: form.emails.split(',').map(e => e.trim()).filter(Boolean)
       };
 
+      let res;
       if (editingId) {
-        await fetch(`${API_BASE_URL}/payment-reminders/${editingId}`, {
+        res = await fetch(`${API_BASE_URL}/payment-reminders/${editingId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       } else {
-        await fetch(`${API_BASE_URL}/payment-reminders`, {
+        res = await fetch(`${API_BASE_URL}/payment-reminders`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       }
-      setForm({ title: '', amount: '', dueDate: '', emails: '', isRecurring: false, notes: '', status: 'Pending' });
-      setEditingId(null);
-      fetchReminders();
+
+      if (res && !res.ok) {
+        console.error('Save failed:', await res.text());
+        alert('Failed to save reminder.');
+      } else {
+        setForm({ category: 'Others', title: '', amount: '', dueDate: '', emails: '', isRecurring: false, notes: '', status: 'Pending' });
+        setEditingId(null);
+        fetchReminders();
+      }
     } catch (e) {
       console.error(e);
+      alert('Error saving reminder');
     }
   };
 
   const handleEdit = (r: any) => {
     setEditingId(r._id);
     setForm({
+      category: r.category || 'Others',
       title: r.title || '',
       amount: String(r.amount || ''),
       dueDate: r.dueDate ? r.dueDate.split('T')[0] : '',
@@ -98,13 +109,86 @@ export default function FixedPaymentsModal({ open, onClose }: { open: boolean, o
     }
   };
 
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json<any>(worksheet);
+
+      let successCount = 0;
+      // await fetch(`${API_BASE_URL}/payment-reminders`, { method: 'DELETE' }); // DO NOT Delete existing data before bulk insert
+      for (const row of jsonData) {
+        const title = row['Title'] !== undefined ? row['Title'] : row['title'];
+        const amountVal = row['Amount'] !== undefined ? row['Amount'] : row['amount'];
+        const amount = Number(amountVal);
+        if (!title || isNaN(amount)) continue;
+
+        let parsedDueDate = row['Due Date'] || row['dueDate'] || row['Date'];
+        if (typeof parsedDueDate === 'number') {
+          const date = new Date((parsedDueDate - (25567 + 2)) * 86400 * 1000);
+          parsedDueDate = date.toISOString().split('T')[0];
+        } else if (parsedDueDate) {
+          // Attempt to parse '10th', '1st' etc by extracting the number and assuming current month/year
+          let dateObj = new Date(parsedDueDate);
+          if (isNaN(dateObj.getTime())) {
+             const dayMatch = String(parsedDueDate).match(/(\d+)/);
+             if (dayMatch) {
+               const day = parseInt(dayMatch[1], 10);
+               const now = new Date();
+               dateObj = new Date(now.getFullYear(), now.getMonth(), day);
+             } else {
+               dateObj = new Date();
+             }
+          }
+          parsedDueDate = dateObj.toISOString().split('T')[0];
+        } else {
+          parsedDueDate = new Date().toISOString().split('T')[0];
+        }
+
+        const payload = {
+          category: row['Category'] || row['category'] || 'Others',
+          title,
+          amount,
+          dueDate: parsedDueDate,
+          emails: (row['Emails'] || row['emails'] || '').toString().split(',').map((email: string) => email.trim()).filter(Boolean),
+          isRecurring: row['Recurring'] === 'Yes' || row['isRecurring'] === true || row['Recurring'] === true || false,
+          notes: row['Notes'] || row['notes'] || '',
+          status: row['Status'] || row['status'] || 'Pending'
+        };
+
+        await fetch(`${API_BASE_URL}/payment-reminders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        successCount++;
+      }
+      alert(`Successfully uploaded ${successCount} reminders.`);
+      fetchReminders();
+    } catch (error) {
+      console.error('Error uploading excel:', error);
+      alert('Failed to process Excel file. Make sure columns match: Title, Amount, Due Date, Emails, Notes, Recurring, Status.');
+    } finally {
+      setLoading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>Fixed Payments & Reminders</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2} mb={4} p={2} border="1px solid #eee" borderRadius={2}>
           <h4>{editingId ? 'Edit Reminder' : 'Add New Reminder'}</h4>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField label="Category" size="small" fullWidth value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} />
             <TextField label="Title (e.g. Rent)" size="small" fullWidth value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
             <TextField label="Amount" type="number" size="small" fullWidth value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
             <TextField label="Due Date" type="date" size="small" fullWidth InputLabelProps={{ shrink: true }} value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} />
@@ -119,17 +203,25 @@ export default function FixedPaymentsModal({ open, onClose }: { open: boolean, o
               <option value="Pending">Pending</option>
               <option value="Paid">Paid</option>
             </TextField>
-            <Button variant="contained" onClick={handleSave} disabled={!form.title || !form.dueDate || !form.amount}>Save</Button>
-            {editingId && <Button variant="outlined" onClick={() => { setEditingId(null); setForm({ title: '', amount: '', dueDate: '', emails: '', isRecurring: false, notes: '', status: 'Pending' }); }}>Cancel</Button>}
+            <Button variant="contained" onClick={handleSave} disabled={!form.title || !form.dueDate || !form.amount || loading}>Save</Button>
+            <Button variant="outlined" color="secondary" onClick={() => fileInputRef.current?.click()} disabled={loading}>
+              {loading ? <CircularProgress size={24} /> : 'Upload Excel'}
+            </Button>
+            <input type="file" hidden accept=".xlsx, .xls, .csv" ref={fileInputRef} onChange={handleExcelUpload} />
+            {editingId && <Button variant="outlined" onClick={() => { setEditingId(null); setForm({ category: 'Others', title: '', amount: '', dueDate: '', emails: '', isRecurring: false, notes: '', status: 'Pending' }); }}>Cancel</Button>}
           </Stack>
         </Stack>
 
         <Table size="small">
           <TableHead>
             <TableRow>
+              <TableCell>Category</TableCell>
               <TableCell>Title</TableCell>
               <TableCell>Amount</TableCell>
               <TableCell>Due Date</TableCell>
+              <TableCell>Notes</TableCell>
+              <TableCell>Emails</TableCell>
+              <TableCell>Recurring</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -137,9 +229,13 @@ export default function FixedPaymentsModal({ open, onClose }: { open: boolean, o
           <TableBody>
             {reminders.map(r => (
               <TableRow key={r._id}>
+                <TableCell>{r.category || 'Others'}</TableCell>
                 <TableCell>{r.title}</TableCell>
                 <TableCell>₹{r.amount}</TableCell>
                 <TableCell>{new Date(r.dueDate).toLocaleDateString()}</TableCell>
+                <TableCell>{r.notes}</TableCell>
+                <TableCell>{(r.emails || []).join(', ')}</TableCell>
+                <TableCell>{r.isRecurring ? 'Yes' : 'No'}</TableCell>
                 <TableCell>
                   <Chip size="small" label={r.status} color={r.status === 'Paid' ? 'success' : 'warning'} />
                 </TableCell>
