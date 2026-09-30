@@ -25,15 +25,43 @@ export default function AnnouncementsPage() {
   const [accessSaving, setAccessSaving] = useState(false);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const isAdminRole = String(user.role) === '1' || String(user.role) === '0';
-    const hasAccess = isAdminRole || user.can_manage_announcements === true;
+    const checkAccess = async () => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const isAdminRole = String(user.role) === '1' || String(user.role) === '0';
+      
+      let hasAccess = isAdminRole || user.can_manage_announcements === true;
+      
+      // Fetch latest user info from DB to avoid needing a re-login
+      if (!isAdminRole && user.id) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/employees/get/${user.id}`);
+          if (res.ok) {
+            const employeeData = await res.json();
+            if (employeeData && employeeData.can_manage_announcements) {
+              hasAccess = true;
+              
+              // Optionally update local storage so it persists
+              user.can_manage_announcements = true;
+              localStorage.setItem('user', JSON.stringify(user));
+            } else {
+              hasAccess = false;
+              user.can_manage_announcements = false;
+              localStorage.setItem('user', JSON.stringify(user));
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch latest access permissions");
+        }
+      }
+
+      if (hasAccess) setIsAdmin(true);
+      if (isAdminRole) setIsSuperAdmin(true);
+      
+      fetchFeeds();
+      if (hasAccess) fetchEmployees();
+    };
     
-    if (hasAccess) setIsAdmin(true);
-    if (isAdminRole) setIsSuperAdmin(true); // Only admins see 'Manage Access' button
-    
-    fetchFeeds();
-    if (hasAccess) fetchEmployees();
+    checkAccess();
   }, []);
 
   const fetchFeeds = async () => {
