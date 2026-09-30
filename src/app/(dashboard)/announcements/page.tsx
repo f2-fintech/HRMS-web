@@ -26,10 +26,12 @@ export default function AnnouncementsPage() {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const isSuper = String(user.role) === '1';
-    const hasAccess = isSuper || user.can_manage_announcements === true;
+    const isAdminRole = String(user.role) === '1' || String(user.role) === '0';
+    const hasAccess = isAdminRole || user.can_manage_announcements === true;
+    
     if (hasAccess) setIsAdmin(true);
-    if (isSuper) setIsSuperAdmin(true);
+    if (isAdminRole) setIsSuperAdmin(true); // Only admins see 'Manage Access' button
+    
     fetchFeeds();
     if (hasAccess) fetchEmployees();
   }, []);

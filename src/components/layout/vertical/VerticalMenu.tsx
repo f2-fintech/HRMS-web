@@ -107,11 +107,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             Visitors
           </MenuItem>
 
-          {userRole === "1" && (
-            <MenuItem href={`/announcements`} icon={<i className='ri-megaphone-line' />}>
-              Announcements
-            </MenuItem>
-          )}
+          <MenuItem href={`/announcements`} icon={<i className='ri-megaphone-line' />}>
+            Announcements
+          </MenuItem>
 
 
           {/* {userRole === "0" &&
