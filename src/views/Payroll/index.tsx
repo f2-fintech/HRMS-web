@@ -17,7 +17,8 @@ import {
   IconButton,
   Autocomplete,
   Fade,
-  Grow
+  Grow,
+  CircularProgress
 } from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -103,6 +104,54 @@ export default function PayrollView() {
 
   const [excelFile, setExcelFile] = useState<File | null>(null);
 
+  const [allPayslips, setAllPayslips] = useState<any[]>([]);
+  const [loadingPayslips, setLoadingPayslips] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const fetchAllPayslips = async () => {
+    setLoadingPayslips(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/payroll/all-payslips`);
+      if (res.ok) {
+        const data = await res.json();
+        setAllPayslips(data);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingPayslips(false);
+    }
+  };
+
+  const handleDownload = async (payslipId: string, month: string, empCode: string) => {
+    setDownloadingId(payslipId);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/payroll/download/${payslipId}`);
+      if (!res.ok) throw new Error('Download failed');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Payslip-${empCode}-${month.replace(' ', '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to download payslip.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 2) {
+      fetchAllPayslips();
+    }
+  }, [tab]);
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
   };
@@ -176,7 +225,7 @@ export default function PayrollView() {
       });
 
       if (!res.ok) throw new Error('Failed to process bulk upload');
-      alert('Payslips generated & emails are sending!');
+      alert('Payslips saved successfully! Employees can now view them in their portal.');
       setExcelFile(null);
       setBulkSalaryMonth('');
     } catch (error) {
@@ -222,6 +271,7 @@ export default function PayrollView() {
           >
             <Tab label="Manual Generation" />
             <Tab label="Bulk Upload (Excel)" />
+            <Tab label="Generated Payslips" />
           </Tabs>
 
           {tab === 0 && (
@@ -600,6 +650,85 @@ export default function PayrollView() {
                     </Button>
                   </Grid>
                 </Grid>
+              </Paper>
+            </Grow>
+          )}
+
+          {tab === 2 && (
+            <Grow in={true} timeout={400}>
+              <Paper
+                elevation={0}
+                sx={{ 
+                  p: { xs: 3, md: 5 }, 
+                  borderRadius: '24px', 
+                  border: `1px solid ${tokens.border}`,
+                  boxShadow: '0 20px 40px -15px rgba(15, 23, 42, 0.05)',
+                  bgcolor: tokens.surface
+                }}
+              >
+                <Box mb={4} display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography sx={{ fontWeight: 800, color: tokens.secondary, fontSize: '1.5rem', letterSpacing: '-0.02em' }}>
+                    All Generated Payslips
+                  </Typography>
+                  <Button variant="outlined" onClick={fetchAllPayslips} disabled={loadingPayslips}>
+                    {loadingPayslips ? 'Refreshing...' : 'Refresh'}
+                  </Button>
+                </Box>
+
+                {loadingPayslips ? (
+                  <Box display="flex" justifyContent="center" py={10}>
+                    <CircularProgress size={40} sx={{ color: tokens.primary }} />
+                  </Box>
+                ) : allPayslips.length === 0 ? (
+                  <Box textAlign="center" py={10}>
+                    <Typography color={tokens.textMuted}>No payslips found.</Typography>
+                  </Box>
+                ) : (
+                  <Grid container spacing={3}>
+                    {allPayslips.map((slip, i) => (
+                      <Grid item xs={12} sm={6} md={4} key={slip._id}>
+                        <Fade in timeout={400 + (i * 100)}>
+                          <Box sx={{ 
+                            p: 3, 
+                            borderRadius: '16px', 
+                            border: `1px solid ${tokens.border}`,
+                            bgcolor: '#FAFAF9',
+                            transition: 'all 0.2s',
+                            '&:hover': { borderColor: tokens.primary, bgcolor: tokens.surface, transform: 'translateY(-2px)' }
+                          }}>
+                            <Typography sx={{ fontWeight: 700, color: tokens.primary, fontSize: '0.85rem', mb: 1, textTransform: 'uppercase' }}>
+                              {slip.salaryMonth}
+                            </Typography>
+                            <Typography sx={{ fontWeight: 800, color: tokens.textMain, fontSize: '1.1rem' }}>
+                              {slip.employeeId?.first_name} {slip.employeeId?.last_name}
+                            </Typography>
+                            <Typography sx={{ color: tokens.textMuted, fontSize: '0.85rem', mb: 2 }}>
+                              ID: {slip.employeeId?.code || 'N/A'}
+                            </Typography>
+
+                            <Box display="flex" justifyContent="space-between" mb={2}>
+                              <Typography sx={{ color: tokens.textMuted, fontSize: '0.9rem' }}>Net Payable</Typography>
+                              <Typography sx={{ fontWeight: 700, color: tokens.textMain, fontSize: '0.95rem' }}>
+                                ₹ {slip.payslipData?.netPayable?.toLocaleString('en-IN') || '0'}
+                              </Typography>
+                            </Box>
+
+                            <Button
+                              fullWidth
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleDownload(slip._id, slip.salaryMonth, slip.employeeId?.code || 'EMP')}
+                              disabled={downloadingId === slip._id}
+                              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px', color: tokens.primary, borderColor: tokens.primary }}
+                            >
+                              {downloadingId === slip._id ? 'Downloading...' : 'Download PDF'}
+                            </Button>
+                          </Box>
+                        </Fade>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
               </Paper>
             </Grow>
           )}
