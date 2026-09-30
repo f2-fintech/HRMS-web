@@ -1,11 +1,12 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Typography, Button, TextField, Checkbox, FormControlLabel, RadioGroup, Radio, FormControl, Autocomplete, Stack, Divider, CircularProgress } from '@mui/material';
+import { Card, CardContent, Typography, Button, TextField, Checkbox, FormControlLabel, RadioGroup, Radio, FormControl, Autocomplete, Stack, Divider, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Box } from '@mui/material';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
 
 export default function AnnouncementsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [feeds, setFeeds] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -18,11 +19,19 @@ export default function AnnouncementsPage() {
   const [sendEmail, setSendEmail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Manage Access State
+  const [manageAccessModalOpen, setManageAccessModalOpen] = useState(false);
+  const [selectedAccessEmployees, setSelectedAccessEmployees] = useState<any[]>([]);
+  const [accessSaving, setAccessSaving] = useState(false);
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (String(user.role) === '1') setIsAdmin(true);
+    const isSuper = String(user.role) === '1';
+    const hasAccess = isSuper || user.can_manage_announcements === true;
+    if (hasAccess) setIsAdmin(true);
+    if (isSuper) setIsSuperAdmin(true);
     fetchFeeds();
-    if (String(user.role) === '1') fetchEmployees();
+    if (hasAccess) fetchEmployees();
   }, []);
 
   const fetchFeeds = async () => {
@@ -46,12 +55,16 @@ export default function AnnouncementsPage() {
       const companyId = user.company_id || '';
       const token = localStorage.getItem('token');
       
-      const res = await fetch(`${API_BASE_URL}/employees/get?limit=1000`, {
-        headers: { 'Authorization': `Bearer ${token} ${companyId}` }
+      const res = await fetch(`${API_BASE_URL}/employees/get?limit=1000&page=1`, {
+        headers: { 
+          'Authorization': `Bearer ${token} ${companyId}`,
+          'Content-Type': 'application/json'
+        }
       });
       const data = await res.json();
       const list = Array.isArray(data) ? data : data.employees || data.data || [];
-      setEmployees(list.filter((e: any) => e.status === 'active' || e.status === 'Active' || !e.status));
+      const activeList = list.filter((e: any) => e.status === 'active' || e.status === 'Active' || !e.status);
+      setEmployees(activeList);
     } catch (e) {
       console.error(e);
     }
@@ -100,9 +113,55 @@ export default function AnnouncementsPage() {
     }
   };
 
+  const handleOpenManageAccess = () => {
+    const currentlyGranted = employees.filter(e => e.can_manage_announcements === true);
+    setSelectedAccessEmployees(currentlyGranted);
+    setManageAccessModalOpen(true);
+  };
+
+  const handleSaveManageAccess = async () => {
+    try {
+      setAccessSaving(true);
+      const currentlyGrantedIds = employees.filter(e => e.can_manage_announcements === true).map(e => e._id);
+      const newlySelectedIds = selectedAccessEmployees.map(e => e._id);
+      
+      const grantAccess = newlySelectedIds.filter(id => !currentlyGrantedIds.includes(id));
+      const revokeAccess = currentlyGrantedIds.filter(id => !newlySelectedIds.includes(id));
+
+      const res = await fetch(`${API_BASE_URL}/employees/manage-announcement-access`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ grantAccess, revokeAccess })
+      });
+
+      if (res.ok) {
+        alert('Access updated successfully!');
+        setManageAccessModalOpen(false);
+        fetchEmployees(); // Refresh employee list
+      } else {
+        alert('Failed to update access');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error updating access');
+    } finally {
+      setAccessSaving(false);
+    }
+  };
+
   return (
     <div style={{ padding: '24px', maxWidth: 1000, margin: '0 auto' }}>
-      <Typography variant="h4" fontWeight={700} mb={4}>Company Announcements</Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Typography variant="h4" fontWeight={700}>Company Announcements</Typography>
+        {isSuperAdmin && (
+          <Button variant="outlined" color="primary" onClick={handleOpenManageAccess}>
+            Manage Access
+          </Button>
+        )}
+      </Box>
 
       {isAdmin && (
         <Card sx={{ mb: 6, p: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
@@ -123,9 +182,10 @@ export default function AnnouncementsPage() {
               {targetAudience === 'specific' && (
                 <Autocomplete
                   multiple
-                  options={employees}
-                  getOptionLabel={(option) => `${option.first_name} ${option.last_name} (${option.email})`}
-                  value={selectedEmployees}
+                  options={employees || []}
+                  getOptionLabel={(option) => `${option?.first_name || ''} ${option?.last_name || ''} (${option?.email || ''})`}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  value={selectedEmployees || []}
                   onChange={(e, newValue) => setSelectedEmployees(newValue)}
                   renderInput={(params) => (
                     <TextField {...params} label="Select Employees" placeholder="Search employees..." />
@@ -169,6 +229,33 @@ export default function AnnouncementsPage() {
           ))}
         </Stack>
       )}
+
+      {/* Manage Access Modal */}
+      <Dialog open={manageAccessModalOpen} onClose={() => setManageAccessModalOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Manage Announcement Access</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="textSecondary" mb={3} mt={1}>
+            Select the employees who should have permission to create and send company announcements.
+          </Typography>
+          <Autocomplete
+            multiple
+            options={employees || []}
+            getOptionLabel={(option) => `${option?.first_name || ''} ${option?.last_name || ''} (${option?.email || ''})`}
+            isOptionEqualToValue={(option, value) => option._id === value._id}
+            value={selectedAccessEmployees || []}
+            onChange={(e, newValue) => setSelectedAccessEmployees(newValue)}
+            renderInput={(params) => (
+              <TextField {...params} label="Select Employees" placeholder="Search employees..." />
+            )}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setManageAccessModalOpen(false)} disabled={accessSaving}>Cancel</Button>
+          <Button onClick={handleSaveManageAccess} variant="contained" color="primary" disabled={accessSaving}>
+            {accessSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

@@ -16,7 +16,9 @@ import {
   MenuItem,
   InputAdornment,
   Autocomplete,
-  Paper
+  Paper,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import PersonAddIcon from '@mui/icons-material/PersonAdd'
@@ -86,7 +88,8 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
     location: '',
     company_id: '',
     manager_id: '',
-    department_id: ''
+    department_id: '',
+    can_manage_announcements: false
   })
 
   const [imageFocus, setImageFocus] = useState(false)
@@ -139,7 +142,8 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
           location: selected.location || '',
           company_id: selected.company_id || '',
           manager_id: selected.manager_id || '',
-          department_id: deptId
+          department_id: deptId,
+          can_manage_announcements: selected.can_manage_announcements || false
         });
 
         setSelectedDepartmentId(deptId);
@@ -1109,6 +1113,26 @@ const EmployeeForm = ({ handleClose, employee, employees, fetchEmployees, page }
             {errors.role_priority && <Typography color='error'>{errors.role_priority}</Typography>}
           </FormControl>
         </Grid>
+
+        {/* Manage Announcements Checkbox */}
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth>
+            <Box display="flex" alignItems="center" mt={2}>
+              <FormControlLabel 
+                control={
+                  <Checkbox 
+                    checked={formData.can_manage_announcements || false}
+                    onChange={(e) => setFormData(prev => ({ ...prev, can_manage_announcements: e.target.checked }))}
+                    name="can_manage_announcements"
+                    color="primary"
+                  />
+                }
+                label="Can Manage Announcements"
+              />
+            </Box>
+          </FormControl>
+        </Grid>
+
         {/* ====================== DESIGNATION SELECT ====================== */}
         {/* Department Selection */}
         <Grid item xs={12} md={6}>

@@ -53,11 +53,13 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
 
     setUserRole(user.role || null)
+    setUserId(user.id || null)
   }, [])
 
   return (
@@ -91,9 +93,15 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           )}
 
 
-          <MenuItem href={`/employees`} icon={<i className='ri-user-3-line' />}>
-            Employees
-          </MenuItem>
+          {userRole === "0" || userRole === "1" ? (
+            <MenuItem href={`/employees`} icon={<i className='ri-user-3-line' />}>
+              Employees
+            </MenuItem>
+          ) : (
+            <MenuItem href={`/profile/${userId}`} icon={<i className='ri-user-3-line' />}>
+              My Profile
+            </MenuItem>
+          )}
 
           <MenuItem href={`/visitors`} icon={<i className='ri-user-3-line' />}>
             Visitors
@@ -179,6 +187,14 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
 
             <MenuItem href={`/fine`} icon={<GavelIcon />}>
               Fine
+            </MenuItem>
+          </MenuSection>
+        )}
+
+        {userRole !== "0" && userRole !== "1" && (
+          <MenuSection label='My Finance'>
+            <MenuItem href={`/my-payslips`} icon={<RequestQuoteIcon />}>
+              My Payslips
             </MenuItem>
           </MenuSection>
         )}
