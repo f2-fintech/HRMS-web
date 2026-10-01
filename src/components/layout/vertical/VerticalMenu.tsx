@@ -93,15 +93,15 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           )}
 
 
-          {userRole === "0" || userRole === "1" ? (
+       
             <MenuItem href={`/employees`} icon={<i className='ri-user-3-line' />}>
               Employees
             </MenuItem>
-          ) : (
+      
             <MenuItem href={`/profile/${userId}`} icon={<i className='ri-user-3-line' />}>
               My Profile
             </MenuItem>
-          )}
+
 
           <MenuItem href={`/visitors`} icon={<i className='ri-user-3-line' />}>
             Visitors
@@ -177,17 +177,17 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           </MenuSection>
         )}
 
-        {userRole === "1" && (
           <MenuSection label='Finance & Expense'>
+        {userRole === "1" && (
             <MenuItem href={`/payroll`} icon={<RequestQuoteIcon />}>
               Payroll & Payslips
             </MenuItem>
 
+          )}
             <MenuItem href={`/fine`} icon={<GavelIcon />}>
               Fine
             </MenuItem>
           </MenuSection>
-        )}
 
         {userRole !== "0" && userRole !== "1" && (
           <MenuSection label='My Finance'>
