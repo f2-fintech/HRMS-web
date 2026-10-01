@@ -1,0 +1,428 @@
+import { utility } from "..";
+
+export const apiResponse = async (): Promise<any> => {
+  const page = 1;
+  const limit = 0;
+  const keyword = '';
+  const { isTokenExpired } = utility();
+
+  // Check if we're in a browser environment
+  if (typeof window === "undefined") {
+    return { error: "Not in browser environment" };
+  }
+
+  const token = localStorage.getItem("token");
+
+  // If token doesn't exist or is expired, redirect to login with page refresh
+  if (!token || isTokenExpired(token)) {
+    // Clean up localStorage if needed
+    if (token) {
+      localStorage.removeItem('token');
+    }
+
+    // Redirect to login with page refresh
+    window.location.href = '/login';
+    return { error: token ? "Token expired" : "No token found" };
+  }
+
+  // Get user data
+  const userData = localStorage.getItem('user');
+  if (!userData) {
+    // Redirect to login with page refresh
+    window.location.href = '/login';
+    return { error: "User data not found" };
+  }
+
+  const { company_id } = JSON.parse(userData);
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/employees/get?page=${page}&limit=${limit}&keyword=${keyword}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json'
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const employees = await response.json();
+    return employees;
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    throw error;
+  }
+};
+
+export const employeesCountResponse = async (): Promise<any> => {
+
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/employees/all-employees-count`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json'
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const employees = await response.json();
+
+    return employees;
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    throw error;
+  }
+};
+
+// -----------------------------------------
+// Month wise summary (single month ka data)
+// -----------------------------------------
+export const fetchMonthlyAttendanceSummary = async (month: number, year: number): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/attendence/monthly-summary?month=${month}&year=${year}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const attendanceSummary = await response.json();
+
+    return attendanceSummary;
+  } catch (error) {
+    console.error('Error fetching monthly attendance summary:', error);
+    throw error;
+  }
+};
+
+// -----------------------------------------
+// Year wise summary (poore saal ke 12 months ek sath + yearTotal)
+// -----------------------------------------
+export const fetchYearlyAttendanceSummary = async (year: number): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/attendence/yearly-summary?year=${year}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const attendanceSummary = await response.json();
+
+    return attendanceSummary;
+  } catch (error) {
+    console.error('Error fetching yearly attendance summary:', error);
+    throw error;
+  }
+};
+export const fetchLeaveByDate = async (date: string): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user')) : {};
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/attendence/leave-by-date?date=${date}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token} ${company_id}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const leaveData = await response.json();
+
+    return leaveData;
+  } catch (error) {
+    console.error('Error fetching date-wise leave data:', error);
+    throw error;
+  }
+};
+
+
+export const fetchTotalShiftTime = async (date: string): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } = typeof window !== "undefined" ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/punch/total-shift-time?date=${date}&company_id=${company_id}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const shiftTimeDetails = await response.json();
+
+    return shiftTimeDetails;
+  } catch (error) {
+    console.error('Error fetching total shift time:', error);
+    throw error;
+  }
+};
+
+export const fetchShiftSummary = async (date: string): Promise<any> => {
+  const token = localStorage?.getItem("token") || '{}';
+  const { company_id } =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem('user') || '{}')
+      : {};
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/punch/shift-summary?date=${date}&company_id=${company_id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch shift summary');
+  }
+
+  return response.json();
+};
+
+export const fetchMonthlyShiftSummary = async (
+  month: number,
+  year: number
+): Promise<any> => {
+
+  const token = localStorage?.getItem("token") || '{}';
+
+  const { company_id } =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem('user') || '{}')
+      : {};
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/punch/monthly-shift-summary?month=${month}&year=${year}&company_id=${company_id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch monthly shift summary');
+  }
+
+  return response.json();
+};
+
+export const fetchTodayLeaves = async (): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/attendence/today-leaves?company_id=${company_id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch today leaves')
+  }
+
+  return response.json()
+}
+
+export const fetchEmployeesNotPunched = async (
+  date: string
+): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('user') || '{}')
+      : {}
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/punch/employees-not-punches-by-date?date=${date}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch missing punches')
+  }
+
+  return response.json()
+}
+
+export const exportAdminReport = async () => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/admin-desk/export`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Export failed')
+  }
+
+  return response.blob()
+}
+
+export const fetchHalfDayEmployees = async (
+  date: string
+): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/attendence/on-half/${date}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch half day employees')
+  }
+
+  return response.json()
+
+}
+
+export const fetchAbsentEmployees = async (
+  date: string
+): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/attendence/byStatusOnly?status=Absent&date=${date}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch absent employees')
+  }
+
+  return response.json()
+
+}
+export const fetchEmployeesNotPunchedOut = async (
+  date: string
+): Promise<any> => {
+
+  const token = localStorage.getItem('token') || '{}'
+
+  const { company_id } =
+    JSON.parse(localStorage.getItem('user') || '{}')
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/punch/not-punched-out?date=${date}&company_id=${company_id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token} ${company_id}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch not punched out employees')
+  }
+
+  return response.json()
+
+}
