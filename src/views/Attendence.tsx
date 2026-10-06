@@ -683,7 +683,7 @@ const handleExportYearlyAttendance = async () => {
 
             {userRole === '1' && (
               <>
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={3}>
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <DatePicker
                       views={['month', 'year']} // Allows selecting both month and year
@@ -697,25 +697,33 @@ const handleExportYearlyAttendance = async () => {
                       }}
                       sx={{
                         width: '100%',  // Ensure it takes full width of its container
-                        maxWidth: '200px',  // Limit maximum width
-                        marginLeft: {
-                          xs: '0px',    // On small screens, no margin
-                          sm: '10px',   // Slight margin on small screens
-                          md: '290px',   // On large screens, shift it 50px to the right
-                        },
-                        marginRight: 'auto', // Center-align for larger screens
+                        maxWidth: '220px',  // Limit maximum width
                       }}
                     />
                   </LocalizationProvider>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid item xs={12} md={5} display="flex" justifyContent="flex-end" alignItems="center" gap={1.5}>
                   <Button
-                    fullWidth
+                    style={{
+                      borderRadius: 100,
+                      padding: '10px 20px',
+                      fontWeight: 'bold',
+                      whiteSpace: 'nowrap',
+                    }}
+                    variant='contained'
+                    color='primary'
+                    href='/attendance-activity'
+                  >
+                    Attendance Activity
+                  </Button>
+
+                  <Button
                     style={{
                       borderRadius: 100,
                       backgroundImage: '#071393',
-                      padding: '10px'
+                      padding: '10px 20px',
+                      whiteSpace: 'nowrap',
                     }}
                     variant='contained'
                     color='warning'
