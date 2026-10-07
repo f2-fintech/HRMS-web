@@ -23,6 +23,8 @@ import LocalHospitalIcon from '@mui/icons-material/LocalHospital'
 import SupportAgentIcon from '@mui/icons-material/SupportAgent'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote'
+import CelebrationIcon from '@mui/icons-material/Celebration'
+import BadgeIcon from '@mui/icons-material/Badge'
 
 import InventoryIcon from '@mui/icons-material/Inventory';
 
@@ -102,6 +104,10 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
               My Profile
             </MenuItem>
 
+            <MenuItem href={`/id-card`} icon={<BadgeIcon />}>
+              ID Card
+            </MenuItem>
+
 
           <MenuItem href={`/visitors`} icon={<i className='ri-user-3-line' />}>
             Visitors
@@ -151,6 +157,11 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             <MenuItem href={`/holidays`} icon={<EventIcon />}>
               Holiday
             </MenuItem>
+            {userRole === "1" && (
+              <MenuItem href={`/celebrations`} icon={<CelebrationIcon />}>
+                Celebrations
+              </MenuItem>
+            )}
             <MenuItem href={`/policy`} icon={<DescriptionIcon />}>
               Policies
             </MenuItem>

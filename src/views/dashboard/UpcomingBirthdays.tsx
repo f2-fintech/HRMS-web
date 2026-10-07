@@ -62,13 +62,13 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
 
   // Today's birthdays (month/day match today)
   const todayBirthdays = upcomingBirthdays.filter(row => {
-    const thisYearBirthday = getNextBirthdayDate(row._doc.dob)
+    const thisYearBirthday = getNextBirthdayDate(row.dob)
     return thisYearBirthday.isSame(today, 'day')
   })
 
   // All upcoming excluding today
   const upcomingWithoutToday = upcomingBirthdays.filter(row => {
-    const thisYearBirthday = getNextBirthdayDate(row._doc.dob)
+    const thisYearBirthday = getNextBirthdayDate(row.dob)
     return !thisYearBirthday.isSame(today, 'day')
   })
 
@@ -83,7 +83,7 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
     // Group upcoming by actual next-birthday date (YYYY-MM-DD) with diff in days
     const groupedUpcoming = allUpcoming.reduce(
       (acc: Record<string, { employees: typeof upcomingBirthdays; diff: number }>, curr) => {
-        const nextDate = getNextBirthdayDate(curr._doc.dob)
+        const nextDate = getNextBirthdayDate(curr.dob)
         const key = nextDate.format('YYYY-MM-DD')
         const diff = nextDate.diff(today, 'day')
 
@@ -117,7 +117,7 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
       : allUpcoming.filter(employee => {
           if (!nextBirthdayKey) return true
 
-          const nextDate = getNextBirthdayDate(employee._doc.dob)
+          const nextDate = getNextBirthdayDate(employee.dob)
           const key = nextDate.format('YYYY-MM-DD')
 
           return key !== nextBirthdayKey
@@ -176,8 +176,8 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
               <Grid item key={index} xs={4}>
                 <Tooltip title='View Profile' arrow>
                   <Avatar
-                    src={row._doc.image}
-                    alt={`${row._doc.first_name} ${row._doc.last_name}`}
+                    src={row.image}
+                    alt={`${row.first_name} ${row.last_name}`}
                     sx={{
                       width: 85,
                       height: 85,
@@ -185,23 +185,23 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
                      border: `2px solid ${settings.mode === 'dark' ? '#ddd' : '#ddd'}`,
                       boxShadow: settings.mode === 'dark' ? '0 4px 8px rgba(0, 0, 0, 0.2)' : '0 4px 8px rgba(0, 0, 0, 0.2)'
                     }}
-                    onClick={() => navigateToProfile(row._doc?._id)}
+                    onClick={() => navigateToProfile(row?._id)}
                   >
-                    {!row._doc.image && <PersonIcon />}
+                    {!row.image && <PersonIcon />}
                   </Avatar>
                 </Tooltip>
                 <Typography
                   variant='h6'
                   sx={{ color: 'white', mt: 1, textAlign: 'center' }}
                 >
-                  {capitalizeFirstLetter(row._doc.first_name)}{' '}
-                  {capitalizeFirstLetter(row._doc.last_name)}
+                  {capitalizeFirstLetter(row.first_name)}{' '}
+                  {capitalizeFirstLetter(row.last_name)}
                 </Typography>
                 <Typography
                   variant='h6'
                   sx={{ color: 'white', mt: 1, textAlign: 'center' }}
                 >
-                  {row._doc.designation}
+                  {row.designation}
                 </Typography>
               </Grid>
             ))}
@@ -235,7 +235,7 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
             }}
           >
             Coming up on{' '}
-            {dayjs(nextBirthdayEmployees[0]._doc.dob).format('D MMM')}!
+            {dayjs(nextBirthdayEmployees[0].dob).format('D MMM')}!
           </Typography>
 
           <Grid container spacing={2} justifyContent='center' sx={{ mt: 1 }}>
@@ -243,8 +243,8 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
               <Grid item key={index} xs={4}>
                 <Tooltip title='View profile' arrow>
                   <Avatar
-                    src={employee._doc.image}
-                    alt={`${employee._doc.first_name} ${employee._doc.last_name}`}
+                    src={employee.image}
+                    alt={`${employee.first_name} ${employee.last_name}`}
                     sx={{
                       width: 87,
                       height: 87,
@@ -253,23 +253,23 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
                       boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
                       cursor: 'pointer'
                     }}
-                    onClick={() => navigateToProfile(employee._doc?._id)}
+                    onClick={() => navigateToProfile(employee?._id)}
                   >
-                    {!employee._doc.image && <PersonIcon />}
+                    {!employee.image && <PersonIcon />}
                   </Avatar>
                 </Tooltip>
                 <Typography
                   variant='h6'
                   sx={{ color: 'white', mt: 1, textAlign: 'center' }}
                 >
-                  {capitalizeFirstLetter(employee._doc.first_name)}{' '}
-                  {capitalizeFirstLetter(employee._doc.last_name)}
+                  {capitalizeFirstLetter(employee.first_name)}{' '}
+                  {capitalizeFirstLetter(employee.last_name)}
                 </Typography>
                 <Typography
                   variant='body2'
                   sx={{ color: '#64e0e2', textAlign: 'center', mt: 2 }}
                 >
-                  {employee._doc.designation}
+                  {employee.designation}
                 </Typography>
               </Grid>
             ))}
@@ -336,8 +336,8 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
                     <ListItemAvatar>
                       <Tooltip title='View Profile' arrow>
                         <Avatar
-                          src={row._doc.image}
-                          alt={`${row._doc.first_name} ${row._doc.last_name}`}
+                          src={row.image}
+                          alt={`${row.first_name} ${row.last_name}`}
                           sx={{
                             width: 56,
                             height: 56,
@@ -348,9 +348,9 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
                               transform: 'scale(1.1)'
                             }
                           }}
-                          onClick={() => navigateToProfile(row._doc?._id)}
+                          onClick={() => navigateToProfile(row?._id)}
                         >
-                          {!row._doc.image && <PersonIcon />}
+                          {!row.image && <PersonIcon />}
                         </Avatar>
                       </Tooltip>
                     </ListItemAvatar>
@@ -363,8 +363,8 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
                           }}
                           variant='subtitle1'
                         >
-                          {capitalizeFirstLetter(row._doc.first_name)}{' '}
-                          {capitalizeFirstLetter(row._doc.last_name)}
+                          {capitalizeFirstLetter(row.first_name)}{' '}
+                          {capitalizeFirstLetter(row.last_name)}
                         </Typography>
                       }
                       secondary={
@@ -377,14 +377,14 @@ const UpcomingBirthdays: React.FC<UpcomingBirthdaysProps> = ({ companyDetails, l
                               display: 'block'
                             }}
                           >
-                            {dayjs(row._doc.dob).format('D MMM')}
+                            {dayjs(row.dob).format('D MMM')}
                           </Typography>
                           <Typography
                             component='span'
                             variant='body2'
                             sx={{ color: '#2196F3' }}
                           >
-                            {row._doc.designation}
+                            {row.designation}
                           </Typography>
                         </Box>
                       }
