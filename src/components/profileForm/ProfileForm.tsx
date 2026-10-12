@@ -101,7 +101,8 @@ const ProfileForm = ({
   const [userRole, setUserRole] = useState('')
   const [userId, setUserId] = useState(null)
 
-  const isFormDisabled = userRole !== '1' && logedUser.id !== profileId
+  const isAdmin = String(userRole) === '1' || String(logedUser?.role) === '1' || Number(logedUser?.role) === 1
+  const isFormDisabled = !isAdmin && logedUser.id !== profileId
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue)
@@ -386,11 +387,14 @@ const ProfileForm = ({
         setVerifyTrigger(prev => prev + 1)
         setLoading(false)
       } else {
-        console.error('Failed to submit/update profile')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Failed to submit/update profile', errorData)
+        toast.error(errorData?.message || 'Failed to update profile')
         setLoading(false)
       }
     } catch (error) {
       console.error('Error submitting/updating profile:', error)
+      toast.error('An error occurred while updating profile')
       setLoading(false)
     }
   }
@@ -1335,7 +1339,7 @@ const ProfileForm = ({
             </section>
           </div>
 
-          {(logedUser.id === profileId || userRole === '1') && (
+          {(logedUser.id === profileId || isAdmin) && (
             <Button
               onClick={handleSubmit}
               disabled={isCompressing || loading}
@@ -1501,7 +1505,7 @@ const ProfileForm = ({
             >
               Employee Profile
             </Typography>
-            {(logedUser.role === '1') && (
+            {isAdmin && (
               <Button
                 variant="contained"
                 color="success"
