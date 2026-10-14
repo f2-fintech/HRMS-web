@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Typography,
   Button,
@@ -11,9 +11,12 @@ import {
   Divider,
   DialogContent,
   Dialog,
-  IconButton
+  IconButton,
+  CircularProgress,
+  Portal
 } from '@mui/material'
 import { Delete } from '@mui/icons-material';
+import SaveIcon from '@mui/icons-material/Save'
 import { styled } from '@mui/system'
 import { Autocomplete } from '@mui/material'
 import { Close } from '@mui/icons-material'
@@ -56,8 +59,12 @@ const ProfileForm = ({
   const [open, setOpen] = useState(false)
   const [selectedImage, setSelectedImage] = useState({ src: null, alt: null })
   const [loading, setLoading] = useState(false)
+  const [sectionSaving, setSectionSaving] = useState(false)
   const [isCompressing, setIsCompressing] = useState(false)
-  const [formData, setFormData] = useState({
+  const [isDirty, setIsDirty] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const savedSnapshot = useRef<string>('')
+  const [formData, setFormData] = useState<any>({
     employeeId: '',
     skills: [],
     personalDetails: {
@@ -191,6 +198,7 @@ const ProfileForm = ({
   }
 
   useEffect(() => {
+    setMounted(true)
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     setUserRole(user.role)
     setUserId(user.id)
@@ -211,10 +219,14 @@ const ProfileForm = ({
           setCheckVerify(data.verify)
         } else if (checkResponse.status === 404) {
           setUpdating(false) // Profile does not exist
+          savedSnapshot.current = serializeForm(formData)
+          setIsDirty(false)
         }
       } catch (error) {
         console.error('Error checking profile existence:', error)
         setUpdating(false)
+        savedSnapshot.current = serializeForm(formData)
+        setIsDirty(false)
       }
     }
 
@@ -230,18 +242,62 @@ const ProfileForm = ({
     }))
   }, [profileId])
 
-  const populateFormData = data => {
-    setFormData({
-      employeeId: data.employeeId || '',
-      skills: data.skills || [],
+  const serializeForm = (data: any) => {
+    if (!data) return ''
+    return JSON.stringify({
+      skills: Array.isArray(data.skills) ? [...data.skills].sort() : [],
       personalDetails: {
-        fullName: data.personalDetails?.fullName || '',
         fatherName: data.personalDetails?.fatherName || '',
         motherName: data.personalDetails?.motherName || '',
-        email: data.personalDetails?.email || '',
-        phoneNumber: data.personalDetails?.phoneNumber || '',
-        gender: data.personalDetails?.gender || '',
-        dateOfBirth: data.personalDetails?.dateOfBirth || '',
+        maritalStatus: data.personalDetails?.maritalStatus || '',
+        bloodGroup: data.personalDetails?.bloodGroup || '',
+        panCardNumber: data.personalDetails?.panCardNumber || '',
+        panCardImage: data.personalDetails?.panCardImage instanceof File
+          ? `${data.personalDetails.panCardImage.name}-${data.personalDetails.panCardImage.size}-${data.personalDetails.panCardImage.lastModified}`
+          : data.personalDetails?.panCardImage || '',
+        aadhaarCardNumber: data.personalDetails?.aadhaarCardNumber || '',
+        aadhaarFrontImage: data.personalDetails?.aadhaarFrontImage instanceof File
+          ? `${data.personalDetails.aadhaarFrontImage.name}-${data.personalDetails.aadhaarFrontImage.size}-${data.personalDetails.aadhaarFrontImage.lastModified}`
+          : data.personalDetails?.aadhaarFrontImage || '',
+        aadhaarBackImage: data.personalDetails?.aadhaarBackImage instanceof File
+          ? `${data.personalDetails.aadhaarBackImage.name}-${data.personalDetails.aadhaarBackImage.size}-${data.personalDetails.aadhaarBackImage.lastModified}`
+          : data.personalDetails?.aadhaarBackImage || '',
+      },
+      bankDetails: {
+        bankName: data.bankDetails?.bankName || '',
+        accountNumber: data.bankDetails?.accountNumber || '',
+        ifscCode: data.bankDetails?.ifscCode || ''
+      },
+      addressDetails: {
+        permanentAddress: data.addressDetails?.permanentAddress || '',
+        currentAddress: data.addressDetails?.currentAddress || ''
+      },
+      academics: (data.academics || []).map((a: any) => ({
+        level: a.level || '',
+        institution: a.institution || '',
+        fromYear: a.fromYear || '',
+        toYear: a.toYear || '',
+        details: a.details || ''
+      })),
+      pastExperience: (data.pastExperience || []).map((e: any) => ({
+        companyName: e.companyName || '',
+        fromYear: e.fromYear || '',
+        toYear: e.toYear || '',
+        lastCtc: e.lastCtc || '',
+        designation: e.designation || '',
+        referenceName: e.referenceName || '',
+        referenceContact: e.referenceContact || ''
+      }))
+    })
+  }
+
+  const populateFormData = data => {
+    const populated = {
+      employeeId: data.employeeId || '',
+      skills: Array.isArray(data.skills) ? data.skills : [],
+      personalDetails: {
+        fatherName: data.personalDetails?.fatherName || '',
+        motherName: data.personalDetails?.motherName || '',
         maritalStatus: data.personalDetails?.maritalStatus || '',
         bloodGroup: data.personalDetails?.bloodGroup || '',
         panCardNumber:
@@ -250,38 +306,37 @@ const ProfileForm = ({
           '',
         panCardImage:
           data.personalDetails?.panCardImageUrl ||
-          data.bankDetails?.panCardImageUrl,
+          data.bankDetails?.panCardImageUrl ||
+          null,
         aadhaarCardNumber:
           data.personalDetails?.aadhaarCardNumber ||
           data.addressDetails?.aadhaarCardNumber ||
           '',
-
         aadhaarFrontImage:
           data.personalDetails?.aadhaarFrontImageUrl ||
-          data.addressDetails?.aadhaarFrontImageUrl,
+          data.addressDetails?.aadhaarFrontImageUrl ||
+          null,
         aadhaarBackImage:
           data.personalDetails?.aadhaarBackImageUrl ||
-          data.addressDetails?.aadhaarBackImageUrl
+          data.addressDetails?.aadhaarBackImageUrl ||
+          null
       },
 
       bankDetails: {
         bankName: data.bankDetails?.bankName || '',
-        accountNumber:
-          data.bankDetails?.accountNumber || '',
+        accountNumber: data.bankDetails?.accountNumber || '',
         ifscCode: data.bankDetails?.ifscCode || ''
       },
 
       addressDetails: {
-        permanentAddress:
-          data.addressDetails?.permanentAddress || '',
-        currentAddress:
-          data.addressDetails?.currentAddress || ''
+        permanentAddress: data.addressDetails?.permanentAddress || '',
+        currentAddress: data.addressDetails?.currentAddress || ''
       },
-      academics: Array.isArray(data.academics)
+      academics: Array.isArray(data.academics) && data.academics.length > 0
         ? data.academics
         : [{ level: '10th', institution: '', fromYear: '', toYear: '', details: '' }],
       pastExperience:
-        data.pastExperience.length > 0
+        Array.isArray(data.pastExperience) && data.pastExperience.length > 0
           ? data.pastExperience
           : [
             {
@@ -295,46 +350,37 @@ const ProfileForm = ({
             }
           ],
       verify: data.verify
-    })
+    }
+
+    setFormData(populated)
+    // Snapshot the saved state so we can detect future changes
+    savedSnapshot.current = serializeForm(populated)
+    setIsDirty(false)
   }
 
-  const handleSubmit = async e => {
-    setLoading(true)
-    e.preventDefault()
-
-    const formDataToSend = new FormData()
-
-    // Append simple data (strings, numbers)
+  // ================= BUILD FORMDATA HELPER =================
+  // Note: we allow empty strings through so users can clear existing values
+  const buildFormData = (formDataToSend: FormData) => {
     const appendData = (key, value) => {
-      if (value !== null && value !== undefined && value !== '') {
+      if (value !== null && value !== undefined) {
         formDataToSend.append(key, value)
       }
     }
 
     appendData('employeeId', formData.employeeId)
-
-    // Append all fields
-    appendData('skills', formData.skills.join(',')) // join skills array as a comma-separated string
+    appendData('skills', formData.skills.join(','))
 
     Object.entries(formData.bankDetails).forEach(([key, value]) => {
       appendData(`bankDetails_${key}`, value)
     })
-
     Object.entries(formData.addressDetails).forEach(([key, value]) => {
       appendData(`addressDetails_${key}`, value)
     })
-    Object.entries(formData.personalDetails).forEach(
-      ([key, value]) => {
-        if (
-          key !== 'panCardImage' &&
-          key !== 'aadhaarFrontImage' &&
-          key !== 'aadhaarBackImage'
-        ) {
-          appendData(`personalDetails_${key}`, value)
-        }
+    Object.entries(formData.personalDetails).forEach(([key, value]) => {
+      if (key !== 'panCardImage' && key !== 'aadhaarFrontImage' && key !== 'aadhaarBackImage') {
+        appendData(`personalDetails_${key}`, value)
       }
-    )
-
+    })
     formData.academics.forEach((academic, index) => {
       appendData(`academics_${index}_level`, academic.level)
       appendData(`academics_${index}_institution`, academic.institution)
@@ -342,35 +388,72 @@ const ProfileForm = ({
       appendData(`academics_${index}_toYear`, academic.toYear)
       appendData(`academics_${index}_details`, academic.details)
     })
-
     formData.pastExperience.forEach((exp, index) => {
       Object.entries(exp).forEach(([key, value]) => {
         appendData(`pastExperience_${index}_${key}`, value)
       })
     })
-
-    // Only append files if they are selected
-    if (formData.personalDetails.panCardImage) {
-      appendData(
-        'personalDetails_panCardImage',
-        formData.personalDetails.panCardImage
-      )
+    if (formData.personalDetails.panCardImage instanceof File) {
+      appendData('personalDetails_panCardImage', formData.personalDetails.panCardImage)
     }
-
-    if (formData.personalDetails.aadhaarFrontImage) {
-      appendData(
-        'personalDetails_aadhaarFrontImage',
-        formData.personalDetails.aadhaarFrontImage
-      )
+    if (formData.personalDetails.aadhaarFrontImage instanceof File) {
+      appendData('personalDetails_aadhaarFrontImage', formData.personalDetails.aadhaarFrontImage)
     }
-
-    if (formData.personalDetails.aadhaarBackImage) {
-      appendData(
-        'personalDetails_aadhaarBackImage',
-        formData.personalDetails.aadhaarBackImage
-      )
+    if (formData.personalDetails.aadhaarBackImage instanceof File) {
+      appendData('personalDetails_aadhaarBackImage', formData.personalDetails.aadhaarBackImage)
     }
     appendData('verify', formData.verify)
+  }
+
+  // ================= SAVE PROFILE (Unified handler for floating bar & section save) =================
+  const handleSave = async (e?: any) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault()
+    if (!updating && !profileId) {
+      toast.error('Cannot save: profile not initialized.')
+      return
+    }
+    setSectionSaving(true)
+    const formDataToSend = new FormData()
+    buildFormData(formDataToSend)
+
+    try {
+      const url = updating
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/profile/updateByProfileId/${profileId}`
+        : `${process.env.NEXT_PUBLIC_APP_URL}/profile/create`
+
+      const response = await fetch(url, {
+        method: updating ? 'PUT' : 'POST',
+        body: formDataToSend
+      })
+
+      if (response.ok) {
+        toast.success(updating ? 'Changes saved successfully!' : 'Profile created successfully!')
+        setUpdating(true) // after first create, switch to update mode
+        setVerifyTrigger(prev => prev + 1)
+        // Reset dirty — snapshot current saved state
+        savedSnapshot.current = serializeForm(formData)
+        setIsDirty(false)
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        toast.error(errorData?.message || 'Failed to save changes')
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      toast.error('An error occurred while saving')
+    } finally {
+      setSectionSaving(false)
+    }
+  }
+
+  const handleSaveSection = handleSave
+
+  // ================= FULL SUBMIT (from Preview tab) =================
+  const handleSubmit = async (e?: any) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault()
+    setLoading(true)
+
+    const formDataToSend = new FormData()
+    buildFormData(formDataToSend)
 
     try {
       const url = updating
@@ -384,17 +467,19 @@ const ProfileForm = ({
 
       if (response.ok) {
         toast.success(updating ? 'Profile Updated Successfully!' : 'Profile Created Successfully')
+        setUpdating(true)
         setVerifyTrigger(prev => prev + 1)
-        setLoading(false)
+        savedSnapshot.current = serializeForm(formData)
+        setIsDirty(false)
       } else {
         const errorData = await response.json().catch(() => ({}))
         console.error('Failed to submit/update profile', errorData)
         toast.error(errorData?.message || 'Failed to update profile')
-        setLoading(false)
       }
     } catch (error) {
       console.error('Error submitting/updating profile:', error)
       toast.error('An error occurred while updating profile')
+    } finally {
       setLoading(false)
     }
   }
@@ -528,31 +613,41 @@ const ProfileForm = ({
     />
   )
 
+  // ================= DIRTY TRACKING =================
+  // Watch formData changes and compare to last saved snapshot
+  useEffect(() => {
+    if (!savedSnapshot.current) return // not yet loaded from server
+    const current = serializeForm(formData)
+    setIsDirty(current !== savedSnapshot.current)
+  }, [formData])
+
   const tabContent = [
     {
       label: 'Skills',
       content: (
-        <Autocomplete
-          multiple
-          freeSolo
-          options={[]}
-          value={formData.skills}
-          onChange={(event, newValue) => setFormData(prev => ({ ...prev, skills: newValue }))}
-          renderTags={(value, getTagProps) =>
-            value.map((option, index) => <Chip variant='outlined' label={option} {...getTagProps({ index })} />)
-          }
-          renderInput={params => (
-            <TextField
-              {...params}
-              variant='outlined'
-              label='Skills'
-              placeholder='Press Enter to Add more skills'
-              fullWidth
-              disabled={isFormDisabled}
-            />
-          )}
-          disabled={isFormDisabled}
-        />
+        <>
+          <Autocomplete
+            multiple
+            freeSolo
+            options={[]}
+            value={formData.skills}
+            onChange={(event, newValue) => setFormData(prev => ({ ...prev, skills: newValue }))}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => <Chip variant='outlined' label={option} {...getTagProps({ index })} />)
+            }
+            renderInput={params => (
+              <TextField
+                {...params}
+                variant='outlined'
+                label='Skills'
+                placeholder='Press Enter to Add more skills'
+                fullWidth
+                disabled={isFormDisabled}
+              />
+            )}
+            disabled={isFormDisabled}
+          />
+        </>
       )
     },
     {
@@ -747,7 +842,6 @@ const ProfileForm = ({
             </Box>
 
           </Box>
-
         </>
       )
     },
@@ -779,9 +873,6 @@ const ProfileForm = ({
             onChange={e => handleInputChange('bankDetails', '', 'ifscCode', e.target.value)}
             disabled={isFormDisabled}
           />
-
-
-
         </>
       )
     },
@@ -809,8 +900,6 @@ const ProfileForm = ({
             onChange={e => handleInputChange('addressDetails', '', 'currentAddress', e.target.value)}
             disabled={isFormDisabled}
           />
-
-
         </>
       )
     },
@@ -1342,12 +1431,11 @@ const ProfileForm = ({
           {(logedUser.id === profileId || isAdmin) && (
             <Button
               onClick={handleSubmit}
-              disabled={isCompressing || loading}
+              disabled={(!isDirty && updating) || isCompressing || loading || isFormDisabled}
               className='w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300'
             >
-              {isCompressing ? 'Wait Compressing Images...' : updating ? 'Update' : 'Submit'}
+              {isCompressing ? 'Wait Compressing Images...' : loading ? 'Saving...' : updating ? 'Update' : 'Submit'}
             </Button>
-
           )}
         </div>
       )
@@ -1527,8 +1615,137 @@ const ProfileForm = ({
             ))}
           </StyledTabs>
 
-          <Box sx={{ p: 3 }}>{tabContent[tabValue].content}</Box>
+          <Box sx={{ p: 3, pb: 10 }}>{tabContent[tabValue].content}</Box>
         </form>
+
+        {mounted && !isFormDisabled && (
+          <Portal>
+            <Box
+              sx={{
+                position: 'fixed',
+                bottom: { xs: 16, sm: 24 },
+                right: { xs: 16, sm: 32 },
+                zIndex: 99999,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                backgroundColor: '#ffffff',
+                border: '1px solid',
+                borderColor: isDirty ? 'primary.main' : 'divider',
+                borderRadius: '50px',
+                boxShadow: isDirty
+                  ? '0 10px 30px rgba(25, 118, 210, 0.35), 0 4px 12px rgba(0, 0, 0, 0.12)'
+                  : '0 8px 24px rgba(0, 0, 0, 0.15)',
+                px: { xs: 2, sm: 2.5 },
+                py: 1,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                maxWidth: 'calc(100vw - 32px)'
+              }}
+            >
+              {/* Status indicator */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 9,
+                    height: 9,
+                    borderRadius: '50%',
+                    backgroundColor: isDirty ? '#ed6c02' : '#2e7d32',
+                    boxShadow: isDirty ? '0 0 0 3px rgba(237, 108, 2, 0.2)' : '0 0 0 3px rgba(46, 125, 50, 0.15)',
+                    transition: 'all 0.25s ease'
+                  }}
+                />
+                <Typography
+                  variant='caption'
+                  sx={{
+                    fontWeight: 600,
+                    color: isDirty ? '#d97706' : '#2e7d32',
+                    display: { xs: 'none', md: 'inline-block' },
+                    userSelect: 'none',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {isDirty ? 'Unsaved changes' : 'All saved'}
+                </Typography>
+              </Box>
+
+              {/* Navigation buttons */}
+              <Button
+                size='small'
+                variant='outlined'
+                disabled={tabValue === 0}
+                onClick={() => setTabValue(prev => Math.max(0, prev - 1))}
+                sx={{
+                  textTransform: 'none',
+                  borderRadius: '20px',
+                  minWidth: 'auto',
+                  px: 1.5,
+                  fontSize: '0.8rem',
+                  display: { xs: 'none', sm: 'inline-flex' }
+                }}
+              >
+                Prev
+              </Button>
+              <Button
+                size='small'
+                variant='outlined'
+                disabled={tabValue === tabContent.length - 1}
+                onClick={() => setTabValue(prev => Math.min(tabContent.length - 1, prev + 1))}
+                sx={{
+                  textTransform: 'none',
+                  borderRadius: '20px',
+                  minWidth: 'auto',
+                  px: 1.5,
+                  fontSize: '0.8rem',
+                  display: { xs: 'none', sm: 'inline-flex' }
+                }}
+              >
+                Next
+              </Button>
+
+              {/* Save Changes button */}
+              <Button
+                variant='contained'
+                color='primary'
+                onClick={handleSave}
+                disabled={!isDirty || sectionSaving || loading || isCompressing || isFormDisabled}
+                startIcon={
+                  sectionSaving || loading ? (
+                    <CircularProgress size={16} color='inherit' />
+                  ) : (
+                    <SaveIcon fontSize='small' />
+                  )
+                }
+                sx={{
+                  borderRadius: '24px',
+                  px: 2.5,
+                  py: 0.85,
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  textTransform: 'none',
+                  boxShadow: isDirty ? '0 4px 14px rgba(25, 118, 210, 0.4)' : 'none',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                  '&.Mui-disabled': {
+                    backgroundColor: '#f1f3f5',
+                    color: '#9e9e9e',
+                    cursor: 'not-allowed',
+                    pointerEvents: 'auto'
+                  }
+                }}
+              >
+                {sectionSaving || loading
+                  ? 'Saving...'
+                  : isCompressing
+                  ? 'Compressing...'
+                  : tabValue === tabContent.length - 1
+                  ? updating
+                    ? 'Update Profile'
+                    : 'Submit Profile'
+                  : 'Save Changes'}
+              </Button>
+            </Box>
+          </Portal>
+        )}
 
         <Divider />
         {Number(logedUser.role) < 3 && (
