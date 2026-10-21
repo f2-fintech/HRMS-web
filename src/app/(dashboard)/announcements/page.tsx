@@ -1,8 +1,60 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Typography, Button, TextField, Checkbox, FormControlLabel, RadioGroup, Radio, FormControl, Autocomplete, Stack, Divider, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Box } from '@mui/material';
+import React, { useEffect, useState, useRef } from 'react';
+import { 
+  Card, 
+  CardContent, 
+  Typography, 
+  Button, 
+  TextField, 
+  Checkbox, 
+  FormControlLabel, 
+  RadioGroup, 
+  Radio, 
+  FormControl, 
+  Autocomplete, 
+  Stack, 
+  Divider, 
+  CircularProgress, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  Box,
+  IconButton,
+  Tooltip,
+  Paper
+} from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import ImageIcon from '@mui/icons-material/Image';
+import DownloadIcon from '@mui/icons-material/Download';
+import CloseIcon from '@mui/icons-material/Close';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5500';
+
+const formatFileSize = (bytes: number) => {
+  if (!bytes || bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const isImageFile = (urlOrName: string) => {
+  return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(urlOrName);
+};
+
+const isPdfFile = (urlOrName: string) => {
+  return /\.pdf$/i.test(urlOrName);
+};
+
+const getFileIcon = (urlOrName: string) => {
+  if (isImageFile(urlOrName)) return <ImageIcon color="primary" />;
+  if (isPdfFile(urlOrName)) return <PictureAsPdfIcon color="error" />;
+  return <InsertDriveFileIcon color="action" />;
+};
 
 export default function AnnouncementsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -17,7 +69,9 @@ export default function AnnouncementsPage() {
   const [targetAudience, setTargetAudience] = useState<'all' | 'specific'>('all');
   const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
   const [sendEmail, setSendEmail] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Manage Access State
   const [manageAccessModalOpen, setManageAccessModalOpen] = useState(false);
@@ -100,6 +154,24 @@ export default function AnnouncementsPage() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selected = e.target.files[0];
+      if (selected.size > 25 * 1024 * 1024) {
+        alert('File size exceeds the 25MB limit.');
+        return;
+      }
+      setFile(selected);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description) return alert('Title and description are required.');
@@ -107,21 +179,24 @@ export default function AnnouncementsPage() {
 
     try {
       setSubmitting(true);
-      const payload = {
-        title,
-        description,
-        target_audience: targetAudience,
-        target_employees: targetAudience === 'specific' ? selectedEmployees.map(emp => emp._id) : [],
-        send_email: sendEmail
-      };
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('target_audience', targetAudience);
+      if (targetAudience === 'specific') {
+        formData.append('target_employees', JSON.stringify(selectedEmployees.map(emp => emp._id)));
+      }
+      formData.append('send_email', String(sendEmail));
+      if (file) {
+        formData.append('file', file);
+      }
 
       const res = await fetch(`${API_BASE_URL}/feeds`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
       
       if (res.ok) {
@@ -131,9 +206,11 @@ export default function AnnouncementsPage() {
         setTargetAudience('all');
         setSelectedEmployees([]);
         setSendEmail(false);
+        handleRemoveFile();
         fetchFeeds();
       } else {
-        alert('Failed to create announcement');
+        const errorData = await res.json().catch(() => null);
+        alert(errorData?.message || 'Failed to create announcement');
       }
     } catch (error) {
       console.error(error);
@@ -198,8 +275,23 @@ export default function AnnouncementsPage() {
           <Typography variant="h6" fontWeight={600} mb={3}>Create New Announcement</Typography>
           <form onSubmit={handleSubmit}>
             <Stack spacing={3}>
-              <TextField label="Announcement Title" fullWidth value={title} onChange={(e) => setTitle(e.target.value)} required />
-              <TextField label="Description" fullWidth multiline rows={4} value={description} onChange={(e) => setDescription(e.target.value)} required />
+              <TextField 
+                label="Announcement Title" 
+                fullWidth 
+                value={title} 
+                onChange={(e) => setTitle(e.target.value)} 
+                required 
+              />
+              
+              <TextField 
+                label="Description" 
+                fullWidth 
+                multiline 
+                rows={4} 
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)} 
+                required 
+              />
               
               <FormControl component="fieldset">
                 <Typography variant="subtitle2" color="textSecondary" mb={1}>Target Audience</Typography>
@@ -222,6 +314,92 @@ export default function AnnouncementsPage() {
                   )}
                 />
               )}
+
+              {/* File Attachment Upload */}
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary" mb={1}>
+                  Attachment (Optional)
+                </Typography>
+                
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                  id="announcement-file-input"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                />
+
+                {!file ? (
+                  <Box
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        const droppedFile = e.dataTransfer.files[0];
+                        if (droppedFile.size > 25 * 1024 * 1024) {
+                          alert('File size exceeds the 25MB limit.');
+                          return;
+                        }
+                        setFile(droppedFile);
+                      }
+                    }}
+                    sx={{
+                      border: '2px dashed #cbd5e1',
+                      borderRadius: 2,
+                      p: 3,
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      backgroundColor: '#fafbfc',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        backgroundColor: '#f0f7ff',
+                      }
+                    }}
+                  >
+                    <CloudUploadIcon sx={{ fontSize: 36, color: 'primary.main', mb: 1 }} />
+                    <Typography variant="body2" fontWeight={600} color="textPrimary">
+                      Click or drag & drop to attach a file
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary">
+                      Supports PDF, Images, Word, Excel, PPT, ZIP (up to 25MB)
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: 2,
+                      borderColor: '#e2e8f0',
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1.5} overflow="hidden">
+                      {getFileIcon(file.name)}
+                      <Box overflow="hidden">
+                        <Typography variant="body2" fontWeight={600} noWrap>
+                          {file.name}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          {formatFileSize(file.size)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Tooltip title="Remove file">
+                      <IconButton size="small" onClick={handleRemoveFile} color="error">
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Paper>
+                )}
+              </Box>
 
               <FormControlLabel 
                 control={<Checkbox checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />} 
@@ -250,10 +428,80 @@ export default function AnnouncementsPage() {
                 <Typography variant="h6" color="primary.main" fontWeight={600} mb={1}>{feed.title}</Typography>
                 <Typography variant="body2" color="textSecondary" mb={2}>
                   {new Date(feed.createdAt).toLocaleDateString()} at {new Date(feed.createdAt).toLocaleTimeString()}
-                  {isAdmin && <span style={{ marginLeft: 12 }}>• Target: <b>{feed.target_audience === 'all' ? 'All Employees' : `${feed.target_employees.length} Employees`}</b></span>}
+                  {isAdmin && <span style={{ marginLeft: 12 }}>• Target: <b>{feed.target_audience === 'all' ? 'All Employees' : `${feed.target_employees?.length || 0} Employees`}</b></span>}
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
                 <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{feed.description}</Typography>
+
+                {/* Attached File Display */}
+                {feed.file_url && (
+                  <Box mt={2.5}>
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        borderColor: '#e2e8f0',
+                        backgroundColor: '#f8fafc',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 1.5,
+                      }}
+                    >
+                      <Box display="flex" alignItems="center" gap={1.5} sx={{ minWidth: 200, maxWidth: '100%' }}>
+                        {getFileIcon(feed.file_name || feed.file_url)}
+                        <Box sx={{ overflow: 'hidden' }}>
+                          <Typography variant="body2" fontWeight={600} sx={{ wordBreak: 'break-all' }}>
+                            {feed.file_name || (feed.file_url.split('/').pop()?.split('_').slice(1).join('_') || 'Attached File')}
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            Attachment
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          startIcon={<OpenInNewIcon fontSize="small" />}
+                          href={feed.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          startIcon={<DownloadIcon fontSize="small" />}
+                          href={feed.file_url}
+                          target="_blank"
+                          download
+                        >
+                          Download
+                        </Button>
+                      </Stack>
+                    </Paper>
+
+                    {/* Inline Image Preview */}
+                    {isImageFile(feed.file_name || feed.file_url) && (
+                      <Box mt={1.5} sx={{ maxWidth: 450, maxHeight: 300, overflow: 'hidden', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                        <a href={feed.file_url} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={feed.file_url}
+                            alt={feed.file_name || 'Announcement Attachment'}
+                            style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }}
+                          />
+                        </a>
+                      </Box>
+                    )}
+                  </Box>
+                )}
               </CardContent>
             </Card>
           ))}
