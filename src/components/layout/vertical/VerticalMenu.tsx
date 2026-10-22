@@ -27,6 +27,7 @@ import CelebrationIcon from '@mui/icons-material/Celebration'
 import BadgeIcon from '@mui/icons-material/Badge'
 
 import InventoryIcon from '@mui/icons-material/Inventory';
+import CalculateIcon from '@mui/icons-material/Calculate';
 
 // Menu Imports
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
@@ -193,6 +194,9 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
           )}
             <MenuItem href={`/fine`} icon={<GavelIcon />}>
               Fine
+            </MenuItem>
+            <MenuItem href={`/loan-calculator`} icon={<CalculateIcon />}>
+               Incentive Calculator
             </MenuItem>
           </MenuSection>
 
