@@ -24,6 +24,7 @@ import { socket } from '@/utility/socket'
 import PunchInOut from '@/views/PunchInOut'
 import NotPunchedInToday from '@/views/NotPunchedInToday'
 import TeamBreakSheets from '@/utility/breaksheets/TeamBreakSheets'
+import { fetchTeamsByManager } from '@/redux/features/teams/teamsSlice'
 import EditBreakForm from '@components/breaksheet/BreakSheetForm'
 
 // Split sub-components
@@ -42,6 +43,7 @@ import { updateRemarks } from '@/redux/features/breaksheets/breaksSlice';
 const BreakSheet: React.FC = () => {
     const dispatch: AppDispatch = useDispatch()
     const { breaks } = useSelector((state: RootState) => state.breaks)
+    const { teams } = useSelector((state: RootState) => state.teams)
     const [offlineError, setOfflineError] = useState<string | null>(null)
 
     // const [isMobile, setIsMobile] = useState<boolean>(false)
@@ -93,12 +95,22 @@ const BreakSheet: React.FC = () => {
     const employee = JSON.parse(localStorage.getItem('user') || '{}')
     const employeeId = employee?.id
     const userRole = employee?.role
-    const userDesignation = employee?.desg
+    const userDesignation = employee?.designation || employee?.desg || ''
     const companyId = employee?.company_id
 
     const ALLOWED_VIEWER_EMPLOYEE_IDS: string[] = [
         "66bcaa3f2f1270380b77ab24", "697083010a625c1906882679"]
     const isReadOnlyViewer = ALLOWED_VIEWER_EMPLOYEE_IDS.includes(String(employeeId))
+
+    const isTeamLeader = Boolean(
+        userDesignation && (
+            userDesignation.toLowerCase().includes('team leader') ||
+            userDesignation.toLowerCase().includes('team lead') ||
+            userDesignation.toLowerCase().includes('tl')
+        )
+    )
+
+    const canViewTeamBreaks = userRole === '2' || isReadOnlyViewer || isTeamLeader || (teams && teams.length > 0)
 
     const breakOptions = ['Select break type', 'Washroom', 'Breakfast', 'Lunch', 'Refreshment', 'Tea', 'Personal Call', 'Other']
 
@@ -212,9 +224,16 @@ const BreakSheet: React.FC = () => {
         setIsCurrentDate(selectedDate === today)
     }, [selectedDate])
 
-    // If user is Admin, Manager, or in ALLOWED_VIEWER_EMPLOYEE_IDS, fetch employees
+    // Fetch teams on mount so we know if user has a team (Manager/TL)
     useEffect(() => {
-        if (Number(userRole) <= 2 || isReadOnlyViewer) {
+        if (employeeId) {
+            dispatch(fetchTeamsByManager(employeeId))
+        }
+    }, [dispatch, employeeId])
+
+    // If user is Admin, Manager, TL, or in ALLOWED_VIEWER_EMPLOYEE_IDS, fetch employees
+    useEffect(() => {
+        if (Number(userRole) <= 2 || isReadOnlyViewer || canViewTeamBreaks) {
             const fetchEmployees = async () => {
                 try {
                     const employeeData = await apiResponse()
@@ -227,7 +246,7 @@ const BreakSheet: React.FC = () => {
 
             fetchEmployees()
         }
-    }, [userRole, isReadOnlyViewer])
+    }, [userRole, isReadOnlyViewer, canViewTeamBreaks])
 
     // Fetch total working hours for the selectedEmployeeId and date
     useEffect(() => {
@@ -392,14 +411,14 @@ const BreakSheet: React.FC = () => {
         }
     }
 
-    // Fetch breaks for either the selected employee if manager/admin/viewer or for self
+    // Fetch breaks for either the selected employee if manager/admin/viewer/TL or for self
     useEffect(() => {
-        if ((Number(userRole) <= 2 || isReadOnlyViewer) && selectedEmployeeId) {
+        if ((Number(userRole) <= 2 || isReadOnlyViewer || canViewTeamBreaks) && selectedEmployeeId) {
             dispatch(fetchBreaksById(selectedEmployeeId))
         } else {
             dispatch(fetchBreaksById(employeeId))
         }
-    }, [dispatch, selectedEmployeeId, userRole, employeeId, isReadOnlyViewer])
+    }, [dispatch, selectedEmployeeId, userRole, employeeId, isReadOnlyViewer, canViewTeamBreaks])
 
     useEffect(() => {
         const handleBreakUpdated = (data: any) => {
@@ -467,10 +486,10 @@ const BreakSheet: React.FC = () => {
         }
     }
 
-    // Handler for manager to see employee’s breaks
-    const handleEmployeeClick = (empId: string) => {
+    // Handler for manager/TL to see employee’s breaks
+    const handleEmployeeClick = (empId: string | null) => {
         setSelectedEmployeeId(empId)
-        dispatch(fetchBreaksById(empId))
+        dispatch(fetchBreaksById(empId || employeeId))
     }
 
     // Toggle Team Break Sheets
@@ -1025,8 +1044,8 @@ const BreakSheet: React.FC = () => {
                     <h1 className="text-2xl font-bold text-blue-600">Break Sheet</h1>
                 </div>
 
-                {/* Button for Manager or Viewer to View Team Break Sheets */}
-                {(userRole === '2' || isReadOnlyViewer) && (
+                {/* Button for Manager, TL or Viewer to View Team Break Sheets */}
+                {canViewTeamBreaks && (
                     <div className="mb-6">
                         <button
                             onClick={handleTeamsBreakSheetClick}

@@ -89,15 +89,15 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
         )
         setSelectedEmployees(selectedEmps)
 
-        if (selected.tls) {
+        if (selected.tls && Array.isArray(selected.tls)) {
           const tlArr = selected.tls.map(t => ({
             tl_id: t.tl_id,
             employees: employees.filter(emp =>
-              t.employee_ids.split(',').includes(emp._id)
+              (t.employee_ids || '').split(',').map(s => s.trim()).includes(emp._id)
             )
           }))
           setTls(tlArr)
-          setShowTlSection(true)
+          setShowTlSection(tlArr.length > 0)
         }
       }
     }
@@ -254,6 +254,7 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
             options={employees}
             getOptionLabel={o => `${o.first_name} ${o.last_name}`}
             value={selectedEmployees}
+            isOptionEqualToValue={(option, value) => option._id === value._id}
             onChange={handleEmployeeChange}
             renderInput={params => (
               <TextField
@@ -286,11 +287,18 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
               multiple
               options={selectedEmployees}
               getOptionLabel={op => `${op.first_name} ${op.last_name}`}
+              value={selectedEmployees.filter(emp => tls.some(t => t.tl_id === emp._id))}
+              isOptionEqualToValue={(option, value) => option._id === value._id}
               onChange={(e, val) => {
-                const newTLs = val.map(tl => ({
-                  tl_id: tl._id,
-                  employees: []
-                }))
+                const newTLs = val.map(tl => {
+                  const existing = tls.find(t => t.tl_id === tl._id)
+                  return existing
+                    ? existing
+                    : {
+                        tl_id: tl._id,
+                        employees: []
+                      }
+                })
                 setTls(newTLs)
                 setShowTlSection(newTLs.length > 0)
               }}
@@ -337,6 +345,7 @@ export default function AddTeamForm({ handleClose, team, debouncedFetch }) {
                     options={assignableEmployees}
                     getOptionLabel={op => `${op.first_name} ${op.last_name}`}
                     value={tl.employees}
+                    isOptionEqualToValue={(option, value) => option._id === value._id}
                     onChange={(e, val) => {
                       const copy = [...tls]
                       copy[index].employees = val
