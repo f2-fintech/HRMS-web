@@ -297,6 +297,17 @@ const AddLeavesForm = ({
       isValid = false
     }
 
+    if (formData.type === 'Compensatory') {
+      if (Number(formData.day) > 0.5) {
+        newErrors.day = 'Comp Off cannot exceed 0.5 day (Half Day).'
+        isValid = false
+      }
+      if (!formData.half_day_period) {
+        newErrors.half_day_period = 'Half-day period (First Half / Second Half) is required for Comp Off.'
+        isValid = false
+      }
+    }
+
     setErrors(newErrors)
     return isValid
   }
@@ -334,9 +345,25 @@ const AddLeavesForm = ({
     setFormData((prev: any) => {
       const updated = { ...prev, [name]: value }
 
+      if (name === 'type' && value === 'Compensatory') {
+        setIsHalfDay(true)
+        updated.day = '0.5'
+        if (updated.start_date) {
+          updated.end_date = updated.start_date
+        }
+        if (!updated.half_day_period) {
+          updated.half_day_period = 'First Half'
+        }
+      }
+
       if (name === 'start_date' || name === 'end_date') {
-        const days = calculateDaysDifference(updated.start_date, updated.end_date)
-        updated.day = isHalfDay ? '0.5' : String(days || 0)
+        if (updated.type === 'Compensatory') {
+          updated.day = '0.5'
+          updated.end_date = updated.start_date
+        } else {
+          const days = calculateDaysDifference(updated.start_date, updated.end_date)
+          updated.day = isHalfDay ? '0.5' : String(days || 0)
+        }
       }
 
       if (name === 'start_date') {
@@ -355,6 +382,10 @@ const AddLeavesForm = ({
   }
 
   const handleHalfDayChange = (e: any) => {
+    if (formData.type === 'Compensatory') {
+      toast.info('Compensatory leave (Comp Off) is strictly 0.5 day (Half Day).')
+      return
+    }
     const checked = e.target.checked
     setIsHalfDay(checked)
 
@@ -403,6 +434,36 @@ const AddLeavesForm = ({
 
     const projectedTotal = Math.round((monthUsedNow + leaveDaysNum) * 10) / 10
 
+    if (formData.type === 'Festival' || detectedHoliday) {
+      return {
+        label: 'Auto-Approved (Holiday/Festival)',
+        desc: 'Holiday/Festival leaves are completely separate and do not deduct from your regular or comp-off balance.',
+        color: 'success' as ApprovalColor
+      }
+    }
+
+    if (formData.type === 'Compensatory') {
+      if (projectedTotal <= 2.0) {
+        return {
+          label: 'Auto-Approved (Comp Off)',
+          desc: `This 0.5 day Comp Off will be automatically approved upon submission. (Monthly total: ${projectedTotal} days, within 1.5 regular + 0.5 comp-off limit)`,
+          color: 'success' as ApprovalColor
+        }
+      } else if (projectedTotal <= 3.0) {
+        return {
+          label: 'Needs HR/Admin Approval',
+          desc: `This leave requires HR/Admin approval before it is confirmed. (Monthly total: ${projectedTotal} days)`,
+          color: 'warning' as ApprovalColor
+        }
+      } else {
+        return {
+          label: 'Needs Director Approval',
+          desc: `The monthly total has exceeded 3 days (${projectedTotal} days). This leave requires Director approval.`,
+          color: 'error' as ApprovalColor
+        }
+      }
+    }
+
     if (projectedTotal <= 1.5) {
       return {
         label: 'Auto-Approved',
@@ -422,7 +483,7 @@ const AddLeavesForm = ({
         color: 'error' as ApprovalColor
       }
     }
-  }, [monthUsedNow, leaveDaysNum])
+  }, [monthUsedNow, leaveDaysNum, formData.type, detectedHoliday])
 
   const projected = useMemo(() => {
     if (!applyMonthRow) return null
@@ -569,12 +630,20 @@ const AddLeavesForm = ({
               </Box>
             ) : null}
 
-            <Tooltip title='Click here to apply for half-day leave' arrow>
+            <Tooltip
+              title={
+                formData.type === 'Compensatory'
+                  ? 'Comp Off is strictly for 0.5 day (Half Day)'
+                  : 'Click here to apply for half-day leave'
+              }
+              arrow
+            >
               <FormControlLabel
                 control={
                   <Checkbox
                     checked={isHalfDay}
                     onChange={handleHalfDayChange}
+                    disabled={formData.type === 'Compensatory'}
                     name='halfDay'
                     color='primary'
                     icon={<HalfDayIcon />}
@@ -635,7 +704,7 @@ const AddLeavesForm = ({
             />
           </Grid>
 
-          {!isHalfDay && (
+          {!isHalfDay && formData.type !== 'Compensatory' && (
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -835,20 +904,51 @@ const AddLeavesForm = ({
                 disabled={!!detectedHoliday}  
               >
                 <MenuItem value='Sick'>SICK LEAVE</MenuItem>
-                <MenuItem value='Compensatory'>Compensatory LEAVE</MenuItem>
+                <MenuItem value='Compensatory'>Compensatory Leave (Comp Off - Max 0.5 Day)</MenuItem>
                 <MenuItem value='Casual'>CASUAL LEAVE</MenuItem>
                 <MenuItem value='Privilege'>PRIVILEGE/EARNED LEAVE</MenuItem>
                 <MenuItem value='Maternity'>MATERNITY LEAVE</MenuItem>
-                <MenuItem value='Festival'>FESTIVAL LEAVE</MenuItem>
+                <MenuItem value='Festival'>FESTIVAL LEAVE (Separate Holiday)</MenuItem>
                 <MenuItem value='Others'>OTHERS</MenuItem>
               </Select>
               {errors.type && <Typography color='error'>{errors.type}</Typography>}
               {detectedHoliday && (
                 <Typography fontSize={11} sx={{ color: '#e65100', mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <LockIcon sx={{ fontSize: 12 }} /> Auto-selected based on holiday date. Change the start date to override.
+                  <LockIcon sx={{ fontSize: 12 }} /> Auto-selected based on holiday date. Holiday leaves do not deduct from your regular or comp-off balance.
                 </Typography>
               )}
             </FormControl>
+
+            {formData.type === 'Compensatory' && (
+              <Box
+                sx={{
+                  mt: 1.5,
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(124, 58, 237, 0.08)',
+                  border: '1px solid rgba(124, 58, 237, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5,
+                }}
+              >
+                <Typography fontSize={13} fontWeight={800} sx={{ color: '#7c3aed' }}>
+                  ℹ️ Compensatory Leave (Comp Off) Policy
+                </Typography>
+                <Typography fontSize={11.5} color='text.primary'>
+                  • <b>Duration:</b> Strictly <b>0.5 Day</b> (Half Day max).
+                </Typography>
+                <Typography fontSize={11.5} color='text.primary'>
+                  • <b>Option 1:</b> Earned by working (Half Day or Full Day) on the Last Sunday of the month.
+                </Typography>
+                <Typography fontSize={11.5} color='text.primary'>
+                  • <b>Option 2:</b> Can be taken anytime in the month (e.g., after 1.5 regular leaves, you can take 0.5 comp-off).
+                </Typography>
+                <Typography fontSize={11.5} color='text.primary'>
+                  • <b>Holidays:</b> Holiday/Festival leaves are completely separate and do not deduct from your regular or comp-off balance.
+                </Typography>
+              </Box>
+            )}
           </Grid>
 
           <Grid item xs={12} md={6}>

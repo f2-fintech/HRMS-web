@@ -137,6 +137,28 @@ export default function LoanIncentiveCalculator() {
 
   const [currentUser, setCurrentUser] = useState<any>(null)
 
+  // Determine if logged-in user is an admin
+  const isAdmin = useMemo(() => {
+    if (!currentUser) return false
+    const role = String(currentUser?.role ?? '')
+    return (
+      role === '1' ||
+      role === '0' ||
+      currentUser?.role === 1 ||
+      currentUser?.role === 0 ||
+      currentUser?.role === 'admin' ||
+      currentUser?.is_admin === true ||
+      String(currentUser?.role_name || '').toLowerCase() === 'admin'
+    )
+  }, [currentUser])
+
+  // If non-admin user is on an admin tab, reset active tab to Calculator
+  useEffect(() => {
+    if (!isAdmin && activeTab !== 0) {
+      setActiveTab(0)
+    }
+  }, [isAdmin, activeTab])
+
   // Load from localStorage on client mount (scoped to logged-in user)
   useEffect(() => {
     setMounted(true)
@@ -146,18 +168,26 @@ export default function LoanIncentiveCalculator() {
       const userId = userData?.id || userData?._id || userData?.employee_id || userData?.email || 'guest'
       const userKey = `lic_v2_${userId}`
 
+      const sharedCfgStr = localStorage.getItem('lic_v2_shared_cfg')
+      const sharedCfg = sharedCfgStr ? JSON.parse(sharedCfgStr) : null
+
       const stored = localStorage.getItem(userKey) || localStorage.getItem('lic_v2')
       if (stored) {
         const parsed = JSON.parse(stored)
         setAppState({
-          cfg: parsed.cfg || { c: 20, h: 10 },
+          cfg: sharedCfg || parsed.cfg || { c: 20, h: 10 },
           hist: parsed.hist || [],
           loans: parsed.loans || []
         })
-        if (parsed.cfg) {
-          setCfgC(String(parsed.cfg.c ?? 20))
-          setCfgH(String(parsed.cfg.h ?? 10))
+        const activeCfg = sharedCfg || parsed.cfg
+        if (activeCfg) {
+          setCfgC(String(activeCfg.c ?? 20))
+          setCfgH(String(activeCfg.h ?? 10))
         }
+      } else if (sharedCfg) {
+        setAppState(prev => ({ ...prev, cfg: sharedCfg }))
+        setCfgC(String(sharedCfg.c ?? 20))
+        setCfgH(String(sharedCfg.h ?? 10))
       }
     } catch (e) {
       console.error('Failed reading lic_v2 from localStorage', e)
@@ -172,6 +202,8 @@ export default function LoanIncentiveCalculator() {
       const userId = userData?.id || userData?._id || userData?.employee_id || userData?.email || 'guest'
       const userKey = `lic_v2_${userId}`
       localStorage.setItem(userKey, JSON.stringify(newState))
+      // Also store company-wide shared config so all users see the admin-configured rule
+      localStorage.setItem('lic_v2_shared_cfg', JSON.stringify(newState.cfg))
     } catch (e) {
       console.error('Failed to save to localStorage', e)
     }
@@ -275,7 +307,6 @@ export default function LoanIncentiveCalculator() {
 
     if (total <= tg) {
       out.inel = true
-      return out
     }
 
     let cum = 0
@@ -478,42 +509,44 @@ export default function LoanIncentiveCalculator() {
         /> */}
       </Box>
 
-      {/* Tabs navigation in HRMS Materio style */}
-      <Paper sx={{ mb: 4, borderRadius: 2 }} elevation={0} variant='outlined'>
-        <Tabs
-          value={activeTab}
-          onChange={(_, val) => setActiveTab(val)}
-          indicatorColor='primary'
-          textColor='primary'
-          variant='scrollable'
-          scrollButtons='auto'
-          sx={{ px: 2 }}
-        >
-          <Tab
-            icon={<CalculateIcon />}
-            iconPosition='start'
-            label='Calculator'
-            sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }}
-          />
-          <Tab
-            icon={<SettingsIcon />}
-            iconPosition='start'
-            label='Commission Settings'
-            sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }}
-          />
-          <Tab
-            icon={<HistoryIcon />}
-            iconPosition='start'
-            label='History'
-            sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }}
-          />
-        </Tabs>
-      </Paper>
+      {/* Tabs navigation in HRMS Materio style - only visible to admin */}
+      {isAdmin && (
+        <Paper sx={{ mb: 4, borderRadius: 2 }} elevation={0} variant='outlined'>
+          <Tabs
+            value={activeTab}
+            onChange={(_, val) => setActiveTab(val)}
+            indicatorColor='primary'
+            textColor='primary'
+            variant='scrollable'
+            scrollButtons='auto'
+            sx={{ px: 2 }}
+          >
+            <Tab
+              icon={<CalculateIcon />}
+              iconPosition='start'
+              label='Calculator'
+              sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }}
+            />
+            <Tab
+              icon={<SettingsIcon />}
+              iconPosition='start'
+              label='Commission Settings'
+              sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }}
+            />
+            <Tab
+              icon={<HistoryIcon />}
+              iconPosition='start'
+              label='History'
+              sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }}
+            />
+          </Tabs>
+        </Paper>
+      )}
 
       {/* ============================================================== */}
       {/* TAB 0: CALCULATOR */}
       {/* ============================================================== */}
-      {activeTab === 0 && (
+      {(!isAdmin || activeTab === 0) && (
         <Grid container spacing={4}>
           {/* Section 1: Loan Originator & Salary */}
           <Grid item xs={12}>
@@ -636,7 +669,18 @@ export default function LoanIncentiveCalculator() {
                             <Select
                               labelId={`con-label-${i}`}
                               label='Loan Contributor'
-                              value={item.con}
+                              value={item.con || ''}
+                              displayEmpty
+                              renderValue={selected => {
+                                if (!selected) {
+                                  return (
+                                    <Typography component='span' sx={{ color: 'text.secondary' }}>
+                                      No contributor
+                                    </Typography>
+                                  )
+                                }
+                                return selected
+                              }}
                               onChange={e => handleConChange(i, e.target.value)}
                             >
                               <MenuItem value=''>
@@ -695,14 +739,19 @@ export default function LoanIncentiveCalculator() {
                           )}
                         </Box>
 
-                        {orig === 'RE' && !item.con && item.hier.length === 0 && (
+                        {!item.con && item.hier.length === 0 && (
                           <Typography variant='caption' color='success.main' sx={{ display: 'block', mt: 1, fontWeight: 500 }}>
-                            ℹ️ Only RE: 100% incentive goes to Loan Originator (RE).
+                            ℹ️ No Contributor: 100% incentive goes to Loan Originator ({orig}).
+                          </Typography>
+                        )}
+                        {!item.con && item.hier.length > 0 && (
+                          <Typography variant='caption' color='info.main' sx={{ display: 'block', mt: 1, fontWeight: 500 }}>
+                            ℹ️ No Contributor with Hierarchy: Originator ({orig}) gets 90% · Hierarchy gets 10% (split equally).
                           </Typography>
                         )}
                         {item.con && (
                           <Typography variant='caption' color='primary.main' sx={{ display: 'block', mt: 1, fontWeight: 500 }}>
-                            ℹ️ Rule: Originator {orig} gets 70% · Contributor ({item.con}) gets 20% · Hierarchy gets 10%.
+                            ℹ️ Rule: Originator ({orig}) gets {100 - appState.cfg.c - appState.cfg.h}% · Contributor ({item.con}) gets {appState.cfg.c}% · Hierarchy gets {appState.cfg.h}%.
                           </Typography>
                         )}
                       </Box>
@@ -757,7 +806,7 @@ export default function LoanIncentiveCalculator() {
                 )}
 
                 {/* Calculation Output Data */}
-                {!calcResult.err && !calcResult.inel && (
+                {!calcResult.err && (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {/* 5 KPI Metric Cards */}
                     <Grid container spacing={2}>
@@ -989,27 +1038,29 @@ export default function LoanIncentiveCalculator() {
                       </TableContainer>
                     </Box>
 
-                    {/* Save Record Action */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                      <Button
-                        variant='contained'
-                        color='primary'
-                        startIcon={<SaveIcon />}
-                        onClick={handleSaveLoanRecord}
-                        sx={{ textTransform: 'none', fontWeight: 600 }}
-                      >
-                        Save Monthly Record with Applied Rule
-                      </Button>
-                      {saveLoanSuccess && (
-                        <Chip
-                          icon={<CheckCircleIcon />}
-                          label={saveLoanSuccess}
-                          color='success'
-                          variant='outlined'
-                          sx={{ fontWeight: 600 }}
-                        />
-                      )}
-                    </Box>
+                    {/* Save Record Action - visible to admin */}
+                    {isAdmin && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                        <Button
+                          variant='contained'
+                          color='primary'
+                          startIcon={<SaveIcon />}
+                          onClick={handleSaveLoanRecord}
+                          sx={{ textTransform: 'none', fontWeight: 600 }}
+                        >
+                          Save Monthly Record with Applied Rule
+                        </Button>
+                        {saveLoanSuccess && (
+                          <Chip
+                            icon={<CheckCircleIcon />}
+                            label={saveLoanSuccess}
+                            color='success'
+                            variant='outlined'
+                            sx={{ fontWeight: 600 }}
+                          />
+                        )}
+                      </Box>
+                    )}
                   </Box>
                 )}
               </CardContent>
@@ -1019,9 +1070,9 @@ export default function LoanIncentiveCalculator() {
       )}
 
       {/* ============================================================== */}
-      {/* TAB 1: COMMISSION SETTINGS */}
+      {/* TAB 1: COMMISSION SETTINGS (Admin Only) */}
       {/* ============================================================== */}
-      {activeTab === 1 && (
+      {isAdmin && activeTab === 1 && (
         <Grid container spacing={4}>
           <Grid item xs={12}>
             <Alert severity='info' sx={{ mb: 1 }}>
@@ -1135,9 +1186,9 @@ export default function LoanIncentiveCalculator() {
       )}
 
       {/* ============================================================== */}
-      {/* TAB 2: HISTORY */}
+      {/* TAB 2: HISTORY (Admin Only) */}
       {/* ============================================================== */}
-      {activeTab === 2 && (
+      {isAdmin && activeTab === 2 && (
         <Grid container spacing={4}>
           {/* Rule Change History */}
           <Grid item xs={12}>
