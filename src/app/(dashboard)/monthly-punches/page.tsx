@@ -16,7 +16,8 @@ import {
     Box,
     LinearProgress,
     ToggleButton,
-    ToggleButtonGroup
+    ToggleButtonGroup,
+    Snackbar
 } from '@mui/material';
 import { FormControlLabel, Checkbox } from "@mui/material";
 import {
@@ -44,7 +45,9 @@ import {
     CheckCircle,
     StarHalf,
     ExitToApp,
-    EventBusy
+    EventBusy,
+    Schedule,
+    Edit
 } from '@mui/icons-material';
 import axios from 'axios';
 import { apiResponse } from '@/utility/apiResponse/employeesResponse';
@@ -55,6 +58,11 @@ interface Employee {
     _id: string;
     first_name: string;
     last_name: string;
+    shift_start_time?: string;
+    shift_end_time?: string;
+    late_threshold?: string;
+    hard_late_threshold?: string;
+    [key: string]: any;
 }
 
 interface Punch {
@@ -116,6 +124,12 @@ interface MonthlyAnalytics {
     compOffRemaining: number;
 
     dailyBreakdown: DailyBreakdown[];
+    shiftDetails?: {
+        shift_start_time: string;
+        shift_end_time: string;
+        late_threshold: string;
+        hard_late_threshold: string;
+    };
 }
 
 const getCompanyId = (): string => {
@@ -175,6 +189,27 @@ const parseExtraToMinutes = (extra: string): number => {
     const decimal = parseFloat(extra);
     if (!isNaN(decimal)) return decimal * 60;
     return 0;
+};
+
+
+const formatTimeDisplay = (timeStr?: string): string => {
+    if (!timeStr) return '';
+    const [hStr, mStr] = timeStr.split(':');
+    const h = parseInt(hStr, 10);
+    const m = mStr ? mStr.slice(0, 2) : '00';
+    if (isNaN(h)) return timeStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+};
+
+const addMinutesToTimeStr = (timeStr: string, minutes: number): string => {
+    if (!timeStr) return '';
+    const [hStr, mStr] = timeStr.split(':');
+    const total = (parseInt(hStr, 10) || 0) * 60 + (parseInt(mStr, 10) || 0) + minutes;
+    const newH = String(Math.floor(((total % (24 * 60)) + 24 * 60) % (24 * 60) / 60)).padStart(2, '0');
+    const newM = String(((total % (24 * 60)) + 24 * 60) % 60).padStart(2, '0');
+    return `${newH}:${newM}`;
 };
 
 const groupPunchesByDate = (rawPunches: Punch[]): Punch[] => {
@@ -252,6 +287,100 @@ const PunchesPage: React.FC = () => {
     const [regularizedHours, setRegularizedHours] = useState<string>("");
     const [regularizedMinutes, setRegularizedMinutes] = useState<string>("");
     const [regularizedFromTime, setRegularizedFromTime] = useState<string>("");
+
+    // ---- Shift Timing Configuration States ----
+    const [openShiftDialog, setOpenShiftDialog] = useState(false);
+    const [shiftStartTime, setShiftStartTime] = useState('10:00');
+    const [shiftEndTime, setShiftEndTime] = useState('19:00');
+    const [lateThreshold, setLateThreshold] = useState('10:15');
+    const [hardLateThreshold, setHardLateThreshold] = useState('10:20');
+    const [applyShiftToAll, setApplyShiftToAll] = useState(false);
+    const [savingShift, setSavingShift] = useState(false);
+    const [shiftSuccessMsg, setShiftSuccessMsg] = useState('');
+
+    const currentShiftStart = analytics?.shiftDetails?.shift_start_time || selectedEmployee?.shift_start_time || '10:00';
+    const currentShiftEnd = analytics?.shiftDetails?.shift_end_time || selectedEmployee?.shift_end_time || '19:00';
+    const currentLate = analytics?.shiftDetails?.late_threshold || selectedEmployee?.late_threshold || '10:15';
+    const currentHardLate = analytics?.shiftDetails?.hard_late_threshold || selectedEmployee?.hard_late_threshold || '10:20';
+
+    const handleOpenShiftDialog = () => {
+        setShiftStartTime(currentShiftStart);
+        setShiftEndTime(currentShiftEnd);
+        setLateThreshold(currentLate);
+        setHardLateThreshold(currentHardLate);
+        setApplyShiftToAll(false);
+        setOpenShiftDialog(true);
+    };
+
+    const handleAutoCalculateThresholds = (newStart: string) => {
+        setShiftStartTime(newStart);
+        setLateThreshold(addMinutesToTimeStr(newStart, 15));
+        setHardLateThreshold(addMinutesToTimeStr(newStart, 20));
+        setShiftEndTime(addMinutesToTimeStr(newStart, 9 * 60));
+    };
+
+    const handleSaveShiftTiming = async () => {
+        if (!selectedEmployee) return;
+        try {
+            setSavingShift(true);
+            const { token, company_id } = getAuthData();
+            await axios.put(
+                `${process.env.NEXT_PUBLIC_APP_URL}/employees/${selectedEmployee._id}/shift-timing`,
+                {
+                    shift_start_time: shiftStartTime,
+                    shift_end_time: shiftEndTime,
+                    late_threshold: lateThreshold,
+                    hard_late_threshold: hardLateThreshold,
+                    applyToAll: applyShiftToAll,
+                    company_id: getCompanyId(),
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token} ${company_id}`,
+                    },
+                }
+            );
+
+            const updatedEmp = {
+                ...selectedEmployee,
+                shift_start_time: shiftStartTime,
+                shift_end_time: shiftEndTime,
+                late_threshold: lateThreshold,
+                hard_late_threshold: hardLateThreshold,
+            };
+            setSelectedEmployee(updatedEmp);
+
+            setEmployees((prev) =>
+                prev.map((e) =>
+                    applyShiftToAll || e._id === selectedEmployee._id
+                        ? {
+                              ...e,
+                              shift_start_time: shiftStartTime,
+                              shift_end_time: shiftEndTime,
+                              late_threshold: lateThreshold,
+                              hard_late_threshold: hardLateThreshold,
+                          }
+                        : e
+                )
+            );
+
+            setOpenShiftDialog(false);
+            setShiftSuccessMsg(
+                applyShiftToAll
+                    ? 'Shift timing updated for all employees!'
+                    : `Shift timing updated for ${selectedEmployee.first_name} ${selectedEmployee.last_name}!`
+            );
+
+            if (month) {
+                await fetchPunches(selectedEmployee._id, month);
+            }
+        } catch (err: any) {
+            setError(err?.response?.data?.message || 'Failed to update shift timing');
+        } finally {
+            setSavingShift(false);
+        }
+    };
+
 
     useEffect(() => {
         const currentMonth = new Date().toISOString().slice(0, 7);
@@ -776,6 +905,17 @@ const calculateTotalIncompleteTime = (): string => {
                         >
                             Attendance Regularization
                         </Button>
+
+                        {selectedEmployee && (
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                startIcon={<Schedule />}
+                                onClick={handleOpenShiftDialog}
+                            >
+                                Shift & Timing
+                            </Button>
+                        )}
                     </Box>
                 )}
 
@@ -838,7 +978,7 @@ const calculateTotalIncompleteTime = (): string => {
 
                         <Box className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center shadow-sm">
                             <Typography variant="caption" className="text-yellow-700 uppercase tracking-wide flex items-center justify-center gap-1">
-                                <WarningAmberRounded fontSize="small" /> Late Days (10:15+)
+                                <WarningAmberRounded fontSize="small" /> Late Days ({formatTimeDisplay(currentLate)}+)
                             </Typography>
                             <Typography variant="h5" className="font-bold text-yellow-700">
                                 {analytics.totalLateDays}
@@ -847,7 +987,7 @@ const calculateTotalIncompleteTime = (): string => {
 
                         <Box className="bg-red-50 border border-red-200 rounded-lg p-4 text-center shadow-sm">
                             <Typography variant="caption" className="text-red-600 uppercase tracking-wide flex items-center justify-center gap-1">
-                                <ReportProblemOutlined fontSize="small" /> Hard Late (10:20+)
+                                <ReportProblemOutlined fontSize="small" /> Hard Late ({formatTimeDisplay(currentHardLate)}+)
                             </Typography>
                             <Typography variant="h5" className="font-bold text-red-700">
                                 {analytics.totalHardLateDays}
@@ -1029,7 +1169,7 @@ const calculateTotalIncompleteTime = (): string => {
                                             <td className="border-b p-3">
                                                 <Box className="flex flex-wrap gap-1">
                                                     {breakdown?.isHardLate ? (
-                                                        <Tooltip title="Punched in after the hard-late threshold — counts toward penalty">
+                                                        <Tooltip title={`Punched in after hard-late threshold (${formatTimeDisplay(currentHardLate)}) — counts toward penalty`}>
                                                             <Chip
                                                                 size="small"
                                                                 label="Hard Late"
@@ -1038,7 +1178,7 @@ const calculateTotalIncompleteTime = (): string => {
                                                             />
                                                         </Tooltip>
                                                     ) : breakdown?.isLate ? (
-                                                        <Tooltip title="Punched in after the soft-late threshold — allowed, no penalty">
+                                                        <Tooltip title={`Punched in after soft-late threshold (${formatTimeDisplay(currentLate)}) — allowed, no penalty`}>
                                                             <Chip
                                                                 size="small"
                                                                 label="Late"
@@ -1311,6 +1451,162 @@ const calculateTotalIncompleteTime = (): string => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* ---- Shift & Late Timing Modal ---- */}
+            <Dialog
+                open={openShiftDialog}
+                onClose={() => setOpenShiftDialog(false)}
+                fullWidth
+                maxWidth="sm"
+                PaperProps={{
+                    className: "rounded-xl",
+                }}
+            >
+                <DialogTitle className="!p-0">
+                    <Box className="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-600 px-6 py-5 flex items-center gap-3 text-white">
+                        <Box className="bg-white/15 rounded-full p-2 flex items-center justify-center">
+                            <Schedule fontSize="medium" />
+                        </Box>
+                        <Box>
+                            <Typography variant="h6" className="font-bold text-white text-base md:text-lg">
+                                Employee Shift & Late Timings
+                            </Typography>
+                            <Typography variant="caption" className="text-blue-100">
+                                {selectedEmployee
+                                    ? `Configuring for ${selectedEmployee.first_name} ${selectedEmployee.last_name}`
+                                    : 'Configure Employee Work Timings'}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </DialogTitle>
+
+                <DialogContent className="!pt-6 !px-6">
+                    <Alert severity="info" className="mb-4" icon={<Schedule fontSize="small" />}>
+                        Employee's <strong>Late</strong> mark, <strong>Hard Late</strong> penalty, and completion hours are automatically calculated according to these times.
+                    </Alert>
+
+                    <Box className="mb-4 flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <Typography variant="caption" className="text-gray-600">
+                            Quick standard preset:
+                        </Typography>
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => handleAutoCalculateThresholds(shiftStartTime || '10:00')}
+                        >
+                            Auto-Set (+15m Late, +20m Hard Late, 9h Shift)
+                        </Button>
+                    </Box>
+
+                    <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <TextField
+                            fullWidth
+                            size="small"
+                            type="time"
+                            label="Shift Start Time"
+                            value={shiftStartTime}
+                            onChange={(e) => setShiftStartTime(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            helperText="Office reporting time"
+                        />
+
+                        <TextField
+                            fullWidth
+                            size="small"
+                            type="time"
+                            label="Shift End Time"
+                            value={shiftEndTime}
+                            onChange={(e) => setShiftEndTime(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            helperText="Office leave time"
+                        />
+                    </Box>
+
+                    <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <TextField
+                            fullWidth
+                            size="small"
+                            type="time"
+                            label="Late Mark Threshold"
+                            value={lateThreshold}
+                            onChange={(e) => setLateThreshold(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            helperText="Punches after this are marked Late"
+                        />
+
+                        <TextField
+                            fullWidth
+                            size="small"
+                            type="time"
+                            label="Hard Late Threshold"
+                            value={hardLateThreshold}
+                            onChange={(e) => setHardLateThreshold(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            helperText=">3 hard lates deduct 0.25 day"
+                        />
+                    </Box>
+
+                    <Box className="bg-amber-50 p-3 rounded-lg border border-amber-200 mb-4">
+                        <Typography variant="caption" className="text-amber-900 block font-medium">
+                            Rules for {formatTimeDisplay(shiftStartTime)} Shift:
+                        </Typography>
+                        <Typography variant="caption" className="text-amber-800 block">
+                            • Punch after <strong>{formatTimeDisplay(lateThreshold)}</strong>: Marked as <strong>Late</strong> (allowed).
+                        </Typography>
+                        <Typography variant="caption" className="text-amber-800 block">
+                            • Punch after <strong>{formatTimeDisplay(hardLateThreshold)}</strong>: Marked as <strong>Hard Late</strong> (3 grace days/month, then 0.75 attendance credit).
+                        </Typography>
+                    </Box>
+
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={applyShiftToAll}
+                                onChange={(e) => setApplyShiftToAll(e.target.checked)}
+                                color="primary"
+                            />
+                        }
+                        label={
+                            <Typography variant="body2" className="font-medium text-gray-800">
+                                Apply this timing to ALL employees in the company
+                            </Typography>
+                        }
+                    />
+                </DialogContent>
+
+                <Divider />
+
+                <DialogActions className="!px-6 !py-4">
+                    <Button
+                        onClick={() => setOpenShiftDialog(false)}
+                        color="inherit"
+                        disabled={savingShift}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleSaveShiftTiming}
+                        disabled={savingShift || !shiftStartTime || !shiftEndTime}
+                        disableElevation
+                        className="!px-5"
+                    >
+                        {savingShift ? <CircularProgress size={22} color="inherit" /> : 'Save Timing'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* ---- Success Snackbar ---- */}
+            <Snackbar
+                open={!!shiftSuccessMsg}
+                autoHideDuration={4000}
+                onClose={() => setShiftSuccessMsg('')}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity="success" onClose={() => setShiftSuccessMsg('')} sx={{ width: '100%' }}>
+                    {shiftSuccessMsg}
+                </Alert>
+            </Snackbar>
 
         </>
     );

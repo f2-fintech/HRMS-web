@@ -23,6 +23,7 @@ import {
   DialogActions,
   Chip,
   Tooltip,
+  
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
@@ -339,6 +340,20 @@ export default function LeaveBalancePanel({
                 border: '1px solid rgba(124, 58, 237, 0.3)',
               }}
             />
+
+            <Tooltip title="Declared company holidays and weekly off Sundays are paid and NEVER deducted from your regular annual leave balance">
+              <Chip
+                label="Holidays: Not Deducted from Balance"
+                size="small"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: 11.5,
+                  bgcolor: 'rgba(16, 185, 129, 0.12)',
+                  color: '#059669',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                }}
+              />
+            </Tooltip>
           </Box>
 
           {onClose && (
