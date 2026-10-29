@@ -33,6 +33,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 
 import type { AppDispatch, RootState } from '@/redux/store'
 import { fetchLeaves } from '@/redux/features/leaves/leavesSlice'
+import { fetchHolidays, fetchPastHolidays } from '@/redux/features/holidays/holidaysSlice'
 import { apiResponse } from '@/utility/apiResponse/employeesResponse'
 import AddLeavesForm from '@/components/leave/LeaveForm'
 import Loader from '@/components/loader/loader'
@@ -41,6 +42,7 @@ import useDebounce from '@/utility/debounce/useDebounce'
 import { utility } from '@/utility'
 import LeaveBalancePanel from '@/components/leave/LeaveBalancePanel'
 import HighLeaveListButton from '@/components/HighLeaveListButton'
+import AllEmployeesLeaveSummaryButton from '@/components/AllEmployeesLeaveSummaryButton'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'bold',
@@ -146,6 +148,12 @@ const y = Number(year)
   }
 
   const debouncedKeyword = useDebounce(selectedKeyword, 500)
+
+  // Fetch holidays list for festival/holiday matching
+  useEffect(() => {
+    dispatch(fetchHolidays({ page: 1, limit: 100, keyword: '' }))
+    dispatch(fetchPastHolidays({ page: 1, limit: 100, keyword: '' }))
+  }, [dispatch])
 
   // ✅ Fetch leaves (Admin month wise, others yearly)
   useEffect(() => {
@@ -512,8 +520,11 @@ const y = Number(year)
               )}
 
               {userRole === '1' && (
-  <HighLeaveListButton month={sm} year={y} threshold={1.5} title='High Leave + Absent' />
-)}
+                <>
+                  <AllEmployeesLeaveSummaryButton month={sm} year={y} />
+                  <HighLeaveListButton month={sm} year={y} threshold={1.5} title='High Leave + Absent' />
+                </>
+              )}
 
               <StyledButton variant='contained' color='primary' startIcon={<AddIcon />} onClick={handleLeaveAddClick}>
                 Apply Leave
@@ -563,7 +574,7 @@ const y = Number(year)
               employeeId={balanceEmployeeId}
               year={year}
               selectedMonth={month}
-              title='Leave Balance (18/year • 1.5/month)'
+              title='Leave Balance'
               onClose={() => setShowBalance(false)}
             />
           </Box>

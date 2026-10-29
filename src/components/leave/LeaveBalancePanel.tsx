@@ -22,6 +22,7 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  Tooltip,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
@@ -32,6 +33,11 @@ type MonthRow = {
   month: number
   opening: number
   accrued: number
+  comp_off_accrual?: number
+  comp_off_lapsed?: number
+  last_sunday_date?: string
+  last_sunday_status?: string
+  last_sunday_worked_full?: boolean
   used_approved?: number
   used_pending?: number
   used_rejected?: number
@@ -39,6 +45,7 @@ type MonthRow = {
   extra?: number
   used?: number
   closing: number
+  is_pre_joining?: boolean
 }
 
 type BalanceResponse = {
@@ -49,6 +56,8 @@ type BalanceResponse = {
   total_used?: number
   total_extra?: number
   closing_balance: number
+  joining_date?: string
+  eligible_months?: number
   months: MonthRow[]
 }
 
@@ -126,6 +135,7 @@ export default function LeaveBalancePanel({
   const [highRows, setHighRows] = useState<HighLeaveRow[]>([])
   const [highError, setHighError] = useState('')
   const [highOpen, setHighOpen] = useState(false)
+  const [festivalData, setFestivalData] = useState<{ total_quota: number; used: number; remaining: number } | null>(null)
   const threshold = 1.5
 
   const y = useMemo(() => Number(year || dayjs().format('YYYY')), [year])
@@ -205,6 +215,25 @@ export default function LeaveBalancePanel({
         } finally {
           setHighLoading(false)
         }
+
+        // ✅ 3) festival summary
+        try {
+          const url3 = `${process.env.NEXT_PUBLIC_APP_URL}/leaves/festival-summary/${employeeId}?year=${y}`
+          const res3 = await fetch(url3, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token} ${company_id}`,
+              'Content-Type': 'application/json',
+            },
+            cache: 'no-store',
+          })
+          if (res3.ok) {
+            const json3 = await res3.json()
+            setFestivalData(json3)
+          }
+        } catch {
+          // ignore
+        }
       } catch (e: any) {
         setError(e?.message || 'Something went wrong')
       } finally {
@@ -222,7 +251,11 @@ export default function LeaveBalancePanel({
   }
 
   const getExtra = (m: MonthRow) => Number(m.extra ?? 0)
-  const getCredit = (m: MonthRow) => Number(m.accrued ?? data?.monthly_accrual ?? 1.5)
+  const getCredit = (m: MonthRow) => {
+    if (m.is_pre_joining) return 0
+    if (m.accrued != null) return Number(m.accrued)
+    return Number(data?.monthly_accrual ?? 1.5)
+  }
   const getOpeningAvailable = (m: MonthRow) => Number(m.opening ?? 0) + getCredit(m)
 
   const monthsDisplay = useMemo<MonthRow[]>(() => {
@@ -245,9 +278,68 @@ export default function LeaveBalancePanel({
 
       <CardContent>
         <Box display="flex" alignItems="center" justifyContent="space-between" gap={2} sx={{ mt: 0.5 }}>
-          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600, fontSize: '16px' }}>
-            Total Taken Leaves: <b>{fmt(totalTaken)}</b>
-          </Typography>
+          <Box display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
+            <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600, fontSize: '16px' }}>
+              Total Taken Leaves: <b>{fmt(totalTaken)}</b>
+            </Typography>
+
+            <Chip
+              label={`Annual Quota: ${fmt(data?.yearly_quota ?? 18)} Days`}
+              size="small"
+              sx={{
+                fontWeight: 700,
+                bgcolor: 'rgba(16, 185, 129, 0.12)',
+                color: '#059669',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+              }}
+            />
+
+            {data?.joining_date && (
+              <Tooltip title={`Employee Joining Date: ${dayjs(data.joining_date).format('DD MMMM YYYY')}`}>
+                <Chip
+                  label={`DOJ: ${dayjs(data.joining_date).format('DD MMM YYYY')}${
+                    data.eligible_months != null && data.eligible_months < 12
+                      ? ` • ${data.eligible_months} Mo. Active (${fmt(data.yearly_quota)} Days)`
+                      : ''
+                  }`}
+                  size="small"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: 'rgba(59, 130, 246, 0.12)',
+                    color: '#1d4ed8',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                  }}
+                />
+              </Tooltip>
+            )}
+
+            {festivalData && (
+              <Tooltip title={`Annual Festival Quota: ${fmt(festivalData.total_quota || 6)} Days allowed per employee (out of 12 declared annual holidays)`}>
+                <Chip
+                  label={`Festival Leaves: ${fmt(festivalData.used)} / ${fmt(festivalData.total_quota || 6)} Used (${fmt(festivalData.remaining ?? Math.max(0, (festivalData.total_quota || 6) - festivalData.used))} Left)`}
+                  size="small"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: 'rgba(236, 72, 153, 0.12)',
+                    color: '#be185d',
+                    border: '1px solid rgba(236, 72, 153, 0.3)',
+                  }}
+                />
+              </Tooltip>
+            )}
+
+            <Chip
+              label="Comp Off: 0.5 Max / Month (Sunday work or monthly allowance)"
+              size="small"
+              sx={{
+                fontWeight: 600,
+                fontSize: 11.5,
+                bgcolor: 'rgba(124, 58, 237, 0.10)',
+                color: '#7c3aed',
+                border: '1px solid rgba(124, 58, 237, 0.3)',
+              }}
+            />
+          </Box>
 
           {onClose && (
             <IconButton onClick={onClose} size="small">
@@ -326,7 +418,7 @@ export default function LeaveBalancePanel({
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'rgba(0,0,0,0.04)' }}>
-                    {['Month', 'Allowed', 'Accumulated', 'Actual', 'Extra', 'Balance'].map(h => (
+                    {['Month', 'Regular (1.5)', 'Comp-Off', 'Accumulated', 'Actual', 'Extra', 'Balance'].map(h => (
                       <TableCell key={h} align={h === 'Month' ? 'left' : 'center'}>
                         <Typography fontWeight={900} fontSize={13}>
                           {h}
@@ -341,10 +433,50 @@ export default function LeaveBalancePanel({
                     const isSel = Number(m.month) === sm
 
                     const credit = getCredit(m)
+                    const compOff = Number(m.comp_off_accrual ?? 0)
                     const available = getOpeningAvailable(m)
                     const taken = getUsed(m)
                     const extra = getExtra(m)
                     const closing = Number(m.closing ?? 0)
+
+                    if (m.is_pre_joining) {
+                      return (
+                        <TableRow key={m.month} hover selected={isSel} sx={{ opacity: 0.65 }}>
+                          <TableCell>
+                            <Typography fontWeight={isSel ? 900 : 600} color="text.secondary">
+                              {monthNames[m.month - 1] ?? `M${m.month}`}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title="Employee had not joined yet in this month">
+                              <Chip
+                                label="Pre-Joining"
+                                size="small"
+                                variant="outlined"
+                                sx={{ height: 20, fontSize: 10, fontWeight: 700, color: 'text.disabled', borderColor: 'divider' }}
+                              />
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="caption" color="text.disabled">
+                              -
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography color="text.disabled">0</Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography color="text.disabled">0</Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography color="text.disabled">0</Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography color="text.disabled">0</Typography>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    }
 
                     return (
                       <TableRow key={m.month} hover selected={isSel}>
@@ -355,6 +487,39 @@ export default function LeaveBalancePanel({
                         </TableCell>
 
                         <TableCell align="center">{fmt(credit)}</TableCell>
+
+                        <TableCell align="center">
+                          {compOff > 0 ? (
+                            <Tooltip
+                              title={
+                                <Box sx={{ p: 0.5 }}>
+                                  <Typography variant="caption" fontWeight={700} sx={{ display: 'block' }}>
+                                    Comp-Off: +0.5 Day (Same month only)
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ display: 'block' }}>
+                                    • Last Sunday ({m.last_sunday_date || 'N/A'}): {m.last_sunday_status || 'Not Marked'} {m.last_sunday_worked_full ? '(Full Day Worked)' : m.last_sunday_status === 'On Half' ? '(Half Day Worked)' : ''}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ display: 'block' }}>
+                                    • Option 1: Sunday Work / Option 2: Monthly 0.5 allowance
+                                  </Typography>
+                                </Box>
+                              }
+                              arrow
+                            >
+                              <Chip
+                                label="+0.5"
+                                size="small"
+                                sx={{ height: 20, fontSize: 11, fontWeight: 800, bgcolor: 'rgba(124, 58, 237, 0.15)', color: '#7c3aed' }}
+                              />
+                            </Tooltip>
+                          ) : (
+                            <Tooltip title={`Last Sunday (${m.last_sunday_date || 'Date'}): ${m.last_sunday_status || 'Off / Half Day'}`}>
+                              <Typography variant="caption" color="text.secondary">
+                                0
+                              </Typography>
+                            </Tooltip>
+                          )}
+                        </TableCell>
 
                         <TableCell align="center">
                           <Typography fontWeight={isSel ? 900 : 600}>{fmt(available)}</Typography>
