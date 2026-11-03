@@ -107,7 +107,7 @@ export const updatePunch = createAsyncThunk(
     'punch/updatePunch',
     async ({ employeeId, punchData }: {
         employeeId: string;
-        punchData: { punchIn?: string; punchOut?: string; totalTime?: string; date?: string; contacts?: any[] }
+        punchData: { punchId?: string; punchIn?: string; punchOut?: string; totalTime?: string; date?: string; contacts?: any[] }
     }) => {
         const token = localStorage.getItem('token')
         const response = await fetch(`${BASE_URL}/punch/update-punch-times/${employeeId}`, {
@@ -184,7 +184,11 @@ const punchSlice = createSlice({
                 state.error = null
             })
             .addCase(updatePunch.fulfilled, (state, action) => {
-                const index = state.punches.findIndex(p => p.id === action.payload.id)
+                const updated = action.payload
+                const index = state.punches.findIndex(p =>
+                    (updated?._id && (p as any)._id === updated._id) ||
+                    (updated?.id && p.id === updated.id)
+                )
                 if (index !== -1) {
                     state.punches[index] = action.payload
                 }
