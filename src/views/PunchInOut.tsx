@@ -63,6 +63,66 @@ const toSeconds = (obj: any): number => {
     const s = obj?.s ?? obj?.seconds ?? 0
     return h * 3600 + m * 60 + s
 }
+
+const parseTimeToSeconds = (timeStr: string): number | null => {
+    if (!timeStr || typeof timeStr !== 'string') return null;
+    const clean = timeStr.trim();
+    const match = clean.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+    if (!match) return null;
+
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const seconds = match[3] ? parseInt(match[3], 10) : 0;
+    const ampm = match[4]?.toUpperCase();
+
+    if (ampm === 'PM' && hours < 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+
+    return hours * 3600 + minutes * 60 + seconds;
+};
+
+const calculateDuration = (startTime: string, endTime: string): string => {
+    const inSeconds = parseTimeToSeconds(startTime);
+    const outSeconds = parseTimeToSeconds(endTime);
+    if (inSeconds === null || outSeconds === null) return '00h 00m 00s';
+
+    let diff = outSeconds - inSeconds;
+    if (diff < 0) diff += 24 * 3600;
+
+    const hours = Math.floor(diff / 3600);
+    const minutes = Math.floor((diff % 3600) / 60);
+    const seconds = Math.floor(diff % 60);
+
+    return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+};
+
+const parsePunchInTimestamp = (dateStr: string, timeStr: string): number => {
+    if (!dateStr || !timeStr) return Date.now();
+    const cleanTime = timeStr.trim();
+    const match = cleanTime.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+    if (match) {
+        let h = parseInt(match[1], 10);
+        const m = parseInt(match[2], 10);
+        const s = match[3] ? parseInt(match[3], 10) : 0;
+        const ampm = match[4]?.toUpperCase();
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+            d.setHours(h, m, s, 0);
+            return d.getTime();
+        }
+    }
+    const iso = new Date(`${dateStr}T${cleanTime}`);
+    if (!isNaN(iso.getTime())) return iso.getTime();
+    const fallback = new Date(`${dateStr} ${cleanTime}`);
+    if (!isNaN(fallback.getTime())) return fallback.getTime();
+    return Date.now();
+};
+
+
+
+
 const ImageLightbox: React.FC<{ src: string; onClose: () => void }> = ({ src, onClose }) => (
     <div onClick={onClose} style={{
         position: 'fixed', inset: 0, zIndex: 10001,
@@ -1263,7 +1323,7 @@ const FieldLogModal: React.FC<{
             alert('Please select a valid image file')
             return
         }
-        
+
         // Instantly show preview
         if (which === 'front') {
             setFrontPreview(URL.createObjectURL(f))
@@ -1645,7 +1705,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
                         stopPunchTimer()
                         if (!latestPunch.punchOut) {
-                            const punchInTimestamp = new Date(`${selectedDate} ${latestPunch.punchIn}`).getTime()
+                            const punchInTimestamp = parsePunchInTimestamp(selectedDate, latestPunch.punchIn)
                             setPunchState({ ...punchState, isPunchIn: true, startTime: latestPunch.punchIn, isPunchInDisabled: true, isPunchOutDisabled: false })
                             setStartTimestamp(punchInTimestamp)
 
@@ -1655,10 +1715,25 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                             if (!selectedEmployeeId || isCurrentDate) {
                                 startPunchInTimer(punchInTimestamp)
                             } else {
-                                setTimer(latestPunch.totalTime || '00h 00m 00s')
+                                const savedTotal = (latestPunch.totalTime && latestPunch.totalTime !== '00h 00m 00s')
+                                    ? latestPunch.totalTime
+                                    : calculateDuration(latestPunch.punchIn, latestPunch.punchOut || '');
+                                setTimer(savedTotal || '00h 00m 00s')
                             }
                         } else {
-                            setPunchState({ ...punchState, isPunchIn: false, startTime: latestPunch.punchIn, endTime: latestPunch.punchOut, isPunchInDisabled: false, isPunchOutDisabled: true })
+                            const savedTotal = (latestPunch.totalTime && latestPunch.totalTime !== '00h 00m 00s')
+                                ? latestPunch.totalTime
+                                : calculateDuration(latestPunch.punchIn, latestPunch.punchOut);
+                            setPunchState({
+                                ...punchState,
+                                isPunchIn: false,
+                                startTime: latestPunch.punchIn,
+                                endTime: latestPunch.punchOut,
+                                totalTime: savedTotal,
+                                isPunchInDisabled: false,
+                                isPunchOutDisabled: true
+                            })
+                            setTimer(savedTotal)
                         }
                     } else {
                         setPunchState({ isPunchIn: false, startTime: '', endTime: '', totalTime: '00h 00m 00s', isPunchInDisabled: false, isPunchOutDisabled: true })
@@ -1681,12 +1756,24 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 const latestPunch = punchData[punchData.length - 1];
                                 stopPunchTimer();
                                 if (!latestPunch.punchOut) {
-                                    const punchInTimestamp = new Date(`${selectedDate} ${latestPunch.punchIn}`).getTime();
+                                    const punchInTimestamp = parsePunchInTimestamp(selectedDate, latestPunch.punchIn);
                                     setPunchState(prev => ({ ...prev, isPunchIn: true, startTime: latestPunch.punchIn, isPunchInDisabled: true, isPunchOutDisabled: false }));
                                     setStartTimestamp(punchInTimestamp);
                                     startPunchInTimer(punchInTimestamp);
                                 } else {
-                                    setPunchState(prev => ({ ...prev, isPunchIn: false, startTime: '', isPunchInDisabled: false, isPunchOutDisabled: true, timer: '00:00:00' }));
+                                    const savedTotal = (latestPunch.totalTime && latestPunch.totalTime !== '00h 00m 00s')
+                                        ? latestPunch.totalTime
+                                        : calculateDuration(latestPunch.punchIn, latestPunch.punchOut);
+                                    setPunchState(prev => ({
+                                        ...prev,
+                                        isPunchIn: false,
+                                        startTime: latestPunch.punchIn,
+                                        endTime: latestPunch.punchOut,
+                                        totalTime: savedTotal,
+                                        isPunchInDisabled: false,
+                                        isPunchOutDisabled: true
+                                    }));
+                                    setTimer(savedTotal);
                                 }
                             }
                         });
@@ -1709,14 +1796,20 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
     }, [employeeId])
 
     const startPunchInTimer = (timestamp: number) => {
-        intervalRef.current = setInterval(() => {
-            const diff = Date.now() - timestamp
-            const totalSeconds = Math.floor(diff / 1000)
-            const hours = Math.floor(totalSeconds / 3600)
-            const minutes = Math.floor((totalSeconds % 3600) / 60)
-            const seconds = totalSeconds % 60
-            setTimer(`${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`)
-        }, 1000)
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+        const update = () => {
+            const diff = Math.max(Date.now() - timestamp, 0);
+            const totalSeconds = Math.floor(diff / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            setTimer(`${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`);
+        };
+        update();
+        intervalRef.current = setInterval(update, 1000);
     }
 
     const stopPunchTimer = () => {
@@ -1801,17 +1894,25 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         stopPunchTimer()
 
+        const punchInTime = latestPunch?.punchIn || punchState.startTime || ''
+        const computedDuration = calculateDuration(punchInTime, endTime)
+        const finalTotalTime = (computedDuration && computedDuration !== '00h 00m 00s')
+            ? computedDuration
+            : (timer && timer !== '00h 00m 00s' ? timer : '00h 00m 00s')
+
         setPunchState({
-            isPunchIn: false, startTime: '', endTime, totalTime: timer,
+            isPunchIn: false, startTime: '', endTime, totalTime: finalTotalTime,
             isPunchInDisabled: false, isPunchOutDisabled: true
         })
+        setTimer(finalTotalTime)
 
         await dispatch(updatePunch({
             employeeId,
             punchData: {
-                punchIn: latestPunch?.punchIn || punchState.startTime || '',
+                punchId: (latestPunch as any)?._id || latestPunch?.id,
+                punchIn: punchInTime,
                 punchOut: endTime,
-                totalTime: timer,
+                totalTime: finalTotalTime,
                 date: selectedDate
             }
         })).unwrap()
@@ -1835,10 +1936,18 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
 
         stopPunchTimer();
 
+        const latestPunch = punch?.length ? punch[punch.length - 1] : null;
+        const punchInTime = latestPunch?.punchIn || punchState.startTime || '';
+        const computedDuration = calculateDuration(punchInTime, endTime);
+        const finalTotalTime = (computedDuration && computedDuration !== '00h 00m 00s')
+            ? computedDuration
+            : (timer && timer !== '00h 00m 00s' ? timer : '00h 00m 00s');
+
         const punchData = {
-            punchIn: punchState.startTime || '',
+            punchId: (latestPunch as any)?._id || latestPunch?.id,
+            punchIn: punchInTime,
             punchOut: endTime,
-            totalTime: timer,
+            totalTime: finalTotalTime,
             date: selectedDate,
             contacts: contacts.map(c => ({
                 ...c,
@@ -1853,8 +1962,11 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         setPunchState(prev => ({
             ...prev,
             isPunchIn: false,
+            endTime,
+            totalTime: finalTotalTime,
             isPunchOutDisabled: true
         }));
+        setTimer(finalTotalTime);
 
         dispatch(fetchPunchByEmployeeAndDate({ employeeId, date: selectedDate }));
     };
@@ -2016,10 +2128,15 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                     setPunchType(latestPunch.type)
                 }
             } else {
+                const savedTotal = (latestPunch.totalTime && latestPunch.totalTime !== '00h 00m 00s')
+                    ? latestPunch.totalTime
+                    : calculateDuration(latestPunch.punchIn, latestPunch.punchOut);
                 setPunchState(prev => ({
                     ...prev, isPunchIn: false, startTime: latestPunch.punchIn,
-                    endTime: latestPunch.punchOut, isPunchInDisabled: false, isPunchOutDisabled: true
+                    endTime: latestPunch.punchOut, totalTime: savedTotal,
+                    isPunchInDisabled: false, isPunchOutDisabled: true
                 }));
+                setTimer(savedTotal);
             }
         }
     }, [punch]);
@@ -2043,7 +2160,12 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
             return
         }
 
-        const currentValue = field === 'punchIn' ? targetPunch.punchIn : field === 'punchOut' ? targetPunch.punchOut || '' : targetPunch.totalTime || ''
+        const currentValue = field === 'punchIn'
+            ? targetPunch.punchIn
+            : field === 'punchOut'
+                ? (targetPunch.punchOut || '')
+                : (targetPunch.totalTime || '')
+
         const value = window.prompt(
             `Edit ${field === 'punchIn' ? 'Punch In time (HH:MM or HH:MM:SS)' : field === 'punchOut' ? 'Punch Out time (HH:MM or HH:MM:SS)' : 'Total Time (e.g. 08h 30m 00s)'}`,
             currentValue
@@ -2052,9 +2174,9 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         if (value === null) return
 
         const normalized = value.trim()
-        
-        if (field !== 'totalTime') {
-            const validTime = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(normalized)
+
+        if (field !== 'totalTime' && normalized !== '') {
+            const validTime = /^(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?(?:\s*[AaPp][Mm])?$/.test(normalized)
             if (!validTime) {
                 alert('Please enter a valid time in HH:MM or HH:MM:SS format.')
                 return
@@ -2062,10 +2184,37 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
         }
 
         try {
-            const punchInValue = field === 'punchIn' ? normalized : targetPunch.punchIn || '00:00'
-            const punchOutValue = field === 'punchOut' ? normalized : targetPunch.punchOut || '00:00'
-            const totalTimeValue = field === 'totalTime' ? normalized : targetPunch.totalTime || '00h 00m 00s'
-            const payload: { punchIn: string; punchOut: string; totalTime: string; date?: string } = {
+            let punchInValue = targetPunch.punchIn || '00:00:00'
+            let punchOutValue = targetPunch.punchOut || ''
+            let totalTimeValue = targetPunch.totalTime || '00h 00m 00s'
+
+            if (field === 'punchIn') {
+                punchInValue = normalized
+                // ⚠️ DO NOT set punchOut to '00:00' if punchOut is empty! Keep punchOut as-is!
+                punchOutValue = targetPunch.punchOut || ''
+                if (punchOutValue && punchOutValue !== '00:00' && punchOutValue !== '00:00:00') {
+                    // Recalculate totalTime automatically if punchOut exists
+                    totalTimeValue = calculateDuration(punchInValue, punchOutValue)
+                } else {
+                    totalTimeValue = '00h 00m 00s'
+                }
+            } else if (field === 'punchOut') {
+                punchOutValue = normalized
+                punchInValue = targetPunch.punchIn || '00:00:00'
+                if (punchOutValue && punchOutValue !== '00:00' && punchOutValue !== '00:00:00') {
+                    // Recalculate totalTime automatically
+                    totalTimeValue = calculateDuration(punchInValue, punchOutValue)
+                } else {
+                    totalTimeValue = '00h 00m 00s'
+                }
+            } else if (field === 'totalTime') {
+                punchInValue = targetPunch.punchIn || '00:00:00'
+                punchOutValue = targetPunch.punchOut || ''
+                totalTimeValue = normalized || '00h 00m 00s'
+            }
+
+            const payload: { punchId?: string; punchIn: string; punchOut: string; totalTime: string; date?: string } = {
+                punchId: (targetPunch as any)?._id || targetPunch?.id,
                 punchIn: punchInValue,
                 punchOut: punchOutValue,
                 totalTime: totalTimeValue,
@@ -2618,7 +2767,7 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                     </div>   */}
 
                                     <div className="text-gray-600 flex items-center justify-center gap-2">
-                                        <span>{currentPunch?.punchOut || "-"}</span>
+                                        <span>{currentPunch?.punchOut && currentPunch.punchOut !== '00:00' && currentPunch.punchOut !== '00:00:00' ? currentPunch.punchOut : "-"}</span>
                                         {canEditPunchTimes && (
                                             <button
                                                 type="button"
@@ -2633,7 +2782,16 @@ const PunchInOut: React.FC<PunchInOutProps & { isMinimalView?: boolean }> = ({
                                 <div className="flex flex-col">
                                     <h4 className="font-semibold text-gray-700 mb-2">Total Time</h4>
                                     <div className="text-gray-600 flex items-center justify-center gap-2">
-                                        <span>{currentPunch?.totalTime || '-'}</span>
+                                        <span>{(() => {
+                                            if (currentPunch?.totalTime && currentPunch.totalTime !== '00h 00m 00s' && currentPunch.totalTime !== '-' && !currentPunch.totalTime.includes('NaN')) {
+                                                return currentPunch.totalTime;
+                                            }
+                                            if (currentPunch?.punchIn && currentPunch?.punchOut && currentPunch.punchOut !== '00:00' && currentPunch.punchOut !== '00:00:00') {
+                                                const computed = calculateDuration(currentPunch.punchIn, currentPunch.punchOut);
+                                                if (computed && computed !== '00h 00m 00s') return computed;
+                                            }
+                                            return currentPunch?.totalTime || '-';
+                                        })()}</span>
                                         {canEditPunchTimes && (
                                             <button
                                                 type="button"
