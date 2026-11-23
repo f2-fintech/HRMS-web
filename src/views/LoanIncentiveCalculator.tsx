@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 
 // MUI Imports
 import {
@@ -11,15 +11,9 @@ import {
   Typography,
   Grid,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Button,
-  IconButton,
+  Divider,
   Chip,
-  Alert,
-  AlertTitle,
   Table,
   TableHead,
   TableRow,
@@ -27,1268 +21,711 @@ import {
   TableBody,
   TableContainer,
   Paper,
-  Tabs,
-  Tab,
-  Divider,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   InputAdornment,
-  useTheme,
-  alpha
+  Alert
 } from '@mui/material'
 
-// Icons
+// MUI Icons
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import RestartAltIcon from '@mui/icons-material/RestartAlt'
+import PersonIcon from '@mui/icons-material/Person'
+import GroupsIcon from '@mui/icons-material/Groups'
+import BusinessIcon from '@mui/icons-material/Business'
 import CalculateIcon from '@mui/icons-material/Calculate'
-import SettingsIcon from '@mui/icons-material/Settings'
-import HistoryIcon from '@mui/icons-material/History'
-import AddIcon from '@mui/icons-material/Add'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import SaveIcon from '@mui/icons-material/Save'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import TrendingUpIcon from '@mui/icons-material/TrendingUp'
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn'
-import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 
-// Rank hierarchy definitions
-const RATE_BPS = 60 // 0.6%
-const RANK = ['RE', 'Individual TL', 'TL', 'Individual Manager', 'Manager', 'ASM']
-const TEAM = ['TL', 'Manager']
-
-interface DisbursalItem {
-  amt: string
-  con: string
-  hier: string[]
+interface RateConfig {
+  mult: number
+  addon: number
+  step: number
+  e0: number
+  e1: number
+  e2: number
+  e3: number
+  e4: number
+  tl: number
+  mt: number
+  ms: number
+  mi: number
+  mc: number
+  tlo: number
+  mo: number
+  mot: number
 }
 
-interface CommissionConfig {
-  c: number
-  h: number
+const D: RateConfig = {
+  mult: 200,
+  addon: 2000000,
+  step: 25,
+  e0: 0.25,
+  e1: 0.30,
+  e2: 0.35,
+  e3: 0.40,
+  e4: 0.50,
+  tl: 0.12,
+  mt: 0.09,
+  ms: 0.10,
+  mi: 0.05,
+  mc: 0.50,
+  tlo: 0.20,
+  mo: 0.35,
+  mot: 0.10
 }
 
-interface RuleHistoryItem {
-  t: string
-  before: CommissionConfig
-  after: CommissionConfig
+const LB: Record<keyof RateConfig, string> = {
+  mult: 'Target = salary ×',
+  addon: 'Add to target ₹',
+  step: 'Slab step %',
+  e0: 'Employee slab 1 %',
+  e1: 'Employee slab 2 %',
+  e2: 'Employee slab 3 %',
+  e3: 'Employee slab 4 %',
+  e4: 'Employee slab 5+ %',
+  tl: 'TL on employee %',
+  mt: 'Manager on employee under TL %',
+  ms: 'Manager direct: first slab %',
+  mi: 'Manager direct: rise per slab %',
+  mc: 'Manager direct: maximum %',
+  tlo: 'TL own case %',
+  mo: 'Manager own case %',
+  mot: 'Manager on TL own case %'
 }
 
-interface SavedLoanRecord {
-  t: string
-  loan: number
-  extra: number
-  target: number
-  pool: number
-  scn: string
-  cfg: CommissionConfig
-  rows: Array<{ r: string; resp: string; a: number }>
-  per: any[]
+type Role = 'emp' | 'tl' | 'mg'
+type Reporting = 'tl' | 'mg'
+
+interface SlabRow {
+  lo: number
+  hi: number
+  b: number
+  r: number
+  a: number
 }
 
-interface AppState {
-  cfg: CommissionConfig
-  hist: RuleHistoryItem[]
-  loans: SavedLoanRecord[]
+const rs = (v: number) => '₹' + Math.round(v).toLocaleString('en-IN')
+
+const words = (v: number) => {
+  if (v >= 1e7) return '₹' + (v / 1e7).toFixed(2) + ' Crore'
+  if (v >= 1e5) return '₹' + (v / 1e5).toFixed(2) + ' Lakh'
+  return v > 0 ? rs(v) : ''
 }
 
-const formatInr = (paisa: number) => {
-  return (
-    '₹' +
-    (paisa / 100).toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })
-  )
-}
-
-const above = (role: string) => {
-  const idx = RANK.indexOf(role)
-  return idx >= 0 ? RANK.slice(idx + 1) : []
-}
-
-const rk = (role: string) => {
-  const idx = RANK.indexOf(role)
-  return idx < 0 ? 99 : idx
-}
-
-const cfgTxt = (c: CommissionConfig) =>
-  `Contributor ${c.c}% · Hierarchy ${c.h}% (split equally) · Originator gets the rest`
-
-export default function LoanIncentiveCalculator() {
-  const theme = useTheme()
-  const [activeTab, setActiveTab] = useState<number>(0)
-  const [mounted, setMounted] = useState<boolean>(false)
-
-  // App persistent state
-  const [appState, setAppState] = useState<AppState>({
-    cfg: { c: 20, h: 10 },
-    hist: [],
-    loans: []
-  })
-
-  // Calculator inputs
+export default function F2IncentiveCalculator() {
+  const [role, setRole] = useState<Role>('emp')
+  const [rep, setRep] = useState<Reporting>('tl')
   const [sal, setSal] = useState<string>('')
-  const [team, setTeam] = useState<string>('')
-  const [orig, setOrig] = useState<string>('RE')
-  const [list, setList] = useState<DisbursalItem[]>([{ amt: '', con: '', hier: [] }])
+  const [dis, setDis] = useState<string>('')
+  const [rates, setRates] = useState<RateConfig>(D)
 
-  // Commission settings inputs
-  const [cfgC, setCfgC] = useState<string>('20')
-  const [cfgH, setCfgH] = useState<string>('10')
-  const [settingsFeedback, setSettingsFeedback] = useState<{ text: string; ok: boolean } | null>(null)
-  const [saveLoanSuccess, setSaveLoanSuccess] = useState<string>('')
-
-  const [currentUser, setCurrentUser] = useState<any>(null)
-
-  // Determine if logged-in user is an admin
-  const isAdmin = useMemo(() => {
-    if (!currentUser) return false
-    const role = String(currentUser?.role ?? '')
-    return (
-      role === '1' ||
-      role === '0' ||
-      currentUser?.role === 1 ||
-      currentUser?.role === 0 ||
-      currentUser?.role === 'admin' ||
-      currentUser?.is_admin === true ||
-      String(currentUser?.role_name || '').toLowerCase() === 'admin'
-    )
-  }, [currentUser])
-
-  // If non-admin user is on an admin tab, reset active tab to Calculator
+  // Load saved rates from localStorage
   useEffect(() => {
-    if (!isAdmin && activeTab !== 0) {
-      setActiveTab(0)
-    }
-  }, [isAdmin, activeTab])
-
-  // Load from localStorage on client mount (scoped to logged-in user)
-  useEffect(() => {
-    setMounted(true)
     try {
-      const userData = JSON.parse(localStorage.getItem('user') || '{}')
-      setCurrentUser(userData)
-      const userId = userData?.id || userData?._id || userData?.employee_id || userData?.email || 'guest'
-      const userKey = `lic_v2_${userId}`
-
-      const sharedCfgStr = localStorage.getItem('lic_v2_shared_cfg')
-      const sharedCfg = sharedCfgStr ? JSON.parse(sharedCfgStr) : null
-
-      const stored = localStorage.getItem(userKey) || localStorage.getItem('lic_v2')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        setAppState({
-          cfg: sharedCfg || parsed.cfg || { c: 20, h: 10 },
-          hist: parsed.hist || [],
-          loans: parsed.loans || []
-        })
-        const activeCfg = sharedCfg || parsed.cfg
-        if (activeCfg) {
-          setCfgC(String(activeCfg.c ?? 20))
-          setCfgH(String(activeCfg.h ?? 10))
-        }
-      } else if (sharedCfg) {
-        setAppState(prev => ({ ...prev, cfg: sharedCfg }))
-        setCfgC(String(sharedCfg.c ?? 20))
-        setCfgH(String(sharedCfg.h ?? 10))
+      const a = JSON.parse(localStorage.getItem('f2s3') || 'null')
+      if (a) {
+        setRates({ ...D, ...a })
       }
-    } catch (e) {
-      console.error('Failed reading lic_v2 from localStorage', e)
+    } catch {
+      // ignore
     }
   }, [])
 
-  // Helper to persist state for current user
-  const persistState = (newState: AppState) => {
-    setAppState(newState)
+  const handleRateChange = (key: keyof RateConfig, val: string) => {
+    const updated = { ...rates, [key]: parseFloat(val) || 0 }
+    setRates(updated)
     try {
-      const userData = currentUser || JSON.parse(localStorage.getItem('user') || '{}')
-      const userId = userData?.id || userData?._id || userData?.employee_id || userData?.email || 'guest'
-      const userKey = `lic_v2_${userId}`
-      localStorage.setItem(userKey, JSON.stringify(newState))
-      // Also store company-wide shared config so all users see the admin-configured rule
-      localStorage.setItem('lic_v2_shared_cfg', JSON.stringify(newState.cfg))
-    } catch (e) {
-      console.error('Failed to save to localStorage', e)
+      localStorage.setItem('f2s3', JSON.stringify(updated))
+    } catch {
+      // ignore
     }
   }
 
-  // Available contributor options
-  const conOpts = useMemo(() => {
-    return [...above(orig), 'Director']
-  }, [orig])
-
-  // Hierarchy options for a specific item (all roles above Originator excluding the Contributor itself)
-  const getHopts = (item: DisbursalItem) => {
-    const allAbove = [...above(orig), 'Director']
-    return allAbove.filter(r => r !== item.con)
+  const handleResetRates = () => {
+    setRates({ ...D })
+    try {
+      localStorage.setItem('f2s3', JSON.stringify(D))
+    } catch {
+      // ignore
+    }
   }
 
-  // Split calculation for a single disbursal
-  const splitDisbursal = (item: DisbursalItem, pool: number) => {
-    const cb = Math.round(appState.cfg.c * 100) // 20%
-    const hb = Math.round(appState.cfg.h * 100) // 10%
-    const n = item.hier.length
-
-    // Rules from notebook:
-    // 1) Only RE (no contributor, no hierarchy selected) -> RE gets 100%
-    // 2) RE + Contributor (TL, Manager, ASM, Director) -> RE 70% + Contributor 20% + Hierarchy 10%
-    // 3) Only RE + Hierarchy selected -> RE 90% + Hierarchy 10%
-    const hs = Boolean(item.con || n > 0)
-
-    const cAmt = item.con ? Math.floor((pool * cb) / 10000) : 0
-    const hAmt = hs ? Math.floor((pool * hb) / 10000) : 0
-    const each = n ? Math.floor(hAmt / n) : 0
-
-    const rows: Array<{ r: string; resp: string; a: number }> = [
-      { r: orig, resp: 'Loan Originator', a: 0 }
-    ]
-
-    if (item.con) {
-      rows.push({ r: item.con, resp: 'Contributor', a: cAmt })
+  function slabs(d: number, s: number, rateFn: (i: number) => number, n: number) {
+    const j = s * rates.mult
+    const p = j + rates.addon
+    let tot = 0
+    const rows: SlabRow[] = []
+    for (let i = 0; i < n; i++) {
+      const lo = i ? p * (1 + (rates.step / 100) * (i - 1)) : j
+      const hi = i === n - 1 ? Infinity : p * (1 + (rates.step / 100) * i)
+      const b = Math.max(0, Math.min(d, hi) - lo)
+      const r = rateFn(i)
+      const a = (b * r) / 100
+      tot += a
+      rows.push({ lo, hi, b, r, a })
     }
-
-    item.hier.forEach((r, i) => {
-      rows.push({
-        r,
-        resp: 'Hierarchy',
-        a: each + (i === 0 ? hAmt - each * n : 0)
-      })
-    })
-
-    if (!n && hs) {
-      rows.push({
-        r: 'Hierarchy',
-        resp: 'Hierarchy',
-        a: hAmt
-      })
-    }
-
-    // Originator receives whatever is left after Contributor and Hierarchy
-    // (If only RE with no contributor & no hierarchy, rows[0].a = pool, i.e. 100%)
-    rows[0].a = pool - rows.slice(1).reduce((s, x) => s + x.a, 0)
-    return rows
+    return { tot, rows }
   }
 
-  // Full calculation
-  const calcResult = useMemo(() => {
-    const isT = TEAM.includes(orig)
-    const ownSalNum = parseFloat(sal) || 0
-    const teamSalNum = isT ? parseFloat(team) || 0 : 0
-    const tg = Math.round((ownSalNum + teamSalNum) * 200 * 100)
-    const cb = Math.round(appState.cfg.c * 100)
-    const hb = Math.round(appState.cfg.h * 100)
-
-    const out: any = { target: tg, isT }
-
-    if (!(parseFloat(sal) > 0)) {
-      out.err = 'Enter the salary first.'
-      return out
+  function mgrN() {
+    let n = 1
+    while (n < 60 && rates.ms + rates.mi * (n - 1) < rates.mc) {
+      n++
     }
-
-    if (isT && !(parseFloat(team) > 0)) {
-      out.err = `Enter the total salary of the employees under this ${orig}.`
-      return out
-    }
-
-    if (cb < 0 || hb < 0 || cb + hb > 10000) {
-      out.err =
-        'Commission settings are invalid (Contributor % + Hierarchy % must not exceed 100). Fix them in Commission Settings.'
-      return out
-    }
-
-    const ents = list
-      .map((e, i) => ({ e, i, lp: Math.round((parseFloat(e.amt) || 0) * 100) }))
-      .filter(x => x.lp > 0)
-
-    if (!ents.length) {
-      out.err = 'Add at least one disbursal amount.'
-      return out
-    }
-
-    const total = ents.reduce((s, x) => s + x.lp, 0)
-    out.total = total
-
-    if (total <= tg) {
-      out.inel = true
-    }
-
-    let cum = 0
-    let pool = 0
-    let extra = 0
-    const per: any[] = []
-    const tot: Record<string, { r: string; resp: string; a: number }> = {}
-
-    ents.forEach(x => {
-      cum += x.lp
-      const el = Math.max(0, Math.min(x.lp, cum - tg))
-      const p = Math.round((el * RATE_BPS) / 10000)
-      const rows = splitDisbursal(x.e, p)
-
-      per.push({
-        n: x.i + 1,
-        lp: x.lp,
-        el,
-        p,
-        con: x.e.con,
-        hier: x.e.hier,
-        o: rows[0].a,
-        orig: rows[0].r,
-        cr: rows.filter(q => q.resp === 'Contributor'),
-        hr: rows.filter(q => q.resp === 'Hierarchy')
-      })
-
-      pool += p
-      extra += el
-
-      rows.forEach(r => {
-        const k = r.resp + '|' + r.r
-        tot[k] = tot[k] || { r: r.r, resp: r.resp, a: 0 }
-        tot[k].a += r.a
-      })
-    })
-
-    const od = ['Loan Originator', 'Contributor', 'Hierarchy']
-    const ri = (r: string) => (RANK.indexOf(r) < 0 ? 99 : RANK.indexOf(r))
-
-    out.rows = Object.values(tot)
-      .filter(x => x.a > 0 || x.resp === 'Loan Originator')
-      .sort((a, b) => od.indexOf(a.resp) - od.indexOf(b.resp) || ri(a.r) - ri(b.r))
-
-    out.per = per
-    out.pool = pool
-    out.extra = extra
-
-    return out
-  }, [sal, team, orig, list, appState.cfg])
-
-  // Handle Originator change
-  const handleOrigChange = (newOrig: string) => {
-    setOrig(newOrig)
-    const validContributors = [...above(newOrig), 'Director']
-    setList(prev =>
-      prev.map(item => {
-        const conValid = validContributors.includes(item.con) ? item.con : ''
-        const allowedHierarchy = [...above(newOrig), 'Director'].filter(r => r !== conValid)
-        return {
-          ...item,
-          con: conValid,
-          hier: item.hier.filter(r => allowedHierarchy.includes(r))
-        }
-      })
-    )
+    return n + 1
   }
 
-  // Disbursal list actions
-  const handleAmtChange = (idx: number, val: string) => {
-    const clean = val.replace(/[^0-9.]/g, '')
-    setList(prev => {
-      const copy = [...prev]
-      copy[idx] = { ...copy[idx], amt: clean }
-      return copy
-    })
-  }
+  const s = parseFloat(sal) || 0
+  const d = parseFloat(dis) || 0
+  const isEmp = role === 'emp'
 
-  const handleConChange = (idx: number, newCon: string) => {
-    setList(prev => {
-      const copy = [...prev]
-      const allowedHierarchy = [...above(orig), 'Director'].filter(r => r !== newCon)
-      copy[idx] = {
-        ...copy[idx],
-        con: newCon,
-        hier: copy[idx].hier.filter(r => allowedHierarchy.includes(r))
+  const hasInputs = d > 0 && (!isEmp || s > 0)
+  const R: Array<{ title: string; amount: number; color: string }> = []
+  const N: string[] = []
+  let empTableRows: SlabRow[] | null = null
+  let mgrTableRows: SlabRow[] | null = null
+
+  if (hasInputs) {
+    if (isEmp) {
+      const j = s * rates.mult
+      const ex = Math.max(0, d - j)
+      const e = slabs(d, s, (i) => (rates as any)['e' + i], 5)
+      R.push({ title: 'Employee', amount: e.tot, color: '#2563eb' })
+
+      if (d <= j) {
+        N.push(
+          `Employee: no incentive until disbursed passes the target of ${rs(j)}. This amount is below the target, so the incentive is ₹0.`
+        )
+      } else {
+        N.push(
+          `Employee: no incentive until disbursed passes the target of ${rs(j)}. Above the target, each slab pays its own rate on the business inside it:`
+        )
+        empTableRows = e.rows
       }
-      return copy
-    })
-  }
 
-  const handleToggleHier = (idx: number, role: string) => {
-    setList(prev => {
-      const copy = [...prev]
-      const current = copy[idx].hier
-      const updated = current.includes(role)
-        ? current.filter(r => r !== role)
-        : [...current, role].sort((a, b) => rk(a) - rk(b))
-      copy[idx] = { ...copy[idx], hier: updated }
-      return copy
-    })
-  }
-
-  const handleAddDisbursal = () => {
-    setList(prev => [...prev, { amt: '', con: '', hier: [] }])
-  }
-
-  const handleRemoveDisbursal = (idx: number) => {
-    if (list.length <= 1) return
-    setList(prev => prev.filter((_, i) => i !== idx))
-  }
-
-  // Save Loan Record
-  const handleSaveLoanRecord = () => {
-    if (!calcResult || calcResult.err || calcResult.inel) return
-    const newRecord: SavedLoanRecord = {
-      t: new Date().toISOString(),
-      loan: calcResult.total,
-      extra: calcResult.extra,
-      target: calcResult.target,
-      pool: calcResult.pool,
-      scn: `Originator ${orig} · ${calcResult.per.length} disbursal(s)`,
-      cfg: { ...appState.cfg },
-      rows: calcResult.rows,
-      per: calcResult.per
+      if (rep === 'tl') {
+        R.push(
+          { title: 'TL', amount: (ex * rates.tl) / 100, color: '#0891b2' },
+          { title: 'Manager', amount: (ex * rates.mt) / 100, color: '#7c3aed' }
+        )
+        N.push(`TL: ${rates.tl}% of the amount above target (${rs(ex)}).`)
+        N.push(`Manager: ${rates.mt}% of the amount above target (${rs(ex)}).`)
+      } else {
+        const m = slabs(d, s, (i) => Math.min(rates.mc, rates.ms + rates.mi * i), mgrN())
+        R.push({ title: 'Manager', amount: m.tot, color: '#7c3aed' })
+        N.push(
+          `Manager (employee reports directly): rate starts at ${rates.ms}% and rises by ${rates.mi}% each slab up to ${rates.mc}%.`
+        )
+        if (d > j) {
+          mgrTableRows = m.rows
+        }
+      }
+    } else if (role === 'tl') {
+      R.push({ title: 'TL', amount: (d * rates.tlo) / 100, color: '#0891b2' })
+      N.push(`TL: ${rates.tlo}% of ${rs(d)}.`)
+    } else {
+      R.push({ title: 'Manager', amount: (d * rates.mo) / 100, color: '#7c3aed' })
+      N.push(`Manager: ${rates.mo}% of ${rs(d)}.`)
     }
-    const updated = {
-      ...appState,
-      loans: [newRecord, ...appState.loans]
-    }
-    persistState(updated)
-    setSaveLoanSuccess('Saved — rule snapshot stored with this record.')
-    setTimeout(() => setSaveLoanSuccess(''), 5000)
-  }
-
-  // Commission Settings Save
-  const handleSaveCommission = () => {
-    const cNum = parseFloat(cfgC) || 0
-    const hNum = parseFloat(cfgH) || 0
-
-    if (cNum < 0 || hNum < 0 || cNum + hNum > 100) {
-      setSettingsFeedback({
-        text: 'Cannot save: values must be 0 or more and Contributor + Hierarchy must not exceed 100%.',
-        ok: false
-      })
-      return
-    }
-
-    const updatedCfg: CommissionConfig = { c: cNum, h: hNum }
-    const historyItem: RuleHistoryItem = {
-      t: new Date().toISOString(),
-      before: { ...appState.cfg },
-      after: updatedCfg
-    }
-
-    const newState: AppState = {
-      ...appState,
-      cfg: updatedCfg,
-      hist: [historyItem, ...appState.hist]
-    }
-
-    persistState(newState)
-    setSettingsFeedback({
-      text: `Saved ✓ at ${new Date().toLocaleTimeString('en-IN')}`,
-      ok: true
-    })
-  }
-
-  const cNum = parseFloat(cfgC) || 0
-  const hNum = parseFloat(cfgH) || 0
-  const originatorRemainder = Math.round((100 - cNum - hNum) * 100) / 100
-
-  if (!mounted) {
-    return (
-      <Box p={6} textAlign='center'>
-        <Typography color='text.secondary'>Loading Calculator...</Typography>
-      </Box>
-    )
   }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', p: { xs: 2, sm: 3 } }}>
-      {/* Page Header matching HRMS style */}
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-        <Box>
-          <Typography variant='h5' fontWeight={700} color='text.primary' sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CalculateIcon color='primary' sx={{ fontSize: 28 }} />
-            Loan Incentive Calculator
-          </Typography>
-          <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-            Calculate loan originator and hierarchy incentives based on salary target thresholds
-          </Typography>
-        </Box>
-        {/* <Chip
-          icon={<MonetizationOnIcon />}
-          label='Incentive Rate: 0.60%'
-          color='primary'
-          variant='outlined'
-          sx={{ fontWeight: 600 }}
-        /> */}
-      </Box>
+    <Box
+      sx={{
+        width: '100%',
+        pb: 6,
+        '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+          WebkitAppearance: 'none',
+          margin: 0
+        },
+        '& input[type=number]': {
+          MozAppearance: 'textfield'
+        }
+      }}
+    >
+      {/* Top Header Card */}
+      <Card
+        sx={{
+          mb: 4,
+          background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #06b6d4 100%)',
+          color: '#ffffff',
+          borderRadius: 3,
+          boxShadow: '0 8px 24px rgba(37, 99, 235, 0.2)'
+        }}
+      >
+        <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <CalculateIcon sx={{ fontSize: 30, color: '#ffffff' }} />
+            </Box>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#ffffff' }}>
+                F2 Incentive Calculator
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)', mt: 0.5 }}>
+                Calculate employee, team leader, and manager loan disbursement incentives
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
 
-      {/* Tabs navigation in HRMS Materio style - only visible to admin */}
-      {isAdmin && (
-        <Paper sx={{ mb: 4, borderRadius: 2 }} elevation={0} variant='outlined'>
-          <Tabs
-            value={activeTab}
-            onChange={(_, val) => setActiveTab(val)}
-            indicatorColor='primary'
-            textColor='primary'
-            variant='scrollable'
-            scrollButtons='auto'
-            sx={{ px: 2 }}
-          >
-            <Tab
-              icon={<CalculateIcon />}
-              iconPosition='start'
-              label='Calculator'
-              sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }}
-            />
-            <Tab
-              icon={<SettingsIcon />}
-              iconPosition='start'
-              label='Commission Settings'
-              sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }}
-            />
-            <Tab
-              icon={<HistoryIcon />}
-              iconPosition='start'
-              label='History'
-              sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }}
-            />
-          </Tabs>
-        </Paper>
-      )}
+      {/* Main Grid: Inputs on Left, Results on Right */}
+      <Grid container spacing={3}>
+        {/* LEFT COLUMN: INPUTS */}
+        <Grid item xs={12} lg={5}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {/* 1. Who disbursed the loan? */}
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip label="1" size="small" color="primary" sx={{ fontWeight: 800, height: 22, width: 22 }} />
+                  Who disbursed the loan?
+                </Typography>
 
-      {/* ============================================================== */}
-      {/* TAB 0: CALCULATOR */}
-      {/* ============================================================== */}
-      {(!isAdmin || activeTab === 0) && (
-        <Grid container spacing={4}>
-          {/* Section 1: Loan Originator & Salary */}
-          <Grid item xs={12}>
-            <Card variant='outlined' sx={{ borderRadius: 2 }}>
-              <CardHeader
-                title='1. Loan Originator & Salary'
-                titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              />
-              <Divider />
-              <CardContent>
-                <Grid container spacing={4} alignItems='center'>
-                  <Grid item xs={12} sm={6} md={TEAM.includes(orig) ? 4 : 6}>
-                    <FormControl fullWidth size='small'>
-                      <InputLabel id='orig-label'>Loan Originator</InputLabel>
-                      <Select
-                        labelId='orig-label'
-                        label='Loan Originator'
-                        value={orig}
-                        onChange={e => handleOrigChange(e.target.value)}
-                      >
-                        {RANK.map(r => (
-                          <MenuItem key={r} value={r}>
-                            {r}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={TEAM.includes(orig) ? 4 : 6}>
-                    <TextField
+                <Grid container spacing={1.5}>
+                  <Grid item xs={4}>
+                    <Button
                       fullWidth
-                      size='small'
-                      label='Salary of Loan Originator'
-                      placeholder='e.g. 15000'
-                      value={sal}
-                      onChange={e => setSal(e.target.value.replace(/[^0-9.]/g, ''))}
-                      InputProps={{
-                        startAdornment: <InputAdornment position='start'>₹</InputAdornment>
-                      }}
-                    />
-                  </Grid>
-
-                  {TEAM.includes(orig) && (
-                    <Grid item xs={12} sm={12} md={4}>
-                      <TextField
-                        fullWidth
-                        size='small'
-                        label='Total Team Salary Under Originator'
-                        placeholder='e.g. 120000'
-                        value={team}
-                        onChange={e => setTeam(e.target.value.replace(/[^0-9.]/g, ''))}
-                        InputProps={{
-                          startAdornment: <InputAdornment position='start'>₹</InputAdornment>
-                        }}
-                      />
-                    </Grid>
-                  )}
-                </Grid>
-
-                {calcResult.target > 0 && (
-                  <Box sx={{ mt: 3, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.04), borderRadius: 1.5, border: `1px dashed ${alpha(theme.palette.primary.main, 0.3)}` }}>
-                    <Typography variant='body2' color='text.secondary'>
-                      {TEAM.includes(orig)
-                        ? 'Eligibility target ((own salary + team salary) × 200): '
-                        : 'Eligibility target (salary × 200): '}
-                      <Typography component='span' variant='subtitle2' fontWeight={700} color='primary.main'>
-                        {formatInr(calcResult.target)}
-                      </Typography>
-                    </Typography>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Section 2: Monthly Amount Disbursed */}
-          <Grid item xs={12}>
-            <Card variant='outlined' sx={{ borderRadius: 2 }}>
-              <CardHeader
-                title='2. Monthly Amount Disbursed'
-                subheader='Add every disbursal made in the month. For each one choose the Contributor (or none) and the Hierarchy.'
-                titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-                subheaderTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
-              />
-              <Divider />
-              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {list.map((item, i) => {
-                  const hopts = getHopts(item)
-                  return (
-                    <Paper
-                      key={i}
-                      variant='outlined'
+                      variant={role === 'emp' ? 'contained' : 'outlined'}
+                      onClick={() => setRole('emp')}
+                      startIcon={<PersonIcon />}
                       sx={{
-                        p: 3,
-                        borderRadius: 2,
-                        bgcolor: alpha(theme.palette.background.paper, 0.6),
-                        borderColor: 'divider',
-                        position: 'relative'
+                        py: 1.5,
+                        borderRadius: 2.5,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        flexDirection: 'column',
+                        gap: 0.5,
+                        '& .MuiButton-startIcon': { m: 0 }
                       }}
                     >
-                      <Grid container spacing={3} alignItems='center'>
-                        <Grid item xs={12} sm={6} md={5}>
-                          <TextField
-                            fullWidth
-                            size='small'
-                            label={`Case ${i + 1} Disbursal Amount`}
-                            placeholder='e.g. 1500000'
-                            value={item.amt}
-                            onChange={e => handleAmtChange(i, e.target.value)}
-                            InputProps={{
-                              startAdornment: <InputAdornment position='start'>₹</InputAdornment>
-                            }}
-                          />
-                        </Grid>
+                      Employee
+                    </Button>
+                  </Grid>
 
-                        <Grid item xs={12} sm={6} md={5}>
-                          <FormControl fullWidth size='small'>
-                            <InputLabel id={`con-label-${i}`}>Loan Contributor</InputLabel>
-                            <Select
-                              labelId={`con-label-${i}`}
-                              label='Loan Contributor'
-                              value={item.con || ''}
-                              displayEmpty
-                              renderValue={selected => {
-                                if (!selected) {
-                                  return (
-                                    <Typography component='span' sx={{ color: 'text.secondary' }}>
-                                      No contributor
-                                    </Typography>
-                                  )
-                                }
-                                return selected
-                              }}
-                              onChange={e => handleConChange(i, e.target.value)}
-                            >
-                              <MenuItem value=''>
-                                <em>No contributor</em>
-                              </MenuItem>
-                              {conOpts.map(r => (
-                                <MenuItem key={r} value={r}>
-                                  {r}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </Grid>
+                  <Grid item xs={4}>
+                    <Button
+                      fullWidth
+                      variant={role === 'tl' ? 'contained' : 'outlined'}
+                      onClick={() => setRole('tl')}
+                      startIcon={<GroupsIcon />}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: 2.5,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        flexDirection: 'column',
+                        gap: 0.5,
+                        '& .MuiButton-startIcon': { m: 0 }
+                      }}
+                    >
+                      TL
+                    </Button>
+                  </Grid>
 
-                        {list.length > 1 && (
-                          <Grid item xs={12} md={2} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-                            <Button
-                              variant='outlined'
-                              color='error'
-                              size='small'
-                              startIcon={<DeleteOutlineIcon />}
-                              onClick={() => handleRemoveDisbursal(i)}
-                            >
-                              Remove
-                            </Button>
-                          </Grid>
-                        )}
-                      </Grid>
-
-                      {/* Hierarchy chips */}
-                      <Box sx={{ mt: 2.5 }}>
-                        <Typography variant='caption' color='text.secondary' fontWeight={500} sx={{ display: 'block', mb: 1 }}>
-                          Hierarchy (optional roles above Contributor, or above Originator if no Contributor):
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {hopts.length > 0 ? (
-                            hopts.map(r => {
-                              const isSelected = item.hier.includes(r)
-                              return (
-                                <Chip
-                                  key={r}
-                                  label={r}
-                                  size='small'
-                                  color={isSelected ? 'primary' : 'default'}
-                                  variant={isSelected ? 'filled' : 'outlined'}
-                                  onClick={() => handleToggleHier(i, r)}
-                                  icon={isSelected ? <CheckCircleIcon fontSize='small' /> : undefined}
-                                  sx={{ fontWeight: isSelected ? 600 : 400, cursor: 'pointer' }}
-                                />
-                              )
-                            })
-                          ) : (
-                            <Typography variant='caption' color='text.disabled' fontStyle='italic'>
-                              No roles available.
-                            </Typography>
-                          )}
-                        </Box>
-
-                        {!item.con && item.hier.length === 0 && (
-                          <Typography variant='caption' color='success.main' sx={{ display: 'block', mt: 1, fontWeight: 500 }}>
-                            ℹ️ No Contributor: 100% incentive goes to Loan Originator ({orig}).
-                          </Typography>
-                        )}
-                        {!item.con && item.hier.length > 0 && (
-                          <Typography variant='caption' color='info.main' sx={{ display: 'block', mt: 1, fontWeight: 500 }}>
-                            ℹ️ No Contributor with Hierarchy: Originator ({orig}) gets 90% · Hierarchy gets 10% (split equally).
-                          </Typography>
-                        )}
-                        {item.con && (
-                          <Typography variant='caption' color='primary.main' sx={{ display: 'block', mt: 1, fontWeight: 500 }}>
-                            ℹ️ Rule: Originator ({orig}) gets {100 - appState.cfg.c - appState.cfg.h}% · Contributor ({item.con}) gets {appState.cfg.c}% · Hierarchy gets {appState.cfg.h}%.
-                          </Typography>
-                        )}
-                      </Box>
-                    </Paper>
-                  )
-                })}
-
-                <Box>
-                  <Button
-                    variant='outlined'
-                    color='primary'
-                    size='small'
-                    startIcon={<AddIcon />}
-                    onClick={handleAddDisbursal}
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
-                  >
-                    Add Another Disbursal
-                  </Button>
-                </Box>
+                  <Grid item xs={4}>
+                    <Button
+                      fullWidth
+                      variant={role === 'mg' ? 'contained' : 'outlined'}
+                      onClick={() => setRole('mg')}
+                      startIcon={<BusinessIcon />}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: 2.5,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        flexDirection: 'column',
+                        gap: 0.5,
+                        '& .MuiButton-startIcon': { m: 0 }
+                      }}
+                    >
+                      Manager
+                    </Button>
+                  </Grid>
+                </Grid>
               </CardContent>
             </Card>
-          </Grid>
 
-          {/* Section 3: Combined incentive for the month */}
-          <Grid item xs={12}>
-            <Card variant='outlined' sx={{ borderRadius: 2 }}>
-              <CardHeader
-                title='3. Combined Incentive for the Month'
-                titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              />
-              <Divider />
-              <CardContent>
-                {/* Form status / Error / Ineligibility Alerts */}
-                {calcResult.err && (
-                  <Alert severity='info' sx={{ mb: 2 }}>
-                    {calcResult.err}
-                  </Alert>
-                )}
+            {/* 2. Who does this employee report to? (only if Employee) */}
+            {isEmp && (
+              <Card sx={{ borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip label="2" size="small" color="primary" sx={{ fontWeight: 800, height: 22, width: 22 }} />
+                    Who does this employee report to?
+                  </Typography>
 
-                {calcResult.inel && (
-                  <Alert severity='warning' sx={{ mb: 2 }}>
-                    <AlertTitle sx={{ fontWeight: 700 }}>Incentive Eligibility Not Met</AlertTitle>
-                    No incentive is payable below the 100% salary target amount (
-                    <strong>{formatInr(calcResult.target)}</strong>) itself. Incentive applies only to the amount
-                    disbursed in excess of the salary target. Monthly total disbursed:{' '}
-                    <strong>{formatInr(calcResult.total)}</strong>
-                    {calcResult.total < calcResult.target && (
-                      <span> (short of target by {formatInr(calcResult.target - calcResult.total)})</span>
-                    )}
-                    .
-                  </Alert>
-                )}
-
-                {/* Calculation Output Data */}
-                {!calcResult.err && (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {/* 5 KPI Metric Cards */}
-                    <Grid container spacing={2}>
-                      <Grid item xs={6} sm={4} md={2.4}>
-                        <Paper variant='outlined' sx={{ p: 2, borderRadius: 2 }}>
-                          <Typography variant='caption' color='text.secondary'>
-                            Total Disbursed
-                          </Typography>
-                          <Typography variant='subtitle1' fontWeight={700} color='text.primary' sx={{ mt: 0.5 }}>
-                            {formatInr(calcResult.total)}
-                          </Typography>
-                        </Paper>
-                      </Grid>
-
-                      <Grid item xs={6} sm={4} md={2.4}>
-                        <Paper variant='outlined' sx={{ p: 2, borderRadius: 2 }}>
-                          <Typography variant='caption' color='text.secondary'>
-                            Eligibility Target
-                          </Typography>
-                          <Typography variant='subtitle1' fontWeight={700} color='text.primary' sx={{ mt: 0.5 }}>
-                            {formatInr(calcResult.target)}
-                          </Typography>
-                        </Paper>
-                      </Grid>
-
-                      <Grid item xs={6} sm={4} md={2.4}>
-                        <Paper variant='outlined' sx={{ p: 2, borderRadius: 2 }}>
-                          <Typography variant='caption' color='text.secondary'>
-                            Extra Amount (Base)
-                          </Typography>
-                          <Typography variant='subtitle1' fontWeight={700} color='text.primary' sx={{ mt: 0.5 }}>
-                            {formatInr(calcResult.extra)}
-                          </Typography>
-                        </Paper>
-                      </Grid>
-
-                      <Grid item xs={6} sm={4} md={2.4}>
-                        <Paper variant='outlined' sx={{ p: 2, borderRadius: 2 }}>
-                          <Typography variant='caption' color='text.secondary'>
-                            Incentive Rate
-                          </Typography>
-                          <Typography variant='subtitle1' fontWeight={700} color='text.primary' sx={{ mt: 0.5 }}>
-                            0.60%
-                          </Typography>
-                        </Paper>
-                      </Grid>
-
-                      <Grid item xs={12} sm={4} md={2.4}>
-                        <Paper
-                          variant='outlined'
-                          sx={{
-                            p: 2,
-                            borderRadius: 2,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            borderColor: alpha(theme.palette.primary.main, 0.3)
-                          }}
-                        >
-                          <Typography variant='caption' color='primary.main' fontWeight={600}>
-                            Total Incentive Pool
-                          </Typography>
-                          <Typography variant='subtitle1' fontWeight={800} color='primary.main' sx={{ mt: 0.5 }}>
-                            {formatInr(calcResult.pool)}
-                          </Typography>
-                        </Paper>
-                      </Grid>
-                    </Grid>
-
-                    {/* Hero Highlight Banner */}
-                    {calcResult.rows && calcResult.rows.length > 0 && (
-                      <Paper
-                        elevation={0}
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12} sm={6}>
+                      <Button
+                        fullWidth
+                        variant={rep === 'tl' ? 'contained' : 'outlined'}
+                        onClick={() => setRep('tl')}
                         sx={{
-                          p: 3,
-                          borderRadius: 2,
-                          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.95)} 0%, ${alpha(
-                            theme.palette.primary.dark || '#5b21b6',
-                            0.95
-                          )} 100%)`,
-                          color: '#ffffff'
+                          py: 1.5,
+                          borderRadius: 2.5,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          fontSize: '0.85rem'
                         }}
                       >
-                        <Typography variant='body2' sx={{ opacity: 0.9 }}>
-                          Loan Originator Incentive for the Month ({calcResult.rows[0].r})
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, mt: 1, flexWrap: 'wrap' }}>
-                          <Typography variant='h4' fontWeight={800} sx={{ color: '#fff' }}>
-                            {formatInr(calcResult.rows[0].a)}
-                          </Typography>
-                          <Typography variant='body2' sx={{ opacity: 0.9 }}>
-                            ·{' '}
-                            {calcResult.pool > 0
-                              ? ((calcResult.rows[0].a / calcResult.pool) * 100).toFixed(2) + '%'
-                              : '—'}{' '}
-                            of {formatInr(calcResult.pool)} Pool
-                          </Typography>
-                        </Box>
-                      </Paper>
-                    )}
+                        A TL (TL is in between)
+                      </Button>
+                    </Grid>
 
-                    {/* Table 1: Combined Incentive Breakdown */}
-                    <Box>
-                      <Typography variant='subtitle2' fontWeight={700} sx={{ mb: 1.5 }}>
-                        Combined Incentive Breakdown
-                      </Typography>
-                      <TableContainer component={Paper} variant='outlined' sx={{ borderRadius: 2 }}>
-                        <Table size='small'>
-                          <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-                              <TableCell sx={{ fontWeight: 700 }}>Responsibility</TableCell>
-                              <TableCell align='right' sx={{ fontWeight: 700 }}>
-                                Combined Incentive
-                              </TableCell>
-                              <TableCell align='right' sx={{ fontWeight: 700 }}>
-                                Share of Pool
-                              </TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {calcResult.rows?.map((x: any, idx: number) => {
-                              const isOrig = x.resp === 'Loan Originator'
-                              const share =
-                                calcResult.pool > 0
-                                  ? ((x.a / calcResult.pool) * 100).toFixed(2) + '%'
-                                  : '—'
-                              return (
-                                <TableRow
-                                  key={idx}
-                                  sx={{
-                                    bgcolor: isOrig ? alpha(theme.palette.primary.main, 0.08) : undefined,
-                                    '&:last-child td, &:last-child th': { border: 0 }
-                                  }}
-                                >
-                                  <TableCell sx={{ fontWeight: isOrig ? 700 : 500 }}>
-                                    {x.r} {isOrig && <Chip label='Originator' size='small' color='primary' sx={{ ml: 1, height: 20, fontSize: 11 }} />}
-                                  </TableCell>
-                                  <TableCell>{x.resp}</TableCell>
-                                  <TableCell align='right' sx={{ fontWeight: 700, color: isOrig ? 'primary.main' : 'text.primary' }}>
-                                    {formatInr(x.a)}
-                                  </TableCell>
-                                  <TableCell align='right' sx={{ color: 'text.secondary' }}>
-                                    {share}
-                                  </TableCell>
-                                </TableRow>
-                              )
-                            })}
-                            <TableRow sx={{ bgcolor: alpha(theme.palette.action.hover, 0.3) }}>
-                              <TableCell sx={{ fontWeight: 800 }}>Total</TableCell>
-                              <TableCell sx={{ color: 'text.secondary' }}>—</TableCell>
-                              <TableCell align='right' sx={{ fontWeight: 800, color: 'primary.main' }}>
-                                {formatInr(calcResult.rows?.reduce((s: number, x: any) => s + x.a, 0) || 0)}
-                              </TableCell>
-                              <TableCell align='right' sx={{ fontWeight: 800 }}>
-                                {calcResult.pool > 0 ? '100%' : '—'}
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
+                    <Grid item xs={12} sm={6}>
+                      <Button
+                        fullWidth
+                        variant={rep === 'mg' ? 'contained' : 'outlined'}
+                        onClick={() => setRep('mg')}
+                        sx={{
+                          py: 1.5,
+                          borderRadius: 2.5,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        Directly TL/Manager
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 3. Employee's monthly salary (only if Employee) */}
+            {isEmp && (
+              <Card sx={{ borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip label="3" size="small" color="primary" sx={{ fontWeight: 800, height: 22, width: 22 }} />
+                    Employee’s monthly salary (₹)
+                  </Typography>
+
+                  <TextField
+                    fullWidth
+                    type="number"
+                    value={sal}
+                    onChange={(e) => setSal(e.target.value)}
+                    placeholder="e.g. 18000"
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">₹</InputAdornment>
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2.5,
+                        fontSize: '1.1rem',
+                        fontWeight: 600
+                      }
+                    }}
+                  />
+
+                  {s > 0 && (
+                    <Box
+                      sx={{
+                        mt: 1.5,
+                        p: 1.5,
+                        borderRadius: 2,
+                        backgroundColor: '#eff6ff',
+                        color: '#1e40af',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        border: '1px solid #bfdbfe'
+                      }}
+                    >
+                      Target (justification) = salary × {rates.mult} = <strong>{rs(s * rates.mult)}</strong>
                     </Box>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
-                    {/* Table 2: Disbursal-wise detail */}
-                    <Box>
-                      <Typography variant='subtitle2' fontWeight={700}>
-                        Disbursal-Wise Detail
-                      </Typography>
-                      <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1.5 }}>
-                        Incentive counts only after the salary target is reached, filling in the order of the disbursals.
-                      </Typography>
+            {/* 4. Total amount disbursed */}
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip label={isEmp ? '4' : '2'} size="small" color="primary" sx={{ fontWeight: 800, height: 22, width: 22 }} />
+                  Total amount disbursed (₹)
+                </Typography>
 
-                      <TableContainer component={Paper} variant='outlined' sx={{ borderRadius: 2 }}>
-                        <Table size='small'>
-                          <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 700 }}>#</TableCell>
-                              <TableCell align='right' sx={{ fontWeight: 700 }}>
-                                Disbursed
-                              </TableCell>
-                              <TableCell align='right' sx={{ fontWeight: 700 }}>
-                                Counted For Incentive
-                              </TableCell>
-                              <TableCell align='right' sx={{ fontWeight: 700 }}>
-                                Pool
-                              </TableCell>
-                              <TableCell sx={{ fontWeight: 700 }}>Loan Originator</TableCell>
-                              <TableCell sx={{ fontWeight: 700 }}>Loan Contributor</TableCell>
-                              <TableCell sx={{ fontWeight: 700 }}>Hierarchy</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {calcResult.per?.map((x: any, idx: number) => {
-                              const renderRoleList = (arr: any[]) =>
-                                arr && arr.length > 0 ? (
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    {arr.map((q, qi) => (
-                                      <Typography key={qi} variant='caption'>
-                                        {q.r}: <strong>{formatInr(q.a)}</strong>
-                                      </Typography>
-                                    ))}
-                                  </Box>
-                                ) : (
-                                  <Typography variant='caption' color='text.disabled'>
-                                    none
-                                  </Typography>
-                                )
+                <TextField
+                  fullWidth
+                  type="number"
+                  value={dis}
+                  onChange={(e) => setDis(e.target.value)}
+                  placeholder="e.g. 9000000"
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">₹</InputAdornment>
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2.5,
+                      fontSize: '1.1rem',
+                      fontWeight: 600
+                    }
+                  }}
+                />
 
-                              return (
-                                <TableRow key={idx} hover>
-                                  <TableCell sx={{ fontWeight: 600 }}>{x.n}</TableCell>
-                                  <TableCell align='right'>{formatInr(x.lp)}</TableCell>
-                                  <TableCell align='right'>{formatInr(x.el)}</TableCell>
-                                  <TableCell align='right' sx={{ fontWeight: 700, color: 'primary.main' }}>
-                                    {formatInr(x.p)}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Typography variant='caption'>
-                                      {x.orig || orig}: <strong>{formatInr(x.o)}</strong>
-                                    </Typography>
-                                  </TableCell>
-                                  <TableCell>
-                                    {x.con ? renderRoleList(x.cr || []) : <Typography variant='caption' color='text.disabled'>none</Typography>}
-                                  </TableCell>
-                                  <TableCell>{renderRoleList(x.hr || [])}</TableCell>
-                                </TableRow>
-                              )
-                            })}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
-
-                    {/* Save Record Action - visible to admin */}
-                    {isAdmin && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                        <Button
-                          variant='contained'
-                          color='primary'
-                          startIcon={<SaveIcon />}
-                          onClick={handleSaveLoanRecord}
-                          sx={{ textTransform: 'none', fontWeight: 600 }}
-                        >
-                          Save Monthly Record with Applied Rule
-                        </Button>
-                        {saveLoanSuccess && (
-                          <Chip
-                            icon={<CheckCircleIcon />}
-                            label={saveLoanSuccess}
-                            color='success'
-                            variant='outlined'
-                            sx={{ fontWeight: 600 }}
-                          />
-                        )}
-                      </Box>
-                    )}
+                {d > 0 && (
+                  <Box
+                    sx={{
+                      mt: 1.5,
+                      p: 1.5,
+                      borderRadius: 2,
+                      backgroundColor: '#ecfdf5',
+                      color: '#065f46',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      border: '1px solid #a7f3d0'
+                    }}
+                  >
+                    = {words(d)} ({rs(d)})
                   </Box>
                 )}
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         </Grid>
-      )}
 
-      {/* ============================================================== */}
-      {/* TAB 1: COMMISSION SETTINGS (Admin Only) */}
-      {/* ============================================================== */}
-      {isAdmin && activeTab === 1 && (
-        <Grid container spacing={4}>
-          <Grid item xs={12}>
-            <Alert severity='info' sx={{ mb: 1 }}>
-              Administrator Area (stored in this browser). The Loan Originator (RE, Individual TL, Individual Manager, TL, Manager or ASM) receives whatever is left after the Contributor and Hierarchy shares.
-            </Alert>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Card variant='outlined' sx={{ borderRadius: 2 }}>
-              <CardHeader
-                title='Commission Rule Configuration'
-                subheader='Define baseline share percentages across roles'
-                titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              />
-              <Divider />
-              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      type='number'
-                      label='Loan Contributor %'
-                      helperText='Always paid when a Contributor is selected'
-                      value={cfgC}
-                      onChange={e => {
-                        setCfgC(e.target.value)
-                        setSettingsFeedback(null)
+        {/* RIGHT COLUMN: RESULTS & EXPLANATIONS */}
+        <Grid item xs={12} lg={7}>
+          {!hasInputs ? (
+            <Card
+              sx={{
+                borderRadius: 3,
+                p: 5,
+                textAlign: 'center',
+                border: '2px dashed #93c5fd',
+                backgroundColor: '#f8faff',
+                boxShadow: 'none'
+              }}
+            >
+              <InfoOutlinedIcon sx={{ fontSize: 48, color: '#3b82f6', mb: 1 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e3a8a' }}>
+                Fill in the amounts above
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
+                Enter the monthly salary and total disbursed loan amount to calculate incentives.
+              </Typography>
+            </Card>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              {/* Payout Cards */}
+              <Grid container spacing={2}>
+                {R.map((item, idx) => (
+                  <Grid item xs={12} sm={R.length === 1 ? 12 : R.length === 2 ? 6 : 4} key={idx}>
+                    <Card
+                      sx={{
+                        borderRadius: 3,
+                        p: 2.5,
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 4,
+                          backgroundColor: item.color
+                        }
                       }}
-                      InputProps={{
-                        endAdornment: <InputAdornment position='end'>%</InputAdornment>
-                      }}
-                    />
+                    >
+                      <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>
+                        {item.title} gets
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f766e', mt: 0.5 }}>
+                        {rs(item.amount)}
+                      </Typography>
+                    </Card>
                   </Grid>
+                ))}
+              </Grid>
 
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      type='number'
-                      label='Hierarchy Pool %'
-                      helperText='Split equally among selected hierarchy roles'
-                      value={cfgH}
-                      onChange={e => {
-                        setCfgH(e.target.value)
-                        setSettingsFeedback(null)
-                      }}
-                      InputProps={{
-                        endAdornment: <InputAdornment position='end'>%</InputAdornment>
-                      }}
-                    />
-                  </Grid>
+              {/* How it was worked out */}
+              <Card sx={{ borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+                <CardHeader
+                  title="How it was worked out"
+                  titleTypographyProps={{ variant: 'h6', fontWeight: 700 }}
+                  sx={{ pb: 1 }}
+                />
+                <Divider />
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3 }}>
+                    {N.map((line, idx) => {
+                      const sepIdx = line.indexOf(':')
+                      const boldPart = sepIdx >= 0 ? line.slice(0, sepIdx) : ''
+                      const restPart = sepIdx >= 0 ? line.slice(sepIdx + 1) : line
+                      return (
+                        <Box
+                          key={idx}
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 2,
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            fontSize: '0.875rem',
+                            color: '#334155',
+                            lineHeight: 1.6
+                          }}
+                        >
+                          {boldPart ? <strong>{boldPart}:</strong> : null} {restPart}
+                        </Box>
+                      )
+                    })}
+                  </Box>
 
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      disabled
-                      label='Originator % (Remainder)'
-                      helperText='Remainder allocated to Loan Originator'
-                      value={`${originatorRemainder}%`}
-                    />
-                  </Grid>
-                </Grid>
-
-                <Alert
-                  severity={originatorRemainder >= 0 ? 'success' : 'error'}
-                  sx={{ mt: 1 }}
-                >
-                  {originatorRemainder >= 0
-                    ? `Originator receives ${originatorRemainder}% when both Contributor and Hierarchy are selected. (Total equals 100% ✓)`
-                    : 'Contributor % + Hierarchy % exceed 100%! Please adjust the values.'}
-                </Alert>
-
-                <Paper variant='outlined' sx={{ p: 2.5, borderRadius: 2, bgcolor: alpha(theme.palette.action.hover, 0.2) }}>
-                  <Typography variant='caption' color='text.secondary' sx={{ lineHeight: 1.8 }}>
-                    <strong>Standard Company Incentive Rule:</strong><br />
-                    1) <strong>Only RE:</strong> RE receives <strong>100%</strong> of the incentive pool (when no Contributor &amp; no Hierarchy).<br />
-                    2) <strong>RE + Contributor (TL / Manager / ASM / Director):</strong><br />
-                    &nbsp;&nbsp;&nbsp;&nbsp;• <strong>RE (Originator):</strong> <strong>70%</strong><br />
-                    &nbsp;&nbsp;&nbsp;&nbsp;• <strong>Contributor:</strong> <strong>20%</strong><br />
-                    &nbsp;&nbsp;&nbsp;&nbsp;• <strong>Hierarchy:</strong> <strong>10%</strong> (Split equally among selected hierarchy roles).<br />
-                    3) <strong>Director as Contributor:</strong> Allowed to select intermediary roles (TL, Manager, ASM) in Hierarchy.<br />
-                    4) <strong>Target Requirement:</strong> Disbursals count towards incentive only on the monthly amount in excess of the salary target (Salary × 200).
-                  </Typography>
-                </Paper>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Button
-                    variant='contained'
-                    color='primary'
-                    startIcon={<SaveIcon />}
-                    onClick={handleSaveCommission}
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
-                  >
-                    Save Commission Rule
-                  </Button>
-                  {settingsFeedback && (
-                    <Chip
-                      label={settingsFeedback.text}
-                      color={settingsFeedback.ok ? 'success' : 'error'}
-                      variant='outlined'
-                      sx={{ fontWeight: 600 }}
-                    />
+                  {/* Employee Slab Table */}
+                  {empTableRows && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: '#475569' }}>
+                        Employee Slab Breakdown
+                      </Typography>
+                      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
+                        <Table size="small">
+                          <TableHead sx={{ backgroundColor: '#f1f5f9' }}>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 700 }}>Slab (disbursed between)</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>Business in slab</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>Rate</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>Incentive</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {empTableRows.map((row, i) => (
+                              <TableRow key={i} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                                <TableCell sx={{ fontWeight: 500 }}>
+                                  {rs(row.lo)} to {isFinite(row.hi) ? rs(row.hi) : 'above'}
+                                </TableCell>
+                                <TableCell align="right">{rs(row.b)}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 600, color: '#2563eb' }}>
+                                  {+row.r.toFixed(2)}%
+                                </TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700, color: '#0f766e' }}>
+                                  {rs(row.a)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
                   )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
 
-      {/* ============================================================== */}
-      {/* TAB 2: HISTORY (Admin Only) */}
-      {/* ============================================================== */}
-      {isAdmin && activeTab === 2 && (
-        <Grid container spacing={4}>
-          {/* Rule Change History */}
-          <Grid item xs={12}>
-            <Card variant='outlined' sx={{ borderRadius: 2 }}>
-              <CardHeader
-                title='Rule Change History'
-                titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              />
-              <Divider />
-              <CardContent>
-                {appState.hist.length > 0 ? (
-                  <TableContainer component={Paper} variant='outlined' sx={{ borderRadius: 2 }}>
-                    <Table size='small'>
-                      <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Date &amp; Time</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Before</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>After</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {appState.hist.map((item, idx) => (
-                          <TableRow key={idx} hover>
-                            <TableCell sx={{ fontWeight: 500 }}>
-                              {new Date(item.t).toLocaleString('en-IN')}
-                            </TableCell>
-                            <TableCell sx={{ color: 'text.secondary' }}>{cfgTxt(item.before)}</TableCell>
-                            <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>
-                              {cfgTxt(item.after)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                ) : (
-                  <Typography variant='body2' color='text.secondary'>
-                    No rule changes yet. Active rule: <strong>{cfgTxt(appState.cfg)}</strong>
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Saved Loan Records */}
-          <Grid item xs={12}>
-            <Card variant='outlined' sx={{ borderRadius: 2 }}>
-              <CardHeader
-                title='Saved Loan Records'
-                titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              />
-              <Divider />
-              <CardContent>
-                {appState.loans.length > 0 ? (
-                  <TableContainer component={Paper} variant='outlined' sx={{ borderRadius: 2 }}>
-                    <Table size='small'>
-                      <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Timestamp</TableCell>
-                          <TableCell align='right' sx={{ fontWeight: 700 }}>
-                            Total Loan
-                          </TableCell>
-                          <TableCell align='right' sx={{ fontWeight: 700 }}>
-                            Pool
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Scenario</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Applied Rule Snapshot</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {appState.loans.map((record, idx) => (
-                          <TableRow key={idx} hover>
-                            <TableCell sx={{ fontWeight: 500 }}>
-                              {new Date(record.t).toLocaleString('en-IN')}
-                            </TableCell>
-                            <TableCell align='right' sx={{ fontWeight: 600 }}>
-                              {formatInr(record.loan)}
-                            </TableCell>
-                            <TableCell align='right' sx={{ fontWeight: 700, color: 'primary.main' }}>
-                              {formatInr(record.pool)}
-                            </TableCell>
-                            <TableCell>{record.scn}</TableCell>
-                            <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>
-                              {cfgTxt(record.cfg)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                ) : (
-                  <Typography variant='body2' color='text.secondary'>
-                    No loans saved yet. You can save monthly calculations from the Calculator tab.
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
+                  {/* Manager Slab Table (if Direct reporting) */}
+                  {mgrTableRows && (
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: '#475569' }}>
+                        Manager (Direct Reporting) Slab Breakdown
+                      </Typography>
+                      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
+                        <Table size="small">
+                          <TableHead sx={{ backgroundColor: '#f1f5f9' }}>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 700 }}>Slab (disbursed between)</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>Business in slab</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>Rate</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>Incentive</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {mgrTableRows.map((row, i) => (
+                              <TableRow key={i} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                                <TableCell sx={{ fontWeight: 500 }}>
+                                  {rs(row.lo)} to {isFinite(row.hi) ? rs(row.hi) : 'above'}
+                                </TableCell>
+                                <TableCell align="right">{rs(row.b)}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 600, color: '#7c3aed' }}>
+                                  {+row.r.toFixed(2)}%
+                                </TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700, color: '#0f766e' }}>
+                                  {rs(row.a)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Box>
+          )}
         </Grid>
-      )}
+
+        {/* BOTTOM ACCORDION: CHANGE RATES (OPTIONAL) */}
+        <Grid item xs={12}>
+          <Accordion
+            sx={{
+              borderRadius: '12px !important',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+              '&::before': { display: 'none' }
+            }}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography sx={{ fontWeight: 700, color: '#334155' }}>
+                Change rates (optional)
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ pt: 1, pb: 3 }}>
+              <Grid container spacing={2}>
+                {(Object.keys(D) as Array<keyof RateConfig>).map((key) => (
+                  <Grid item xs={12} sm={6} md={3} key={key}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="number"
+                      label={LB[key]}
+                      value={rates[key]}
+                      onChange={(e) => handleRateChange(key, e.target.value)}
+                      inputProps={{ step: 'any' }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2
+                        }
+                      }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+
+              <Alert severity="info" sx={{ mt: 2.5, borderRadius: 2 }}>
+                TL own, manager own and manager-on-TL-own rates are flat % of the amount disbursed, taken from the sheet and not from policy.
+              </Alert>
+
+              <Box sx={{ mt: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  size="small"
+                  onClick={handleResetRates}
+                  startIcon={<RestartAltIcon />}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                >
+                  Reset rates
+                </Button>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        </Grid>
+      </Grid>
     </Box>
   )
 }

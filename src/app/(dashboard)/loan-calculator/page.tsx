@@ -1,8 +1,8 @@
 import LoanIncentiveCalculator from '@/views/LoanIncentiveCalculator'
 
 export const metadata = {
-  title: 'Loan Incentive Calculator',
-  description: 'Loan Originator, Contributor and Hierarchy Incentive Calculator'
+  title: 'F2 Incentive Calculator',
+  description: 'F2 Incentive Calculator'
 }
 
 export default function LoanCalculatorPage() {
