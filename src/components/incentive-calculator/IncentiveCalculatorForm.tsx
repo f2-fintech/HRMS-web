@@ -1,44 +1,50 @@
 "use client";
 
 import { useState } from "react";
-
 import {
-    TDS_RATE,
-    fmtShort,
+    IncentiveRatesConfig,
+    DEFAULT_RATES,
+    RATE_LABELS,
+    CalculationResult,
+    SlabRow,
+    rs,
+    words,
     fmtFull,
-    PHASE_COLORS,
+    normalizeRole,
 } from "@/utils/Incentive-calculator/calculations";
 
 type Props = {
     role: string;
+    setRole: (v: string) => void;
+    reporting: string;
+    setReporting: (v: string) => void;
     salary: number;
     setSalary: (v: number) => void;
     disbursed: number;
     setDisbursed: (v: number) => void;
-    managerFileType: string;
-    setManagerFileType: (v: string) => void;
-    result: any;
-    activeRole: any;
+    ratesConfig: IncentiveRatesConfig;
+    setRatesConfig: (cfg: IncentiveRatesConfig) => void;
+    result: CalculationResult;
     currentTarget: any;
     hasSavedTarget: boolean;
     saving: boolean;
     loading: boolean;
     saveIncentiveTarget: (data: any) => Promise<void>;
     monthName: string;
-    clearIncentiveTargetState: () => void;
-    success: boolean;
 };
 
 export default function IncentiveCalculatorForm({
     role,
+    setRole,
+    reporting,
+    setReporting,
     salary,
     setSalary,
     disbursed,
     setDisbursed,
-    managerFileType,
-    setManagerFileType,
+    ratesConfig,
+    setRatesConfig,
     result,
-    activeRole,
     currentTarget,
     hasSavedTarget,
     saving,
@@ -52,35 +58,10 @@ export default function IncentiveCalculatorForm({
     const [btnFillPct, setBtnFillPct] = useState(0);
     const [btnSaving, setBtnSaving] = useState(false);
     const [btnDone, setBtnDone] = useState(false);
+    const [ratesOpen, setRatesOpen] = useState(false);
 
-    const gross = result?.grossIncentive || 0;
-    const tds = result?.tdsAmount || 0;
-    const net = result?.netIncentive || 0;
-    const justified = result?.justifiedSalary || 0;
-    const phases = result?.phases || [];
-    const belowThreshold = result?.belowThreshold;
-    const isManagerOwn = result?.isManagerOwn;
-
-    const maxDisbursed = Math.max(
-        activeRole?.hasSalary ? salary * 200 * 5 : 0,
-        disbursed * 1.2,
-        10000000
-    );
-
-    const maxSalary = 200000;
-    const disbursedPct = Math.min((disbursed / maxDisbursed) * 100, 100);
-    const salaryPct = Math.min((salary / maxSalary) * 100, 100);
-    const netRate = disbursed > 0 ? ((net / disbursed) * 100).toFixed(3) : "0.000";
-
-    const R = 52,
-        CX = 60,
-        CY = 60,
-        SW = 12;
-
-    const circ = 2 * Math.PI * R;
-    const grossArc = disbursed > 0 ? Math.min(gross / disbursed, 1) * circ : 0;
-    const tdsArc = disbursed > 0 ? Math.min(tds / disbursed, 1) * circ : 0;
-    const baseArc = justified > 0 && disbursed > 0 ? Math.min(justified / disbursed, 1) * circ : 0;
+    const { roleCode } = normalizeRole(role);
+    const isEmployee = roleCode === "emp";
 
     const runFillAnimation = (onComplete: () => void) => {
         setBtnFillPct(0);
@@ -88,14 +69,12 @@ export default function IncentiveCalculatorForm({
         setBtnDone(false);
 
         let start: number | null = null;
-        const duration = 1400;
+        const duration = 1200;
 
         const animate = (timestamp: number) => {
             if (!start) start = timestamp;
-
             const progress = timestamp - start;
             const pct = Math.min((progress / duration) * 100, 100);
-
             setBtnFillPct(pct);
 
             if (progress < duration) {
@@ -105,7 +84,6 @@ export default function IncentiveCalculatorForm({
                     setBtnSaving(false);
                     setBtnDone(true);
                     onComplete();
-
                     setTimeout(() => setBtnDone(false), 3000);
                 }, 150);
             }
@@ -123,26 +101,22 @@ export default function IncentiveCalculatorForm({
     const handleConfirmSave = () => {
         const entered = Number(confirmSalary);
 
-        if (activeRole?.hasSalary && !(role === "MANAGER" && managerFileType === "own")) {
+        if (isEmployee) {
             if (!confirmSalary || isNaN(entered) || entered <= 0) {
                 setSalaryError("Please enter a valid salary amount.");
-
                 return;
             }
 
             if (Math.abs(entered - salary) > salary * 0.05) {
                 setSalaryError(
-                    `Salary mismatch! Entered ₹${entered.toLocaleString(
-                        "en-IN"
-                    )} but calculator uses ₹${salary.toLocaleString("en-IN")}.`
+                    `Salary mismatch! Entered ₹${entered.toLocaleString("en-IN")} but calculator uses ₹${salary.toLocaleString("en-IN")}.`
                 );
-
                 return;
             }
         }
 
         const targetDisbursed = Math.round(disbursed);
-        const targetIncentive = Math.round(net);
+        const targetIncentive = Math.round(result.userNetIncentive);
 
         setShowConfirmModal(false);
         setSalaryError("");
@@ -150,7 +124,7 @@ export default function IncentiveCalculatorForm({
         runFillAnimation(async () => {
             await saveIncentiveTarget({
                 designation: role,
-                salary: activeRole?.hasSalary ? salary : null,
+                salary: isEmployee ? salary : null,
                 targetDisbursed,
                 targetIncentive,
                 achievedAmount: currentTarget?.achievedAmount || 0,
@@ -158,388 +132,507 @@ export default function IncentiveCalculatorForm({
         });
     };
 
+    const handleRateChange = (key: keyof IncentiveRatesConfig, value: string) => {
+        const num = parseFloat(value) || 0;
+        const updated = { ...ratesConfig, [key]: num };
+        setRatesConfig(updated);
+        try {
+            localStorage.setItem("f2s3", JSON.stringify(updated));
+        } catch { }
+    };
+
+    const handleResetRates = () => {
+        setRatesConfig({ ...DEFAULT_RATES });
+        try {
+            localStorage.setItem("f2s3", JSON.stringify(DEFAULT_RATES));
+        } catch { }
+    };
+
+    // Quick salary preset chips
+    const salaryPresets = [15000, 18000, 20000, 25000, 30000, 40000];
+    // Quick disbursed preset chips
+    const disbursedPresets = [
+        { label: "50L", val: 5000000 },
+        { label: "75L", val: 7500000 },
+        { label: "90L", val: 9000000 },
+        { label: "1Cr", val: 10000000 },
+        { label: "1.5Cr", val: 15000000 },
+        { label: "2Cr", val: 20000000 },
+    ];
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* LEFT – Inputs */}
-            <div className="bg-white rounded-2xl shadow-sm p-5 border border-slate-100">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-                    {activeRole?.icon} {activeRole?.label} Parameters
-                </p>
-
-                {role === "MANAGER" && (
-                    <div className="mb-5">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                File Type
-                            </span>
-                            <span
-                                className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                                style={{
-                                    background: managerFileType === "own" ? "#f5f3ff" : "#eff6ff",
-                                    color: managerFileType === "own" ? "#7c3aed" : "#2563eb",
-                                }}
-                            >
-                                {managerFileType === "own" ? "Flat 0.35%" : "Slab-based"}
-                            </span>
-                        </div>
-
-                        <select
-                            className="w-full p-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-indigo-400"
-                            value={managerFileType}
-                            onChange={(e) => setManagerFileType(e.target.value)}
-                        >
-                            <option value="team">📋 File from Team — Standard slab rates (0.10% start)</option>
-                            <option value="own">🙋 Own File — Flat 0.35% on full disbursed amount</option>
-                        </select>
-
-                        <div
-                            className={`mt-3 p-3 rounded-xl flex items-start gap-3 text-xs ${managerFileType === "own"
-                                ? "bg-violet-50 border border-violet-200 text-violet-800"
-                                : "bg-blue-50 border border-blue-100 text-blue-800"
-                                }`}
-                        >
-                            <span className="text-lg">{managerFileType === "own" ? "🙋" : "📋"}</span>
-                            <p>
-                                {managerFileType === "own"
-                                    ? "Own file: flat 0.35% on entire disbursed amount — no threshold"
-                                    : "Team file: slab-based from 0.10%, threshold = Salary × 200"}
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-                {activeRole?.hasSalary && !(role === "MANAGER" && managerFileType === "own") && (
-                    <div className="mb-5">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                Monthly Salary
-                            </span>
-                            <input
-                                type="number"
-                                value={salary}
-                                onChange={(e) => setSalary(Math.max(0, Number(e.target.value)))}
-                                className="w-32 p-2 text-right border border-slate-300 rounded-lg font-semibold"
-                            />
-                        </div>
-                        <div className="relative h-2 bg-slate-200 rounded-full">
-                            <div
-                                className="absolute h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
-                                style={{ width: `${salaryPct}%` }}
-                            />
-                            <input
-                                type="range"
-                                min={5000}
-                                max={maxSalary}
-                                step={1000}
-                                value={salary}
-                                onChange={(e) => setSalary(Number(e.target.value))}
-                                className="absolute inset-0 w-full opacity-0 cursor-pointer"
-                            />
-                        </div>
-                        <div className="flex justify-between text-xs text-slate-400 mt-1">
-                            <span>₹5,000</span>
-                            <span>{fmtShort(maxSalary)}</span>
-                        </div>
-                    </div>
-                )}
-
-                <div className="mb-5">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            Disbursed Amount
-                        </span>
-                        <input
-                            type="number"
-                            value={disbursed}
-                            onChange={(e) => setDisbursed(Math.max(0, Number(e.target.value)))}
-                            className="w-40 p-2 text-right border border-slate-300 rounded-lg font-semibold"
-                        />
-                    </div>
-                    <div className="relative h-2 bg-slate-200 rounded-full">
-                        <div
-                            className="absolute h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
-                            style={{ width: `${disbursedPct}%` }}
-                        />
-                        <input
-                            type="range"
-                            min={0}
-                            max={maxDisbursed}
-                            step={50000}
-                            value={disbursed}
-                            onChange={(e) => setDisbursed(Number(e.target.value))}
-                            className="absolute inset-0 w-full opacity-0 cursor-pointer"
-                        />
-                    </div>
-                    <div className="flex justify-between text-xs text-slate-400 mt-1">
-                        <span>₹0</span>
-                        <span>{fmtShort(maxDisbursed)}</span>
-                    </div>
+        <div className="space-y-4 [&_input::-webkit-outer-spin-button]:appearance-none [&_input::-webkit-inner-spin-button]:appearance-none [&_input[type=number]]:[-moz-appearance:textfield]">
+            {/* 1. ROLE SELECTION */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <div className="font-bold text-slate-800 mb-3 text-base flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-black flex items-center justify-center">1</span>
+                    Who disbursed the loan?
                 </div>
+                <div className="grid grid-cols-3 gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setRole("EMPLOYEE")}
+                        className={`py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 flex flex-col items-center gap-1 cursor-pointer
+                            ${roleCode === "emp"
+                                ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20"
+                                : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                            }`}
+                    >
+                        <span className="text-lg">👤</span>
+                        <span>Employee</span>
+                    </button>
 
-                {/* Info chips */}
-                <div className="flex flex-col gap-2.5">
-                    {activeRole?.hasSalary && !(role === "MANAGER" && managerFileType === "own") && (
-                        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm">
-                            <span>⚡</span>
-                            <div>
-                                <p className="font-bold text-amber-800">Justification Threshold</p>
-                                <p className="font-semibold tabular-nums">{fmtFull(justified)}</p>
-                            </div>
-                        </div>
-                    )}
+                    <button
+                        type="button"
+                        onClick={() => setRole("TEAM_LEADER")}
+                        className={`py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 flex flex-col items-center gap-1 cursor-pointer
+                            ${roleCode === "tl"
+                                ? "bg-cyan-600 border-cyan-600 text-white shadow-md shadow-cyan-500/20"
+                                : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                            }`}
+                    >
+                        <span className="text-lg">👥</span>
+                        <span>TL</span>
+                    </button>
 
-                    <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl p-3 text-sm">
-                        <span>🏛️</span>
-                        <p className="font-semibold text-rose-800">TDS @ {TDS_RATE * 100}% deducted</p>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setRole("MANAGER")}
+                        className={`py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 flex flex-col items-center gap-1 cursor-pointer
+                            ${roleCode === "mg"
+                                ? "bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-500/20"
+                                : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                            }`}
+                    >
+                        <span className="text-lg">🏢</span>
+                        <span>Manager</span>
+                    </button>
                 </div>
             </div>
 
-            {/* RIGHT – Result + Save */}
-            <div className="flex flex-col gap-4">
-                <div className="bg-white rounded-2xl shadow-sm p-5 border border-slate-100">
-                    {belowThreshold ? (
-                        <div className="py-10 text-center text-slate-500">
-                            <div className="text-5xl mb-4">📊</div>
-                            <p>Incentive starts after crossing threshold.</p>
-                            {role !== "SOURCER" && <p>Threshold = Salary × 200</p>}
+            {/* 2. REPORTING (VISIBLE ONLY FOR EMPLOYEE) */}
+            {isEmployee && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm transition-all animate-fadeIn">
+                    <div className="font-bold text-slate-800 mb-3 text-base flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-black flex items-center justify-center">2</span>
+                        Who does this employee report to?
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setReporting("tl")}
+                            className={`py-3 px-4 rounded-xl font-semibold text-sm transition-all border-2 text-left flex items-center justify-between cursor-pointer
+                                ${reporting === "tl"
+                                    ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20"
+                                    : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                                }`}
+                        >
+                            <span>A TL (TL is in between)</span>
+                            {reporting === "tl" && <span className="text-white text-base">✓</span>}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setReporting("mg")}
+                            className={`py-3 px-4 rounded-xl font-semibold text-sm transition-all border-2 text-left flex items-center justify-between cursor-pointer
+                                ${reporting === "mg"
+                                    ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20"
+                                    : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                                }`}
+                        >
+                            <span>Directly TL/Manager</span>
+                            {reporting === "mg" && <span className="text-white text-base">✓</span>}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* 3. SALARY INPUT (VISIBLE ONLY FOR EMPLOYEE) */}
+            {isEmployee && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm transition-all animate-fadeIn">
+                    <div className="font-bold text-slate-800 mb-3 text-base flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-black flex items-center justify-center">3</span>
+                            Employee’s monthly salary (₹)
                         </div>
-                    ) : (
-                        <>
-                            <div className="flex items-center gap-5 mb-5">
-                                {/* Circular progress */}
-                                <svg width={120} height={120} viewBox="0 0 120 120" className="shrink-0">
-                                    <circle cx={CX} cy={CY} r={R} fill="none" stroke="#f1f5f9" strokeWidth={SW} />
-                                    {baseArc > 0 && (
-                                        <circle
-                                            cx={CX}
-                                            cy={CY}
-                                            r={R}
-                                            fill="none"
-                                            stroke="#c7d2fe"
-                                            strokeWidth={SW}
-                                            strokeDasharray={`${baseArc} ${circ - baseArc}`}
-                                            strokeDashoffset={circ / 4}
-                                        />
-                                    )}
-                                    {grossArc > 0 && (
-                                        <circle
-                                            cx={CX}
-                                            cy={CY}
-                                            r={R}
-                                            fill="none"
-                                            stroke="url(#grossGrad)"
-                                            strokeWidth={SW}
-                                            strokeDasharray={`${grossArc} ${circ - grossArc}`}
-                                            strokeDashoffset={circ / 4 - baseArc}
-                                        />
-                                    )}
-                                    {tdsArc > 0 && (
-                                        <circle
-                                            cx={CX}
-                                            cy={CY}
-                                            r={R}
-                                            fill="none"
-                                            stroke="#f43f5e"
-                                            strokeWidth={SW}
-                                            strokeDasharray={`${tdsArc} ${circ - tdsArc}`}
-                                            strokeDashoffset={circ / 4 - baseArc}
-                                            opacity={0.7}
-                                        />
-                                    )}
-                                    <defs>
-                                        <linearGradient id="grossGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stopColor={activeRole?.color} />
-                                            <stop offset="100%" stopColor="#7C3AED" />
-                                        </linearGradient>
-                                    </defs>
-                                    <text
-                                        x={CX}
-                                        y={CY - 8}
-                                        textAnchor="middle"
-                                        fill="#94a3b8"
-                                        fontSize="7"
-                                        fontWeight="600"
-                                    >
-                                        NET RATE
-                                    </text>
-                                    <text
-                                        x={CX}
-                                        y={CY + 10}
-                                        textAnchor="middle"
-                                        fill={activeRole?.color}
-                                        fontSize="13"
-                                        fontWeight="bold"
-                                    >
-                                        {netRate}%
-                                    </text>
-                                </svg>
+                        <span className="text-sm font-extrabold text-blue-700 bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
+                            {rs(salary)}
+                        </span>
+                    </div>
 
-                                <div className="flex-1">
-                                    <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">
-                                        Gross Incentive
-                                    </p>
-                                    <p className="text-3xl font-bold" style={{ color: activeRole?.color }}>
-                                        {fmtFull(gross)}
-                                    </p>
+                    <div className="space-y-3">
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">₹</span>
+                            <input
+                                type="number"
+                                min="0"
+                                value={salary || ""}
+                                onChange={(e) => setSalary(Math.max(0, parseFloat(e.target.value) || 0))}
+                                placeholder="e.g. 18000"
+                                className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                            />
+                        </div>
 
-                                    <div className="mt-3 border border-slate-100 rounded-xl overflow-hidden">
-                                        <div className="flex justify-between items-center bg-rose-50 px-4 py-2 text-sm">
-                                            <span className="font-semibold text-rose-600">TDS (5%)</span>
-                                            <span className="font-bold text-rose-600">− {fmtFull(tds)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center bg-emerald-50 px-4 py-3 text-base">
-                                            <span className="font-bold text-emerald-700">Net Payout</span>
-                                            <span className="font-bold text-emerald-700">{fmtFull(net)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Save section */}
-                            <div className="mt-4 pt-4 border-t border-slate-100">
-                                <div className="flex items-center justify-between bg-slate-50 rounded-xl p-4 mb-4">
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-600">
-                                            {hasSavedTarget ? "Update preview" : "Target to save"}
-                                        </p>
-                                        <p className="text-2xl font-bold">{fmtFull(disbursed)}</p>
-                                        <p className="text-emerald-600">Net incentive: {fmtFull(net)}</p>
-                                    </div>
-                                    <span className="text-4xl">🎯</span>
-                                </div>
-
+                        {/* Quick Presets */}
+                        <div className="flex flex-wrap gap-2">
+                            {salaryPresets.map((amt) => (
                                 <button
-                                    onClick={handleOpenSaveModal}
-                                    disabled={saving || loading || btnSaving || btnDone}
-                                    className={`relative w-full py-3.5 px-6 rounded-xl font-bold text-white overflow-hidden transition-all
-                    ${btnDone ? "bg-emerald-600" : btnSaving ? "bg-slate-200 text-slate-700" : "bg-gradient-to-r from-indigo-500 to-violet-600 shadow-lg"}
-                  `}
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => setSalary(amt)}
+                                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer
+                                        ${salary === amt
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                        }`}
                                 >
-                                    <div
-                                        className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-700 transition-all duration-300"
-                                        style={{ width: btnSaving ? `${btnFillPct}%` : "0%" }}
-                                    />
-                                    <span className="relative z-10">
-                                        {btnDone
-                                            ? `✓ ${monthName} Saved!`
-                                            : btnSaving || saving
-                                                ? "Saving..."
-                                                : hasSavedTarget
-                                                    ? `✏️ Update ${monthName} Target`
-                                                    : `📌 Save ${monthName} Target`}
-                                    </span>
+                                    ₹{(amt / 1000)}k
                                 </button>
+                            ))}
+                        </div>
 
-                                <p className="text-center text-xs text-slate-400 mt-2">
-                                    Saves disbursement goal + net incentive to dashboard
-                                </p>
-                            </div>
-                        </>
+                        {/* Dynamic Hint */}
+                        <div className="text-xs font-medium text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            Target (justification) = salary × {ratesConfig.mult} = <strong className="text-blue-700">{rs(salary * ratesConfig.mult)}</strong>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 4. TOTAL DISBURSED AMOUNT */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <div className="font-bold text-slate-800 mb-3 text-base flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-black flex items-center justify-center">
+                            {isEmployee ? "4" : "2"}
+                        </span>
+                        Total amount disbursed (₹)
+                    </div>
+                    {disbursed > 0 && (
+                        <span className="text-sm font-extrabold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">
+                            {words(disbursed)}
+                        </span>
                     )}
                 </div>
 
-                {/* Phase Breakdown */}
-                {phases.length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-sm p-5 border border-slate-100">
-                        <div className="flex justify-between items-center mb-4">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                Phase Breakdown
-                            </p>
-                            <div className="flex gap-2">
-                                <span className="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full">
-                                    {phases.length} phase{phases.length > 1 ? "s" : ""}
-                                </span>
-                                {isManagerOwn && (
-                                    <span className="text-xs bg-violet-100 text-violet-700 px-2.5 py-1 rounded-full">
-                                        Own file
-                                    </span>
+                <div className="space-y-3">
+                    <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">₹</span>
+                        <input
+                            type="number"
+                            min="0"
+                            value={disbursed || ""}
+                            onChange={(e) => setDisbursed(Math.max(0, parseFloat(e.target.value) || 0))}
+                            placeholder="e.g. 9000000"
+                            className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                        />
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className="flex flex-wrap gap-2">
+                        {disbursedPresets.map((p) => (
+                            <button
+                                key={p.val}
+                                type="button"
+                                onClick={() => setDisbursed(p.val)}
+                                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer
+                                    ${disbursed === p.val
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    }`}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {disbursed > 0 && (
+                        <div className="text-xs font-semibold text-slate-600">
+                            = {words(disbursed)} ({rs(disbursed)})
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* RESULTS: WHO GETS WHAT */}
+            {(!disbursed || (isEmployee && !salary)) ? (
+                <div className="bg-blue-50 border border-dashed border-blue-300 rounded-2xl p-6 text-center text-blue-700 font-medium">
+                    Fill in the amounts above to see who gets what.
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {/* PAYOUT CARDS */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        {result.payouts.map((p, idx) => (
+                            <div
+                                key={idx}
+                                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between
+                                    ${p.roleCode === roleCode
+                                        ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300 shadow-md ring-2 ring-blue-500/20"
+                                        : "bg-white border-slate-200 shadow-sm"
+                                    }`}
+                            >
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                            {p.name} gets
+                                        </span>
+                                        {p.roleCode === roleCode && (
+                                            <span className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                                                You
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h3 className="text-2xl font-black text-emerald-700 tabular-nums">
+                                        {rs(p.amount)}
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">{p.rateText}</p>
+                                </div>
+
+                                {p.roleCode === roleCode && (
+                                    <div className="mt-3 pt-2.5 border-t border-slate-200/70 text-xs flex justify-between items-center">
+                                        <span className="text-slate-500">Net (after 5% TDS):</span>
+                                        <strong className="text-emerald-800 font-bold">{rs(p.net)}</strong>
+                                    </div>
                                 )}
                             </div>
+                        ))}
+                    </div>
+
+                    {/* SAVE TARGET ACTION BAR */}
+                    <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-4 sm:p-5 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
+                        <div>
+                            <p className="text-xs text-indigo-300 font-semibold uppercase tracking-wider">
+                                Target Set for {monthName}
+                            </p>
+                            <p className="text-base sm:text-lg font-bold text-white mt-0.5">
+                                Disbursed: <span className="text-amber-400">{rs(disbursed)}</span> · Net Incentive: <span className="text-emerald-400">{rs(result.userNetIncentive)}</span>
+                            </p>
                         </div>
 
-                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {phases.map((p: any, i: number) => (
-                                <div
-                                    key={p.phase}
-                                    className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors"
-                                >
-                                    <div
-                                        className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white shrink-0"
-                                        style={{ background: PHASE_COLORS[i % PHASE_COLORS.length] }}
-                                    >
-                                        {p.phase}
-                                    </div>
+                        <button
+                            type="button"
+                            onClick={handleOpenSaveModal}
+                            disabled={saving || loading || btnSaving}
+                            className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md
+                                ${btnDone
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
+                                }`}
+                        >
+                            {btnSaving ? (
+                                <span>Saving... {Math.round(btnFillPct)}%</span>
+                            ) : btnDone ? (
+                                <span>✓ Target Saved!</span>
+                            ) : (
+                                <span>{hasSavedTarget ? `Update Target (${monthName})` : `Save Target (${monthName})`}</span>
+                            )}
+                        </button>
+                    </div>
 
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-slate-500">
-                                            {fmtShort(p.from)} → {fmtShort(p.to)}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full rounded-full"
-                                                    style={{
-                                                        width: `${Math.min((p.incentive / gross) * 100, 100)}%`,
-                                                        background: PHASE_COLORS[i % PHASE_COLORS.length],
-                                                    }}
-                                                />
-                                            </div>
-                                            <span className="text-xs font-semibold text-slate-600">
-                                                {p.ratePercent.toFixed(2)}%
-                                            </span>
-                                        </div>
-                                    </div>
+                    {/* HOW IT WAS WORKED OUT */}
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                        <div className="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <span className="text-lg">💡</span>
+                            How it was worked out
+                        </div>
 
-                                    <div className="text-right">
-                                        <p className="font-bold text-slate-800">{fmtFull(p.incentive)}</p>
-                                        <p className="text-xs text-rose-500">−{fmtFull(p.incentive * TDS_RATE)}</p>
-                                    </div>
+                        <div className="space-y-2 text-sm text-slate-700 leading-relaxed">
+                            {result.explanations.map((note, idx) => (
+                                <p key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    {note}
+                                </p>
+                            ))}
+                        </div>
+
+                        {/* EMPLOYEE SLABS TABLE */}
+                        {isEmployee && result.employeeSlabs && disbursed > (salary * ratesConfig.mult) && (
+                            <div className="mt-4">
+                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                    Employee Slab Breakdown
+                                </div>
+                                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                                    <table className="w-full text-left text-xs sm:text-sm border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                                                <th className="py-2.5 px-3">Slab (disbursed between)</th>
+                                                <th className="py-2.5 px-3 text-right">Business in slab</th>
+                                                <th className="py-2.5 px-3 text-right">Rate</th>
+                                                <th className="py-2.5 px-3 text-right">Incentive</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {result.employeeSlabs.rows.map((r: SlabRow, idx: number) => (
+                                                <tr
+                                                    key={idx}
+                                                    className={r.business > 0 ? "bg-white hover:bg-slate-50/80" : "bg-slate-50/40 text-slate-400"}
+                                                >
+                                                    <td className="py-2.5 px-3 font-medium">
+                                                        {rs(r.lo)} to {isFinite(r.hi) ? rs(r.hi) : "above"}
+                                                    </td>
+                                                    <td className="py-2.5 px-3 text-right tabular-nums">
+                                                        {rs(r.business)}
+                                                    </td>
+                                                    <td className="py-2.5 px-3 text-right font-semibold text-blue-600">
+                                                        {r.rate.toFixed(2)}%
+                                                    </td>
+                                                    <td className="py-2.5 px-3 text-right font-bold text-emerald-700 tabular-nums">
+                                                        {rs(r.incentive)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            <tr className="bg-emerald-50/50 font-bold border-t-2 border-emerald-200 text-emerald-900">
+                                                <td className="py-2.5 px-3">Total Employee Incentive</td>
+                                                <td className="py-2.5 px-3 text-right"></td>
+                                                <td className="py-2.5 px-3 text-right"></td>
+                                                <td className="py-2.5 px-3 text-right text-base text-emerald-700">
+                                                    {rs(result.employeeSlabs.tot)}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MANAGER SLABS TABLE (WHEN REPORTING DIRECTLY TO MANAGER) */}
+                        {isEmployee && reporting === "mg" && result.managerSlabs && (
+                            <div className="mt-4">
+                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                    Manager (Direct Reporting) Slab Breakdown
+                                </div>
+                                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                                    <table className="w-full text-left text-xs sm:text-sm border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                                                <th className="py-2.5 px-3">Slab (disbursed between)</th>
+                                                <th className="py-2.5 px-3 text-right">Business in slab</th>
+                                                <th className="py-2.5 px-3 text-right">Rate</th>
+                                                <th className="py-2.5 px-3 text-right">Incentive</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {result.managerSlabs.rows.map((r: SlabRow, idx: number) => (
+                                                <tr
+                                                    key={idx}
+                                                    className={r.business > 0 ? "bg-white hover:bg-slate-50/80" : "bg-slate-50/40 text-slate-400"}
+                                                >
+                                                    <td className="py-2.5 px-3 font-medium">
+                                                        {rs(r.lo)} to {isFinite(r.hi) ? rs(r.hi) : "above"}
+                                                    </td>
+                                                    <td className="py-2.5 px-3 text-right tabular-nums">
+                                                        {rs(r.business)}
+                                                    </td>
+                                                    <td className="py-2.5 px-3 text-right font-semibold text-violet-600">
+                                                        {r.rate.toFixed(2)}%
+                                                    </td>
+                                                    <td className="py-2.5 px-3 text-right font-bold text-emerald-700 tabular-nums">
+                                                        {rs(r.incentive)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            <tr className="bg-violet-50/50 font-bold border-t-2 border-violet-200 text-violet-900">
+                                                <td className="py-2.5 px-3">Total Manager Incentive</td>
+                                                <td className="py-2.5 px-3 text-right"></td>
+                                                <td className="py-2.5 px-3 text-right"></td>
+                                                <td className="py-2.5 px-3 text-right text-base text-violet-700">
+                                                    {rs(result.managerSlabs.tot)}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* OPTIONAL RATES SETTINGS */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <button
+                    type="button"
+                    onClick={() => setRatesOpen(!ratesOpen)}
+                    className="w-full flex items-center justify-between font-bold text-slate-800 text-sm hover:text-blue-600 transition-colors cursor-pointer"
+                >
+                    <span className="flex items-center gap-2">
+                        <span>⚙️</span>
+                        Change rates (optional)
+                    </span>
+                    <span className="text-xs text-slate-400 font-semibold">
+                        {ratesOpen ? "Hide ▲" : "Configure ▼"}
+                    </span>
+                </button>
+
+                {ratesOpen && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-4 animate-fadeIn">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {(Object.keys(DEFAULT_RATES) as Array<keyof IncentiveRatesConfig>).map((key) => (
+                                <div key={key} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                        {RATE_LABELS[key]}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={ratesConfig[key]}
+                                        onChange={(e) => handleRateChange(key, e.target.value)}
+                                        className="w-full bg-white px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
                                 </div>
                             ))}
                         </div>
 
-                        <div className="mt-4 p-3 bg-gradient-to-r from-indigo-50 to-emerald-50 rounded-xl text-sm">
-                            <p className="text-slate-600">
-                                Gross: <strong>{fmtFull(gross)}</strong> − TDS:{" "}
-                                <strong>{fmtFull(tds)}</strong> = Net:{" "}
-                                <strong className="text-emerald-700">{fmtFull(net)}</strong>
-                            </p>
+                        <p className="text-xs text-slate-500 italic">
+                            TL own, manager own and manager-on-TL-own rates are flat % of the amount disbursed, taken from the sheet and not from policy.
+                        </p>
+
+                        <div>
+                            <button
+                                type="button"
+                                onClick={handleResetRates}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+                            >
+                                Reset rates
+                            </button>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Confirm Save Modal */}
+            {/* CONFIRM SAVE MODAL */}
             {showConfirmModal && (
                 <div
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                     onClick={(e) => e.target === e.currentTarget && setShowConfirmModal(false)}
                 >
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-                        <div className="h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500" />
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-scaleIn">
+                        <div className="h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600" />
 
                         <div className="p-6">
-                            <h3 className="text-xl font-bold mb-1">
-                                {hasSavedTarget ? `Update ${monthName}` : `Save ${monthName}`}
+                            <h3 className="text-xl font-bold mb-1 text-slate-800">
+                                {hasSavedTarget ? `Update Target for ${monthName}` : `Save Target for ${monthName}`}
                             </h3>
                             <p className="text-sm text-slate-500 mb-5">
-                                Confirm before {hasSavedTarget ? "updating" : "saving"}
+                                Confirm before {hasSavedTarget ? "updating" : "saving"} your monthly target
                             </p>
 
-                            <div className="bg-indigo-50/70 p-4 rounded-xl mb-6 border border-indigo-100">
-                                <p className="text-sm font-semibold text-indigo-700 mb-2">Will be saved</p>
-                                <div className="flex justify-between text-lg">
-                                    <span>Disbursement:</span>
-                                    <strong>{fmtFull(disbursed)}</strong>
+                            <div className="bg-blue-50/70 p-4 rounded-xl mb-6 border border-blue-100 space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-slate-600">Role:</span>
+                                    <strong className="text-slate-800 capitalize">{role.toLowerCase().replace('_', ' ')}</strong>
                                 </div>
-                                <div className="flex justify-between mt-2 text-lg">
-                                    <span>Net Incentive:</span>
-                                    <strong className="text-emerald-700">{fmtFull(net)}</strong>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-600">Target Disbursed:</span>
+                                    <strong className="text-slate-800">{rs(disbursed)}</strong>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-600">Net Incentive (after TDS):</span>
+                                    <strong className="text-emerald-700">{rs(result.userNetIncentive)}</strong>
                                 </div>
                             </div>
 
-                            {activeRole?.hasSalary && !(role === "MANAGER" && managerFileType === "own") && (
+                            {isEmployee && (
                                 <div className="mb-6">
                                     <label className="block text-sm font-semibold text-slate-600 mb-2">
                                         Re-enter salary to confirm
@@ -552,7 +645,7 @@ export default function IncentiveCalculatorForm({
                                             setSalaryError("");
                                         }}
                                         placeholder={`Current: ₹${salary.toLocaleString("en-IN")}`}
-                                        className={`w-full p-3.5 border ${salaryError ? "border-red-400" : "border-slate-300"} rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400`}
+                                        className={`w-full p-3.5 border ${salaryError ? "border-red-400" : "border-slate-300"} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400`}
                                         autoFocus
                                     />
                                     {salaryError && <p className="text-red-600 text-sm mt-2">{salaryError}</p>}
@@ -561,15 +654,17 @@ export default function IncentiveCalculatorForm({
 
                             <div className="flex gap-3">
                                 <button
+                                    type="button"
                                     onClick={() => setShowConfirmModal(false)}
-                                    className="flex-1 py-3 border border-slate-300 rounded-xl font-medium hover:bg-slate-50"
+                                    className="flex-1 py-3 border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
                                 >
                                     Cancel
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleConfirmSave}
                                     disabled={saving || loading}
-                                    className="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl hover:brightness-105 disabled:opacity-70"
+                                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:brightness-105 disabled:opacity-70 cursor-pointer shadow-md"
                                 >
                                     Confirm & {hasSavedTarget ? "Update" : "Save"}
                                 </button>
