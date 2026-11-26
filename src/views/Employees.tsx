@@ -192,23 +192,23 @@ export default function EmployeeGrid() {
       // PRESENT EMPLOYEES
       punchData?.forEach((item: any) => {
 
-        const empId = item.employee
+        const empId = (item.employee?._id || item.employee?.id || item.employee)?.toString()?.trim()
 
         if (!empId) return
         if (item.type === 'FIELD') {
-          statusMap[empId.toString()] = 'FIELD'
+          statusMap[empId] = 'FIELD'
           return
         }
 
         // PUNCH OUT DONE
         if (item.punchOut && item.punchOut !== '') {
 
-          statusMap[empId.toString()] = 'COMPLETED'
+          statusMap[empId] = 'COMPLETED'
 
         } else {
 
           // STILL ACTIVE
-          statusMap[empId.toString()] = 'PRESENT'
+          statusMap[empId] = 'PRESENT'
         }
       })
       leaveData?.employees?.forEach((item: any) => {
@@ -254,13 +254,24 @@ export default function EmployeeGrid() {
       )
 
       const breakData = await breakRes.json()
-      // BREAK
-      breakData?.forEach((item: any) => {
 
-        const empId = item.employee
+      const breakList = Array.isArray(breakData)
+        ? breakData
+        : breakData?.breaks || breakData?.data || []
+
+      // BREAK
+      breakList?.forEach((item: any) => {
+
+        const empId = (item.employee?._id || item.employee?.id || item.employee)?.toString()?.trim()
 
         if (empId) {
-          statusMap[empId.toString()] = 'BREAK'
+          const type = (item.type || item.breakType || '').toLowerCase()
+
+          if (type === 'on_field' || type.includes('field')) {
+            statusMap[empId] = 'FIELD'
+          } else {
+            statusMap[empId] = 'BREAK'
+          }
         }
       })
 
