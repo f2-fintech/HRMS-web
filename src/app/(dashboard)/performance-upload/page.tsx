@@ -1698,7 +1698,7 @@ export default function PerformanceUploadPage() {
                       Gross Disbursal (₹)
                     </TableCell>
                     <TableCell align="center" sx={{ fontWeight: 800, color: 'white' }}>
-                      Team Total
+                      Teams
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 800, color: 'white' }}>
                       Actions
